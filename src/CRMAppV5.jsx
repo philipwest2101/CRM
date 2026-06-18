@@ -9719,6 +9719,12 @@ const WorkflowRulesSection = ({ role }) => {
                   )}
                 </div>
 
+                {/* Edit / Delete — always available (Super Admin), works for inactive rules too */}
+                <button onClick={()=>{ setEditId(r.id); setShowNew(true); }} title="Edit rule"
+                  style={{ padding:"5px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0 }}>✏️ Edit</button>
+                <button onClick={()=>deleteRule(r.id)} title="Delete rule"
+                  style={{ padding:"5px 10px",borderRadius:7,border:`1px solid ${C.red}30`,background:C.red+"06",color:C.red,fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0 }}>🗑 Delete</button>
+
                 {/* Toggle — blocked if template is inactive */}
                 <div onClick={()=>{
                   if(!r.active && hasEmail && tpl && tpl.published===false){
@@ -9788,8 +9794,6 @@ const WorkflowRulesSection = ({ role }) => {
                       : <span style={{ fontSize:10,fontWeight:700,color:C.muted,padding:"2px 8px",borderRadius:8,background:C.light,border:`1px solid ${C.border}` }}>⏱ {r.delay} {r.delayUnit}</span>
                     }
                     <span style={{ fontSize:10,color:C.muted }}>→ {(r.roles||[]).map(ro=>({gp:"GP",vd:"VD",superadmin:"SA",manager:"PO"}[ro]||ro)).join(", ")||"System"}</span>
-                    <button onClick={()=>{ setEditId(r.id); setShowNew(true); }}
-                      style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:11,fontWeight:600,cursor:"pointer" }}>✏️ Edit</button>
                     <button onClick={()=>{
                       const actions=[]; const tpl=EMAIL_TEMPLATES_STORE.find(t=>t.id===r.emailTemplateId);
                       if(hasStatus && statusMeta) actions.push(`🔄 Status set: "${statusMeta.label}"`);
@@ -9798,8 +9802,6 @@ const WorkflowRulesSection = ({ role }) => {
                       if(hasPush) actions.push(`📱 Push: "${r.name} — Test Lead"`);
                       setTestLog(prev=>[{id:Date.now(),rule:r.name,trigger:trig.label,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),actions,lead:"Test Lead (Anna Muster)"},...prev.slice(0,9)]);
                     }} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.green}30`,background:C.green+"06",color:C.green,fontSize:11,fontWeight:600,cursor:"pointer" }}>▶ Test</button>
-                    <button onClick={()=>deleteRule(r.id)}
-                      style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.red}30`,background:C.red+"06",color:C.red,fontSize:11,fontWeight:600,cursor:"pointer" }}>Delete</button>
                   </div>
                 </div>
               )}
