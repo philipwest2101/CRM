@@ -9281,9 +9281,16 @@ const TRIGGER_CATEGORY = {
   consent_withdrawn:"compliance",
 };
 
+// Soft compliance guardrails per trigger — surfaced as a warning in the modal,
+// never blocking (the Super Admin can still proceed deliberately).
+const TRIGGER_COMPLIANCE = {
+  consent_withdrawn: {
+    leadEmail: "This event means the lead opted out / is Do-Not-Contact. Emailing the lead may violate GDPR — consider notifying internal roles instead.",
+  },
+};
+
 // Staff roles a rule can target (PO intentionally omitted for now).
 const RULE_ROLE_OPTS = [["gp","Consultant"],["vd","Sales Director"],["superadmin","Super Admin"]];
-const ROLE_ABBR = { gp:"GP", vd:"VD", superadmin:"SA" };
 const RoleChips = ({ value=[], onChange, activeColor=C.navy }) => (
   <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
     {RULE_ROLE_OPTS.map(([k,l])=>{ const on=value.includes(k); return (
@@ -9331,6 +9338,7 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
   ];
   const ALL_STATUSES = LIFECYCLE_STORE.flatMap(s=>s.statuses.map(x=>({...x, stage:s.nameEn})));
   const isNotReachedTrigger = form.trigger==="lead_not_reached_5" || form.trigger==="lead_not_reached_1_4";
+  const leadEmailWarning = TRIGGER_COMPLIANCE[form.trigger]?.leadEmail;
   // Validation: at least one action, and any chosen action must have a target.
   const anyAction   = form.sendEmail || form.setStatus || form.createTask || form.sendPush;
   const emailValid  = !form.sendEmail  || form.emailToLead || (form.emailRoles||[]).length>0;
@@ -9454,6 +9462,12 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                         style={{ padding:"6px 14px",borderRadius:20,border:`1.5px solid ${form.emailToLead?C.blue:C.border}`,background:form.emailToLead?C.blue:"#fff",color:form.emailToLead?"#fff":C.muted,fontSize:11,fontWeight:form.emailToLead?700:400,cursor:"pointer",fontFamily:"inherit" }}>
                         {form.emailToLead?"✓ ":""}👤 Lead (journey email)
                       </button>
+                      {form.emailToLead && leadEmailWarning && (
+                        <div style={{ marginTop:8,padding:"8px 12px",borderRadius:8,background:C.red+"0A",border:`1px solid ${C.red}40`,display:"flex",gap:8,fontSize:11,color:C.text,lineHeight:1.45 }}>
+                          <span style={{ fontSize:14,flexShrink:0 }}>⚠️</span>
+                          <div><span style={{ fontWeight:700,color:C.red }}>Compliance warning. </span>{leadEmailWarning}</div>
+                        </div>
+                      )}
                       <div style={{ marginTop:10 }}>
                         <label style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Also email internal roles (optional)</label>
                         <RoleChips value={form.emailRoles} onChange={v=>f("emailRoles",v)} activeColor={C.blue}/>
