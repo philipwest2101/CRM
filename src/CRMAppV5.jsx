@@ -309,163 +309,7 @@ ALL_LEADS.forEach(l => { if (l.labels) LEAD_LABELS_STORE[l.id] = [...l.labels]; 
 
 // ─── Workflow Rules Store ─────────────────────────────────────────────────────
 // Each rule: trigger, actions (auto_email | reminder | push | all), template, delay, roles, active
-let WORKFLOW_RULES_STORE = [
-  {
-    id:"wf0", active:true,
-    name:"New Lead Submitted",
-    trigger:"new_lead_submitted",
-    triggerLabel:"New lead submitted",
-    actions:["push"],
-    emailTemplateId:null,
-    reminderTitle:null,
-    reminderPriority:null,
-    delay:0, delayUnit:"minutes",
-    roles:["vd","superadmin"],
-    description:"A new lead was captured via any entry point. Alerts SA/VD so the lead can be routed to a consultant. The welcome email follows once the lead is assigned. New leads default to the 'New / Open' status.",
-    category:"acquisition",
-  },
-  {
-    id:"wf1", active:true,
-    name:"New Lead Assigned",
-    trigger:"lead_assigned",
-    triggerLabel:"Lead assigned to consultant",
-    actions:["auto_email","push","reminder"],
-    emailTemplateId:"et1",
-    reminderTitle:"Follow up with new lead within 24h",
-    reminderPriority:"high",
-    delay:0, delayUnit:"minutes",
-    roles:["gp"],
-    description:"Sends welcome email immediately. Creates 24h follow-up reminder for the GP. Pushes alert.",
-    category:"acquisition",
-  },
-  {
-    id:"wf2", active:true,
-    name:"Lead Not Reached × 1–4",
-    trigger:"lead_not_reached_1_4",
-    triggerLabel:"Call logged: Not Reached (attempt 1–4)",
-    actions:["reminder","push"],
-    emailTemplateId:null,
-    reminderTitle:"Call again tomorrow — attempt {attempt}",
-    reminderPriority:"normal",
-    delay:1, delayUnit:"days",
-    roles:["gp"],
-    description:"No auto-email. Creates a reminder for next-day retry. Push alert to GP.",
-    category:"contact",
-  },
-  {
-    id:"wf3", active:true,
-    name:"Lead Not Reached × 5 (Final)",
-    trigger:"lead_not_reached_5",
-    triggerLabel:"Call logged: Not Reached (attempt 5 — final)",
-    actions:["auto_email","push","reminder"],
-    emailTemplateId:"et2",
-    reminderTitle:"Lead unreachable — review or archive",
-    reminderPriority:"high",
-    delay:0, delayUnit:"minutes",
-    roles:["gp","vd"],
-    description:"Auto-sends 'We tried to reach you' email with free offer. Status set to Not Reached. GP + VD alerted.",
-    category:"contact",
-  },
-  {
-    id:"wf4", active:true,
-    name:"Lead Reached — Not Interested",
-    trigger:"lead_not_interested",
-    triggerLabel:"Call logged: Reached — Not Interested",
-    actions:["reminder","push"],
-    emailTemplateId:null,
-    reminderTitle:"Add to retargeting newsletter?",
-    reminderPriority:"normal",
-    delay:0, delayUnit:"minutes",
-    roles:["gp"],
-    description:"No auto-email — consultant decides. Reminder to add to GDPR-compliant nurturing sequence. GDPR check triggered.",
-    category:"contact",
-  },
-  {
-    id:"wf5", active:true,
-    name:"Appointment Scheduled",
-    trigger:"appointment_scheduled",
-    triggerLabel:"Appointment booked in CRM",
-    actions:["auto_email","push"],
-    emailTemplateId:"et3",
-    reminderTitle:"Appointment prep — 1 hour before",
-    reminderPriority:"normal",
-    delay:0, delayUnit:"minutes",
-    roles:["gp","vd"],
-    description:"Auto-sends appointment confirmation email. Calendar sync triggered. GP gets prep reminder 1h before.",
-    category:"appointment",
-  },
-  {
-    id:"wf6", active:true,
-    name:"Appointment Not Held",
-    trigger:"appointment_not_held",
-    triggerLabel:"Appointment status: Cancelled or No-show",
-    actions:["reminder","push"],
-    emailTemplateId:null,
-    reminderTitle:"Reschedule or follow up — appointment not held",
-    reminderPriority:"high",
-    delay:0, delayUnit:"minutes",
-    roles:["gp"],
-    description:"No auto-email — consultant should reach out personally first. Urgent reminder created.",
-    category:"appointment",
-  },
-  {
-    id:"wf7", active:true,
-    name:"Lead Closed — New Customer",
-    trigger:"lead_closed",
-    triggerLabel:"Lead status changed to: Closed / Customer",
-    actions:["auto_email","push"],
-    emailTemplateId:"et4",
-    reminderTitle:null,
-    reminderPriority:null,
-    delay:0, delayUnit:"minutes",
-    roles:["gp","vd","superadmin"],
-    description:"Auto-sends welcome customer email (cross-sell, referral ask). SA + VD receive closing push notification.",
-    category:"closing",
-  },
-  {
-    id:"wf8", active:true,
-    name:"Follow-Up / Undecided",
-    trigger:"lead_followup",
-    triggerLabel:"Appointment result: Undecided / Follow-up",
-    actions:["reminder","push"],
-    emailTemplateId:null,
-    reminderTitle:"Follow-up due — lead undecided",
-    reminderPriority:"normal",
-    delay:3, delayUnit:"days",
-    roles:["gp"],
-    description:"No auto-email. Consultant decides timing and content. Reminder created in 3 days by default (SA-configurable).",
-    category:"followup",
-  },
-  {
-    id:"wf9", active:true,
-    name:"Not Interested — Nurturing Drip",
-    trigger:"lead_nurturing",
-    triggerLabel:"Lead status: Not Interested + newsletter consent active",
-    actions:["auto_email"],
-    emailTemplateId:"et5",
-    reminderTitle:null,
-    reminderPriority:null,
-    delay:7, delayUnit:"days",
-    roles:[],
-    description:"Fully automated drip sequence. No consultant involvement. First email after 7 days — event invites, free webinars, trust content.",
-    category:"nurturing",
-  },
-  {
-    id:"wf10", active:true,
-    name:"Consent Withdrawn / DNC",
-    trigger:"consent_withdrawn",
-    triggerLabel:"Consent withdrawn / Do-Not-Contact",
-    actions:["set_status","push"],
-    setStatus:true, setStatusKey:"dnc",
-    emailTemplateId:null,
-    reminderTitle:null,
-    reminderPriority:null,
-    delay:0, delayUnit:"minutes",
-    roles:["gp","vd","superadmin"],
-    description:"The lead revoked consent. No email is ever sent on this event — the lead is moved to Do Not Contact and excluded from all outreach. All roles are notified for compliance.",
-    category:"compliance",
-  },
-];
+let WORKFLOW_RULES_STORE = [];
 
 const AI_SCORES = new Proxy({}, {
   get: (_, leadId) => AI_SCORE_CACHE[leadId] || null,
@@ -9426,7 +9270,7 @@ const AUTOMATION_TRIGGERS = [
   ]},
 ];
 
-const RuleEditor = ({ initial, onSave, onCancel }) => {
+const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
   const blank = { name:"", trigger:"", category:"contact", emailTemplateId:null, emailJourney:null,
                   sendEmail:false, setStatus:false, setStatusKey:"", createTask:false, sendPush:false,
                   taskType:"call", taskTitle:"", taskPriority:"normal", taskRemind:true, taskRemindLead:"1 hour before",
@@ -9455,7 +9299,7 @@ const RuleEditor = ({ initial, onSave, onCancel }) => {
         width:600,maxHeight:"92vh",overflowY:"auto",background:"#fff",borderRadius:16,zIndex:600,
         boxShadow:"0 24px 64px rgba(0,0,0,0.2)",fontFamily:"inherit" }}>
         <div style={{ padding:"18px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-          <div style={{ fontSize:15,fontWeight:800,color:C.navy }}>⚡ Edit Automation Rule</div>
+          <div style={{ fontSize:15,fontWeight:800,color:C.navy }}>⚡ {initial?"Edit":"New"} Automation Rule</div>
           <button onClick={onCancel} style={{ width:26,height:26,borderRadius:"50%",border:`1px solid ${C.border}`,background:"#F8FAFC",color:C.muted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>×</button>
         </div>
         <div style={{ padding:"20px 24px",display:"flex",flexDirection:"column",gap:14 }}>
@@ -9465,22 +9309,46 @@ const RuleEditor = ({ initial, onSave, onCancel }) => {
             <input value={form.name} onChange={e=>f("name",e.target.value)} placeholder="e.g. New Lead Assigned"
               style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/>
           </div>
-          {/* Trigger — locked: each hard-coded event maps to exactly one rule */}
+          {/* Trigger — only events that don't yet have a rule are selectable (one rule per event) */}
           <div>
-            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Trigger Event (fixed)</label>
-            {(() => {
+            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Trigger Event *</label>
+            <div style={{ position:"relative" }}>
+              <select value={form.trigger} onChange={e=>f("trigger",e.target.value)}
+                style={{ width:"100%",padding:"10px 32px 10px 12px",borderRadius:9,
+                  border:`1.5px solid ${form.trigger?C.navy:C.border}`,
+                  background:form.trigger?"#F8FAFF":"#fff",
+                  color:form.trigger?C.navy:C.muted,
+                  fontSize:13,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",
+                  fontWeight:form.trigger?700:400 }}>
+                <option value="">— Select a trigger event —</option>
+                {AUTOMATION_TRIGGERS.map(group=>{
+                  const items = group.items.filter(t => !(takenTriggers && takenTriggers.has(t.key)));
+                  if (items.length===0) return null;
+                  return (
+                    <optgroup key={group.group} label={group.group}>
+                      {items.map(t=>(
+                        <option key={t.key} value={t.key}>{t.icon} {t.label}</option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+              <div style={{ position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",
+                pointerEvents:"none",fontSize:11,color:form.trigger?C.navy:C.muted }}>▼</div>
+            </div>
+            {form.trigger && (() => {
               const trig = AUTOMATION_TRIGGERS.flatMap(g=>g.items).find(t=>t.key===form.trigger);
-              return (
-                <div style={{ padding:"10px 12px",borderRadius:9,border:`1.5px solid ${C.border}`,
-                  background:"#F8FAFC",display:"flex",alignItems:"center",gap:10 }}>
-                  <span style={{ fontSize:18 }}>{trig?.icon||"⚡"}</span>
-                  <div style={{ flex:1,minWidth:0 }}>
-                    <div style={{ fontSize:13,fontWeight:700,color:C.navy }}>{trig?.label||form.trigger}</div>
-                    <div style={{ fontSize:11,color:C.muted,marginTop:1 }}>{trig?.desc||"This rule is permanently bound to its trigger event."}</div>
+              return trig ? (
+                <div style={{ marginTop:6,padding:"8px 12px",borderRadius:8,
+                  background:"#F0FDF4",border:`1px solid ${C.green}30`,
+                  display:"flex",alignItems:"center",gap:8,fontSize:11 }}>
+                  <span style={{ fontSize:16 }}>{trig.icon}</span>
+                  <div>
+                    <div style={{ fontWeight:700,color:C.green }}>{trig.label}</div>
+                    <div style={{ color:C.muted,marginTop:1 }}>{trig.desc}</div>
                   </div>
-                  <span title="Trigger events are hard-coded — one rule per event" style={{ fontSize:10,fontWeight:700,color:C.muted,padding:"3px 8px",borderRadius:6,background:"#fff",border:`1px solid ${C.border}`,whiteSpace:"nowrap",flexShrink:0 }}>🔒 Fixed</span>
                 </div>
-              );
+              ) : null;
             })()}
             {isNotReachedTrigger && (
               <div style={{ marginTop:8,padding:"10px 12px",borderRadius:8,background:"#FFF7ED",border:`1px solid ${C.amber}40`,display:"flex",alignItems:"center",gap:10 }}>
@@ -9701,16 +9569,21 @@ const WorkflowRulesSection = ({ role }) => {
   };
 
   const toggleRule = (id) => persist(rules.map(r => r.id===id ? {...r, active:!r.active} : r));
-  // Rules map 1:1 to hard-coded trigger events — they are edited in place, never
-  // created or deleted (each event must always keep exactly one rule).
+  const deleteRule = (id) => { if(window.confirm("Delete this rule? Its trigger event will become available again.")) persist(rules.filter(r => r.id!==id)); };
+  // Super Admin defines every rule. Each trigger event can have at most one rule;
+  // the editor only offers events that don't already have one.
   const saveRule   = (rule) => {
-    persist(rules.map(r => r.id===editId ? {...rule, id:editId} : r));
+    if (editId) persist(rules.map(r => r.id===editId ? {...rule, id:editId} : r));
+    else        persist([...rules, {...rule, id:`wf${Date.now()}`, active:true}]);
     setEditId(null); setShowNew(false);
   };
 
   const allTriggers = AUTOMATION_TRIGGERS.flatMap(g => g.items.map(t => ({...t, groupColor:g.color})));
   const getTrigger  = (key) => allTriggers.find(t => t.key===key) || { label:key, icon:"⚡", groupColor:C.navy };
   const shown = catFilter==="all" ? rules : rules.filter(r => r.category===catFilter);
+  // One rule per trigger event: events already used aren't offered again.
+  const usedTriggerKeys = new Set(rules.map(r => r.trigger));
+  const availableCount  = allTriggers.length - usedTriggerKeys.size;
 
   // Status coverage check (item: notify Super Admin about statuses unused by automation).
   // A rule "covers" a status via an explicit set_status action, or — for legacy rules —
@@ -9734,12 +9607,17 @@ const WorkflowRulesSection = ({ role }) => {
         <div>
           <div style={{ fontSize:20,fontWeight:800,color:C.navy,marginBottom:4 }}>⚡ Workflow & Automation</div>
           <div style={{ fontSize:12,color:C.muted,maxWidth:600,lineHeight:1.6 }}>
-            Trigger events are fixed — there is exactly one rule per event. Open a rule to configure what it does: set the lead's status, send an email, create a task for the consultant, and/or fire a push notification. Statuses themselves are defined in Settings → Statuses.
+            Super Admin defines the automation — one rule per trigger event. A rule can set the lead's status, send an email, create a task for the consultant, and/or fire a push notification. Once an event has a rule it's no longer offered when adding the next one. Statuses are defined in Settings → Statuses.
           </div>
         </div>
-        <span style={{ fontSize:11,fontWeight:700,color:C.slate,padding:"6px 12px",borderRadius:8,background:"#F1F5F9",border:`1px solid ${C.border}`,flexShrink:0,marginLeft:16,whiteSpace:"nowrap" }}>
-          {rules.length} fixed events · one rule each
-        </span>
+        <button onClick={()=>{ if(availableCount>0){ setEditId(null); setShowNew(true); } }}
+          disabled={availableCount===0}
+          title={availableCount===0 ? "Every trigger event already has a rule" : "Define a rule for a trigger event"}
+          style={{ padding:"8px 18px",borderRadius:8,border:"none",
+            background:availableCount===0?"#E2E8F0":C.navy, color:availableCount===0?C.muted:"#fff",
+            fontSize:12,fontWeight:700,cursor:availableCount===0?"default":"pointer",flexShrink:0,marginLeft:16 }}>
+          + New Rule{availableCount>0 ? ` (${availableCount} event${availableCount===1?"":"s"} left)` : ""}
+        </button>
       </div>
 
       {/* Status coverage check — surfaces statuses no automation touches */}
@@ -9920,6 +9798,8 @@ const WorkflowRulesSection = ({ role }) => {
                       if(hasPush) actions.push(`📱 Push: "${r.name} — Test Lead"`);
                       setTestLog(prev=>[{id:Date.now(),rule:r.name,trigger:trig.label,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),actions,lead:"Test Lead (Anna Muster)"},...prev.slice(0,9)]);
                     }} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.green}30`,background:C.green+"06",color:C.green,fontSize:11,fontWeight:600,cursor:"pointer" }}>▶ Test</button>
+                    <button onClick={()=>deleteRule(r.id)}
+                      style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.red}30`,background:C.red+"06",color:C.red,fontSize:11,fontWeight:600,cursor:"pointer" }}>Delete</button>
                   </div>
                 </div>
               )}
@@ -9928,7 +9808,9 @@ const WorkflowRulesSection = ({ role }) => {
         })}
         {shown.length===0 && (
           <div style={{ padding:"32px",textAlign:"center",color:C.muted,fontSize:12,fontStyle:"italic",background:"#F8FAFC",borderRadius:10,border:`1px dashed ${C.border}` }}>
-            No rules in this category.
+            {rules.length===0
+              ? 'No automation rules yet. Click "+ New Rule" to define a workflow for a trigger event.'
+              : "No rules in this category."}
           </div>
         )}
       </div>
@@ -9968,6 +9850,7 @@ const WorkflowRulesSection = ({ role }) => {
       {showNew && (
         <RuleEditor
           initial={editId ? rules.find(r=>r.id===editId) : null}
+          takenTriggers={new Set(rules.filter(r=>r.id!==editId).map(r=>r.trigger))}
           onSave={saveRule}
           onCancel={()=>{ setShowNew(false); setEditId(null); }}
         />
