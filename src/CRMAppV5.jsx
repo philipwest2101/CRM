@@ -8563,6 +8563,16 @@ const LeadCapturePage = ({ role, navigateTo }) => {
   );
 };
 // ─── Email Templates Section (Settings → Email Templates) ────────────────────
+// Journey vocabulary (label + accent colour). Single source of truth shared by
+// the Email Templates screen and the Workflow rule modal.
+const JOURNEY_META = {
+  welcome:      {label:"Welcome",              color:"#3B82F6"},
+  followup1:    {label:"Follow-up #1",         color:"#8B5CF6"},
+  followup2:    {label:"Follow-up #2",         color:"#EC4899"},
+  reminder:     {label:"Appointment Reminder", color:"#6366F1"},
+  postnurture:  {label:"Post-Appt Nurture",    color:"#10B981"},
+  reengagement: {label:"Re-Engagement",        color:"#F59E0B"},
+};
 const EmailTemplatesSection = ({ navigateTo, role }) => {
   const [templates,   setTemplates]   = useState(EMAIL_TEMPLATES_STORE);
   const [editingTpl,  setEditingTpl]  = useState(null);
@@ -8622,15 +8632,6 @@ const EmailTemplatesSection = ({ navigateTo, role }) => {
   };
 
   // ── Journey metadata ─────────────────────────────────────────────────────────
-  const JOURNEY_META = {
-    welcome:      {label:"Welcome",              color:"#3B82F6"},
-    followup1:    {label:"Follow-up #1",         color:"#8B5CF6"},
-    followup2:    {label:"Follow-up #2",         color:"#EC4899"},
-    reminder:     {label:"Appointment Reminder", color:"#6366F1"},
-    postnurture:  {label:"Post-Appt Nurture",    color:"#10B981"},
-    reengagement: {label:"Re-Engagement",        color:"#F59E0B"},
-  };
-
   // ── Filter + sort ─────────────────────────────────────────────────────────────
   const filtered = templates
     .filter(t => {
@@ -9320,6 +9321,14 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
   } : blank);
   const f = (k,v) => setForm(p => ({...p, [k]:v}));
   const allTemplates = EMAIL_TEMPLATES_STORE.filter(t => t.published !== false);
+  // Journey dropdown is derived from the journeys that actually have published
+  // templates (ordered by JOURNEY_META, unknowns last) — never a hard-coded list.
+  const journeyTemplateCount = allTemplates.reduce((m,t)=>{ if(t.journey) m[t.journey]=(m[t.journey]||0)+1; return m; }, {});
+  const presentJourneys = Object.keys(journeyTemplateCount);
+  const journeyOptions = [
+    ...Object.keys(JOURNEY_META).filter(k => presentJourneys.includes(k)),
+    ...presentJourneys.filter(k => !JOURNEY_META[k]),
+  ];
   const ALL_STATUSES = LIFECYCLE_STORE.flatMap(s=>s.statuses.map(x=>({...x, stage:s.nameEn})));
   const isNotReachedTrigger = form.trigger==="lead_not_reached_5" || form.trigger==="lead_not_reached_1_4";
   // Validation: at least one action, and any chosen action must have a target.
@@ -9464,14 +9473,9 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                           fontSize:12,fontFamily:"inherit",appearance:"none",outline:"none",background:"#fff",
                           color:form.emailJourney?C.navy:C.muted }}>
                         <option value="">— Select journey —</option>
-                        <option value="welcome">Welcome Journey</option>
-                        <option value="followup1">Follow-up #1</option>
-                        <option value="followup2">Follow-up #2</option>
-                        <option value="reminder">Appointment Reminder</option>
-                        <option value="postnurture">Post-Appointment Nurture</option>
-                        <option value="reengagement">Re-Engagement</option>
-                        <option value="notreached">Not Reached (5x)</option>
-                        <option value="customer">New Customer Welcome</option>
+                        {journeyOptions.map(j => (
+                          <option key={j} value={j}>{(JOURNEY_META[j]?.label) || j} ({journeyTemplateCount[j]} template{journeyTemplateCount[j]===1?"":"s"})</option>
+                        ))}
                       </select>
                       <div style={{ position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:C.muted }}>▼</div>
                     </div>
