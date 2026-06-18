@@ -311,6 +311,20 @@ ALL_LEADS.forEach(l => { if (l.labels) LEAD_LABELS_STORE[l.id] = [...l.labels]; 
 // Each rule: trigger, actions (auto_email | reminder | push | all), template, delay, roles, active
 let WORKFLOW_RULES_STORE = [
   {
+    id:"wf0", active:true,
+    name:"New Lead Submitted",
+    trigger:"new_lead_submitted",
+    triggerLabel:"New lead submitted",
+    actions:["push"],
+    emailTemplateId:null,
+    reminderTitle:null,
+    reminderPriority:null,
+    delay:0, delayUnit:"minutes",
+    roles:["vd","superadmin"],
+    description:"A new lead was captured via any entry point. Alerts SA/VD so the lead can be routed to a consultant. The welcome email follows once the lead is assigned. New leads default to the 'New / Open' status.",
+    category:"acquisition",
+  },
+  {
     id:"wf1", active:true,
     name:"New Lead Assigned",
     trigger:"lead_assigned",
@@ -435,6 +449,21 @@ let WORKFLOW_RULES_STORE = [
     roles:[],
     description:"Fully automated drip sequence. No consultant involvement. First email after 7 days — event invites, free webinars, trust content.",
     category:"nurturing",
+  },
+  {
+    id:"wf10", active:true,
+    name:"Consent Withdrawn / DNC",
+    trigger:"consent_withdrawn",
+    triggerLabel:"Consent withdrawn / Do-Not-Contact",
+    actions:["set_status","push"],
+    setStatus:true, setStatusKey:"dnc",
+    emailTemplateId:null,
+    reminderTitle:null,
+    reminderPriority:null,
+    delay:0, delayUnit:"minutes",
+    roles:["gp","vd","superadmin"],
+    description:"The lead revoked consent. No email is ever sent on this event — the lead is moved to Do Not Contact and excluded from all outreach. All roles are notified for compliance.",
+    category:"compliance",
   },
 ];
 
@@ -9368,6 +9397,7 @@ const CATEGORIES = [
   { id:"followup",    label:"Follow-up"    },
   { id:"closing",     label:"Closing"      },
   { id:"nurturing",   label:"Nurturing"    },
+  { id:"compliance",  label:"Compliance"   },
 ];
 
 // Trigger events mirror Vion_CRM_Workflow.docx §4–5 (contact loop / closing) and
@@ -9425,7 +9455,7 @@ const RuleEditor = ({ initial, onSave, onCancel }) => {
         width:600,maxHeight:"92vh",overflowY:"auto",background:"#fff",borderRadius:16,zIndex:600,
         boxShadow:"0 24px 64px rgba(0,0,0,0.2)",fontFamily:"inherit" }}>
         <div style={{ padding:"18px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-          <div style={{ fontSize:15,fontWeight:800,color:C.navy }}>⚡ {initial?"Edit":"New"} Automation Rule</div>
+          <div style={{ fontSize:15,fontWeight:800,color:C.navy }}>⚡ Edit Automation Rule</div>
           <button onClick={onCancel} style={{ width:26,height:26,borderRadius:"50%",border:`1px solid ${C.border}`,background:"#F8FAFC",color:C.muted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>×</button>
         </div>
         <div style={{ padding:"20px 24px",display:"flex",flexDirection:"column",gap:14 }}>
@@ -9435,42 +9465,22 @@ const RuleEditor = ({ initial, onSave, onCancel }) => {
             <input value={form.name} onChange={e=>f("name",e.target.value)} placeholder="e.g. New Lead Assigned"
               style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/>
           </div>
-          {/* Trigger — grouped DDL */}
+          {/* Trigger — locked: each hard-coded event maps to exactly one rule */}
           <div>
-            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Trigger Event *</label>
-            <div style={{ position:"relative" }}>
-              <select value={form.trigger} onChange={e=>f("trigger",e.target.value)}
-                style={{ width:"100%",padding:"10px 32px 10px 12px",borderRadius:9,
-                  border:`1.5px solid ${form.trigger?C.navy:C.border}`,
-                  background:form.trigger?"#F8FAFF":"#fff",
-                  color:form.trigger?C.navy:C.muted,
-                  fontSize:13,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",
-                  fontWeight:form.trigger?700:400 }}>
-                <option value="">— Select a trigger event —</option>
-                {AUTOMATION_TRIGGERS.map(group=>(
-                  <optgroup key={group.group} label={group.group}>
-                    {group.items.map(t=>(
-                      <option key={t.key} value={t.key}>{t.icon} {t.label}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              <div style={{ position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",
-                pointerEvents:"none",fontSize:11,color:form.trigger?C.navy:C.muted }}>▼</div>
-            </div>
-            {form.trigger && (() => {
+            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Trigger Event (fixed)</label>
+            {(() => {
               const trig = AUTOMATION_TRIGGERS.flatMap(g=>g.items).find(t=>t.key===form.trigger);
-              return trig ? (
-                <div style={{ marginTop:6,padding:"8px 12px",borderRadius:8,
-                  background:"#F0FDF4",border:`1px solid ${C.green}30`,
-                  display:"flex",alignItems:"center",gap:8,fontSize:11 }}>
-                  <span style={{ fontSize:16 }}>{trig.icon}</span>
-                  <div>
-                    <div style={{ fontWeight:700,color:C.green }}>{trig.label}</div>
-                    <div style={{ color:C.muted,marginTop:1 }}>{trig.desc}</div>
+              return (
+                <div style={{ padding:"10px 12px",borderRadius:9,border:`1.5px solid ${C.border}`,
+                  background:"#F8FAFC",display:"flex",alignItems:"center",gap:10 }}>
+                  <span style={{ fontSize:18 }}>{trig?.icon||"⚡"}</span>
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ fontSize:13,fontWeight:700,color:C.navy }}>{trig?.label||form.trigger}</div>
+                    <div style={{ fontSize:11,color:C.muted,marginTop:1 }}>{trig?.desc||"This rule is permanently bound to its trigger event."}</div>
                   </div>
+                  <span title="Trigger events are hard-coded — one rule per event" style={{ fontSize:10,fontWeight:700,color:C.muted,padding:"3px 8px",borderRadius:6,background:"#fff",border:`1px solid ${C.border}`,whiteSpace:"nowrap",flexShrink:0 }}>🔒 Fixed</span>
                 </div>
-              ) : null;
+              );
             })()}
             {isNotReachedTrigger && (
               <div style={{ marginTop:8,padding:"10px 12px",borderRadius:8,background:"#FFF7ED",border:`1px solid ${C.amber}40`,display:"flex",alignItems:"center",gap:10 }}>
@@ -9691,10 +9701,10 @@ const WorkflowRulesSection = ({ role }) => {
   };
 
   const toggleRule = (id) => persist(rules.map(r => r.id===id ? {...r, active:!r.active} : r));
-  const deleteRule = (id) => { if(window.confirm("Delete this rule?")) persist(rules.filter(r => r.id!==id)); };
+  // Rules map 1:1 to hard-coded trigger events — they are edited in place, never
+  // created or deleted (each event must always keep exactly one rule).
   const saveRule   = (rule) => {
-    if (editId) persist(rules.map(r => r.id===editId ? {...rule, id:editId} : r));
-    else { const r = {...rule, id:`wf${Date.now()}`, active:true}; persist([...rules, r]); WORKFLOW_RULES_STORE.push(r); }
+    persist(rules.map(r => r.id===editId ? {...rule, id:editId} : r));
     setEditId(null); setShowNew(false);
   };
 
@@ -9723,14 +9733,13 @@ const WorkflowRulesSection = ({ role }) => {
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6 }}>
         <div>
           <div style={{ fontSize:20,fontWeight:800,color:C.navy,marginBottom:4 }}>⚡ Workflow & Automation</div>
-          <div style={{ fontSize:12,color:C.muted,maxWidth:560,lineHeight:1.6 }}>
-            One place for all triggers. Each event can set the lead's status, send an email, create a task for the consultant, and/or fire a push notification — all configurable here. Statuses themselves are defined in Settings → Statuses.
+          <div style={{ fontSize:12,color:C.muted,maxWidth:600,lineHeight:1.6 }}>
+            Trigger events are fixed — there is exactly one rule per event. Open a rule to configure what it does: set the lead's status, send an email, create a task for the consultant, and/or fire a push notification. Statuses themselves are defined in Settings → Statuses.
           </div>
         </div>
-        <button onClick={()=>{ setEditId(null); setShowNew(true); }}
-          style={{ padding:"8px 18px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0,marginLeft:16 }}>
-          + New Rule
-        </button>
+        <span style={{ fontSize:11,fontWeight:700,color:C.slate,padding:"6px 12px",borderRadius:8,background:"#F1F5F9",border:`1px solid ${C.border}`,flexShrink:0,marginLeft:16,whiteSpace:"nowrap" }}>
+          {rules.length} fixed events · one rule each
+        </span>
       </div>
 
       {/* Status coverage check — surfaces statuses no automation touches */}
@@ -9911,8 +9920,6 @@ const WorkflowRulesSection = ({ role }) => {
                       if(hasPush) actions.push(`📱 Push: "${r.name} — Test Lead"`);
                       setTestLog(prev=>[{id:Date.now(),rule:r.name,trigger:trig.label,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),actions,lead:"Test Lead (Anna Muster)"},...prev.slice(0,9)]);
                     }} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.green}30`,background:C.green+"06",color:C.green,fontSize:11,fontWeight:600,cursor:"pointer" }}>▶ Test</button>
-                    <button onClick={()=>deleteRule(r.id)}
-                      style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.red}30`,background:C.red+"06",color:C.red,fontSize:11,fontWeight:600,cursor:"pointer" }}>Delete</button>
                   </div>
                 </div>
               )}
@@ -9921,7 +9928,7 @@ const WorkflowRulesSection = ({ role }) => {
         })}
         {shown.length===0 && (
           <div style={{ padding:"32px",textAlign:"center",color:C.muted,fontSize:12,fontStyle:"italic",background:"#F8FAFC",borderRadius:10,border:`1px dashed ${C.border}` }}>
-            No rules in this category. Click "+ New Rule" to add one.
+            No rules in this category.
           </div>
         )}
       </div>
