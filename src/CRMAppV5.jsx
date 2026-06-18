@@ -9270,27 +9270,65 @@ const AUTOMATION_TRIGGERS = [
   ]},
 ];
 
+// Each trigger maps to one list category (trigger is fixed per rule, so the
+// rule's category is derived from it rather than entered by hand).
+const TRIGGER_CATEGORY = {
+  new_lead_submitted:"acquisition", lead_assigned:"acquisition",
+  lead_not_reached_1_4:"contact", lead_not_reached_5:"contact", lead_not_interested:"contact",
+  appointment_scheduled:"appointment", appointment_not_held:"appointment",
+  lead_closed:"closing", lead_followup:"followup", lead_nurturing:"nurturing",
+  consent_withdrawn:"compliance",
+};
+
+// Staff roles a rule can target (PO intentionally omitted for now).
+const RULE_ROLE_OPTS = [["gp","Consultant"],["vd","Sales Director"],["superadmin","Super Admin"]];
+const ROLE_ABBR = { gp:"GP", vd:"VD", superadmin:"SA" };
+const RoleChips = ({ value=[], onChange, activeColor=C.navy }) => (
+  <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
+    {RULE_ROLE_OPTS.map(([k,l])=>{ const on=value.includes(k); return (
+      <button key={k} type="button" onClick={()=>onChange(on?value.filter(r=>r!==k):[...value,k])}
+        style={{ padding:"5px 14px",borderRadius:20,border:`1.5px solid ${on?activeColor:C.border}`,background:on?activeColor:"#fff",color:on?"#fff":C.muted,fontSize:11,fontWeight:on?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
+    );})}
+  </div>
+);
+
 const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
   const blank = { name:"", trigger:"", category:"contact", emailTemplateId:null, emailJourney:null,
-                  sendEmail:false, setStatus:false, setStatusKey:"", createTask:false, sendPush:false,
-                  taskType:"call", taskTitle:"", taskPriority:"normal", taskRemind:true, taskRemindLead:"1 hour before",
+                  sendEmail:false, emailToLead:true, emailRoles:[],
+                  setStatus:false, setStatusKey:"",
+                  createTask:false, taskType:"call", taskTitle:"", taskPriority:"normal",
+                  taskRoles:["gp"], taskDueValue:0, taskDueUnit:"days",
+                  taskRemind:true, taskRemindLead:"1 hour before",
+                  sendPush:false, pushRoles:["gp"],
                   threshold:STATUS_AUTOMATION_CONFIG.notReachedThreshold,
-                  delay:0, delayUnit:"minutes", roles:["gp"], description:"" };
+                  delay:0, delayUnit:"minutes", description:"" };
   const [form, setForm] = useState(initial ? {
     ...blank, ...initial,
     sendEmail:    (initial.actions||[]).includes("auto_email") || !!initial.sendEmail,
+    emailToLead:  initial.emailToLead!==undefined ? initial.emailToLead : true,
+    emailRoles:   initial.emailRoles || [],
     // legacy "reminder" action / createReminder maps forward to the task block
     createTask:   (initial.actions||[]).includes("reminder") || (initial.actions||[]).includes("task") || !!initial.createReminder || !!initial.createTask,
     taskTitle:    initial.taskTitle || initial.reminderTitle || "",
     taskPriority: initial.taskPriority || initial.reminderPriority || "normal",
+    taskRoles:    initial.taskRoles || initial.roles || ["gp"],
+    taskDueValue: initial.taskDueValue ?? 0,
+    taskDueUnit:  initial.taskDueUnit || "days",
     setStatus:    (initial.actions||[]).includes("set_status") || !!initial.setStatus,
     sendPush:     (initial.actions||[]).includes("push")       || !!initial.sendPush,
+    pushRoles:    initial.pushRoles || initial.roles || ["gp"],
   } : blank);
   const f = (k,v) => setForm(p => ({...p, [k]:v}));
   const allTemplates = EMAIL_TEMPLATES_STORE.filter(t => t.published !== false);
   const ALL_STATUSES = LIFECYCLE_STORE.flatMap(s=>s.statuses.map(x=>({...x, stage:s.nameEn})));
   const isNotReachedTrigger = form.trigger==="lead_not_reached_5" || form.trigger==="lead_not_reached_1_4";
-  const canSave = form.name.trim() && form.trigger && (form.sendEmail || form.setStatus || form.createTask || form.sendPush) && (!form.setStatus || form.setStatusKey);
+  // Validation: at least one action, and any chosen action must have a target.
+  const anyAction   = form.sendEmail || form.setStatus || form.createTask || form.sendPush;
+  const emailValid  = !form.sendEmail  || form.emailToLead || (form.emailRoles||[]).length>0;
+  const statusValid = !form.setStatus  || !!form.setStatusKey;
+  const taskValid   = !form.createTask || (form.taskRoles||[]).length>0;
+  const pushValid   = !form.sendPush   || (form.pushRoles||[]).length>0;
+  const canSave = form.name.trim() && form.trigger && anyAction && emailValid && statusValid && taskValid && pushValid;
 
   return (
     <>
@@ -9399,7 +9437,22 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                   <div style={{ flex:1 }}><div style={{ fontSize:12,fontWeight:700,color:form.sendEmail?C.blue:C.text }}>Send email to lead automatically</div><div style={{ fontSize:10,color:C.muted }}>System sends an email template to the lead</div></div>
                 </div>
                 {form.sendEmail && (
-                  <div style={{ padding:"12px 14px",borderTop:`1px solid ${C.blue}20`,background:"#fff" }}>
+                  <div style={{ padding:"12px 14px",borderTop:`1px solid ${C.blue}20`,background:"#fff",display:"flex",flexDirection:"column",gap:12 }}>
+                    {/* Recipients — lead and/or internal roles */}
+                    <div>
+                      <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Send to</label>
+                      <button type="button" onClick={()=>f("emailToLead",!form.emailToLead)}
+                        style={{ padding:"6px 14px",borderRadius:20,border:`1.5px solid ${form.emailToLead?C.blue:C.border}`,background:form.emailToLead?C.blue:"#fff",color:form.emailToLead?"#fff":C.muted,fontSize:11,fontWeight:form.emailToLead?700:400,cursor:"pointer",fontFamily:"inherit" }}>
+                        {form.emailToLead?"✓ ":""}👤 Lead (journey email)
+                      </button>
+                      <div style={{ marginTop:10 }}>
+                        <label style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Also email internal roles (optional)</label>
+                        <RoleChips value={form.emailRoles} onChange={v=>f("emailRoles",v)} activeColor={C.blue}/>
+                      </div>
+                      {!emailValid && <div style={{ marginTop:8,fontSize:10,fontWeight:700,color:C.red }}>Choose at least one recipient (lead or a role).</div>}
+                    </div>
+                    {/* Lead journey config — only when the lead is a recipient */}
+                    {form.emailToLead && (<>
                     {/* Journey selector — system auto-matches lead language */}
                     <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>
                       Email Journey (auto-match lead language)
@@ -9465,6 +9518,7 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                         <div style={{ position:"relative" }}><select value={form.delayUnit} onChange={e=>f("delayUnit",e.target.value)} style={{ width:"100%",padding:"7px 28px 7px 10px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",appearance:"none",outline:"none",background:"#fff" }}>{["minutes","hours","days"].map(u=><option key={u} value={u}>{u}</option>)}</select><div style={{ position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:C.muted }}>▼</div></div>
                       </div>
                     </div>
+                    </>)}
                   </div>
                 )}
               </div>
@@ -9474,10 +9528,14 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                   style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:form.createTask?"#D9770608":"#F8FAFC",cursor:"pointer" }}>
                   <div style={{ width:20,height:20,borderRadius:5,border:`2px solid ${form.createTask?"#D97706":C.border}`,background:form.createTask?"#D97706":"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",flexShrink:0 }}>{form.createTask?"✓":""}</div>
                   <span style={{ fontSize:15 }}>✅</span>
-                  <div style={{ flex:1 }}><div style={{ fontSize:12,fontWeight:700,color:form.createTask?"#D97706":C.text }}>Create a task for the consultant</div><div style={{ fontSize:10,color:C.muted }}>Adds a task (Call / Email / Note) to the consultant's list</div></div>
+                  <div style={{ flex:1 }}><div style={{ fontSize:12,fontWeight:700,color:form.createTask?"#D97706":C.text }}>Create a task</div><div style={{ fontSize:10,color:C.muted }}>Adds a task (Call / Email / Note) for the selected role(s)</div></div>
                 </div>
                 {form.createTask && (
                   <div style={{ padding:"12px 14px",borderTop:"1px solid #D9770620",background:"#fff",display:"flex",flexDirection:"column",gap:10 }}>
+                    <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Assign to</label>
+                      <RoleChips value={form.taskRoles} onChange={v=>f("taskRoles",v)} activeColor="#D97706"/>
+                      {!taskValid && <div style={{ marginTop:6,fontSize:10,fontWeight:700,color:C.red }}>Select at least one role to assign the task to.</div>}
+                    </div>
                     <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Task type</label>
                       <div style={{ display:"flex",gap:6 }}>{[["call","📞 Call"],["email","✉️ Email"],["note","📝 Note"]].map(([k,l])=>(
                         <button key={k} onClick={()=>f("taskType",k)} style={{ flex:1,padding:"7px",borderRadius:7,border:`1.5px solid ${form.taskType===k?"#D97706":C.border}`,background:form.taskType===k?"#D9770610":"#fff",color:form.taskType===k?"#D97706":C.muted,fontSize:11,fontWeight:form.taskType===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
@@ -9493,12 +9551,29 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                         <button key={k} onClick={()=>f("taskPriority",k)} style={{ flex:1,padding:"6px",borderRadius:7,border:`1.5px solid ${form.taskPriority===k?"#D97706":C.border}`,background:form.taskPriority===k?"#D9770610":"#fff",color:form.taskPriority===k?"#D97706":C.muted,fontSize:11,fontWeight:form.taskPriority===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
                       ))}</div>
                     </div>
+                    {/* Relative due date — rules fire at unknown future times, so the due date is relative */}
+                    <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Due date</label>
+                      <div style={{ display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" }}>
+                        <input type="number" min={0} value={form.taskDueValue}
+                          onChange={e=>f("taskDueValue",Math.max(0,parseInt(e.target.value,10)||0))}
+                          style={{ width:64,padding:"7px 10px",borderRadius:7,border:`1.5px solid ${C.border}`,fontSize:12,fontWeight:700,textAlign:"center",fontFamily:"inherit",outline:"none" }}/>
+                        <div style={{ position:"relative" }}>
+                          <select value={form.taskDueUnit} onChange={e=>f("taskDueUnit",e.target.value)}
+                            style={{ padding:"7px 28px 7px 10px",borderRadius:7,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",appearance:"none",outline:"none",background:"#fff" }}>
+                            {["hours","days","weeks"].map(u=><option key={u} value={u}>{u}</option>)}
+                          </select>
+                          <div style={{ position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:C.muted }}>▼</div>
+                        </div>
+                        <span style={{ fontSize:11,color:C.muted }}>after the trigger fires</span>
+                      </div>
+                      <div style={{ fontSize:10,color:C.muted,marginTop:3 }}>0 = due the same day the rule fires.</div>
+                    </div>
                     {/* Embedded reminder for the task */}
                     <div style={{ borderRadius:8,border:`1px solid ${C.border}`,padding:"10px 12px",background:"#FAFAFA" }}>
                       <div onClick={()=>f("taskRemind",!form.taskRemind)} style={{ display:"flex",alignItems:"center",gap:10,cursor:"pointer" }}>
                         <div style={{ width:18,height:18,borderRadius:5,border:`2px solid ${form.taskRemind?"#D97706":C.border}`,background:form.taskRemind?"#D97706":"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",flexShrink:0 }}>{form.taskRemind?"✓":""}</div>
                         <span style={{ fontSize:14 }}>⏰</span>
-                        <div style={{ flex:1,fontSize:12,fontWeight:700,color:form.taskRemind?"#D97706":C.text }}>Remind the consultant</div>
+                        <div style={{ flex:1,fontSize:12,fontWeight:700,color:form.taskRemind?"#D97706":C.text }}>Remind the assignee(s)</div>
                       </div>
                       {form.taskRemind && (
                         <div style={{ marginTop:8,paddingLeft:28 }}>
@@ -9516,23 +9591,23 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                 )}
               </div>
               {/* Push */}
-              <div onClick={()=>f("sendPush",!form.sendPush)}
-                style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:10,border:`1.5px solid ${form.sendPush?C.green:C.border}`,background:form.sendPush?C.green+"08":"#F8FAFC",cursor:"pointer" }}>
-                <div style={{ width:20,height:20,borderRadius:5,border:`2px solid ${form.sendPush?C.green:C.border}`,background:form.sendPush?C.green:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",flexShrink:0 }}>{form.sendPush?"✓":""}</div>
-                <span style={{ fontSize:15 }}>📱</span>
-                <div style={{ flex:1 }}><div style={{ fontSize:12,fontWeight:700,color:form.sendPush?C.green:C.text }}>Send push notification to consultant</div><div style={{ fontSize:10,color:C.muted }}>Instant alert on the consultant's phone</div></div>
+              <div style={{ borderRadius:10,border:`1.5px solid ${form.sendPush?C.green:C.border}`,overflow:"hidden" }}>
+                <div onClick={()=>f("sendPush",!form.sendPush)}
+                  style={{ display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:form.sendPush?C.green+"08":"#F8FAFC",cursor:"pointer" }}>
+                  <div style={{ width:20,height:20,borderRadius:5,border:`2px solid ${form.sendPush?C.green:C.border}`,background:form.sendPush?C.green:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",flexShrink:0 }}>{form.sendPush?"✓":""}</div>
+                  <span style={{ fontSize:15 }}>📱</span>
+                  <div style={{ flex:1 }}><div style={{ fontSize:12,fontWeight:700,color:form.sendPush?C.green:C.text }}>Send push notification</div><div style={{ fontSize:10,color:C.muted }}>Instant alert on the selected role(s)' phone</div></div>
+                </div>
+                {form.sendPush && (
+                  <div style={{ padding:"12px 14px",borderTop:`1px solid ${C.green}20`,background:"#fff" }}>
+                    <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Send to</label>
+                    <RoleChips value={form.pushRoles} onChange={v=>f("pushRoles",v)} activeColor={C.green}/>
+                    {!pushValid && <div style={{ marginTop:6,fontSize:10,fontWeight:700,color:C.red }}>Select at least one role to notify.</div>}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-          {/* Roles */}
-          <div>
-            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Notify roles</label>
-            <div style={{ display:"flex",gap:8 }}>
-              {[["gp","Consultant"],["vd","Sales Director"],["superadmin","Super Admin"]].map(([k,l])=>{ const on=(form.roles||[]).includes(k); return (
-                <button key={k} onClick={()=>f("roles",on?(form.roles||[]).filter(r=>r!==k):[...(form.roles||[]),k])}
-                  style={{ padding:"5px 14px",borderRadius:20,border:`1.5px solid ${on?C.navy:C.border}`,background:on?C.navy:"#fff",color:on?"#fff":C.muted,fontSize:11,fontWeight:on?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
-              );})}
-            </div>
+            {!anyAction && <div style={{ marginTop:8,fontSize:11,fontWeight:600,color:C.muted }}>Select at least one action for this rule.</div>}
           </div>
           {/* Description */}
           <div>
@@ -9543,7 +9618,7 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
           {/* Footer */}
           <div style={{ display:"flex",gap:10,paddingTop:4 }}>
             <button onClick={onCancel} style={{ flex:1,padding:"10px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
-            <button onClick={()=>canSave&&onSave(form)} disabled={!canSave}
+            <button onClick={()=>canSave&&onSave({ ...form, category: TRIGGER_CATEGORY[form.trigger] || "contact" })} disabled={!canSave}
               style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:canSave?C.navy:"#E2E8F0",color:canSave?"#fff":C.muted,fontSize:13,fontWeight:700,cursor:canSave?"pointer":"default" }}>
               ⚡ {initial?"Save changes":"Create Rule"}
             </button>
@@ -9789,11 +9864,18 @@ const WorkflowRulesSection = ({ role }) => {
                     {hasTask && (r.taskTitle||r.reminderTitle) && <div style={{ marginTop:4,color:"#D97706",fontWeight:600 }}>✅ {r.taskTitle||r.reminderTitle}</div>}
                   </div>
                   <div style={{ display:"flex",gap:6,alignItems:"center",flexShrink:0 }}>
-                    {(r.delay||0)===0
-                      ? <span style={{ fontSize:10,fontWeight:700,color:C.green,padding:"2px 8px",borderRadius:8,background:C.green+"10",border:`1px solid ${C.green}25` }}>⚡ Immediate</span>
-                      : <span style={{ fontSize:10,fontWeight:700,color:C.muted,padding:"2px 8px",borderRadius:8,background:C.light,border:`1px solid ${C.border}` }}>⏱ {r.delay} {r.delayUnit}</span>
-                    }
-                    <span style={{ fontSize:10,color:C.muted }}>→ {(r.roles||[]).map(ro=>({gp:"GP",vd:"VD",superadmin:"SA",manager:"PO"}[ro]||ro)).join(", ")||"System"}</span>
+                    {hasEmail && r.emailToLead!==false && ((r.delay||0)===0
+                      ? <span style={{ fontSize:10,fontWeight:700,color:C.green,padding:"2px 8px",borderRadius:8,background:C.green+"10",border:`1px solid ${C.green}25` }}>⚡ Email now</span>
+                      : <span style={{ fontSize:10,fontWeight:700,color:C.muted,padding:"2px 8px",borderRadius:8,background:C.light,border:`1px solid ${C.border}` }}>⏱ Email +{r.delay} {r.delayUnit}</span>)}
+                    {hasTask && <span style={{ fontSize:10,fontWeight:700,color:"#D97706",padding:"2px 8px",borderRadius:8,background:"#D9770610",border:`1px solid #D9770625` }}>📋 Due {(r.taskDueValue||0)===0?"same day":`+${r.taskDueValue} ${r.taskDueUnit}`}</span>}
+                    {(() => {
+                      const ab = ro => ({gp:"GP",vd:"VD",superadmin:"SA"}[ro]||ro);
+                      const parts = [];
+                      if (hasTask) parts.push(`📋 ${(r.taskRoles||["gp"]).map(ab).join("/")}`);
+                      if (hasPush) parts.push(`📱 ${(r.pushRoles||["gp"]).map(ab).join("/")}`);
+                      if (hasEmail && (r.emailRoles||[]).length) parts.push(`✉️ ${(r.emailRoles).map(ab).join("/")}`);
+                      return <span style={{ fontSize:10,color:C.muted }}>{parts.length?parts.join(" · "):"→ Lead"}</span>;
+                    })()}
                     <button onClick={()=>{
                       const actions=[]; const tpl=EMAIL_TEMPLATES_STORE.find(t=>t.id===r.emailTemplateId);
                       if(hasStatus && statusMeta) actions.push(`🔄 Status set: "${statusMeta.label}"`);
@@ -15519,20 +15601,28 @@ export default function CRMAppV5() {
         }
       }
 
-      // ── Reminder ───────────────────────────────────────────────────────────
-      const createReminder = rule.createReminder || rule.actions?.includes("reminder");
-      if (createReminder && rule.reminderTitle) {
+      // ── Task ─────────────────────────────────────────────────────────────────
+      const createTask = rule.createTask || rule.actions?.includes("task") || rule.createReminder || rule.actions?.includes("reminder");
+      const taskTitle  = rule.taskTitle || rule.reminderTitle;
+      if (createTask && taskTitle) {
+        // Due date is relative to when the trigger fires ("now" is mocked here).
+        const due = new Date("2026-02-24T09:00:00");
+        const v = rule.taskDueValue || 0;
+        if (rule.taskDueUnit === "hours")      due.setHours(due.getHours() + v);
+        else if (rule.taskDueUnit === "weeks") due.setDate(due.getDate() + v * 7);
+        else                                   due.setDate(due.getDate() + v);
         const reminder = {
           id: `r_wf_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
-          title: rule.reminderTitle.replace("{lead}", leadName).replace("{attempt}", lead?.attempts||1),
+          title: taskTitle.replace("{lead}", leadName).replace("{attempt}", lead?.attempts||1),
           lead: leadName,
           entityType: "lead",
-          date: (!rule.delay || rule.delay===0) ? "2026-02-24" : "2026-02-25",
+          date: due.toISOString().slice(0,10),
           time: "",
           recur: "Once",
-          priority: rule.reminderPriority || "normal",
+          priority: rule.taskPriority || rule.reminderPriority || "normal",
           status: "pending",
-          channels: (rule.sendPush || rule.actions?.includes("push")) ? ["push","inapp"] : ["inapp"],
+          channels: rule.taskRemind ? ["push","inapp"] : ["inapp"],
+          assignedTo: rule.taskRoles || ["gp"],
           type: "workflow",
         };
         setReminders(prev => [reminder, ...prev]);
