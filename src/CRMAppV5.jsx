@@ -309,7 +309,68 @@ ALL_LEADS.forEach(l => { if (l.labels) LEAD_LABELS_STORE[l.id] = [...l.labels]; 
 
 // ─── Workflow Rules Store ─────────────────────────────────────────────────────
 // Each rule: trigger, actions (auto_email | reminder | push | all), template, delay, roles, active
-let WORKFLOW_RULES_STORE = [];
+let WORKFLOW_RULES_STORE = [
+  {
+    id:"wf1", active:true,
+    name:"New Lead Assigned", trigger:"lead_assigned", category:"acquisition",
+    emailTemplateId:null, emailJourney:"welcome",
+    sendEmail:true, emailToLead:true, emailRoles:[],
+    setStatus:false, setStatusKey:"",
+    createTask:true, taskType:"call", taskTitle:"Call {lead} to introduce yourself within 24h", taskPriority:"high",
+    taskRoles:["gp"], taskDueValue:1, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 hour before",
+    sendPush:true, pushRoles:["gp"],
+    threshold:5, delay:0, delayUnit:"minutes",
+    description:"Welcome email to the lead, a 24h intro-call task for the consultant, and an instant push alert.",
+  },
+  {
+    id:"wf2", active:true,
+    name:"Not Reached — Final Attempt", trigger:"lead_not_reached_5", category:"contact",
+    emailTemplateId:null, emailJourney:"reengagement",
+    sendEmail:true, emailToLead:true, emailRoles:[],
+    setStatus:true, setStatusKey:"not_reached",
+    createTask:false, taskType:"call", taskTitle:"", taskPriority:"normal",
+    taskRoles:["gp"], taskDueValue:0, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 hour before",
+    sendPush:true, pushRoles:["gp","vd"],
+    threshold:5, delay:0, delayUnit:"minutes",
+    description:"After the final failed attempt: move the lead to Not Reached, send a re-engagement email, and alert GP + VD.",
+  },
+  {
+    id:"wf3", active:true,
+    name:"Appointment Scheduled", trigger:"appointment_scheduled", category:"appointment",
+    emailTemplateId:null, emailJourney:"reminder",
+    sendEmail:true, emailToLead:true, emailRoles:[],
+    setStatus:true, setStatusKey:"appointment",
+    createTask:true, taskType:"note", taskTitle:"Prepare for appointment with {lead}", taskPriority:"normal",
+    taskRoles:["gp"], taskDueValue:0, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 day before",
+    sendPush:true, pushRoles:["gp"],
+    threshold:5, delay:0, delayUnit:"minutes",
+    description:"Confirm the appointment to the lead, set status to Appointment Scheduled, and give the consultant a prep task.",
+  },
+  {
+    id:"wf4", active:true,
+    name:"Closed — New Customer", trigger:"lead_closed", category:"closing",
+    emailTemplateId:null, emailJourney:"postnurture",
+    sendEmail:true, emailToLead:true, emailRoles:["vd","superadmin"],
+    setStatus:true, setStatusKey:"closed",
+    createTask:false, taskType:"note", taskTitle:"", taskPriority:"normal",
+    taskRoles:["gp"], taskDueValue:0, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 hour before",
+    sendPush:true, pushRoles:["vd","superadmin"],
+    threshold:5, delay:0, delayUnit:"minutes",
+    description:"Send the customer a post-sale nurture email, mark the lead Closed, and notify VD + Super Admin (email + push).",
+  },
+  {
+    id:"wf5", active:true,
+    name:"Consent Withdrawn / DNC", trigger:"consent_withdrawn", category:"compliance",
+    emailTemplateId:null, emailJourney:null,
+    sendEmail:false, emailToLead:false, emailRoles:[],
+    setStatus:true, setStatusKey:"dnc",
+    createTask:true, taskType:"note", taskTitle:"Verify {lead} is removed from all outreach lists", taskPriority:"high",
+    taskRoles:["superadmin"], taskDueValue:0, taskDueUnit:"days", taskRemind:false, taskRemindLead:"at due time",
+    sendPush:true, pushRoles:["gp","vd","superadmin"],
+    threshold:5, delay:0, delayUnit:"minutes",
+    description:"No lead email (compliant). Move to Do Not Contact, create a Super Admin verification task, and notify all roles.",
+  },
+];
 
 const AI_SCORES = new Proxy({}, {
   get: (_, leadId) => AI_SCORE_CACHE[leadId] || null,
