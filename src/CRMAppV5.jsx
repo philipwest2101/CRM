@@ -167,7 +167,6 @@ let LIFECYCLE_STORE = [
     { id:"st3", key:"attempted",   nameDe:"Kontaktaufnahme versucht (1–4×)", nameEn:"Attempted",       manual:false, flags:[],                       color:C.amber,  bg:"#FFFBEB" },
     { id:"st4", key:"not_reached", nameDe:"Nicht erreicht",                nameEn:"Not Reached",       manual:false, flags:["isNotReachedTerminal"], color:C.red,    bg:"#FEF2F2" },
     { id:"st5", key:"no_interest", nameDe:"Kein Interesse",                nameEn:"Not Interested",    manual:true,  flags:["retargetingEligible"],  color:C.muted,  bg:"#F9FAFB" },
-    { id:"st6", key:"no_interest_current", nameDe:"Aktuell kein Interesse", nameEn:"Currently Not Interested", manual:true, flags:["retargetingEligible"], color:C.muted,  bg:"#F9FAFB" },
   ]},
   { id:"lc3", nameDe:"Termin",         nameEn:"Appointment", statuses:[
     { id:"st7", key:"appointment", nameDe:"Termin vereinbart / In Bearbeitung", nameEn:"Appointment Scheduled", manual:false, flags:["isAppointment"],  color:C.indigo, bg:"#EEF2FF" },

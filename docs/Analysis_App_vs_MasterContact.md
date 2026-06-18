@@ -88,6 +88,20 @@ Interested) — a real gap central to Vion's model. The calling-scope conflict
 
 ---
 
+## 4a. Decisions made
+
+- **Status flags = 6.** Added `retargetingEligible` (nurture/retargeting eligible,
+  consent-gated; Workflow §4B/§5.2/§9). `isContactAttempt` and `isFollowUp` are
+  treated as **event-driven**, not flags.
+- **Merged the two "not interested" statuses.** *Aktuell kein Interesse*
+  (Currently Not Interested) was removed; the single *Kein Interesse*
+  (Not Interested) carries `retargetingEligible`. The soft/hard nuance is better
+  captured by a follow-up date + consent than a separate status.
+- **Singleton is a per-flag property, not global.** `isNewDefault`, `isWon`,
+  `isAppointment`, `isNotReachedTerminal`, `excludesOutreach` are singleton
+  (exactly one status each); `retargetingEligible` may apply to several. A status
+  may hold at most one flag (single-select per status).
+
 ## 5. Open questions
 
 1. Expand the lead model to cover CSV fields — all, or just high-value
