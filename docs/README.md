@@ -4,10 +4,29 @@ Source specifications and context for the Vion CRM project. These are
 reference material for the UI in `src/CRMAppV5.jsx` — they are not imported
 by the app at runtime.
 
+## Read order
+
+1. **`Project_Instructions.docx`** — **start here.** How to use this project
+   and these documents (operating rules, language, scope traps, working style).
+2. **`CRM_Master_Context.docx`** — ground-truth briefing: project overview,
+   domain glossary, file index, and business context. Treated as authoritative;
+   conflicts with other files should be flagged, not silently resolved.
+
+## All files
+
 | File | What it is |
 |------|------------|
-| `CRM_Master_Context.docx` | Master product/context overview for the CRM. |
-| `Vion_Workflow_Specification.docx` | Detailed workflow specification. |
-| `Vion_CRM_Workflow.docx` | CRM workflow document (lifecycle, contact loop, closing — the `§` sections referenced in the automation triggers). |
-| `Vion_Mobile_App_Context.docx` | Context for the companion mobile app. |
-| `Vion_MASTER_CONTACT_2_ENG.csv` | Master contact/lead field template (field names, allowed values, and field types) in German and English. |
+| `Project_Instructions.docx` | **How to use the project/documents** — authoritative operating rules. |
+| `CRM_Master_Context.docx` | Ground-truth briefing: overview, glossary, file index, domain context. |
+| `Vion_Workflow_Specification.docx` | Requirements clarification / workflow specification. |
+| `Vion_CRM_Workflow.docx` | Example lead lifecycle / status flow (illustrative, not a fixed spec — see Master Context §5.6). |
+| `Vion_Mobile_App_Context.docx` | UI mockups / context for the companion mobile app. |
+| `Vion_MASTER_CONTACT_2_ENG.csv` | Master contact/lead field template (field names, allowed values, field types) — German + English. |
+
+## Key project rules (from Project_Instructions.docx)
+
+- **"Contact" and "Lead" mean the same thing.**
+- Out of scope in the Vion integration: **accounts (companies), additional fields, and in-app calling** (calling is on the mobile app; only call reports flow back).
+- **Lead statuses (Lifecycle Stage + Stage Status) are admin-configurable and dynamic** — the statuses in the workflow files are illustrative examples, not hardcoded spec.
+- Backend/DB are shared across apps; front-ends are separate repositories.
+- Respond in English; give the English equivalent of German domain terms on first use.
