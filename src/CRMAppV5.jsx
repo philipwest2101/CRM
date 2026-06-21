@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import DashboardPage from "./pages/DashboardPage";
 
 // Palette mapped to the LH-Vion Design System (docs/LH-Vion_Design_System_Reference.md).
 // Canonical primary = orange #FF9000 (Primary/500 in the live components + Vion mobile
@@ -5090,8 +5091,10 @@ const ManagerDashboard = ({ navigateTo }) => {
 
 
 
-// ─── Dashboard Page (routes to role-specific dashboard) ───────────────────────
-const DashboardPage = ({ role, navigateTo }) => {
+// DashboardPage is now imported from ./pages/DashboardPage (Phase 1)
+// The old role-specific dashboards (GPDashboard, ManagerDashboard, SA inline) are
+// preserved below for reference and Phase 2 reuse.
+const _LegacyDashboardPage = ({ role, navigateTo }) => {
   const [gpChecks, setGpChecks] = useState([false,false,false,false,true]);
   const MGR_COLOR = "#0891B2";
 
@@ -15821,7 +15824,7 @@ export default function CRMAppV5() {
   return (
     <div style={{ minHeight:"100vh",background:C.light,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:C.text }}>
       <TopNav page={page} setPage={setPage} role={role} setRole={setRole} pushRef={pushRef} />
-      {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} />}
+      {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} leads={ALL_LEADS} activities={activities} appointments={appointments} />}
       {page==="Leads"           && <LeadsPage            role={role} navigateTo={navigateTo} />}
       {page==="LeadDetail"      && <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />}
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
