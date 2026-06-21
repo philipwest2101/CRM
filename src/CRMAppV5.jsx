@@ -1335,7 +1335,7 @@ const LeadDrawer = ({ lead, onClose, openTab }) => {
             <span style={{ fontSize:11,background:lead.consent?"#ECFDF5":"#FEF2F2",color:lead.consent?C.green:C.red,padding:"3px 10px",borderRadius:20,fontWeight:600 }}>🔒 {lead.consent?"GDPR ✓":"No Consent"}</span>
           </div>
           <div style={{ display:"flex",gap:0,marginBottom:-1,overflowX:"auto" }}>
-            {["Overview","🤖 AI","Assign","Schedule","📎 Files"].map(t=>{
+            {["Overview","Timeline","🤖 AI","Assign","Schedule","📎 Files"].map(t=>{
               const isAI = t.startsWith("🤖");
               return (
                 <button key={t} onClick={()=>setTab(t)} style={{ padding:"8px 10px",fontSize:11,fontWeight:tab===t?700:500,color:tab===t?(isAI?C.ai:C.navy):C.muted,background:"none",border:"none",borderBottom:tab===t?`2px solid ${isAI?C.ai:C.primary}`:"2px solid transparent",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0 }}>{t}</button>
@@ -1594,24 +1594,20 @@ const LeadDrawer = ({ lead, onClose, openTab }) => {
 
           {/* Timeline */}
           {tab==="Timeline" && (
-            <div style={{ position:"relative",paddingLeft:28 }}>
-              <div style={{ position:"absolute",left:10,top:0,bottom:0,width:2,background:C.border }} />
-              {/* Merge system events + user notes, notes at top as most recent */}
-              {savedNotes.length>0 && savedNotes.map((n,i)=>(
-                <div key={`note-${i}`} style={{ marginBottom:22,position:"relative" }}>
-                  <div style={{ position:"absolute",left:-22,top:2,width:22,height:22,borderRadius:"50%",background:"#FFFBEB",border:"2px solid #FDE68A",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11 }}>📝</div>
-                  <div style={{ fontSize:11,color:C.muted,marginBottom:3 }}>{n.time}</div>
-                  <div style={{ fontSize:13,color:C.text }}><strong style={{ color:C.amber }}>{n.author}</strong> added a note</div>
-                  <div style={{ marginTop:4,padding:"8px 10px",background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:7,fontSize:12,color:"#78350F",lineHeight:1.5 }}>{n.text}</div>
-                </div>
-              ))}
-              {TIMELINE_EVENTS.map((ev,i)=>(
-                <div key={i} style={{ marginBottom:22,position:"relative" }}>
-                  <div style={{ position:"absolute",left:-22,top:2,width:22,height:22,borderRadius:"50%",background:"#EFF6FF",border:"2px solid #BFDBFE",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11 }}>{iconFor(ev.type)}</div>
-                  <div style={{ fontSize:11,color:C.muted,marginBottom:3 }}>{ev.time}</div>
-                  <div style={{ fontSize:13,color:C.text }}><strong style={{ color:C.blue }}>{ev.actor}</strong>: {ev.action}</div>
-                </div>
-              ))}
+            <div>
+              {(() => {
+                const SHORT = { call:"Call activity", attempt:"Contact attempt", assign:"Lead assigned", email:"Email sent", import:"Lead captured" };
+                const noteItems = savedNotes.map((n,i)=>({ key:`note-${i}`, ...TIMELINE_META.note, title:"Note added", actor:n.author, time:n.time, detail:n.text }));
+                const eventItems = TIMELINE_EVENTS.map((ev,i)=>{
+                  const m = TIMELINE_META[ev.type] || TIMELINE_META.note;
+                  return { key:`ev-${i}`, icon:m.icon, color:m.color, bg:m.bg, title:SHORT[ev.type]||ev.type,
+                    actor:ev.actor, time:ev.time, detail:ev.action, status:"completed",
+                    provider: ev.type==="email" ? "Gmail" : null };
+                });
+                return [...noteItems, ...eventItems].map((it,idx)=>(
+                  <ActivityCard key={it.key} {...it} defaultOpen={idx===0} />
+                ));
+              })()}
             </div>
           )}
 
@@ -3763,6 +3759,49 @@ const MiniCalendar = ({ highlightDays=[] }) => {
 };
 
 // ─── Activity Feed ─────────────────────────────────────────────────────────────
+// ─── DS Activity Card — lifecycle: collapsed (64px) → open → completed ───────
+// The design system's flagship "card-centric activity model" (LH-Vion Design
+// System §3.1): every activity type (call/email/meeting/task/note/logged) shares
+// one card with a collapsed→open disclosure and a completed state.
+const TIMELINE_META = {
+  call:    { icon:"📞", color:C.blue,    bg:"#EFF6FF" },
+  attempt: { icon:"📵", color:C.amber,   bg:"#FFFBEB" },
+  assign:  { icon:"⚡", color:C.primary, bg:C.primarySoft },
+  email:   { icon:"✉️", color:C.blue,    bg:"#EFF6FF" },
+  import:  { icon:"📥", color:C.slate,   bg:C.light },
+  note:    { icon:"📝", color:C.amber,   bg:"#FFFBEB" },
+};
+const ActivityCard = ({ icon, color, bg, title, actor, time, detail, status, provider, defaultOpen=false }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  const completed = ["completed","done","logged"].includes(status);
+  return (
+    <div style={{ borderRadius:10,border:`1px solid ${C.border}`,background:"#fff",
+      boxShadow:"0 1px 2px #1018280D",marginBottom:10,overflow:"hidden",
+      borderLeft:`3px solid ${completed?C.green:color}` }}>
+      {/* Collapsed header (~64px) */}
+      <div onClick={()=>setOpen(o=>!o)}
+        style={{ display:"flex",alignItems:"center",gap:12,padding:"0 16px",height:64,cursor:"pointer" }}>
+        <div style={{ width:32,height:32,borderRadius:8,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0 }}>{icon}</div>
+        <div style={{ flex:1,minWidth:0 }}>
+          <div style={{ fontSize:13,fontWeight:700,color:C.navy,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{title}</div>
+          <div style={{ fontSize:11,color:C.muted,marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>
+            {actor && <strong style={{ color:C.slate,fontWeight:600 }}>{actor}</strong>}{actor?" · ":""}{time}
+          </div>
+        </div>
+        {provider && <span style={{ fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:8,background:C.light,color:C.slate,border:`1px solid ${C.border}`,flexShrink:0 }}>{provider}</span>}
+        {completed && <span style={{ fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:8,background:C.green+"15",color:C.green,textTransform:"uppercase",flexShrink:0 }}>✓ Done</span>}
+        <span style={{ fontSize:11,color:C.muted,flexShrink:0,transform:open?"rotate(90deg)":"none",transition:"transform 0.15s" }}>▸</span>
+      </div>
+      {/* Open body */}
+      {open && detail && (
+        <div style={{ padding:"12px 16px 14px 60px",borderTop:`1px solid ${C.border}`,fontSize:12,color:C.slate,lineHeight:1.55,background:C.light }}>
+          {detail}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ActivityFeed = ({ items, title="Recent Activity" }) => (
   <Card style={{ padding:"18px 20px",height:"fit-content" }}>
     <SectionTitle>{title}</SectionTitle>
