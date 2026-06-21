@@ -22,6 +22,7 @@ by the app at runtime.
 | `Vion_CRM_Workflow.docx` | Example lead lifecycle / status flow (illustrative, not a fixed spec — see Master Context §5.6). |
 | `Vion_Mobile_App_Context.docx` | UI mockups / context for the companion mobile app. |
 | `Vion_MASTER_CONTACT_2_ENG.csv` | Master contact/lead field template (field names, allowed values, field types) — German + English. |
+| `LH-Vion_Design_System_Reference.md` | Design-system reference (tokens, components, principles) reconstructed from the Figma file. The contract for visual consistency. |
 
 ## Key project rules (from Project_Instructions.docx)
 
