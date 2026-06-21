@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 
+// Palette mapped to the LH-Vion Design System (docs/LH-Vion_Design_System_Reference.md).
+// Canonical primary = orange #FF9000 (Primary/500 in the live components + Vion mobile
+// brand). `navy` is kept as the dark text/ink token (orange text fails contrast), while
+// primary backgrounds and active accents use `primary`.
 const C = {
-  navy:"#1E3A5F", blue:"#3B82F6", indigo:"#6366F1", green:"#10B981",
-  amber:"#F59E0B", red:"#EF4444", purple:"#8B5CF6", slate:"#64748B",
-  light:"#F8FAFC", border:"#E2E8F0", text:"#1E293B", muted:"#94A3B8",
-  ai:"#7C3AED",
+  primary:"#FF9000", primaryDark:"#E07F00", primarySoft:"#FFF4E0",  // brand orange ramp
+  navy:"#1D2939",       // dark ink (Gray/800) — headings & text that were navy
+  blue:"#0075FF",       // secondary accent (DS Primary blue)
+  indigo:"#6366F1", purple:"#8B5CF6", ai:"#7C3AED",
+  green:"#12B76A",      // success
+  amber:"#FDB022",      // warning
+  red:"#F04438",        // error
+  slate:"#667085",      // Gray/500
+  light:"#F9FAFB",      // Gray/50
+  border:"#EAECF0",     // Gray/200
+  text:"#222730",       // body text
+  muted:"#98A2B3",      // Gray/400
 };
 
 // ─── Lead Data ────────────────────────────────────────────────────────────────
@@ -1326,7 +1338,7 @@ const LeadDrawer = ({ lead, onClose, openTab }) => {
             {["Overview","🤖 AI","Assign","Schedule","📎 Files"].map(t=>{
               const isAI = t.startsWith("🤖");
               return (
-                <button key={t} onClick={()=>setTab(t)} style={{ padding:"8px 10px",fontSize:11,fontWeight:tab===t?700:500,color:tab===t?(isAI?C.ai:C.navy):C.muted,background:"none",border:"none",borderBottom:tab===t?`2px solid ${isAI?C.ai:C.navy}`:"2px solid transparent",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0 }}>{t}</button>
+                <button key={t} onClick={()=>setTab(t)} style={{ padding:"8px 10px",fontSize:11,fontWeight:tab===t?700:500,color:tab===t?(isAI?C.ai:C.navy):C.muted,background:"none",border:"none",borderBottom:tab===t?`2px solid ${isAI?C.ai:C.primary}`:"2px solid transparent",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0 }}>{t}</button>
               );
             })}
           </div>
@@ -1568,7 +1580,7 @@ const LeadDrawer = ({ lead, onClose, openTab }) => {
                           setSavedNotes(updated); LEAD_NOTES_STORE[lead.id]=updated; setComment("");
                         }}
                         disabled={!comment.trim()}
-                        style={{ padding:"7px 14px",borderRadius:6,border:"none",background:comment.trim()?C.navy:"#E2E8F0",color:comment.trim()?"#fff":C.muted,fontSize:11,fontWeight:600,cursor:comment.trim()?"pointer":"default",flexShrink:0,transition:"all 0.15s",alignSelf:"flex-end",height:34 }}>
+                        style={{ padding:"7px 14px",borderRadius:6,border:"none",background:comment.trim()?C.primary:"#E2E8F0",color:comment.trim()?"#fff":C.muted,fontSize:11,fontWeight:600,cursor:comment.trim()?"pointer":"default",flexShrink:0,transition:"all 0.15s",alignSelf:"flex-end",height:34 }}>
                         Save
                       </button>
                     </div>
@@ -1631,7 +1643,7 @@ const LeadDrawer = ({ lead, onClose, openTab }) => {
                 ))}
               </div>
               <div style={{ padding:"12px 14px",borderRadius:8,background:"#FFFBEB",border:"1px solid #FDE68A",fontSize:12,color:"#92400E",marginBottom:14 }}>⚡ <strong>Auto-assign by ZIP:</strong> ZIP <strong>{lead.zip}</strong> → <strong>Thomas Müller</strong></div>
-              <button onClick={()=>alert("Assignment confirmed — lead reassigned successfully")} style={{ width:"100%",padding:10,borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Confirm Assignment</button>
+              <button onClick={()=>alert("Assignment confirmed — lead reassigned successfully")} style={{ width:"100%",padding:10,borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Confirm Assignment</button>
             </div>
           )}
 
@@ -1663,7 +1675,7 @@ const LeadDrawer = ({ lead, onClose, openTab }) => {
               <div style={{ display:"flex",gap:6,marginBottom:12 }}>
                 {[["all","All"],["email","Email"],["uploaded","Uploaded"]].map(([k,l])=>(
                   <button key={k} onClick={()=>setFileFilter(k)}
-                    style={{ padding:"4px 11px",borderRadius:20,border:`1px solid ${fileFilter===k?C.navy:C.border}`,background:fileFilter===k?C.navy:"#fff",color:fileFilter===k?"#fff":C.slate,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
+                    style={{ padding:"4px 11px",borderRadius:20,border:`1px solid ${fileFilter===k?C.primary:C.border}`,background:fileFilter===k?C.primary:"#fff",color:fileFilter===k?"#fff":C.slate,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
                 ))}
                 <label style={{ marginLeft:"auto",padding:"5px 11px",borderRadius:7,border:"none",background:C.green,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4 }}>
                   <input type="file" style={{ display:"none" }} onChange={e=>{
@@ -1864,7 +1876,7 @@ const LeadDrawer = ({ lead, onClose, openTab }) => {
                                 } else {
                                   sendAgent(c);
                                 }
-                              }} style={{ padding:"3px 9px",borderRadius:20,border:`1px solid ${isSpecial?C.navy:C.ai}35`,background:isSpecial?C.navy+"0A":C.ai+"0A",color:isSpecial?C.navy:C.ai,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>{c}</button>
+                              }} style={{ padding:"3px 9px",borderRadius:20,border:`1px solid ${isSpecial?C.primary:C.ai}35`,background:isSpecial?C.primary+"0A":C.ai+"0A",color:isSpecial?C.navy:C.ai,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>{c}</button>
                             );
                           })}
                         </div>
@@ -2081,10 +2093,10 @@ Analyze how well the consultant followed the script. Respond ONLY with valid JSO
             const isGP = line.speaker==="GP";
             return (
               <div key={i} style={{ display:"flex", gap:8, alignItems:"flex-start", flexDirection:isGP?"row":"row-reverse" }}>
-                <div style={{ width:26, height:26, borderRadius:"50%", background:isGP?C.navy+"15":C.indigo+"15", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:isGP?C.navy:C.indigo, flexShrink:0 }}>
+                <div style={{ width:26, height:26, borderRadius:"50%", background:isGP?C.primary+"15":C.indigo+"15", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:isGP?C.navy:C.indigo, flexShrink:0 }}>
                   {isGP?"GP":"L"}
                 </div>
-                <div style={{ maxWidth:"80%", padding:"8px 12px", borderRadius:isGP?"4px 12px 12px 12px":"12px 4px 12px 12px", background:isGP?C.navy+"0D":C.indigo+"0D", border:`1px solid ${isGP?C.navy+"20":C.indigo+"20"}`, fontSize:11, color:C.text, lineHeight:1.5 }}>
+                <div style={{ maxWidth:"80%", padding:"8px 12px", borderRadius:isGP?"4px 12px 12px 12px":"12px 4px 12px 12px", background:isGP?C.primary+"0D":C.indigo+"0D", border:`1px solid ${isGP?C.primary+"20":C.indigo+"20"}`, fontSize:11, color:C.text, lineHeight:1.5 }}>
                   {line.text}
                 </div>
               </div>
@@ -2243,7 +2255,7 @@ const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
 
   return (
     <>
-    <div style={{ background:C.navy,padding:"0 28px",display:"flex",alignItems:"center",height:54,gap:24,boxShadow:"0 1px 4px rgba(0,0,0,0.3)",position:"sticky",top:0,zIndex:200 }}>
+    <div style={{ background:C.primary,padding:"0 28px",display:"flex",alignItems:"center",height:54,gap:24,boxShadow:"0 1px 4px rgba(0,0,0,0.3)",position:"sticky",top:0,zIndex:200 }}>
       <span style={{ color:"#fff",fontWeight:800,fontSize:16,letterSpacing:"-0.02em",flexShrink:0 }}>vion <span style={{ color:"#60A5FA" }}>CRM</span></span>
       <div style={{ display:"flex",gap:2 }}>
         {["Dashboard","Leads","Calendar","Email Marketing","Reports","Education","Settings"].map(item=>{
@@ -2450,8 +2462,8 @@ const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
           <div style={{ padding:"10px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",gap:6,flexShrink:0,flexWrap:"wrap" }}>
             {[["all","All"],["reminder","Reminders"],["lead","Leads"],["appt","Appointments"],["alert","Alerts"]].map(([k,l])=>(
               <button key={k} onClick={()=>setNotifFilter(k)}
-                style={{ padding:"3px 10px",borderRadius:20,border:`1px solid ${notifFilter===k?(k==="reminder"?"#7C3AED":C.navy):C.border}`,
-                  background:notifFilter===k?(k==="reminder"?"#7C3AED":C.navy):"#fff",
+                style={{ padding:"3px 10px",borderRadius:20,border:`1px solid ${notifFilter===k?(k==="reminder"?"#7C3AED":C.primary):C.border}`,
+                  background:notifFilter===k?(k==="reminder"?"#7C3AED":C.primary):"#fff",
                   color:notifFilter===k?"#fff":C.slate,
                   fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>{l}
                 {k==="reminder" && notifs.filter(n=>n.type==="reminder"&&!n.read).length>0 && (
@@ -3299,7 +3311,7 @@ Output ONLY valid JSON, no markdown:
           </div>
           <div style={{ display:"flex",gap:10 }}>
             <button onClick={()=>alert("Call note saved to CRM and lead status updated.")}
-              style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
+              style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
               ✅ Save to CRM
             </button>
             <button onClick={()=>{ setStep("idle"); setTranscript(""); setResult(null); }}
@@ -3477,7 +3489,7 @@ Output ONLY valid JSON:
             {/* Actions */}
             <div style={{ display:"flex",gap:10 }}>
               <button onClick={()=>alert("Brief saved to lead profile and synced to Calendar.")}
-                style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
+                style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
                 💾 Save to Lead Profile
               </button>
               <button onClick={()=>generateBrief(selected)}
@@ -4130,7 +4142,7 @@ const SAPeriodFilter = () => {
       <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:9,overflow:"hidden" }}>
         {PERIODS.map(p=>(
           <button key={p.id} onClick={()=>{ setPeriod(p.id); if(p.id==="custom") setShowRange(true); else setShowRange(false); }}
-            style={{ padding:"7px 14px",border:"none",background:period===p.id?C.navy:"#fff",
+            style={{ padding:"7px 14px",border:"none",background:period===p.id?C.primary:"#fff",
               color:period===p.id?"#fff":C.muted,fontSize:12,fontWeight:period===p.id?700:400,
               cursor:"pointer",fontFamily:"inherit",borderRight:`1px solid ${C.border}` }}>{p.label}</button>
         ))}
@@ -4138,7 +4150,7 @@ const SAPeriodFilter = () => {
       {/* Date range — shown when Custom selected */}
       {showRange && (
         <div style={{ display:"flex",alignItems:"center",gap:6,padding:"4px 12px",borderRadius:9,
-          border:`1.5px solid ${C.navy}`,background:"#F8FAFC" }}>
+          border:`1.5px solid ${C.primary}`,background:"#F8FAFC" }}>
           <span style={{ fontSize:11,color:C.muted }}>From</span>
           <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
             style={{ border:"none",background:"transparent",fontSize:12,fontFamily:"inherit",color:C.text,outline:"none" }}/>
@@ -4146,7 +4158,7 @@ const SAPeriodFilter = () => {
           <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}
             style={{ border:"none",background:"transparent",fontSize:12,fontFamily:"inherit",color:C.text,outline:"none" }}/>
           <button onClick={()=>alert(`Filtering: ${dateFrom} → ${dateTo}`)}
-            style={{ padding:"3px 10px",borderRadius:6,border:"none",background:C.navy,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer" }}>Apply</button>
+            style={{ padding:"3px 10px",borderRadius:6,border:"none",background:C.primary,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer" }}>Apply</button>
         </div>
       )}
       {/* Export */}
@@ -4503,8 +4515,8 @@ const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
         <div style={{ display:"flex",gap:8 }}>
           {["Today","Week","Month","Quarter","YTD"].map(p=>(
             <button key={p} onClick={()=>setPeriod(p.toLowerCase())}
-              style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${period===p.toLowerCase()?C.navy:C.border}`,
-                background:period===p.toLowerCase()?C.navy:"#fff",color:period===p.toLowerCase()?"#fff":C.muted,
+              style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${period===p.toLowerCase()?C.primary:C.border}`,
+                background:period===p.toLowerCase()?C.primary:"#fff",color:period===p.toLowerCase()?"#fff":C.muted,
                 fontSize:12,cursor:"pointer",fontFamily:"inherit" }}>{p}</button>
           ))}
         </div>
@@ -4528,7 +4540,7 @@ const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
       </div>
 
       {/* ── AI Scorer Banner ─────────────────────────────────────────────── */}
-      <div style={{ marginBottom:22,background:C.navy,borderRadius:14,padding:"20px 24px",
+      <div style={{ marginBottom:22,background:C.primary,borderRadius:14,padding:"20px 24px",
         display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative",overflow:"hidden" }}>
         <div style={{ position:"absolute",right:-40,top:-40,width:220,height:220,borderRadius:"50%",
           background:`radial-gradient(circle,${C.indigo} 0%,transparent 70%)`,opacity:0.25,pointerEvents:"none" }}/>
@@ -4613,7 +4625,7 @@ const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
               ))}
               {CAL_DAYS.map((day,i)=>(
                 <div key={i} style={{ textAlign:"center",padding:"6px 0",borderRadius:5,cursor:"pointer",position:"relative",
-                  background:day.today?C.navy:day.muted?"transparent":"transparent",
+                  background:day.today?C.primary:day.muted?"transparent":"transparent",
                   color:day.today?"#fff":day.muted?C.muted:C.text,opacity:day.muted?0.5:1,
                   fontSize:11,fontWeight:day.today?600:400 }}>
                   {day.d}
@@ -4721,7 +4733,7 @@ const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
                 <div style={{ display:"flex",gap:3,alignItems:"center" }}>
                   {Array.from({length:5}).map((_,di)=>(
                     <span key={di} style={{ width:7,height:7,borderRadius:"50%",display:"inline-block",
-                      background:di<lead.attempts?(di===lead.attempts-1&&lead.attempts>=3?C.red:C.navy):"#F2F4F7",
+                      background:di<lead.attempts?(di===lead.attempts-1&&lead.attempts>=3?C.red:C.primary):"#F2F4F7",
                       border:`1px solid ${di<lead.attempts?"transparent":C.border}` }}/>
                   ))}
                   <span style={{ fontFamily:"monospace",fontSize:9,color:C.muted,marginLeft:5 }}>{lead.attempts}/5</span>
@@ -4735,7 +4747,7 @@ const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
                 </div>
                 {/* Open button */}
                 <button onClick={()=>navigateTo("Leads")}
-                  style={{ padding:"5px 10px",background:C.navy,color:"#fff",border:"none",borderRadius:5,
+                  style={{ padding:"5px 10px",background:C.primary,color:"#fff",border:"none",borderRadius:5,
                     fontSize:9,fontFamily:"monospace",letterSpacing:"0.12em",textTransform:"uppercase",cursor:"pointer",fontWeight:500 }}>
                   Open
                 </button>
@@ -4765,7 +4777,7 @@ const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
                 Based on <strong style={{ color:C.amber }}>48 Callsn</strong> · last 30 days
               </div>
               <button style={{ marginTop:12,display:"inline-flex",alignItems:"center",gap:6,padding:"7px 12px",
-                background:C.navy,color:"#fff",border:"none",borderRadius:6,cursor:"pointer",
+                background:C.primary,color:"#fff",border:"none",borderRadius:6,cursor:"pointer",
                 fontFamily:"monospace",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:500 }}>
                 Block slot →
               </button>
@@ -4892,8 +4904,8 @@ const ManagerDashboard = ({ navigateTo }) => {
         <div style={{ display:"flex",gap:8 }}>
           {["Today","Week","MTD","Quarter"].map(p=>(
             <button key={p} onClick={()=>setPeriod(p.toLowerCase())}
-              style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${period===p.toLowerCase()?C.navy:C.border}`,
-                background:period===p.toLowerCase()?C.navy:"#fff",color:period===p.toLowerCase()?"#fff":C.muted,
+              style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${period===p.toLowerCase()?C.primary:C.border}`,
+                background:period===p.toLowerCase()?C.primary:"#fff",color:period===p.toLowerCase()?"#fff":C.muted,
                 fontSize:12,cursor:"pointer",fontFamily:"inherit" }}>{p}</button>
           ))}
         </div>
@@ -5575,7 +5587,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
   if(nlView==="builder") return (
     <div style={{ display:"flex",flexDirection:"column",height:"calc(100vh - 54px)",fontFamily:"inherit" }}>
       {/* Top bar */}
-      <div style={{ background:C.navy,padding:"0 14px",height:46,display:"flex",alignItems:"center",gap:10,flexShrink:0 }}>
+      <div style={{ background:C.primary,padding:"0 14px",height:46,display:"flex",alignItems:"center",gap:10,flexShrink:0 }}>
         <button onClick={()=>setNlView("create")} style={{ padding:"4px 10px",borderRadius:7,border:"1px solid rgba(255,255,255,0.2)",background:"transparent",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer" }}>← Back</button>
         <div style={{ flex:1,fontSize:13,fontWeight:700,color:"#fff" }}>
           ✉️ Newsletter Builder — <span style={{ fontWeight:300,opacity:0.6 }}>{nlName||"Untitled"}</span>
@@ -5615,18 +5627,18 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
             {canvas.map((b)=>{
               const sel=b.id===selBlock;
               return (
-                <div key={b.id} style={{ position:"relative",cursor:"pointer",outline:sel?`2px solid ${C.navy}`:"2px solid transparent" }} onClick={()=>setSelBlock(b.id)}>
+                <div key={b.id} style={{ position:"relative",cursor:"pointer",outline:sel?`2px solid ${C.primary}`:"2px solid transparent" }} onClick={()=>setSelBlock(b.id)}>
                   {sel&&<>
                     <div style={{ position:"absolute",top:4,right:6,zIndex:10,display:"flex",gap:3 }}>
-                      {[["↑","up"],["↓","dn"]].map(([l,d])=><button key={d} onClick={e=>{e.stopPropagation();moveBlock(b.id,d);}} style={{ width:20,height:20,borderRadius:4,border:"none",background:C.navy,color:"#fff",fontSize:11,cursor:"pointer" }}>{l}</button>)}
+                      {[["↑","up"],["↓","dn"]].map(([l,d])=><button key={d} onClick={e=>{e.stopPropagation();moveBlock(b.id,d);}} style={{ width:20,height:20,borderRadius:4,border:"none",background:C.primary,color:"#fff",fontSize:11,cursor:"pointer" }}>{l}</button>)}
                       <button onClick={e=>{e.stopPropagation();removeBlock(b.id);}} style={{ width:20,height:20,borderRadius:4,border:"none",background:C.red,color:"#fff",fontSize:12,cursor:"pointer" }}>×</button>
                     </div>
-                    <div style={{ position:"absolute",top:4,left:6,zIndex:10,fontSize:9,fontWeight:700,background:C.navy,color:"#fff",padding:"2px 6px",borderRadius:4 }}>{b.type.toUpperCase()}</div>
+                    <div style={{ position:"absolute",top:4,left:6,zIndex:10,fontSize:9,fontWeight:700,background:C.primary,color:"#fff",padding:"2px 6px",borderRadius:4 }}>{b.type.toUpperCase()}</div>
                   </>}
                   {b.type==="hero"&&<div style={{ background:`linear-gradient(135deg,${C.navy},${C.indigo})`,padding:"32px 26px",textAlign:"center" }}><div style={{ fontSize:bldMode==="mobile"?16:21,fontWeight:800,color:"#fff",marginBottom:8 }}>{b.content}</div>{b.sub&&<div style={{ fontSize:12,color:"rgba(255,255,255,0.7)",marginBottom:14 }}>{b.sub}</div>}{b.cta&&<button style={{ padding:"8px 20px",borderRadius:24,border:"none",background:"#fff",color:C.navy,fontSize:12,fontWeight:700,cursor:"pointer" }}>{b.cta}</button>}</div>}
                   {b.type==="text"&&<div style={{ padding:"16px 24px",fontSize:13,lineHeight:1.7,color:C.text,whiteSpace:"pre-wrap",fontFamily:"Georgia,serif" }}>{b.content}</div>}
                   {b.type==="2col"&&<div style={{ display:"grid",gridTemplateColumns:"1fr 1fr" }}><div style={{ padding:"16px 20px",fontSize:12,color:C.text,borderRight:`1px solid ${C.border}` }}>{b.content}</div><div style={{ padding:"16px 20px",fontSize:12,color:C.text }}>{b.contentR||"Right col"}</div></div>}
-                  {b.type==="cta"&&<div style={{ padding:"24px 26px",textAlign:"center",background:"#F8FAFC" }}><button style={{ padding:"10px 24px",borderRadius:24,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>{b.content}</button>{b.sub&&<div style={{ marginTop:6,fontSize:11,color:C.muted }}>{b.sub}</div>}</div>}
+                  {b.type==="cta"&&<div style={{ padding:"24px 26px",textAlign:"center",background:"#F8FAFC" }}><button style={{ padding:"10px 24px",borderRadius:24,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>{b.content}</button>{b.sub&&<div style={{ marginTop:6,fontSize:11,color:C.muted }}>{b.sub}</div>}</div>}
                   {b.type==="divider"&&<div style={{ padding:"8px 0" }}><div style={{ height:1,background:C.border,margin:"0 24px" }}/></div>}
                   {b.type==="image"&&<div style={{ padding:"12px 24px",textAlign:"center" }}><div style={{ height:100,background:"#F0F4FF",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:C.muted,border:`1.5px dashed ${C.border}` }}>🖼 Click to upload</div>{b.caption&&<div style={{ fontSize:10,color:C.muted,marginTop:4 }}>{b.caption}</div>}</div>}
                   {b.type==="footer"&&<div style={{ padding:"12px 24px",textAlign:"center",background:"#FAFAFA",borderTop:`1px solid ${C.border}`,fontSize:10,color:C.muted,lineHeight:1.8 }}>vion gmbh · Musterstraße 1 · 80331 München<br/><span style={{ textDecoration:"underline",color:C.blue,cursor:"pointer" }}>Unsubscribe</span> · <span style={{ textDecoration:"underline",color:C.blue,cursor:"pointer" }}>Preferences</span></div>}
@@ -5654,7 +5666,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
           {/* Canvas map */}
           <div style={{ marginTop:10,paddingTop:8,borderTop:`1px solid ${C.border}` }}>
             <div style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:5 }}>Canvas ({canvas.length})</div>
-            {canvas.map((b,i)=><div key={b.id} onClick={()=>setSelBlock(b.id)} style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 6px",borderRadius:5,cursor:"pointer",background:selBlock===b.id?C.navy+"0D":"transparent",marginBottom:2 }}><span style={{ fontSize:10 }}>{NL_BUILDER_BLOCKS.find(x=>x.id===b.type)?.icon||"▪"}</span><span style={{ fontSize:11,color:C.text,flex:1 }}>{b.type}</span><span style={{ fontSize:9,color:C.muted }}>#{i+1}</span></div>)}
+            {canvas.map((b,i)=><div key={b.id} onClick={()=>setSelBlock(b.id)} style={{ display:"flex",alignItems:"center",gap:5,padding:"4px 6px",borderRadius:5,cursor:"pointer",background:selBlock===b.id?C.primary+"0D":"transparent",marginBottom:2 }}><span style={{ fontSize:10 }}>{NL_BUILDER_BLOCKS.find(x=>x.id===b.type)?.icon||"▪"}</span><span style={{ fontSize:11,color:C.text,flex:1 }}>{b.type}</span><span style={{ fontSize:9,color:C.muted }}>#{i+1}</span></div>)}
           </div>
           <div style={{ margin:"8px 0 0",padding:"8px 9px",borderRadius:9,background:C.indigo+"08",border:`1px solid ${C.indigo}25`,fontSize:10,color:C.indigo,lineHeight:1.5 }}>
             <strong>MJML</strong> — auto-compiles to responsive HTML for all email clients.
@@ -5681,7 +5693,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
           {NL_STEPS.map((s,i)=>{ const n=i+1,done=n<nlStep,active=n===nlStep; return (
             <div key={s} style={{ display:"flex",alignItems:"center",flex:i<NL_STEPS.length-1?1:"auto" }}>
               <div style={{ display:"flex",flexDirection:"column",alignItems:"center",cursor:done?"pointer":"default" }} onClick={()=>done&&setNlStep(n)}>
-                <div style={{ width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:done?C.green:active?C.navy:"#F1F5F9",color:done||active?"#fff":C.muted,fontSize:done?13:11,fontWeight:700,border:`2px solid ${done?C.green:active?C.navy:C.border}` }}>{done?"✓":n}</div>
+                <div style={{ width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:done?C.green:active?C.primary:"#F1F5F9",color:done||active?"#fff":C.muted,fontSize:done?13:11,fontWeight:700,border:`2px solid ${done?C.green:active?C.primary:C.border}` }}>{done?"✓":n}</div>
                 <div style={{ fontSize:10,fontWeight:active?700:400,color:active?C.navy:done?C.green:C.muted,marginTop:3,whiteSpace:"nowrap" }}>{s}</div>
               </div>
               {i<NL_STEPS.length-1&&<div style={{ flex:1,height:2,background:done?C.green:C.border,margin:"0 5px",marginBottom:14 }}/>}
@@ -5694,7 +5706,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
             <div style={{ fontSize:52,marginBottom:14 }}>📰</div>
             <h2 style={{ fontSize:22,fontWeight:700,color:C.navy,marginBottom:8 }}>{nlSched==="now"?"Newsletter sent!":"Newsletter scheduled!"}</h2>
             <div style={{ fontSize:13,color:C.muted,marginBottom:22 }}>{nlSched==="now"?`Dispatched to ${selNlList?.active||0} subscribers via Listmonk.`:`Scheduled for ${nlDate} at ${nlTime}.`}</div>
-            <button onClick={()=>{ setNlView("list"); setNlStep(1); setNlDone(false); setNlName(""); setNlSubj(""); }} style={{ padding:"11px 28px",borderRadius:10,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>View Newsletters</button>
+            <button onClick={()=>{ setNlView("list"); setNlStep(1); setNlDone(false); setNlName(""); setNlSubj(""); }} style={{ padding:"11px 28px",borderRadius:10,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>View Newsletters</button>
           </div>
         ):(
           <div style={{ display:"grid",gridTemplateColumns:"1fr 260px",gap:18 }}>
@@ -5704,7 +5716,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                 <div style={{ fontSize:15,fontWeight:700,color:C.text }}>Newsletter Details</div>
                 {[["Name *",nlName,setNlName,"e.g. February Market Update"],["Subject *",nlSubj,setNlSubj,"e.g. Your financial digest for February"]].map(([lbl,val,set,ph])=>(
                   <div key={lbl}><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>{lbl}</label>
-                  <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{ width:"100%",padding:"10px 12px",borderRadius:9,border:`1.5px solid ${val?C.navy:C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/></div>
+                  <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{ width:"100%",padding:"10px 12px",borderRadius:9,border:`1.5px solid ${val?C.primary:C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/></div>
                 ))}
                 <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>From</label>
                 <input defaultValue={role==="gp"?`${myName} <${myName.toLowerCase().replace(" ",".")}@vion.de>`:"vion Newsletter <newsletter@vion.de>"} style={{ width:"100%",padding:"10px 12px",borderRadius:9,border:`1px solid ${C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none",background:"#F8FAFC",color:C.muted }}/></div>
@@ -5714,9 +5726,9 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                 <div style={{ fontSize:15,fontWeight:700,color:C.text }}>Subscriber List</div>
                 {role==="gp"&&<div style={{ padding:"9px 12px",borderRadius:9,background:C.green+"06",border:`1px solid ${C.green}25`,fontSize:11,color:C.slate }}>👤 You can only send to your own opted-in contacts.</div>}
                 {myLists.map(l=>(
-                  <div key={l.id} onClick={()=>setNlList(l.id)} style={{ padding:"13px 14px",borderRadius:10,border:`1.5px solid ${nlList===l.id?C.navy:C.border}`,background:nlList===l.id?C.navy+"05":"#fff",cursor:"pointer" }}>
+                  <div key={l.id} onClick={()=>setNlList(l.id)} style={{ padding:"13px 14px",borderRadius:10,border:`1.5px solid ${nlList===l.id?C.primary:C.border}`,background:nlList===l.id?C.primary+"05":"#fff",cursor:"pointer" }}>
                     <div style={{ display:"flex",alignItems:"center",gap:10 }}>
-                      <div style={{ width:17,height:17,borderRadius:"50%",border:`2px solid ${nlList===l.id?C.navy:C.border}`,background:nlList===l.id?C.navy:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>{nlList===l.id&&<div style={{ width:6,height:6,borderRadius:"50%",background:"#fff" }}/>}</div>
+                      <div style={{ width:17,height:17,borderRadius:"50%",border:`2px solid ${nlList===l.id?C.primary:C.border}`,background:nlList===l.id?C.primary:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>{nlList===l.id&&<div style={{ width:6,height:6,borderRadius:"50%",background:"#fff" }}/>}</div>
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:13,fontWeight:700,color:nlList===l.id?C.navy:C.text }}>{l.name}</div>
                         <div style={{ fontSize:11,color:C.muted,marginTop:2,display:"flex",gap:10 }}>
@@ -5733,11 +5745,11 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
               {/* Step 3 */}
               {nlStep===3&&<div style={{ display:"flex",flexDirection:"column",gap:14 }}>
                 <div style={{ fontSize:15,fontWeight:700,color:C.text }}>Design Newsletter</div>
-                <div style={{ padding:"18px",borderRadius:12,background:"linear-gradient(135deg,#F0F4FF,#EFF6FF)",border:`1px solid ${C.navy}20`,textAlign:"center" }}>
+                <div style={{ padding:"18px",borderRadius:12,background:"linear-gradient(135deg,#F0F4FF,#EFF6FF)",border:`1px solid ${C.primary}20`,textAlign:"center" }}>
                   <div style={{ fontSize:26,marginBottom:8 }}>🧱</div>
                   <div style={{ fontSize:13,fontWeight:700,color:C.navy,marginBottom:5 }}>GrapesJS Drag-and-Drop Builder</div>
                   <div style={{ fontSize:11,color:C.muted,marginBottom:14 }}>Build visually. Blocks compile to MJML automatically — responsive on all clients.</div>
-                  <button onClick={()=>setNlView("builder")} style={{ padding:"9px 22px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>🧱 Open Builder</button>
+                  <button onClick={()=>setNlView("builder")} style={{ padding:"9px 22px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>🧱 Open Builder</button>
                 </div>
                 <div style={{ padding:"10px 12px",borderRadius:10,background:"#F8FAFC",border:`1px solid ${C.border}` }}>
                   <div style={{ fontSize:11,fontWeight:700,color:C.text,marginBottom:5 }}>Canvas: {canvas.length} blocks</div>
@@ -5768,8 +5780,8 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
               {nlStep===5&&<div style={{ display:"flex",flexDirection:"column",gap:14 }}>
                 <div style={{ fontSize:15,fontWeight:700,color:C.text }}>Send via Listmonk</div>
                 {[["now","Send Now","Dispatch immediately"],["scheduled","Schedule","Pick date & time"]].map(([k,l,d])=>(
-                  <div key={k} onClick={()=>setNlSched(k)} style={{ padding:"14px 16px",borderRadius:10,border:`1.5px solid ${nlSched===k?C.navy:C.border}`,background:nlSched===k?C.navy+"05":"#fff",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start" }}>
-                    <div style={{ width:18,height:18,borderRadius:"50%",border:`2px solid ${nlSched===k?C.navy:C.border}`,background:nlSched===k?C.navy:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1 }}>{nlSched===k&&<div style={{ width:7,height:7,borderRadius:"50%",background:"#fff" }}/>}</div>
+                  <div key={k} onClick={()=>setNlSched(k)} style={{ padding:"14px 16px",borderRadius:10,border:`1.5px solid ${nlSched===k?C.primary:C.border}`,background:nlSched===k?C.primary+"05":"#fff",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start" }}>
+                    <div style={{ width:18,height:18,borderRadius:"50%",border:`2px solid ${nlSched===k?C.primary:C.border}`,background:nlSched===k?C.primary:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1 }}>{nlSched===k&&<div style={{ width:7,height:7,borderRadius:"50%",background:"#fff" }}/>}</div>
                     <div><div style={{ fontSize:13,fontWeight:700,color:nlSched===k?C.navy:C.text }}>{l}</div><div style={{ fontSize:11,color:C.muted }}>{d}</div>
                     {k==="scheduled"&&nlSched==="scheduled"&&<div style={{ display:"flex",gap:8,marginTop:8 }}><input type="date" value={nlDate} onChange={e=>setNlDate(e.target.value)} style={{ padding:"6px 10px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",outline:"none" }}/><input type="time" value={nlTime} onChange={e=>setNlTime(e.target.value)} style={{ padding:"6px 10px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",outline:"none" }}/></div>}
                     </div>
@@ -5783,7 +5795,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                   <button onClick={()=>alert("Draft saved")} style={{ padding:"8px 16px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>Save Draft</button>
                 </div>
                 {nlStep<5
-                  ?<button onClick={()=>setNlStep(s=>s+1)} style={{ padding:"8px 22px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Next: {NL_STEPS[nlStep]} →</button>
+                  ?<button onClick={()=>setNlStep(s=>s+1)} style={{ padding:"8px 22px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Next: {NL_STEPS[nlStep]} →</button>
                   :<button onClick={()=>{ setNlLaunch(true); setTimeout(()=>{ const n={id:`nl${Date.now()}`,name:nlName,status:nlSched==="now"?"sent":"scheduled",list:nlList,sent:nlSched==="now"?selNlList?.active||0:0,opens:0,clicks:0,unsubs:0,created:"Today",subject:nlSubj,createdBy:myName}; setNlCamps(p=>[n,...p]); setNlLaunch(false); setNlDone(true); },1200); }} disabled={nlLaunch}
                       style={{ padding:"8px 22px",borderRadius:9,border:"none",background:C.green,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8 }}>
                       {nlLaunch?<><div style={{ display:"flex",gap:3 }}>{[0,1,2].map(i=><div key={i} style={{ width:5,height:5,borderRadius:"50%",background:"#fff",opacity:0.5+i*0.25 }}/>)}</div>Sending…</>:"📰 Send Newsletter"}
@@ -5824,7 +5836,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
             <div style={{ fontSize:52,marginBottom:14 }}>🚀</div>
             <h2 style={{ fontSize:22,fontWeight:700,color:C.navy,marginBottom:8 }}>{cSendOpt==="now"?"Campaign launched!":"Campaign scheduled!"}</h2>
             <div style={{ fontSize:13,color:C.muted,marginBottom:22 }}>{cSendOpt==="now"?`Sending to ${fmt(seg.valid)} valid recipients.`:`Scheduled for ${cSchedD} at ${cSchedT}.`}</div>
-            <button onClick={()=>{ setBeView("list"); setBeStep(1); setBeDone(false); setCName(""); setCSubj(""); }} style={{ padding:"11px 28px",borderRadius:10,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>View Campaigns</button>
+            <button onClick={()=>{ setBeView("list"); setBeStep(1); setBeDone(false); setCName(""); setCSubj(""); }} style={{ padding:"11px 28px",borderRadius:10,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>View Campaigns</button>
           </div>
         ):(
           <div style={{ display:"grid",gridTemplateColumns:"1fr 280px",gap:18 }}>
@@ -5834,7 +5846,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                 {BE_STEPS.map((s,i)=>{ const n=i+1,done=n<beStep,active=n===beStep; return (
                   <div key={s} style={{ display:"flex",alignItems:"center",flex:i<BE_STEPS.length-1?1:"auto" }}>
                     <div style={{ display:"flex",flexDirection:"column",alignItems:"center",cursor:done?"pointer":"default" }} onClick={()=>done&&setBeStep(n)}>
-                      <div style={{ width:26,height:26,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:done?C.green:active?C.navy:"#F1F5F9",color:done||active?"#fff":C.muted,fontSize:done?12:11,fontWeight:700,border:`2px solid ${done?C.green:active?C.navy:C.border}` }}>{done?"✓":n}</div>
+                      <div style={{ width:26,height:26,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:done?C.green:active?C.primary:"#F1F5F9",color:done||active?"#fff":C.muted,fontSize:done?12:11,fontWeight:700,border:`2px solid ${done?C.green:active?C.primary:C.border}` }}>{done?"✓":n}</div>
                       <div style={{ fontSize:10,fontWeight:active?700:400,color:active?C.navy:done?C.green:C.muted,marginTop:3,whiteSpace:"nowrap" }}>{s}</div>
                     </div>
                     {i<BE_STEPS.length-1&&<div style={{ flex:1,height:2,background:done?C.green:C.border,margin:"0 5px",marginBottom:14 }}/>}
@@ -5846,7 +5858,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                   <div style={{ fontSize:15,fontWeight:700,color:C.text }}>Campaign Details</div>
                   {[["Campaign Name *",cName,setCName,"e.g. Q1 Finanz Welcome"],["Subject Line *",cSubj,setCSubj,"e.g. Your financial future starts here"]].map(([lbl,val,set,ph])=>(
                     <div key={lbl}><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>{lbl}</label>
-                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{ width:"100%",padding:"10px 12px",borderRadius:9,border:`1.5px solid ${val?C.navy:C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/></div>
+                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{ width:"100%",padding:"10px 12px",borderRadius:9,border:`1.5px solid ${val?C.primary:C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/></div>
                   ))}
                   <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
                     {[["From Name",cFName,setCFName],["From Email",cFEmail,setCFEmail]].map(([lbl,val,set])=>(
@@ -5856,20 +5868,20 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                   </div>
                   <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:7 }}>Campaign Type</label>
                   <div style={{ display:"flex",gap:8 }}>{["marketing","announcement","newsletter"].map(t=>(
-                    <button key={t} onClick={()=>setCType(t)} style={{ flex:1,padding:"8px",borderRadius:9,border:`1.5px solid ${cType===t?C.navy:C.border}`,background:cType===t?C.navy+"08":"#fff",color:cType===t?C.navy:C.muted,fontSize:12,fontWeight:cType===t?700:400,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize" }}>{t}</button>
+                    <button key={t} onClick={()=>setCType(t)} style={{ flex:1,padding:"8px",borderRadius:9,border:`1.5px solid ${cType===t?C.primary:C.border}`,background:cType===t?C.primary+"08":"#fff",color:cType===t?C.navy:C.muted,fontSize:12,fontWeight:cType===t?700:400,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize" }}>{t}</button>
                   ))}</div></div>
                 </div>}
 
                 {beStep===2&&<div style={{ display:"flex",flexDirection:"column",gap:14 }}>
                   <div style={{ fontSize:15,fontWeight:700,color:C.text }}>Choose Recipients</div>
                   {[["segment","Use CRM Segment"],["filters","Use Filters"],["csv","Upload CSV"]].map(([k,l])=>(
-                    <div key={k} onClick={()=>setCAud(k)} style={{ padding:"11px 14px",borderRadius:10,border:`1.5px solid ${cAud===k?C.navy:C.border}`,background:cAud===k?C.navy+"05":"#fff",cursor:"pointer",display:"flex",gap:12,alignItems:"center" }}>
-                      <div style={{ width:15,height:15,borderRadius:"50%",border:`2px solid ${cAud===k?C.navy:C.border}`,background:cAud===k?C.navy:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>{cAud===k&&<div style={{ width:6,height:6,borderRadius:"50%",background:"#fff" }}/>}</div>
+                    <div key={k} onClick={()=>setCAud(k)} style={{ padding:"11px 14px",borderRadius:10,border:`1.5px solid ${cAud===k?C.primary:C.border}`,background:cAud===k?C.primary+"05":"#fff",cursor:"pointer",display:"flex",gap:12,alignItems:"center" }}>
+                      <div style={{ width:15,height:15,borderRadius:"50%",border:`2px solid ${cAud===k?C.primary:C.border}`,background:cAud===k?C.primary:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>{cAud===k&&<div style={{ width:6,height:6,borderRadius:"50%",background:"#fff" }}/>}</div>
                       <span style={{ fontWeight:cAud===k?700:400,fontSize:13,color:cAud===k?C.navy:C.text }}>{l}</span>
                     </div>
                   ))}
                   {cAud==="segment"&&<div style={{ position:"relative" }}>
-                    <select value={cSeg} onChange={e=>setCSeg(e.target.value)} style={{ width:"100%",padding:"9px 28px 9px 12px",borderRadius:9,border:`1.5px solid ${C.navy}`,fontSize:13,fontFamily:"inherit",appearance:"none",outline:"none" }}>
+                    <select value={cSeg} onChange={e=>setCSeg(e.target.value)} style={{ width:"100%",padding:"9px 28px 9px 12px",borderRadius:9,border:`1.5px solid ${C.primary}`,fontSize:13,fontFamily:"inherit",appearance:"none",outline:"none" }}>
                       {Object.entries(BE_SEGMENTS).map(([k,v])=><option key={k} value={k}>{v.label} ({v.total.toLocaleString()})</option>)}
                     </select>
                     <span style={{ position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:C.muted }}>▼</span>
@@ -5888,7 +5900,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                   <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
                     <div style={{ fontSize:15,fontWeight:700,color:C.text }}>Design Email</div>
                     <div style={{ display:"flex",gap:6 }}>
-                      {[["desktop","🖥"],["mobile","📱"]].map(([m,ic])=><button key={m} onClick={()=>setCMobPrev(m==="mobile")} style={{ padding:"5px 9px",borderRadius:7,border:`1px solid ${(cMobPrev?"mobile":"desktop")===m?C.navy:C.border}`,background:(cMobPrev?"mobile":"desktop")===m?C.navy+"08":"#fff",color:(cMobPrev?"mobile":"desktop")===m?C.navy:C.muted,fontSize:10,cursor:"pointer",fontFamily:"inherit" }}>{ic}</button>)}
+                      {[["desktop","🖥"],["mobile","📱"]].map(([m,ic])=><button key={m} onClick={()=>setCMobPrev(m==="mobile")} style={{ padding:"5px 9px",borderRadius:7,border:`1px solid ${(cMobPrev?"mobile":"desktop")===m?C.primary:C.border}`,background:(cMobPrev?"mobile":"desktop")===m?C.primary+"08":"#fff",color:(cMobPrev?"mobile":"desktop")===m?C.navy:C.muted,fontSize:10,cursor:"pointer",fontFamily:"inherit" }}>{ic}</button>)}
                     </div>
                   </div>
                   {/* Template picker */}
@@ -5907,7 +5919,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                       ))}
                     </div>}
                   </div>
-                  <textarea value={cBody} onChange={e=>setCBody(e.target.value)} rows={7} placeholder="Dear {FirstName},\n\nWrite your email here…" style={{ width:"100%",padding:"12px 14px",borderRadius:9,border:`1.5px solid ${cBody?C.navy:C.border}`,fontSize:12,fontFamily:"monospace",lineHeight:1.6,resize:"vertical",outline:"none",boxSizing:"border-box" }}/>
+                  <textarea value={cBody} onChange={e=>setCBody(e.target.value)} rows={7} placeholder="Dear {FirstName},\n\nWrite your email here…" style={{ width:"100%",padding:"12px 14px",borderRadius:9,border:`1.5px solid ${cBody?C.primary:C.border}`,fontSize:12,fontFamily:"monospace",lineHeight:1.6,resize:"vertical",outline:"none",boxSizing:"border-box" }}/>
                   <div style={{ border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden" }}>
                     <div style={{ padding:"6px 12px",fontSize:10,fontWeight:700,color:C.muted,background:"#FAFAFA",borderBottom:`1px solid ${C.border}` }}>📧 Preview · {cFName} &lt;{cFEmail}&gt; · {cSubj||"(no subject)"}</div>
                     <div style={{ padding:"12px",margin:"0 auto",maxWidth:cMobPrev?310:"100%",background:"#fff" }}>
@@ -5937,8 +5949,8 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                 {beStep===5&&<div style={{ display:"flex",flexDirection:"column",gap:14 }}>
                   <div style={{ fontSize:15,fontWeight:700,color:C.text }}>Send Options</div>
                   {[["now","Send Now","Dispatch immediately"],["scheduled","Schedule","Pick date & time"]].map(([k,l,d])=>(
-                    <div key={k} onClick={()=>setCSendOpt(k)} style={{ padding:"14px",borderRadius:10,border:`1.5px solid ${cSendOpt===k?C.navy:C.border}`,background:cSendOpt===k?C.navy+"05":"#fff",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start" }}>
-                      <div style={{ width:17,height:17,borderRadius:"50%",border:`2px solid ${cSendOpt===k?C.navy:C.border}`,background:cSendOpt===k?C.navy:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1 }}>{cSendOpt===k&&<div style={{ width:6,height:6,borderRadius:"50%",background:"#fff" }}/>}</div>
+                    <div key={k} onClick={()=>setCSendOpt(k)} style={{ padding:"14px",borderRadius:10,border:`1.5px solid ${cSendOpt===k?C.primary:C.border}`,background:cSendOpt===k?C.primary+"05":"#fff",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start" }}>
+                      <div style={{ width:17,height:17,borderRadius:"50%",border:`2px solid ${cSendOpt===k?C.primary:C.border}`,background:cSendOpt===k?C.primary:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1 }}>{cSendOpt===k&&<div style={{ width:6,height:6,borderRadius:"50%",background:"#fff" }}/>}</div>
                       <div><div style={{ fontSize:13,fontWeight:700,color:cSendOpt===k?C.navy:C.text }}>{l}</div><div style={{ fontSize:11,color:C.muted }}>{d}</div>
                       {k==="scheduled"&&cSendOpt==="scheduled"&&<div style={{ display:"flex",gap:8,marginTop:8 }}><input type="date" value={cSchedD} onChange={e=>setCSchedD(e.target.value)} style={{ padding:"6px 10px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",outline:"none" }}/><input type="time" value={cSchedT} onChange={e=>setCSchedT(e.target.value)} style={{ padding:"6px 10px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",outline:"none" }}/></div>}
                       </div>
@@ -5953,7 +5965,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
                     <button onClick={()=>alert("Draft saved")} style={{ padding:"8px 16px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>Save Draft</button>
                   </div>
                   {beStep<5
-                    ?<button onClick={()=>setBeStep(s=>s+1)} style={{ padding:"8px 20px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Next: {BE_STEPS[beStep]} →</button>
+                    ?<button onClick={()=>setBeStep(s=>s+1)} style={{ padding:"8px 20px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Next: {BE_STEPS[beStep]} →</button>
                     :<button onClick={()=>{ setBeLaunch(true); setTimeout(()=>{ const n={id:`c${Date.now()}`,name:cName,status:cSendOpt==="now"?"sending":"scheduled",recipients:seg.total,valid:seg.valid,sent:0,delivered:0,opens:0,clicks:0,bounces:0,unsubs:0,created:"Today",subject:cSubj,type:cType}; setBeCamps(p=>[n,...p]); setBeLaunch(false); setBeDone(true); },1200); }} disabled={beLaunch}
                         style={{ padding:"8px 20px",borderRadius:9,border:"none",background:C.green,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8 }}>
                         {beLaunch?<><div style={{ display:"flex",gap:3 }}>{[0,1,2].map(i=><div key={i} style={{ width:5,height:5,borderRadius:"50%",background:"#fff",opacity:0.5+i*0.25 }}/>)}</div>Launching…</>:"🚀 Send Campaign"}
@@ -6009,7 +6021,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
         {/* Sub-tabs */}
         <div style={{ display:"flex",borderBottom:`2px solid ${C.border}`,marginBottom:16 }}>
           {[{id:"details",label:"📋 Details"},{id:"preview",label:"✉️ Preview Template"},{id:"recipients",label:"👥 Recipients"}].map(t=>(
-            <button key={t.id} onClick={()=>setBeDetTab(t.id)} style={{ padding:"9px 18px",border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:beDetTab===t.id?700:400,color:beDetTab===t.id?C.navy:C.muted,borderBottom:`2px solid ${beDetTab===t.id?C.navy:"transparent"}`,marginBottom:-2 }}>{t.label}</button>
+            <button key={t.id} onClick={()=>setBeDetTab(t.id)} style={{ padding:"9px 18px",border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:beDetTab===t.id?700:400,color:beDetTab===t.id?C.navy:C.muted,borderBottom:`2px solid ${beDetTab===t.id?C.primary:"transparent"}`,marginBottom:-2 }}>{t.label}</button>
           ))}
         </div>
 
@@ -6050,14 +6062,14 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
               ))}
             </div>
             <div style={{ display:"flex",gap:5 }}>
-              <button onClick={()=>setBeMob(false)} style={{ flex:1,padding:"5px",borderRadius:7,border:`1px solid ${!beMob?C.navy:C.border}`,background:!beMob?C.navy+"08":"#fff",color:!beMob?C.navy:C.muted,fontSize:10,fontWeight:!beMob?700:400,cursor:"pointer",fontFamily:"inherit" }}>🖥 Desktop</button>
-              <button onClick={()=>setBeMob(true)} style={{ flex:1,padding:"5px",borderRadius:7,border:`1px solid ${beMob?C.navy:C.border}`,background:beMob?C.navy+"08":"#fff",color:beMob?C.navy:C.muted,fontSize:10,fontWeight:beMob?700:400,cursor:"pointer",fontFamily:"inherit" }}>📱 Mobile</button>
+              <button onClick={()=>setBeMob(false)} style={{ flex:1,padding:"5px",borderRadius:7,border:`1px solid ${!beMob?C.primary:C.border}`,background:!beMob?C.primary+"08":"#fff",color:!beMob?C.navy:C.muted,fontSize:10,fontWeight:!beMob?700:400,cursor:"pointer",fontFamily:"inherit" }}>🖥 Desktop</button>
+              <button onClick={()=>setBeMob(true)} style={{ flex:1,padding:"5px",borderRadius:7,border:`1px solid ${beMob?C.primary:C.border}`,background:beMob?C.primary+"08":"#fff",color:beMob?C.navy:C.muted,fontSize:10,fontWeight:beMob?700:400,cursor:"pointer",fontFamily:"inherit" }}>📱 Mobile</button>
             </div>
             <button onClick={()=>{setBeTestSent(true);setTimeout(()=>setBeTestSent(false),2500);}} style={{ padding:"7px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",color:beTestSent?C.green:C.slate,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>{beTestSent?"✅ Sent!":"📧 Send Test"}</button>
           </div>
           <div style={{ background:beMob?"#E5E7EB":"#F8FAFC",borderRadius:12,padding:beMob?"16px":"0",display:"flex",justifyContent:"center",alignItems:"flex-start",border:`1px solid ${C.border}`,minHeight:360 }}>
             <div style={{ width:beMob?360:"100%",background:"#fff",borderRadius:beMob?12:0,overflow:"hidden",boxShadow:beMob?"0 8px 20px rgba(0,0,0,0.1)":"none" }}>
-              <div style={{ background:C.navy,padding:"14px 20px",textAlign:"center" }}><div style={{ fontSize:15,fontWeight:700,color:"#fff",fontStyle:"italic" }}>vion<span style={{ fontWeight:300 }}>world</span></div></div>
+              <div style={{ background:C.primary,padding:"14px 20px",textAlign:"center" }}><div style={{ fontSize:15,fontWeight:700,color:"#fff",fontStyle:"italic" }}>vion<span style={{ fontWeight:300 }}>world</span></div></div>
               <div style={{ padding:"20px 24px",fontSize:12,lineHeight:1.7,color:C.text,fontFamily:"Georgia,serif" }}>
                 Dear Sandra,{"\n\n"}We have an exciting opportunity for you regarding your financial future.{"\n\n"}Best regards,{"\n"}Anna Klein
               </div>
@@ -6144,7 +6156,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
         </div>
         <div style={{ display:"flex",gap:8 }}>
           {canViewInteg&&<button onClick={()=>alert("⚙️ Integration: Listmonk · GrapesJS · Amazon SES — configure in Settings → Integrations.")} style={{ padding:"8px 14px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>⚙️ Integration</button>}
-          {mainTab==="campaigns"&&canCampaigns&&<button onClick={()=>{ setBeView("create"); setBeStep(1); setBeDone(false); setCName(""); setCSubj(""); setCBody(""); setCTpl(null); }} style={{ padding:"8px 16px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ New Campaign</button>}
+          {mainTab==="campaigns"&&canCampaigns&&<button onClick={()=>{ setBeView("create"); setBeStep(1); setBeDone(false); setCName(""); setCSubj(""); setCBody(""); setCTpl(null); }} style={{ padding:"8px 16px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ New Campaign</button>}
           {mainTab==="newsletters"&&canNewsletter&&<button onClick={()=>{ setNlView("create"); setNlStep(1); setNlDone(false); setNlName(""); setNlSubj(""); }} style={{ padding:"8px 16px",borderRadius:9,border:"none",background:C.indigo,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ New Newsletter</button>}
         </div>
       </div>
@@ -6155,9 +6167,9 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
           <button key={t.id} onClick={()=>setMainTab(t.id)}
             style={{ padding:"9px 18px",border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",
               fontSize:13,fontWeight:mainTab===t.id?700:400,color:mainTab===t.id?C.navy:C.muted,
-              borderBottom:`2px solid ${mainTab===t.id?C.navy:"transparent"}`,marginBottom:-2,display:"flex",alignItems:"center",gap:7 }}>
+              borderBottom:`2px solid ${mainTab===t.id?C.primary:"transparent"}`,marginBottom:-2,display:"flex",alignItems:"center",gap:7 }}>
             {t.label}
-            <span style={{ fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:mainTab===t.id?C.navy:C.border,color:mainTab===t.id?"#fff":C.muted }}>{t.n}</span>
+            <span style={{ fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:mainTab===t.id?C.primary:C.border,color:mainTab===t.id?"#fff":C.muted }}>{t.n}</span>
           </button>
         ))}
       </div>
@@ -6178,7 +6190,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
           </div>
           <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:9,overflow:"hidden" }}>
             {["all","draft","sending","sent","scheduled","paused"].map(s=>(
-              <button key={s} onClick={()=>setBeSF(s)} style={{ padding:"7px 10px",border:"none",background:beSF===s?C.navy:"#fff",color:beSF===s?"#fff":C.muted,fontSize:10,fontWeight:beSF===s?700:400,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize" }}>{s==="all"?"All":s}</button>
+              <button key={s} onClick={()=>setBeSF(s)} style={{ padding:"7px 10px",border:"none",background:beSF===s?C.primary:"#fff",color:beSF===s?"#fff":C.muted,fontSize:10,fontWeight:beSF===s?700:400,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize" }}>{s==="all"?"All":s}</button>
             ))}
           </div>
         </div>
@@ -6229,7 +6241,7 @@ const EmailMarketingPage = ({ role, navigateTo }) => {
           </div>
           <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:9,overflow:"hidden" }}>
             {["all","draft","sending","sent","scheduled"].map(s=>(
-              <button key={s} onClick={()=>setNlSF(s)} style={{ padding:"7px 10px",border:"none",background:nlSF===s?C.navy:"#fff",color:nlSF===s?"#fff":C.muted,fontSize:10,fontWeight:nlSF===s?700:400,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize" }}>{s==="all"?"All":s}</button>
+              <button key={s} onClick={()=>setNlSF(s)} style={{ padding:"7px 10px",border:"none",background:nlSF===s?C.primary:"#fff",color:nlSF===s?"#fff":C.muted,fontSize:10,fontWeight:nlSF===s?700:400,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize" }}>{s==="all"?"All":s}</button>
             ))}
           </div>
         </div>
@@ -7091,7 +7103,7 @@ const LeadsPage = ({ role, navigateTo }) => {
         <span onClick={()=>navigateTo("Dashboard")} style={{ cursor:"pointer",color:C.blue,fontWeight:600 }}>Dashboard</span>
         <span>›</span><span style={{ color:C.text,fontWeight:600 }}>Lead Management</span>
         <span style={{ marginLeft:6,fontSize:11,padding:"2px 8px",borderRadius:12,background:cfg+"18",color:cfg,fontWeight:700 }}>{{superadmin:"Super Admin",vd:"Sales Director",gp:"Consultant"}[role]}</span>
-        {role==="vd"&&<span style={{ fontSize:11,padding:"2px 8px",borderRadius:12,background:vdMode==="personal"?C.indigo+"15":C.navy+"15",color:vdMode==="personal"?C.indigo:C.navy,fontWeight:700 }}>{vdMode==="personal"?"👤 My Leads":"👥 My Team"}</span>}
+        {role==="vd"&&<span style={{ fontSize:11,padding:"2px 8px",borderRadius:12,background:vdMode==="personal"?C.indigo+"15":C.primary+"15",color:vdMode==="personal"?C.indigo:C.navy,fontWeight:700 }}>{vdMode==="personal"?"👤 My Leads":"👥 My Team"}</span>}
       </div>
       {/* Header */}
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22 }}>
@@ -7108,7 +7120,7 @@ const LeadsPage = ({ role, navigateTo }) => {
           {role==="vd"&&<ModePill mode={vdMode} onChange={handleModeChange} />}
           {role==="superadmin" && <button onClick={()=>navigateTo("LeadCapture")} style={{ padding:"8px 14px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>📥 Lead Capture</button>}
           {(role==="superadmin"||(role==="vd"&&vdMode==="team"))
-            ?<button onClick={()=>navigateTo("AutoAssign")} style={{ padding:"8px 14px",borderRadius:7,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer" }}>⚡ Auto-Assign by ZIP</button>
+            ?<button onClick={()=>navigateTo("AutoAssign")} style={{ padding:"8px 14px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer" }}>⚡ Auto-Assign by ZIP</button>
             :<button onClick={()=>{ const top=filteredLeads.find(l=>!["closed","no_interest"].includes(l.status)); if(top)openDrawer(top,"🤖 AI"); }} style={{ padding:"8px 14px",borderRadius:7,border:"none",background:C.ai,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6 }}>🤖 AI Call Script</button>}
         </div>
       </div>
@@ -7195,7 +7207,7 @@ const LeadsPage = ({ role, navigateTo }) => {
                       <div style={{ display:"flex",gap:4 }}>
                         <button onClick={e=>{e.stopPropagation();setCallLead(lead);}} style={{ padding:"4px 10px",borderRadius:5,border:`1px solid ${C.green}30`,background:C.green+"0D",color:C.green,fontSize:10,fontWeight:700,cursor:"pointer" }}>📞 Call</button>
                         <button onClick={e=>{e.stopPropagation();openDrawer(lead,"🤖 AI");}} style={{ padding:"4px 10px",borderRadius:5,border:`1px solid ${C.ai}30`,background:C.ai+"0D",color:C.ai,fontSize:10,fontWeight:700,cursor:"pointer" }}>🤖 AI</button>
-                        <button onClick={e=>{e.stopPropagation();navigateTo("LeadDetail",lead);}} style={{ padding:"4px 10px",borderRadius:5,border:`1px solid ${C.border}`,background:C.navy,color:"#fff",fontSize:10,fontWeight:600,cursor:"pointer" }}>Open →</button>
+                        <button onClick={e=>{e.stopPropagation();navigateTo("LeadDetail",lead);}} style={{ padding:"4px 10px",borderRadius:5,border:`1px solid ${C.border}`,background:C.primary,color:"#fff",fontSize:10,fontWeight:600,cursor:"pointer" }}>Open →</button>
                       </div>
                     </td>
                   </tr>
@@ -7617,7 +7629,7 @@ const AppointmentsPage = ({ role, navigateTo, appointments=APPOINTMENTS, addAppo
             {all.length} total · {all.filter(a=>a.date>=TODAY&&["upcoming","confirmed"].includes(a.status)).length} upcoming
           </p>
         </div>
-        <button onClick={()=>setShowNewAppt(true)} style={{ padding:"9px 18px", borderRadius:8, border:"none", background:C.navy, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+        <button onClick={()=>setShowNewAppt(true)} style={{ padding:"9px 18px", borderRadius:8, border:"none", background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>
           + New Appointment
         </button>
       </div>
@@ -7776,7 +7788,7 @@ const AppointmentsPage = ({ role, navigateTo, appointments=APPOINTMENTS, addAppo
             ))}
             <button onClick={() => setSelected(null)}
               style={{ width:"100%", marginTop:18, padding:"10px", borderRadius:9, border:"none",
-                background:C.navy, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+                background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>
               Close
             </button>
           </div>
@@ -8041,7 +8053,7 @@ const AutoAssignPage = ({ role, navigateTo }) => {
         <div style={{ marginBottom:20,padding:"18px 20px",background:"#fff",borderRadius:12,border:`1px solid ${C.border}` }}>
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14 }}>
             <div style={{ fontSize:13,fontWeight:700,color:C.text }}>ZIP Routing Rules <span style={{ fontSize:11,fontWeight:500,color:C.muted }}>({rules.length} active)</span></div>
-            <button onClick={openAdd} style={{ padding:"6px 14px",borderRadius:6,border:"none",background:C.navy,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer" }}>+ Add Rule</button>
+            <button onClick={openAdd} style={{ padding:"6px 14px",borderRadius:6,border:"none",background:C.primary,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer" }}>+ Add Rule</button>
           </div>
           <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
             <thead>
@@ -8293,7 +8305,7 @@ const AutoAssignPage = ({ role, navigateTo }) => {
                 <button onClick={handleSaveRule}
                   disabled={!ruleForm.prefix.trim()||!ruleForm.gp||!ruleForm.vd}
                   style={{ padding:"8px 18px",borderRadius:7,border:"none",
-                    background:ruleForm.prefix.trim()&&ruleForm.gp&&ruleForm.vd?C.navy:"#E2E8F0",
+                    background:ruleForm.prefix.trim()&&ruleForm.gp&&ruleForm.vd?C.primary:"#E2E8F0",
                     color:ruleForm.prefix.trim()&&ruleForm.gp&&ruleForm.vd?"#fff":C.muted,
                     fontSize:12,fontWeight:700,cursor:"pointer" }}>
                   {ruleModal==="new" ? "Add Rule" : "Save Changes"}
@@ -8366,7 +8378,7 @@ const LeadCapturePage = ({ role, navigateTo }) => {
         </div>
         <div style={{ display:"flex",gap:8 }}>
           <label style={{ padding:"8px 16px",borderRadius:8,border:`1.5px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer",display:"inline-flex",gap:6 }}><input type="file" accept=".csv" style={{ display:"none" }} onChange={e=>{if(e.target.files[0]) alert("CSV uploaded: "+e.target.files[0].name);e.target.value="";}}/>⬆ CSV Upload</label>
-          <button style={{ padding:"8px 16px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Add Source</button>
+          <button style={{ padding:"8px 16px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Add Source</button>
         </div>
       </div>
 
@@ -8395,7 +8407,7 @@ const LeadCapturePage = ({ role, navigateTo }) => {
             <button key={t} onClick={()=>setActiveTab(t)}
               style={{ padding:"12px 22px",fontSize:13,fontWeight:activeTab===t?700:500,
                 color:activeTab===t?C.navy:C.muted,background:"none",border:"none",
-                borderBottom:activeTab===t?`2px solid ${C.navy}`:"2px solid transparent",
+                borderBottom:activeTab===t?`2px solid ${C.primary}`:"2px solid transparent",
                 marginBottom:-2,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6 }}>
               {t}
               {t==="Duplicates" && dupes.filter(d=>!dupeActions[d.id]).length>0 && (
@@ -8453,7 +8465,7 @@ const LeadCapturePage = ({ role, navigateTo }) => {
                   <select style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"6px 10px",fontSize:12,fontFamily:"inherit",color:C.slate }}>
                     <option>All Sources</option>{LC_SOURCES.map(s=><option key={s.id}>{s.label}</option>)}
                   </select>
-                  <button style={{ padding:"6px 14px",borderRadius:7,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Add Field</button>
+                  <button style={{ padding:"6px 14px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Add Field</button>
                 </div>
               </div>
               <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
@@ -8524,7 +8536,7 @@ const LeadCapturePage = ({ role, navigateTo }) => {
                 <span style={{ fontSize:12,color:C.muted }}>Showing 5 of 91 imports</span>
                 <div style={{ display:"flex",gap:6 }}>
                   {["← Prev","1","2","3","Next →"].map(p=>(
-                    <button key={p} style={{ padding:"5px 10px",borderRadius:5,border:p==="1"?"none":`1px solid ${C.border}`,background:p==="1"?C.navy:"#fff",color:p==="1"?"#fff":C.slate,fontSize:12,cursor:"pointer" }}>{p}</button>
+                    <button key={p} style={{ padding:"5px 10px",borderRadius:5,border:p==="1"?"none":`1px solid ${C.border}`,background:p==="1"?C.primary:"#fff",color:p==="1"?"#fff":C.slate,fontSize:12,cursor:"pointer" }}>{p}</button>
                   ))}
                 </div>
               </div>
@@ -8598,7 +8610,7 @@ const LeadCapturePage = ({ role, navigateTo }) => {
                         {!action && (
                           <div style={{ display:"flex",gap:8 }}>
                             <button onClick={()=>setDupeActions(p=>({...p,[d.id]:"merge"}))}
-                              style={{ flex:1,padding:"7px",borderRadius:7,border:"none",background:C.navy,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer" }}>
+                              style={{ flex:1,padding:"7px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer" }}>
                               🔀 Merge into existing
                             </button>
                             <button onClick={()=>setDupeActions(p=>({...p,[d.id]:"keep_both"}))}
@@ -8754,7 +8766,7 @@ const EmailTemplatesSection = ({ navigateTo, role }) => {
         </div>
         {canCreate && (
           <button onClick={addTemplate}
-            style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.navy,color:"#fff",
+            style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.primary,color:"#fff",
               fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6 }}>
             + New Template
           </button>
@@ -8787,8 +8799,8 @@ const EmailTemplatesSection = ({ navigateTo, role }) => {
         {(()=>{ const active=filterLang!=="all";
           return <div style={{ position:"relative" }}>
             <select value={filterLang} onChange={e=>setFilterLang(e.target.value)}
-              style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${active?C.navy:C.border}`,
-                background:active?C.navy+"08":"#fff",color:active?C.navy:C.muted,
+              style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${active?C.primary:C.border}`,
+                background:active?C.primary+"08":"#fff",color:active?C.navy:C.muted,
                 fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:active?700:400 }}>
               <option value="all">Language</option>
               <option value="de">🇩🇪 German (DE)</option>
@@ -8802,8 +8814,8 @@ const EmailTemplatesSection = ({ navigateTo, role }) => {
         {(()=>{ const active=filterType!=="all";
           return <div style={{ position:"relative" }}>
             <select value={filterType} onChange={e=>setFilterType(e.target.value)}
-              style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${active?C.navy:C.border}`,
-                background:active?C.navy+"08":"#fff",color:active?C.navy:C.muted,
+              style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${active?C.primary:C.border}`,
+                background:active?C.primary+"08":"#fff",color:active?C.navy:C.muted,
                 fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:active?700:400 }}>
               <option value="all">Type</option>
               <option value="org">🏢 Org-wide</option>
@@ -8817,8 +8829,8 @@ const EmailTemplatesSection = ({ navigateTo, role }) => {
         {(()=>{ const active=filterActive!=="all";
           return <div style={{ position:"relative" }}>
             <select value={filterActive} onChange={e=>setFilterActive(e.target.value)}
-              style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${active?C.navy:C.border}`,
-                background:active?C.navy+"08":"#fff",color:active?C.navy:C.muted,
+              style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${active?C.primary:C.border}`,
+                background:active?C.primary+"08":"#fff",color:active?C.navy:C.muted,
                 fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:active?700:400 }}>
               <option value="all">Visible</option>
               <option value="active">● Active (On)</option>
@@ -8858,7 +8870,7 @@ const EmailTemplatesSection = ({ navigateTo, role }) => {
               <tr>
                 <td colSpan={7} style={{ padding:"40px",textAlign:"center",color:C.muted,fontSize:13 }}>
                   {search ? `No templates match "${search}".` : "No templates match your filters."}
-                  {canCreate && <><br/><button onClick={addTemplate} style={{ marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Create first template</button></>}
+                  {canCreate && <><br/><button onClick={addTemplate} style={{ marginTop:12,padding:"7px 16px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Create first template</button></>}
                 </td>
               </tr>
             )}
@@ -8908,7 +8920,7 @@ const EmailTemplatesSection = ({ navigateTo, role }) => {
                   {/* Type */}
                   <td style={{ padding:"12px 14px",textAlign:"center" }}>
                     {isOrg
-                      ? <span style={{ fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:C.navy+"10",color:C.navy }}>🏢 Org-wide</span>
+                      ? <span style={{ fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:C.primary+"10",color:C.navy }}>🏢 Org-wide</span>
                       : isMine
                         ? <span style={{ fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:C.green+"15",color:C.green }}>👤 My Template</span>
                         : <span style={{ fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:C.purple+"15",color:C.purple }}>👤 {t.createdBy?.split(" ")[0]}</span>}
@@ -9016,8 +9028,8 @@ const AuditLogSection = () => {
           style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",fontSize:12,fontFamily:"inherit",width:220 }}/>
         {[["all","All"],["GP","Consultants"],["VD","Directors"],["SA","Admin"],["system","System"]].map(([k,l])=>(
           <button key={k} onClick={()=>setFilter(k)}
-            style={{ padding:"6px 12px",borderRadius:20,border:`1px solid ${filter===k?C.navy:C.border}`,
-              background:filter===k?C.navy:"#fff",color:filter===k?"#fff":C.slate,
+            style={{ padding:"6px 12px",borderRadius:20,border:`1px solid ${filter===k?C.primary:C.border}`,
+              background:filter===k?C.primary:"#fff",color:filter===k?"#fff":C.slate,
               fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
         ))}
         <button style={{ marginLeft:"auto",padding:"6px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:11,fontWeight:600,cursor:"pointer" }}>⬇ Export CSV</button>
@@ -9072,8 +9084,8 @@ const LanguageSection = ({ save, role, inp, Card, Field, Label }) => {
           <div style={{ display:"flex",gap:10 }}>
             {[["en","🇬🇧 English"],["de","🇩🇪 Deutsch"]].map(([k,l])=>(
               <button key={k} onClick={()=>setPreviewLang(k)}
-                style={{ flex:1,padding:"12px",borderRadius:9,border:`2px solid ${previewLang===k?C.navy:C.border}`,
-                  background:previewLang===k?C.navy+"08":"#fff",fontWeight:previewLang===k?700:400,
+                style={{ flex:1,padding:"12px",borderRadius:9,border:`2px solid ${previewLang===k?C.primary:C.border}`,
+                  background:previewLang===k?C.primary+"08":"#fff",fontWeight:previewLang===k?700:400,
                   fontSize:14,cursor:"pointer",fontFamily:"inherit",color:previewLang===k?C.navy:C.slate }}>
                 {l}{previewLang===k?" ✓":""}
               </button>
@@ -9099,7 +9111,7 @@ const LanguageSection = ({ save, role, inp, Card, Field, Label }) => {
         <div style={{ fontSize:11,color:C.muted,marginBottom:16 }}>
           Changing the language applies to your account only. Other team members keep their own preference.
         </div>
-        <button onClick={save} style={{ padding:"9px 20px",borderRadius:7,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
+        <button onClick={save} style={{ padding:"9px 20px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
           Apply Language — {previewLang==="en"?"English":"Deutsch"}
         </button>
       </Card>
@@ -9120,7 +9132,7 @@ const LanguageSection = ({ save, role, inp, Card, Field, Label }) => {
         <Field label="Currency">
           <select style={inp}><option>€ Euro (EUR)</option><option>$ Dollar (USD)</option><option>£ Pound (GBP)</option></select>
         </Field>
-        <button onClick={save} style={{ padding:"9px 20px",borderRadius:7,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Save Format Settings</button>
+        <button onClick={save} style={{ padding:"9px 20px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Save Format Settings</button>
       </Card>
     </>
   );
@@ -9167,7 +9179,7 @@ const DocumentTypesCard = () => {
           <div style={{ fontSize:13,fontWeight:700,color:C.text }}>📎 Document Request Templates</div>
           <div style={{ fontSize:11,color:C.muted,marginTop:2 }}>Each type has a title, email body, checklist of what the lead must provide, and accepted formats.</div>
         </div>
-        <button onClick={openNew} style={{ padding:"5px 13px",borderRadius:6,border:"none",background:C.navy,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0 }}>+ New Type</button>
+        <button onClick={openNew} style={{ padding:"5px 13px",borderRadius:6,border:"none",background:C.primary,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0 }}>+ New Type</button>
       </div>
 
       {/* Editor */}
@@ -9431,7 +9443,7 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
             <div style={{ position:"relative" }}>
               <select value={form.trigger} onChange={e=>f("trigger",e.target.value)}
                 style={{ width:"100%",padding:"10px 32px 10px 12px",borderRadius:9,
-                  border:`1.5px solid ${form.trigger?C.navy:C.border}`,
+                  border:`1.5px solid ${form.trigger?C.primary:C.border}`,
                   background:form.trigger?"#F8FAFF":"#fff",
                   color:form.trigger?C.navy:C.muted,
                   fontSize:13,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",
@@ -9698,7 +9710,7 @@ const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
           <div style={{ display:"flex",gap:10,paddingTop:4 }}>
             <button onClick={onCancel} style={{ flex:1,padding:"10px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
             <button onClick={()=>canSave&&onSave({ ...form, category: TRIGGER_CATEGORY[form.trigger] || "contact" })} disabled={!canSave}
-              style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:canSave?C.navy:"#E2E8F0",color:canSave?"#fff":C.muted,fontSize:13,fontWeight:700,cursor:canSave?"pointer":"default" }}>
+              style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:canSave?C.primary:"#E2E8F0",color:canSave?"#fff":C.muted,fontSize:13,fontWeight:700,cursor:canSave?"pointer":"default" }}>
               ⚡ {initial?"Save changes":"Create Rule"}
             </button>
           </div>
@@ -9768,7 +9780,7 @@ const WorkflowRulesSection = ({ role }) => {
           disabled={availableCount===0}
           title={availableCount===0 ? "Every trigger event already has a rule" : "Define a rule for a trigger event"}
           style={{ padding:"8px 18px",borderRadius:8,border:"none",
-            background:availableCount===0?"#E2E8F0":C.navy, color:availableCount===0?C.muted:"#fff",
+            background:availableCount===0?"#E2E8F0":C.primary, color:availableCount===0?C.muted:"#fff",
             fontSize:12,fontWeight:700,cursor:availableCount===0?"default":"pointer",flexShrink:0,marginLeft:16 }}>
           + New Rule{availableCount>0 ? ` (${availableCount} event${availableCount===1?"":"s"} left)` : ""}
         </button>
@@ -9821,8 +9833,8 @@ const WorkflowRulesSection = ({ role }) => {
       <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
         {CATEGORIES.map(c=>(
           <button key={c.id} onClick={()=>setCatFilter(c.id)}
-            style={{ padding:"5px 14px",borderRadius:20,border:`1px solid ${catFilter===c.id?C.navy:C.border}`,
-              background:catFilter===c.id?C.navy:"#fff",color:catFilter===c.id?"#fff":C.muted,
+            style={{ padding:"5px 14px",borderRadius:20,border:`1px solid ${catFilter===c.id?C.primary:C.border}`,
+              background:catFilter===c.id?C.primary:"#fff",color:catFilter===c.id?"#fff":C.muted,
               fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>{c.label}</button>
         ))}
       </div>
@@ -10061,7 +10073,7 @@ const AutomationsSection = ({ role }) => {
         </div>
         {role==="superadmin" && (
           <button onClick={()=>setShowNewTpl(true)}
-            style={{ padding:"8px 18px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0,marginLeft:16 }}>
+            style={{ padding:"8px 18px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0,marginLeft:16 }}>
             + New Template
           </button>
         )}
@@ -10204,7 +10216,7 @@ const AutomationsSection = ({ role }) => {
                   setNewTpl({ name:"", icon:"⏰", desc:"", triggerBasis:"crm_event", dateSource:"", dateSourceLabel:"", recur:"Once", priority:"normal" });
                 }}
                 style={{ flex:2,padding:"10px",borderRadius:9,border:"none",
-                  background:newTpl.name.trim()&&newTpl.dateSource?C.navy:"#E2E8F0",
+                  background:newTpl.name.trim()&&newTpl.dateSource?C.primary:"#E2E8F0",
                   color:newTpl.name.trim()&&newTpl.dateSource?"#fff":C.muted,
                   fontSize:13,fontWeight:700,cursor:newTpl.name.trim()&&newTpl.dateSource?"pointer":"default" }}>
                 🔄 Save Automation Template
@@ -10270,7 +10282,7 @@ const EmailAutomationSection = ({ role, save }) => {
             </div>
           ))}
         </div>
-        <button onClick={save} style={{ marginTop:14,padding:"9px 22px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Save Sender Settings</button>
+        <button onClick={save} style={{ marginTop:14,padding:"9px 22px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Save Sender Settings</button>
       </div>
 
       {/* Calendar Sync */}
@@ -10460,7 +10472,7 @@ const StatusesSection = ({ role }) => {
       <div style={{ display:"flex",justifyContent:"flex-end",gap:10 }}>
         <button onClick={cancelDraft} style={btnGhost}>Cancel</button>
         <button onClick={()=>saveStatus(stageId)} disabled={!draft.nameDe.trim()}
-          style={{...btnPrimary,background:draft.nameDe.trim()?C.navy:"#E2E8F0",color:draft.nameDe.trim()?"#fff":C.muted,cursor:draft.nameDe.trim()?"pointer":"default"}}>Save status</button>
+          style={{...btnPrimary,background:draft.nameDe.trim()?C.primary:"#E2E8F0",color:draft.nameDe.trim()?"#fff":C.muted,cursor:draft.nameDe.trim()?"pointer":"default"}}>Save status</button>
       </div>
     </div>
   );
@@ -10472,7 +10484,7 @@ const StatusesSection = ({ role }) => {
         <div style={{ fontSize:12,color:C.muted }}>Define the lead pipeline: Lifecycle Stages and the Stage Statuses grouped under them.</div>
       </div>
       <button onClick={()=>{setShowNewStage(v=>!v);setStageDraft({nameDe:"",nameEn:""});}}
-        style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0 }}>
+        style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0 }}>
         {showNewStage?"✕ Cancel":"+ Lifecycle stage"}
       </button>
     </div>
@@ -10492,7 +10504,7 @@ const StatusesSection = ({ role }) => {
         </div>
         <div style={{ display:"flex",justifyContent:"flex-end",gap:10 }}>
           <button onClick={()=>setShowNewStage(false)} style={btnGhost}>Cancel</button>
-          <button onClick={addStage} disabled={!stageDraft.nameDe.trim()} style={{...btnPrimary,background:stageDraft.nameDe.trim()?C.navy:"#E2E8F0",color:stageDraft.nameDe.trim()?"#fff":C.muted,cursor:stageDraft.nameDe.trim()?"pointer":"default"}}>Add stage</button>
+          <button onClick={addStage} disabled={!stageDraft.nameDe.trim()} style={{...btnPrimary,background:stageDraft.nameDe.trim()?C.primary:"#E2E8F0",color:stageDraft.nameDe.trim()?"#fff":C.muted,cursor:stageDraft.nameDe.trim()?"pointer":"default"}}>Add stage</button>
         </div>
       </div>
     )}
@@ -10508,7 +10520,7 @@ const StatusesSection = ({ role }) => {
             <div style={{ fontSize:14,fontWeight:800,color:C.navy }}>{s.nameEn}</div>
             <div style={{ fontSize:11,color:C.muted }}>{s.nameDe} · {s.statuses.length} status{s.statuses.length===1?"":"es"}</div>
           </div>
-          <button onClick={()=>startAdd(s.id)} style={{ padding:"6px 12px",borderRadius:7,border:`1px solid ${C.navy}`,background:"#fff",color:C.navy,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>+ Status</button>
+          <button onClick={()=>startAdd(s.id)} style={{ padding:"6px 12px",borderRadius:7,border:`1px solid ${C.primary}`,background:"#fff",color:C.navy,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>+ Status</button>
           <button onClick={()=>deleteStage(s.id)} style={{ padding:"6px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.red,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>Delete</button>
         </div>
         <div style={{ padding:"8px 16px 14px" }}>
@@ -10602,10 +10614,10 @@ const SettingsPage = ({ role, navigateTo }) => {
         {SECTIONS.filter(s=>!s.saOnly||role==="superadmin").map(s=>(
           <button key={s.key} onClick={()=>s.external?navigateTo("EmailAutomation"):setActiveSection(s.key)}
             style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",
-              background:activeSection===s.key?C.navy+"0D":"transparent",
+              background:activeSection===s.key?C.primary+"0D":"transparent",
               color:activeSection===s.key?C.navy:s.external?C.amber:C.slate,
               fontWeight:activeSection===s.key?700:400,fontSize:13,cursor:"pointer",fontFamily:"inherit",
-              borderLeft:activeSection===s.key?`3px solid ${C.navy}`:"3px solid transparent",
+              borderLeft:activeSection===s.key?`3px solid ${C.primary}`:"3px solid transparent",
               justifyContent:"space-between" }}>
             <span style={{ display:"flex",alignItems:"center",gap:10 }}><span>{s.icon}</span>{s.key}</span>
             {s.external && <span style={{ fontSize:10,fontWeight:700,color:C.amber }}>↗</span>}
@@ -10665,7 +10677,7 @@ const SettingsPage = ({ role, navigateTo }) => {
               </div>
               <div style={{ fontSize:11,color:C.muted,marginTop:6 }}>Leads will see <strong>{role==="gp"?"Anna Klein":role==="vd"?"Thomas Müller":"vion CRM"}</strong> as the sender — not a generic vion address.</div>
             </SettingsCard>
-            <button onClick={save} style={{ padding:"10px 24px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Save Changes</button>
+            <button onClick={save} style={{ padding:"10px 24px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Save Changes</button>
           </>
         )}
 
@@ -10675,7 +10687,7 @@ const SettingsPage = ({ role, navigateTo }) => {
             <div style={{ fontSize:13,color:C.muted,marginBottom:20 }}>
               Showing notifications relevant to your role:
               <span style={{ marginLeft:6,fontWeight:700,color:C.navy,fontSize:12,
-                padding:"2px 10px",borderRadius:12,background:C.navy+"12" }}>
+                padding:"2px 10px",borderRadius:12,background:C.primary+"12" }}>
                 {{superadmin:"Super Admin",vd:"Sales Director",gp:"Consultant",manager:"Product Owner"}[role]}
               </span>
             </div>
@@ -10729,7 +10741,7 @@ const SettingsPage = ({ role, navigateTo }) => {
               )}
             </SettingsCard>
 
-            <button onClick={save} style={{ padding:"10px 24px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Save Preferences</button>
+            <button onClick={save} style={{ padding:"10px 24px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Save Preferences</button>
           </>
         )}
 
@@ -10771,7 +10783,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                 <input defaultValue="https://hook.eu1.make.com/xxxxxxxxxxxxxxxx" style={{...inp,fontFamily:"monospace",fontSize:11}}/>
               </Field>
             </SettingsCard>
-            <button onClick={save} style={{ padding:"10px 24px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Save Integration Settings</button>
+            <button onClick={save} style={{ padding:"10px 24px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Save Integration Settings</button>
           </>
         )}
 
@@ -10780,7 +10792,7 @@ const SettingsPage = ({ role, navigateTo }) => {
             <div style={{ fontSize:20,fontWeight:800,color:C.navy,marginBottom:20 }}>Users & Roles</div>
             <SettingsCard title="Team Members">
               <div style={{ display:"flex",justifyContent:"flex-end",marginBottom:12 }}>
-                <button style={{ padding:"7px 14px",borderRadius:7,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Invite User</button>
+                <button style={{ padding:"7px 14px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Invite User</button>
               </div>
               {[
                 { name:"Super Admin",    email:"admin@vion.world",          role:"Super Admin",    status:"active" },
@@ -10799,7 +10811,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                   </div>
                   <span style={{ fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:10,
                     color:u.role==="Super Admin"?C.navy:u.role==="Sales Director"?C.indigo:C.green,
-                    background:(u.role==="Super Admin"?C.navy:u.role==="Sales Director"?C.indigo:C.green)+"15" }}>
+                    background:(u.role==="Super Admin"?C.primary:u.role==="Sales Director"?C.indigo:C.green)+"15" }}>
                     {u.role}
                   </span>
                   <span style={{ fontSize:10,color:u.status==="active"?C.green:C.muted,fontWeight:600 }}>
@@ -10819,7 +10831,7 @@ const SettingsPage = ({ role, navigateTo }) => {
               <Field label="Current Password"><input type="password" placeholder="••••••••" style={inp}/></Field>
               <Field label="New Password"><input type="password" placeholder="••••••••" style={inp}/></Field>
               <Field label="Confirm New Password"><input type="password" placeholder="••••••••" style={inp}/></Field>
-              <button onClick={save} style={{ padding:"8px 20px",borderRadius:7,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Update Password</button>
+              <button onClick={save} style={{ padding:"8px 20px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Update Password</button>
             </SettingsCard>
             <SettingsCard title="Data & Privacy (GDPR)">
               <SettingsToggle label="Audit log (NF-11)"              sub="Log all user actions on lead records"                        defaultOn={true}  />
@@ -10900,7 +10912,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                 </div>
               </div>
               <button onClick={()=>setShowNewLabel(v=>!v)}
-                style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
+                style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
                 {showNewLabel?"✕ Cancel":"+ New Label"}
               </button>
             </div>
@@ -10936,7 +10948,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                 <div style={{ display:"flex",justifyContent:"flex-end",gap:10 }}>
                   <button onClick={()=>setShowNewLabel(false)} style={{ padding:"8px 18px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
                   <button onClick={saveNew} disabled={!newLabelName.trim()}
-                    style={{ padding:"8px 18px",borderRadius:8,border:"none",background:newLabelName.trim()?C.navy:"#E2E8F0",color:newLabelName.trim()?"#fff":C.muted,fontSize:13,fontWeight:700,cursor:newLabelName.trim()?"pointer":"default" }}>
+                    style={{ padding:"8px 18px",borderRadius:8,border:"none",background:newLabelName.trim()?C.primary:"#E2E8F0",color:newLabelName.trim()?"#fff":C.muted,fontSize:13,fontWeight:700,cursor:newLabelName.trim()?"pointer":"default" }}>
                     Save Label
                   </button>
                 </div>
@@ -10955,7 +10967,7 @@ const SettingsPage = ({ role, navigateTo }) => {
               {(()=>{ const a=labelFilterType!=="all"; return (
                 <div style={{ position:"relative" }}>
                   <select value={labelFilterType} onChange={e=>setLabelFilterType(e.target.value)}
-                    style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${a?C.navy:C.border}`,background:a?C.navy+"08":"#fff",color:a?C.navy:C.muted,fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:a?700:400 }}>
+                    style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${a?C.primary:C.border}`,background:a?C.primary+"08":"#fff",color:a?C.navy:C.muted,fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:a?700:400 }}>
                     <option value="all">Type</option>
                     <option value="org">🏢 Org-wide</option>
                     <option value="mine">👤 Mine</option>
@@ -10967,7 +10979,7 @@ const SettingsPage = ({ role, navigateTo }) => {
               {(()=>{ const a=labelFilterActive!=="all"; return (
                 <div style={{ position:"relative" }}>
                   <select value={labelFilterActive} onChange={e=>setLabelFilterActive(e.target.value)}
-                    style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${a?C.navy:C.border}`,background:a?C.navy+"08":"#fff",color:a?C.navy:C.muted,fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:a?700:400 }}>
+                    style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${a?C.primary:C.border}`,background:a?C.primary+"08":"#fff",color:a?C.navy:C.muted,fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:a?700:400 }}>
                     <option value="all">Status</option>
                     <option value="active">● Active</option>
                     <option value="inactive">○ Inactive</option>
@@ -11025,7 +11037,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                         {/* Type */}
                         <td style={{ padding:"11px 14px",textAlign:"center" }}>
                           {isOrg
-                            ? <span style={{ fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:C.navy+"10",color:C.navy }}>🏢 Org-wide</span>
+                            ? <span style={{ fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:C.primary+"10",color:C.navy }}>🏢 Org-wide</span>
                             : <span style={{ fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:C.green+"15",color:C.green }}>👤 Personal</span>}
                         </td>
                         {/* Active toggle */}
@@ -11121,7 +11133,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                 </div>
               </div>
               <button onClick={()=>setShowNewAtt(v=>!v)}
-                style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
+                style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
                 {showNewAtt?"✕ Cancel":"⬆ Upload Attachment"}
               </button>
             </div>
@@ -11168,7 +11180,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                   <button onClick={()=>{ setShowNewAtt(false); setNewAttName(""); setNewAttFile(null); }}
                     style={{ padding:"8px 18px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
                   <button onClick={saveNewAtt} disabled={!newAttName.trim()}
-                    style={{ padding:"8px 18px",borderRadius:8,border:"none",background:newAttName.trim()?C.navy:"#E2E8F0",color:newAttName.trim()?"#fff":C.muted,fontSize:13,fontWeight:700,cursor:newAttName.trim()?"pointer":"default" }}>
+                    style={{ padding:"8px 18px",borderRadius:8,border:"none",background:newAttName.trim()?C.primary:"#E2E8F0",color:newAttName.trim()?"#fff":C.muted,fontSize:13,fontWeight:700,cursor:newAttName.trim()?"pointer":"default" }}>
                     ⬆ Upload
                   </button>
                 </div>
@@ -11186,7 +11198,7 @@ const SettingsPage = ({ role, navigateTo }) => {
               {(()=>{ const a=attFilterLang!=="all"; return (
                 <div style={{ position:"relative" }}>
                   <select value={attFilterLang} onChange={e=>setAttFilterLang(e.target.value)}
-                    style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${a?C.navy:C.border}`,background:a?C.navy+"08":"#fff",color:a?C.navy:C.muted,fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:a?700:400 }}>
+                    style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${a?C.primary:C.border}`,background:a?C.primary+"08":"#fff",color:a?C.navy:C.muted,fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:a?700:400 }}>
                     <option value="all">Language</option>
                     <option value="de">🇩🇪 German (DE)</option>
                     <option value="en">🇬🇧 English (EN)</option>
@@ -11198,7 +11210,7 @@ const SettingsPage = ({ role, navigateTo }) => {
               {(()=>{ const a=attFilterType!=="all"; return (
                 <div style={{ position:"relative" }}>
                   <select value={attFilterType} onChange={e=>setAttFilterType(e.target.value)}
-                    style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${a?C.navy:C.border}`,background:a?C.navy+"08":"#fff",color:a?C.navy:C.muted,fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:a?700:400 }}>
+                    style={{ padding:"7px 26px 7px 10px",borderRadius:8,border:`1.5px solid ${a?C.primary:C.border}`,background:a?C.primary+"08":"#fff",color:a?C.navy:C.muted,fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none",fontWeight:a?700:400 }}>
                     <option value="all">Type</option>
                     <option value="org">🏢 Org-wide</option>
                     <option value="mine">👤 Mine</option>
@@ -11232,7 +11244,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                   {filtered.length===0 && (
                     <tr><td colSpan={8} style={{ padding:"40px",textAlign:"center",color:C.muted,fontSize:13 }}>
                       No attachments match your filters.
-                      {showNewAtt===false&&<><br/><button onClick={()=>setShowNewAtt(true)} style={{ marginTop:10,padding:"7px 16px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>⬆ Upload first attachment</button></>}
+                      {showNewAtt===false&&<><br/><button onClick={()=>setShowNewAtt(true)} style={{ marginTop:10,padding:"7px 16px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>⬆ Upload first attachment</button></>}
                     </td></tr>
                   )}
                   {filtered.map((a,i)=>{
@@ -11271,7 +11283,7 @@ const SettingsPage = ({ role, navigateTo }) => {
                         {/* Owner */}
                         <td style={{ padding:"11px 14px",textAlign:"center" }}>
                           {isOrg(a)
-                            ? <span style={{ fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:C.navy+"10",color:C.navy }}>🏢 Org-wide</span>
+                            ? <span style={{ fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:C.primary+"10",color:C.navy }}>🏢 Org-wide</span>
                             : <span style={{ fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:C.green+"15",color:C.green }}>👤 {a.createdBy?.split(" ")[0]}</span>}
                         </td>
                         {/* Used In */}
@@ -11734,7 +11746,7 @@ const EventsPage = ({ role, navigateTo }) => {
         </div>
         <div style={{ display:"flex", gap:8 }}>
           <button style={{ padding:"8px 16px", borderRadius:8, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:12, fontWeight:600, cursor:"pointer" }}>⬇ Export</button>
-          <button style={{ padding:"8px 16px", borderRadius:8, border:"none", background:C.navy, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>+ New Event</button>
+          <button style={{ padding:"8px 16px", borderRadius:8, border:"none", background:C.primary, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>+ New Event</button>
         </div>
       </div>
 
@@ -11767,8 +11779,8 @@ const EventsPage = ({ role, navigateTo }) => {
             <div style={{ display:"flex", gap:5 }}>
               {eventTypes.map(t=>(
                 <button key={t} onClick={()=>setFilterType(t)} style={{
-                  padding:"5px 13px", borderRadius:20, border:`1.5px solid ${filterType===t?C.navy:C.border}`,
-                  background:filterType===t?C.navy:"#fff", color:filterType===t?"#fff":C.slate,
+                  padding:"5px 13px", borderRadius:20, border:`1.5px solid ${filterType===t?C.primary:C.border}`,
+                  background:filterType===t?C.primary:"#fff", color:filterType===t?"#fff":C.slate,
                   fontSize:11, fontWeight:filterType===t?700:400, cursor:"pointer", fontFamily:"inherit",
                 }}>{t}</button>
               ))}
@@ -11837,7 +11849,7 @@ const EventsPage = ({ role, navigateTo }) => {
                             <td style={{ padding:"11px 12px" }}><StatusBadge status={d.status}/></td>
                             <td style={{ padding:"11px 12px" }}>
                               <button style={{ padding:"4px 9px", borderRadius:6, border:"none",
-                                background:isActive?ev.color:hasRegs?C.navy+"10":"#F1F5F9",
+                                background:isActive?ev.color:hasRegs?C.primary+"10":"#F1F5F9",
                                 color:isActive?"#fff":hasRegs?C.navy:C.muted,
                                 fontSize:10, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
                                 {isActive?"▲ Hide":"👥 Registrants"}
@@ -12112,7 +12124,7 @@ const GPEducationPage = ({ navigateTo }) => {
             ))}
           </div>
           <div style={{ display:"flex",gap:8 }}>
-            <button style={{ flex:1,padding:"9px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
+            <button style={{ flex:1,padding:"9px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
               {prog.status==="in_progress"?"▶ Resume":"▶ Play Video"}
             </button>
             {prog.status !== "completed" && (
@@ -12230,8 +12242,8 @@ const GPEducationPage = ({ navigateTo }) => {
             <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:14 }}>
               {EDU_CATEGORIES.map(cat=>(
                 <button key={cat} onClick={()=>setCatFilter(cat)} style={{
-                  padding:"4px 11px",borderRadius:20,border:`1.5px solid ${catFilter===cat?(catColor[cat]||C.navy):C.border}`,
-                  background:catFilter===cat?(catColor[cat]||C.navy)+"12":"#fff",
+                  padding:"4px 11px",borderRadius:20,border:`1.5px solid ${catFilter===cat?(catColor[cat]||C.primary):C.border}`,
+                  background:catFilter===cat?(catColor[cat]||C.primary)+"12":"#fff",
                   color:catFilter===cat?(catColor[cat]||C.navy):C.slate,
                   fontSize:11,fontWeight:catFilter===cat?700:400,cursor:"pointer",fontFamily:"inherit",
                 }}>{cat}</button>
@@ -12285,7 +12297,7 @@ const GPEducationPage = ({ navigateTo }) => {
                           color:statusColor,whiteSpace:"nowrap" }}>{statusLabel}</span>
                       </td>
                       <td style={{ padding:"10px" }}>
-                        <button onClick={e=>{e.stopPropagation();setSelectedVideo(v);}} style={{ padding:"4px 9px",borderRadius:5,border:"none",background:prog.status==="in_progress"?C.amber:C.navy,color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap" }}>
+                        <button onClick={e=>{e.stopPropagation();setSelectedVideo(v);}} style={{ padding:"4px 9px",borderRadius:5,border:"none",background:prog.status==="in_progress"?C.amber:C.primary,color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap" }}>
                           {prog.status==="in_progress"?"Resume":"▶ Play"}
                         </button>
                       </td>
@@ -12447,7 +12459,7 @@ const EducationPage = ({ role, navigateTo }) => {
           <div style={{ height:"100%",width:completionPct(video)+"%",background:C.indigo,borderRadius:3 }}/>
         </div>
         <div style={{ display:"flex",gap:8 }}>
-          <button style={{ flex:1,padding:"9px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>▶ Play Video</button>
+          <button style={{ flex:1,padding:"9px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>▶ Play Video</button>
           <button style={{ padding:"9px 14px",borderRadius:8,border:"1px solid "+C.border,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>📊 Full Stats</button>
         </div>
       </div>
@@ -12465,7 +12477,7 @@ const EducationPage = ({ role, navigateTo }) => {
           <h1 style={{ margin:0,fontSize:26,fontWeight:800,color:C.navy,letterSpacing:"-0.02em" }}>Education & Training</h1>
           <p style={{ margin:"4px 0 0",fontSize:13,color:C.slate }}>Training content performance · 560 active DION members</p>
         </div>
-        <button style={{ padding:"8px 16px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Upload Video</button>
+        <button style={{ padding:"8px 16px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>+ Upload Video</button>
       </div>
 
       <div style={{ display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:22 }}>
@@ -12618,7 +12630,7 @@ const EducationPage = ({ role, navigateTo }) => {
                   onMouseLeave={e=>e.currentTarget.style.background=i%2?"#FAFAFA":"#fff"}>
                 <td style={{ padding:"10px" }}>
                   <div style={{ display:"flex",alignItems:"center",gap:10 }}>
-                    <div style={{ width:36,height:36,borderRadius:8,background:C.navy+"10",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0 }}>{v.thumbnail}</div>
+                    <div style={{ width:36,height:36,borderRadius:8,background:C.primary+"10",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0 }}>{v.thumbnail}</div>
                     <div>
                       <div style={{ fontSize:12,fontWeight:700,color:C.text }}>
                         {v.title}
@@ -12643,7 +12655,7 @@ const EducationPage = ({ role, navigateTo }) => {
                 <td style={{ padding:"10px" }}><RatingStars rating={v.rating}/></td>
                 <td style={{ padding:"10px" }}>
                   <div style={{ display:"flex",gap:5 }}>
-                    <button onClick={e=>{e.stopPropagation();setSelectedVideo(v);}} style={{ padding:"4px 9px",borderRadius:5,border:"none",background:C.navy,color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer" }}>▶ Play</button>
+                    <button onClick={e=>{e.stopPropagation();setSelectedVideo(v);}} style={{ padding:"4px 9px",borderRadius:5,border:"none",background:C.primary,color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer" }}>▶ Play</button>
                     <button onClick={e=>e.stopPropagation()} style={{ padding:"4px 8px",borderRadius:5,border:"1px solid "+C.border,background:"#fff",color:C.muted,fontSize:10,cursor:"pointer" }}>✏️</button>
                   </div>
                 </td>
@@ -13266,15 +13278,15 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
 
                     {/* Template dropdown */}
                     {emailTplPickerOpen && (
-                      <div style={{ marginTop:6,borderRadius:10,border:`1.5px solid ${C.navy}`,background:"#fff",
+                      <div style={{ marginTop:6,borderRadius:10,border:`1.5px solid ${C.primary}`,background:"#fff",
                         boxShadow:"0 8px 24px rgba(0,0,0,0.12)",overflow:"hidden" }}>
                         {/* Language filter */}
                         <div style={{ display:"flex",gap:6,padding:"8px 12px",borderBottom:`1px solid ${C.border}`,background:"#F8FAFC",alignItems:"center" }}>
                           <span style={{ fontSize:10,fontWeight:700,color:C.muted }}>Language:</span>
                           {[["all","All"],["de","🇩🇪 DE"],["en","🇬🇧 EN"]].map(([k,l])=>(
                             <button key={k} onClick={()=>setEmailTplLangFilter(k)}
-                              style={{ padding:"3px 9px",borderRadius:12,border:`1px solid ${emailTplLangFilter===k?C.navy:C.border}`,
-                                background:emailTplLangFilter===k?C.navy:"#fff",color:emailTplLangFilter===k?"#fff":C.slate,
+                              style={{ padding:"3px 9px",borderRadius:12,border:`1px solid ${emailTplLangFilter===k?C.primary:C.border}`,
+                                background:emailTplLangFilter===k?C.primary:"#fff",color:emailTplLangFilter===k?"#fff":C.slate,
                                 fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:emailTplLangFilter===k?700:400 }}>{l}</button>
                           ))}
                           <span style={{ marginLeft:"auto",fontSize:10,color:C.muted }}>{availableEmailTpls.length} available</span>
@@ -13303,7 +13315,7 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
                                   </span>
                                   {isMine
                                     ? <span style={{ fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8,background:C.green+"15",color:C.green }}>👤 Mine</span>
-                                    : <span style={{ fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8,background:C.navy+"10",color:C.navy }}>🏢 Org</span>}
+                                    : <span style={{ fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8,background:C.primary+"10",color:C.navy }}>🏢 Org</span>}
                                 </div>
                                 <div style={{ fontSize:11,color:C.muted,display:"flex",gap:8 }}>
                                   <span style={{ fontWeight:700,color:jColor }}>{jLabel}</span>
@@ -13323,11 +13335,11 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
                       style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,background:"#F8FAFC",boxSizing:"border-box" }}/></div>
                   <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Subject</label>
                     <input value={actionTitle} onChange={e=>setActionTitle(e.target.value)} placeholder="e.g. Your financial consultation"
-                      style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${actionTitle?C.navy:C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/></div>
+                      style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${actionTitle?C.primary:C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/></div>
                   <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Message</label>
                     <textarea value={actionNote} onChange={e=>setActionNote(e.target.value)} rows={5}
                       placeholder={`Dear ${lead.name.split(" ")[0]},\n\n\n\nKind regards,\nAnna Klein`}
-                      style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${actionNote?C.navy:C.border}`,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",resize:"vertical",outline:"none",lineHeight:1.5 }}/></div>
+                      style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${actionNote?C.primary:C.border}`,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",resize:"vertical",outline:"none",lineHeight:1.5 }}/></div>
                   <div style={{ display:"flex",alignItems:"center",gap:8,fontSize:11,color:C.muted }}>
                     Language: <span style={{ fontWeight:700,padding:"2px 10px",borderRadius:8,background:lead.lang==="en"?"#EFF6FF":"#FFF7ED",color:lead.lang==="en"?C.blue:C.amber }}>{lead.lang==="en"?"🇬🇧 English":"🇩🇪 German"}</span>
                     {lead.lang && emailChosenTpl && lead.lang!==emailChosenTpl.lang && (
@@ -13341,7 +13353,7 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
                   <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Task Type</label>
                     <div style={{ display:"flex",gap:8 }}>
                       {[["call","📞 Call"],["email","✉️ Email"]].map(([k,l])=>(
-                        <button key={k} onClick={()=>setTaskType(k)} style={{ flex:1,padding:"9px",borderRadius:9,border:`1.5px solid ${taskType===k?C.navy:C.border}`,background:taskType===k?C.navy+"08":"#fff",color:taskType===k?C.navy:C.muted,fontSize:13,fontWeight:taskType===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
+                        <button key={k} onClick={()=>setTaskType(k)} style={{ flex:1,padding:"9px",borderRadius:9,border:`1.5px solid ${taskType===k?C.primary:C.border}`,background:taskType===k?C.primary+"08":"#fff",color:taskType===k?C.navy:C.muted,fontSize:13,fontWeight:taskType===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
                       ))}
                     </div></div>
                   <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Title</label>
@@ -13379,7 +13391,7 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
                 {actionModal==="log"&&(<>
                   <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
                     {[["call","📞 Call"],["email","✉️ Email"],["appointment","📅 Appointment"],["offline","📝 Offline"]].map(([k,l])=>(
-                      <button key={k} onClick={()=>setLogType(k)} style={{ padding:"6px 12px",borderRadius:8,border:`1.5px solid ${logType===k?C.navy:C.border}`,background:logType===k?C.navy+"08":"#fff",color:logType===k?C.navy:C.muted,fontSize:12,fontWeight:logType===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
+                      <button key={k} onClick={()=>setLogType(k)} style={{ padding:"6px 12px",borderRadius:8,border:`1.5px solid ${logType===k?C.primary:C.border}`,background:logType===k?C.primary+"08":"#fff",color:logType===k?C.navy:C.muted,fontSize:12,fontWeight:logType===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
                     ))}
                   </div>
                   <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Outcome</label>
@@ -13405,7 +13417,7 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
                   ? <div style={{ padding:"12px",borderRadius:9,background:C.green+"08",border:`1px solid ${C.green}25`,fontSize:13,fontWeight:700,color:C.green,textAlign:"center" }}>✅ Saved successfully</div>
                   : <div style={{ display:"flex",gap:10 }}>
                       <button onClick={closeAction} style={{ flex:1,padding:"10px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.muted,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
-                      <button onClick={()=>saveAction(actionModal)} style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
+                      <button onClick={()=>saveAction(actionModal)} style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
                         {actionModal==="email"?"✉️ Send Email":actionModal==="task"?"☑️ Create Task":actionModal==="reminder"?"⏰ Save Reminder":"📝 Save Log"}
                       </button>
                     </div>}
@@ -13424,7 +13436,7 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
                 style={{ padding:"9px 18px",fontSize:13,fontWeight:active?700:500,
                   color:active?(isAI?C.ai:C.navy):C.muted,
                   background:"none",border:"none",
-                  borderBottom:active?`2px solid ${isAI?C.ai:C.navy}`:"2px solid transparent",
+                  borderBottom:active?`2px solid ${isAI?C.ai:C.primary}`:"2px solid transparent",
                   marginBottom:-1,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>
                 {t}
               </button>
@@ -13537,8 +13549,8 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
                             <button key={k}
                               onClick={()=>{ lead.lang=k; }}
                               style={{ padding:"2px 10px",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
-                                border:`1.5px solid ${(lead.lang||"de")===k?C.navy:C.border}`,
-                                background:(lead.lang||"de")===k?C.navy:"#fff",
+                                border:`1.5px solid ${(lead.lang||"de")===k?C.primary:C.border}`,
+                                background:(lead.lang||"de")===k?C.primary:"#fff",
                                 color:(lead.lang||"de")===k?"#fff":C.muted }}>
                               {l}
                             </button>
@@ -13616,7 +13628,7 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
                         style={{ flex:1,minHeight:52,borderRadius:8,border:`1px solid ${C.border}`,padding:"8px 12px",fontSize:12,fontFamily:"inherit",color:C.slate,resize:"none",boxSizing:"border-box",lineHeight:1.5 }}/>
                       <button onClick={()=>{if(!comment.trim())return;const note={text:comment.trim(),author:"Anna Klein",time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})+" · Today"};const updated=[...savedNotes,note];setSavedNotes(updated);LEAD_NOTES_STORE[lead.id]=updated;setComment("");}}
                         disabled={!comment.trim()}
-                        style={{ padding:"8px 16px",borderRadius:8,border:"none",background:comment.trim()?C.navy:"#E2E8F0",color:comment.trim()?"#fff":C.muted,fontSize:12,fontWeight:600,cursor:comment.trim()?"pointer":"default",flexShrink:0,height:36,transition:"all 0.15s" }}>Save</button>
+                        style={{ padding:"8px 16px",borderRadius:8,border:"none",background:comment.trim()?C.primary:"#E2E8F0",color:comment.trim()?"#fff":C.muted,fontSize:12,fontWeight:600,cursor:comment.trim()?"pointer":"default",flexShrink:0,height:36,transition:"all 0.15s" }}>Save</button>
                     </div>
                   </div>
                 </SettingsCard>
@@ -13687,8 +13699,8 @@ const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, r
               ].map(([k,l])=>(
                 <button key={k} onClick={()=>setFileFilter(k)}
                   style={{ padding:"5px 16px",borderRadius:20,
-                    border:`1px solid ${fileFilter===k?C.navy:C.border}`,
-                    background:fileFilter===k?C.navy:"#fff",
+                    border:`1px solid ${fileFilter===k?C.primary:C.border}`,
+                    background:fileFilter===k?C.primary:"#fff",
                     color:fileFilter===k?"#fff":C.slate,
                     fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>
                   {l}
@@ -14037,7 +14049,7 @@ const LeadDrawerAITab = ({ lead, role }) => {
                         if(c==="📋 Show call script") setAgentMessages(prev=>[...prev,{from:"user",text:"Show call script"},{type:"script",from:"agent",text:""}]);
                         else if(c==="📝 Log this call"){setCallNotes("");setClassified(null);setConfirmed(false);setAgentMessages(prev=>[...prev,{from:"user",text:"Log this call"},{type:"log",from:"agent",text:""}]);}
                         else sendAgent(c);
-                      }} style={{ padding:"3px 10px",borderRadius:20,border:`1px solid ${isSpecial?C.navy:C.ai}35`,background:isSpecial?C.navy+"0A":C.ai+"0A",color:isSpecial?C.navy:C.ai,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>{c}</button>
+                      }} style={{ padding:"3px 10px",borderRadius:20,border:`1px solid ${isSpecial?C.primary:C.ai}35`,background:isSpecial?C.primary+"0A":C.ai+"0A",color:isSpecial?C.navy:C.ai,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>{c}</button>
                     );
                   })}
                 </div>
@@ -14308,7 +14320,7 @@ const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, setRemin
           </div>
           {role==="superadmin" && (
             <button onClick={()=>{ setNewTplData({ name:"", icon:"⏰", desc:"", triggerBasis:"crm_event", dateSource:"", dateSourceLabel:"", recur:"Once", priority:"normal" }); setShowNewTpl(true); }}
-              style={{ padding:"7px 16px",borderRadius:8,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0,marginLeft:16 }}>
+              style={{ padding:"7px 16px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0,marginLeft:16 }}>
               + New Template
             </button>
           )}
@@ -14435,7 +14447,7 @@ const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, setRemin
           <Card style={{ padding:"18px 20px" }}>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
               <div style={{ fontSize:13,fontWeight:700,color:C.text }}>📱 Notification Preferences</div>
-              <span style={{ fontSize:10,fontWeight:700,color:C.navy,padding:"2px 9px",borderRadius:10,background:C.navy+"12" }}>
+              <span style={{ fontSize:10,fontWeight:700,color:C.navy,padding:"2px 9px",borderRadius:10,background:C.primary+"12" }}>
                 {{superadmin:"Super Admin",vd:"Sales Director",gp:"Consultant",manager:"Product Owner"}[role]}
               </span>
             </div>
@@ -14665,7 +14677,7 @@ const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, setRemin
                   setShowNewTpl(false);
                 }}
                 style={{ flex:2,padding:"10px",borderRadius:9,border:"none",
-                  background:newTplData.name.trim()&&newTplData.dateSource?C.navy:"#E2E8F0",
+                  background:newTplData.name.trim()&&newTplData.dateSource?C.primary:"#E2E8F0",
                   color:newTplData.name.trim()&&newTplData.dateSource?"#fff":C.muted,
                   fontSize:13,fontWeight:700,
                   cursor:newTplData.name.trim()&&newTplData.dateSource?"pointer":"default" }}>
@@ -14901,7 +14913,7 @@ const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppoi
           <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden",flexShrink:0 }}>
             {["month","week","day"].map(v=>(
               <button key={v} onClick={()=>setView(v)}
-                style={{ padding:"6px 12px",border:"none",background:view===v?C.navy:"#fff",
+                style={{ padding:"6px 12px",border:"none",background:view===v?C.primary:"#fff",
                   color:view===v?"#fff":C.slate,fontSize:11,fontWeight:view===v?700:400,
                   cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize" }}>{v}</button>
             ))}
@@ -14928,13 +14940,13 @@ const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppoi
 
           {/* Add Activity — split button with chevron dropdown */}
           <div style={{ position:"relative" }}>
-            <div style={{ display:"flex",borderRadius:8,overflow:"hidden",border:`1px solid ${C.navy}` }}>
+            <div style={{ display:"flex",borderRadius:8,overflow:"hidden",border:`1px solid ${C.primary}` }}>
               <button onClick={()=>{ setEditActivity(null); setShowNew(true); setShowAddMenu(false); }}
-                style={{ padding:"7px 14px",border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+                style={{ padding:"7px 14px",border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
                 + Add Activity
               </button>
               <button onClick={()=>setShowAddMenu(v=>!v)}
-                style={{ padding:"7px 10px",border:"none",borderLeft:"1px solid rgba(255,255,255,0.25)",background:C.navy,color:"#fff",fontSize:11,cursor:"pointer" }}>▾</button>
+                style={{ padding:"7px 10px",border:"none",borderLeft:"1px solid rgba(255,255,255,0.25)",background:C.primary,color:"#fff",fontSize:11,cursor:"pointer" }}>▾</button>
             </div>
             {showAddMenu && (<>
               <div onClick={()=>setShowAddMenu(false)} style={{ position:"fixed",inset:0,zIndex:200 }}/>
@@ -15223,7 +15235,7 @@ const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppoi
                   <div style={{ fontSize:12,marginTop:4 }}>Click "+ Add Activity" to schedule something</div>
                   <button onClick={()=>setShowNew(true)}
                     style={{ marginTop:16,padding:"8px 18px",borderRadius:8,border:"none",
-                      background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+                      background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
                     + Add Activity
                   </button>
                 </div>
@@ -15322,7 +15334,7 @@ const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppoi
               <div style={{ display:"flex",gap:8,marginTop:14 }}>
                 <button onClick={()=>{ setEditActivity(selected); setSelected(null); setShowNew(true); }}
                   style={{ flex:1,padding:"9px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>✏️ Edit</button>
-                <button onClick={()=>setSelected(null)} style={{ flex:1,padding:"9px",borderRadius:9,border:"none",background:C.navy,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Close</button>
+                <button onClick={()=>setSelected(null)} style={{ flex:1,padding:"9px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Close</button>
               </div>
             </div>
           </>
