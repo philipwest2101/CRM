@@ -16,6 +16,14 @@ const C = {
   muted:"#98A2B3",
 };
 
+// ── Role → user mapping (matches mock data in CRMAppV5.jsx) ──────────────────
+const ROLE_USER = {
+  gp:         { name: "Anna Klein",     firstName: "Anna"    },
+  vd:         { name: "Thomas Müller",  firstName: "Thomas"  },
+  superadmin: { name: "Super Admin",    firstName: "Admin"   },
+  manager:    { name: "Super Admin",    firstName: "Admin"   },
+};
+
 // ── Shared micro-components ───────────────────────────────────────────────────
 
 const Avatar = ({ name, size = 32, color }) => {
@@ -85,7 +93,6 @@ const LinkBtn = ({ label, onClick }) => (
   </button>
 );
 
-// ── Status badge colours ──────────────────────────────────────────────────────
 const STATUS_COLOR = {
   open:        C.muted,
   in_progress: C.blue,
@@ -100,81 +107,107 @@ const STATUS_COLOR = {
 
 const StatusPill = ({ status }) => {
   const color = STATUS_COLOR[status] || C.muted;
-  const label = status.replace(/_/g, " ");
   return (
     <span style={{
       fontSize: 10, fontFamily: "monospace", padding: "2px 8px",
       borderRadius: 20, fontWeight: 600, textTransform: "capitalize",
       background: color + "18", color,
     }}>
-      {label}
+      {status.replace(/_/g, " ")}
     </span>
   );
 };
 
-// ── Priority badge for reminders ──────────────────────────────────────────────
 const PRIORITY_COLOR = { high: C.red, normal: C.amber, low: C.muted };
 const PriorityDot = ({ priority }) => (
   <span style={{
     width: 7, height: 7, borderRadius: "50%",
     background: PRIORITY_COLOR[priority] || C.muted,
     display: "inline-block", flexShrink: 0,
-  }}/>
+  }} />
 );
 
-// ── Type icon for activity entries ────────────────────────────────────────────
-const TYPE_ICON = { call: "📞", email: "✉️", video: "📹", note: "📝", inperson: "🤝", import: "📥", assign: "🔀" };
+const TYPE_ICON = {
+  call: "📞", email: "✉️", video: "📹",
+  note: "📝", inperson: "🤝", import: "📥", assign: "🔀",
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PHASE 1 DASHBOARD
-// Props:
-//   role        – "gp" | "vd" | "superadmin" | "manager"
-//   navigateTo  – fn(page)
-//   leads       – ALL_LEADS array
-//   activities  – ACTIVITIES_STORE array
-//   appointments – APPOINTMENTS array
+// PHASE 1 DASHBOARD — role-filtered, same layout for all roles
 // ─────────────────────────────────────────────────────────────────────────────
 const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointments = [] }) => {
 
+  const user      = ROLE_USER[role] || ROLE_USER.superadmin;
+  const userName  = user.name;
+  const isSA      = role === "superadmin" || role === "manager";
+  const isVD      = role === "vd";
+  const isGP      = role === "gp";
+
   // ── Greeting ────────────────────────────────────────────────────────────────
   const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" :
-    hour < 17 ? "Good afternoon" :
-                "Good evening";
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const roleLabel = {
-    gp:         "Consultant",
-    vd:         "Sales Director",
-    superadmin: "Super Admin",
-    manager:    "Manager",
+    gp: "Consultant", vd: "Sales Director", superadmin: "Super Admin", manager: "Manager",
   }[role] || role;
 
-  // ── Derived stats ───────────────────────────────────────────────────────────
-  const totalContacts   = leads.length;
-  const newLeads        = leads.filter(l => l.status === "open");
-  const assignedNewLeads = newLeads.filter(l => l.assignedGP || l.assignedVD);
+  // ── Role-scoped data filters ─────────────────────────────────────────────────
+  // GP  → only their own leads / appointments / activities
+  // VD  → their entire team (everyone where assignedVD === their name)
+  // SA  → everything
+  const scopedLeads = isGP
+    ? leads.filter(l => l.assignedGP === userName)
+    : isVD
+      ? leads.filter(l => l.assignedVD === userName)
+      : leads;
+
+  const scopedAppts = isGP
+    ? appointments.filter(a => a.gp === userName)
+    : isVD
+      ? appointments.filter(a => a.vd === userName)
+      : appointments;
+
+  const scopedActivities = isGP
+    ? activities.filter(a => a.gp === userName)
+    : isVD
+      ? activities.filter(a => a.vd === userName)
+      : activities;
+
+  // ── KPI derivations ──────────────────────────────────────────────────────────
+  const totalContacts  = scopedLeads.length;
+
+  // New leads = open status within scope
+  // For VD/SA also surface unassigned leads (no GP assigned yet)
+  const newLeads = isGP
+    ? scopedLeads.filter(l => l.status === "open")
+    : isVD
+      ? leads.filter(l => l.status === "open" && (l.assignedVD === userName || !l.assignedVD))
+      : leads.filter(l => l.status === "open");
+
   const unassignedCount = newLeads.filter(l => !l.assignedGP && !l.assignedVD).length;
 
-  const todayStr        = "2026-02-24"; // matches mock data date; replace with new Date().toISOString().slice(0,10) in prod
-  const todayAppts      = appointments.filter(a => a.date === todayStr && a.status !== "cancelled");
+  const todayStr       = "2026-02-24"; // matches mock data; use new Date().toISOString().slice(0,10) in prod
+  const todayAppts     = scopedAppts.filter(a => a.date === todayStr && a.status !== "cancelled");
 
-  const openReminders   = activities.filter(a =>
+  const openReminders  = scopedActivities.filter(a =>
     a.entityType === "reminder" && a.status !== "done" && a.status !== "cancelled"
   );
 
-  const recentActivity  = [...activities]
+  const recentActivity = [...scopedActivities]
     .filter(a => a.entityType !== "reminder")
     .slice(0, 6);
 
-  // ── Reminders checklist state ────────────────────────────────────────────────
-  const [doneReminders, setDoneReminders] = useState({});
-  const toggleReminder = (id) =>
-    setDoneReminders(prev => ({ ...prev, [id]: !prev[id] }));
+  // ── Leads panel title & sub-label per role ───────────────────────────────────
+  const leadsTitle = isGP ? "My New Leads" : isVD ? "Team New Leads" : "New Leads";
+  const contactsLabel = isGP ? "My Contacts" : isVD ? "Team Contacts" : "Total Contacts";
+  const remindersTitle = isGP ? "My Reminders & Tasks" : isVD ? "Team Reminders" : "Reminders & Tasks";
 
-  // ── Leads to show — new ones that need first contact ────────────────────────
-  // Show max 5; for GP show their assigned leads, for VD/SA show all new leads
+  // Leads to show in panel (max 5)
   const leadsToShow = newLeads.slice(0, 5);
+
+  // ── Reminder checklist state ─────────────────────────────────────────────────
+  const [doneReminders, setDoneReminders] = useState({});
+  const toggleReminder = id => setDoneReminders(prev => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <div style={{ flex: 1, overflowY: "auto", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -183,7 +216,7 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
         {/* ── Page header ─────────────────────────────────────────────────── */}
         <div style={{ padding: "28px 0 24px" }}>
           <h1 style={{ fontSize: 32, fontWeight: 400, letterSpacing: "-0.025em", color: C.text, margin: 0 }}>
-            {greeting}<span style={{ color: C.primary }}>.</span>
+            {greeting}, {user.firstName}<span style={{ color: C.primary }}>.</span>
           </h1>
           <div style={{ marginTop: 6, fontSize: 12, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             {roleLabel} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
@@ -193,22 +226,28 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
         {/* ── KPI row ─────────────────────────────────────────────────────── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
           <KpiCard
-            label="Total Contacts"
+            label={contactsLabel}
             value={totalContacts}
-            sub="in CRM"
+            sub={isGP ? "assigned to me" : isVD ? "in my team" : "in CRM"}
             color={C.navy}
           />
           <KpiCard
             label="New Leads"
             value={newLeads.length}
-            sub={unassignedCount > 0 ? `${unassignedCount} unassigned` : "all assigned"}
+            sub={
+              isGP
+                ? "open & assigned to me"
+                : unassignedCount > 0
+                  ? `${unassignedCount} unassigned`
+                  : "all assigned"
+            }
             color={C.primary}
-            warn={unassignedCount > 0}
+            warn={!isGP && unassignedCount > 0}
           />
           <KpiCard
             label="Appointments Today"
             value={todayAppts.length}
-            sub="scheduled"
+            sub={isGP ? "my schedule" : isVD ? "team schedule" : "org-wide"}
             color={C.indigo}
           />
           <KpiCard
@@ -222,16 +261,31 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
         {/* ── Main two-column layout ───────────────────────────────────────── */}
         <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16, marginBottom: 16 }}>
 
-          {/* ── New Assigned Leads ─────────────────────────────────────────── */}
+          {/* ── New Leads panel ───────────────────────────────────────────── */}
           <Card>
             <CardHeader
-              title="New Leads"
+              title={leadsTitle}
               action={<LinkBtn label="All Contacts →" onClick={() => navigateTo("Leads")} />}
             />
             <div style={{ padding: "4px 20px 16px" }}>
+              {/* VD/SA: unassigned warning banner */}
+              {!isGP && unassignedCount > 0 && (
+                <div style={{
+                  margin: "8px 0 10px",
+                  padding: "8px 12px", borderRadius: 8,
+                  background: C.red + "08", border: `1px solid ${C.red}30`,
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  <span style={{ fontSize: 13 }}>⚠️</span>
+                  <span style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>
+                    {unassignedCount} lead{unassignedCount > 1 ? "s" : ""} not yet assigned to a consultant
+                  </span>
+                </div>
+              )}
+
               {leadsToShow.length === 0 ? (
                 <div style={{ padding: "24px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                  No new leads right now.
+                  {isGP ? "No new leads assigned to you." : "No new leads right now."}
                 </div>
               ) : leadsToShow.map((lead, i) => (
                 <div key={lead.id} style={{
@@ -247,6 +301,16 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
                     <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{lead.name}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
                       {lead.city} · {lead.source} · {lead.created}
+                      {/* VD/SA: show who it's assigned to (or flag as unassigned) */}
+                      {!isGP && (
+                        <span style={{
+                          marginLeft: 6,
+                          color: lead.assignedGP ? C.muted : C.red,
+                          fontWeight: lead.assignedGP ? 400 : 600,
+                        }}>
+                          · {lead.assignedGP ? `→ ${lead.assignedGP}` : "⚠ unassigned"}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <StatusPill status={lead.status} />
@@ -266,10 +330,10 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
             </div>
           </Card>
 
-          {/* ── My Reminders / Tasks ──────────────────────────────────────── */}
+          {/* ── Reminders / Tasks panel ───────────────────────────────────── */}
           <Card>
             <CardHeader
-              title="My Reminders &amp; Tasks"
+              title={remindersTitle}
               action={<LinkBtn label="All →" onClick={() => navigateTo("Calendar")} />}
             />
             <div style={{ padding: "4px 20px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
@@ -291,7 +355,6 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
                       marginBottom: 6,
                     }}
                   >
-                    {/* Checkbox */}
                     <div style={{
                       width: 17, height: 17, borderRadius: 4, marginTop: 1,
                       border: `1.5px solid ${done ? C.green : C.muted}`,
@@ -312,6 +375,8 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
                         <PriorityDot priority={rem.priority} />
                         {rem.time} · {rem.date}
                         {rem.lead && <> · {rem.lead}</>}
+                        {/* VD/SA: show which GP the reminder belongs to */}
+                        {!isGP && rem.gp && <> · <span style={{ color: C.slate }}>{rem.gp}</span></>}
                       </div>
                     </div>
                     <span style={{ fontSize: 14 }}>{TYPE_ICON[rem.type] || "🔔"}</span>
@@ -326,7 +391,7 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
         {todayAppts.length > 0 && (
           <Card style={{ marginBottom: 16 }}>
             <CardHeader
-              title="Today's Appointments"
+              title={isGP ? "My Appointments Today" : isVD ? "Team Appointments Today" : "Appointments Today"}
               action={<LinkBtn label="Calendar →" onClick={() => navigateTo("Calendar")} />}
             />
             <div style={{ padding: "4px 20px 16px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
@@ -352,7 +417,10 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
                       </span>
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{appt.lead}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{appt.gp}</div>
+                    {/* VD/SA: show which consultant owns the appointment */}
+                    {!isGP && (
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{appt.gp}</div>
+                    )}
                   </div>
                 );
               })}
@@ -363,7 +431,7 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
         {/* ── Recent Activity ──────────────────────────────────────────────── */}
         <Card>
           <CardHeader
-            title="Recent Activity"
+            title={isGP ? "My Recent Activity" : isVD ? "Team Recent Activity" : "Recent Activity"}
             action={<LinkBtn label="All Activity →" onClick={() => navigateTo("Calendar")} />}
           />
           <div style={{ padding: "4px 20px 16px" }}>
@@ -389,7 +457,9 @@ const DashboardPage = ({ role, navigateTo, leads = [], activities = [], appointm
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{act.title}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                      {act.gp && <>{act.gp} · </>}{act.date} {act.time}
+                      {/* VD/SA: show GP name in activity feed */}
+                      {!isGP && act.gp && <>{act.gp} · </>}
+                      {act.date} {act.time}
                     </div>
                   </div>
                   <span style={{
