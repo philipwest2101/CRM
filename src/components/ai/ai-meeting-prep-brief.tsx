@@ -98,7 +98,7 @@ Output ONLY valid JSON:
           <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
             {/* Lead profile */}
             <div style={{ padding:"14px 16px",borderRadius:11,background:"#fff",border:`1px solid ${C.border}` }}>
-              <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6 }}>👤 Lead Profile</div>
+              <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6 }}>👤 Contact Profile</div>
               <div style={{ fontSize:12,color:C.slate,lineHeight:1.6 }}>{brief.leadProfile}</div>
             </div>
 
@@ -167,7 +167,7 @@ Output ONLY valid JSON:
             <div style={{ display:"flex",gap:10 }}>
               <button onClick={()=>alert("Brief saved to lead profile and synced to Calendar.")}
                 style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
-                💾 Save to Lead Profile
+                💾 Save to Contact Profile
               </button>
               <button onClick={()=>generateBrief(selected)}
                 style={{ flex:1,padding:"10px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.muted,fontSize:13,fontWeight:600,cursor:"pointer" }}>

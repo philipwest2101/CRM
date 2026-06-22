@@ -144,7 +144,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
       <div style={{ background:"#fff",borderBottom:`1px solid ${C.border}`,padding:"14px 28px 0",position:"sticky",top:54,zIndex:90 }}>
         {/* Breadcrumb */}
         <div style={{ display:"flex",alignItems:"center",gap:6,fontSize:11,color:C.muted,marginBottom:12 }}>
-          <span onClick={()=>navigateTo("Leads")} style={{ color:C.blue,fontWeight:600,cursor:"pointer" }}>Leads</span>
+          <span onClick={()=>navigateTo("Leads")} style={{ color:C.blue,fontWeight:600,cursor:"pointer" }}>Contacts</span>
           <span>›</span>
           <span style={{ color:C.text,fontWeight:600 }}>{lead.name}</span>
           <div style={{ marginLeft:"auto",display:"flex",gap:8 }}>
@@ -725,7 +725,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
                       ))}
                     </div>
                     <div style={{ paddingLeft:20,borderLeft:`1px solid ${C.border}` }}>
-                      <div style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10 }}>Lead Details</div>
+                      <div style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10 }}>Contact Details</div>
                       {[["Campaign",lead.campaign],["Lead ID",lead.id],["Assigned VD",lead.assignedVD||"—"],["Created",lead.created],...(lead.amount?[["Closing Amount",lead.amount]]:[])].map(([k,v])=>(
                         <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.border}`,fontSize:12 }}>
                           <span style={{ color:C.muted }}>{k}</span>
@@ -808,7 +808,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
         {activeTab==="Assign" && (
           <div style={{ maxWidth:520 }}>
             <SettingsCard style={{ padding:"24px" }}>
-              <div style={{ fontSize:14,fontWeight:700,color:C.text,marginBottom:16 }}>Assign Lead</div>
+              <div style={{ fontSize:14,fontWeight:700,color:C.text,marginBottom:16 }}>Assign Contact</div>
               <div style={{ fontSize:12,color:C.muted,marginBottom:16 }}>Currently assigned to: <strong style={{ color:C.text }}>{lead.assignedGP||"Unassigned"}</strong></div>
               <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
                 {VD_GP_PERF.map(gp=>(

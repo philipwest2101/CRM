@@ -87,7 +87,7 @@ Analyze how well the consultant followed the script. Respond ONLY with valid JSO
             <span style={{ fontSize:10, padding:"2px 8px", borderRadius:8, background:"#F1F5F9", color:C.slate, fontWeight:600 }}>{transcript.duration}</span>
           </div>
         </div>
-        <div style={{ fontSize:11, color:C.muted }}>Consultant: <strong style={{ color:C.text }}>{transcript.gp}</strong> · Lead: <strong style={{ color:C.text }}>{lead.name}</strong></div>
+        <div style={{ fontSize:11, color:C.muted }}>Consultant: <strong style={{ color:C.text }}>{transcript.gp}</strong> · Contact: <strong style={{ color:C.text }}>{lead.name}</strong></div>
       </div>
 
       {/* Transcript */}

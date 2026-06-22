@@ -13,7 +13,7 @@ import { C } from "../../theme";
 
 export const LeadsPage = ({ role, navigateTo }) => {
   const [vdMode, setVdMode]           = useState("personal");
-  const [activeTab, setActiveTab]     = useState(role==="superadmin"?"All Leads":"My Leads");
+  const [activeTab, setActiveTab]     = useState(role==="superadmin"?"All Contacts":"My Contacts");
   const [selectedLead, setSelectedLead] = useState(null);
   const [drawerTab, setDrawerTab]     = useState("Overview");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -32,15 +32,15 @@ export const LeadsPage = ({ role, navigateTo }) => {
     });
   };
 
-  const handleModeChange=(m)=>{setVdMode(m);setActiveTab(m==="personal"?"My Leads":"All Leads");setFilterStatus("all");setFilterSource("all");setSearch("");};
+  const handleModeChange=(m)=>{setVdMode(m);setActiveTab(m==="personal"?"My Contacts":"All Contacts");setFilterStatus("all");setFilterSource("all");setSearch("");};
   const openDrawer=(lead, tab="Overview")=>{ setSelectedLead(lead); setDrawerTab(tab); };
 
   const tabsFor=()=>{
-    if(role==="superadmin") return ["All Leads","Unassigned","By VD","By Campaign"];
-    if(role==="gp")         return ["My Leads","Follow-Up","Appointments"];
+    if(role==="superadmin") return ["All Contacts","Unassigned","By VD","By Campaign"];
+    if(role==="gp")         return ["My Contacts","Follow-Up","Appointments"];
     return vdMode==="personal"
-      ? ["My Leads","Follow-Up","Appointments"]
-      : ["All Leads","Unassigned","By Consultant"];
+      ? ["My Contacts","Follow-Up","Appointments"]
+      : ["All Contacts","Unassigned","By Consultant"];
   };
   const isStatsTab = false;
   const cfg={superadmin:C.navy,vd:C.indigo,gp:C.green}[role];
@@ -51,7 +51,7 @@ export const LeadsPage = ({ role, navigateTo }) => {
     if(role==="gp"&&l.assignedGP!=="Anna Klein") return false;
     if(role==="vd"){if(l.assignedVD!=="Thomas Müller") return false; if(vdMode==="personal"&&l.assignedGP!=="Thomas Müller") return false;}
     if(activeTab==="Unassigned")   return !l.assignedGP;
-    if(activeTab==="My Leads")     return role==="gp"?l.assignedGP==="Anna Klein":l.assignedGP==="Thomas Müller";
+    if(activeTab==="My Contacts")     return role==="gp"?l.assignedGP==="Anna Klein":l.assignedGP==="Thomas Müller";
     if(activeTab==="Follow-Up")    return l.status==="followup";
     if(activeTab==="Appointments") return l.status==="appointment";
     if(filterStatus!=="all"&&l.status!==filterStatus) return false;
@@ -63,9 +63,9 @@ export const LeadsPage = ({ role, navigateTo }) => {
 
   const kpis=
     role==="superadmin"?[{l:"Total Leads",v:ALL_LEADS.length,c:C.navy},{l:"Unassigned",v:ALL_LEADS.filter(l=>!l.assignedGP).length,c:C.red},{l:"In Progress",v:ALL_LEADS.filter(l=>["in_progress","attempted"].includes(l.status)).length,c:C.blue},{l:"Closed (MTD)",v:ALL_LEADS.filter(l=>l.status==="closed").length,c:C.green}]
-    :role==="vd"&&vdMode==="personal"?[{l:"My Leads",v:myPersonal.length,c:C.indigo},{l:"Follow-Ups",v:myPersonal.filter(l=>l.status==="followup").length,c:C.amber},{l:"Appointments",v:myPersonal.filter(l=>l.status==="appointment").length,c:C.blue},{l:"Closed (MTD)",v:myPersonal.filter(l=>l.status==="closed").length,c:C.green}]
+    :role==="vd"&&vdMode==="personal"?[{l:"My Contacts",v:myPersonal.length,c:C.indigo},{l:"Follow-Ups",v:myPersonal.filter(l=>l.status==="followup").length,c:C.amber},{l:"Appointments",v:myPersonal.filter(l=>l.status==="appointment").length,c:C.blue},{l:"Closed (MTD)",v:myPersonal.filter(l=>l.status==="closed").length,c:C.green}]
     :role==="vd"?[{l:"Team Leads",v:"890",c:C.navy},{l:"Unassigned",v:"12",c:C.red},{l:"Appointments",v:"54",c:C.blue},{l:"Closed (MTD)",v:"34",c:C.green}]
-    :[{l:"My Leads",v:myGP.length,c:C.green},{l:"Follow-Ups",v:myGP.filter(l=>l.status==="followup").length,c:C.amber},{l:"Appointments",v:myGP.filter(l=>l.status==="appointment").length,c:C.indigo},{l:"Closed",v:myGP.filter(l=>l.status==="closed").length,c:C.navy}];
+    :[{l:"My Contacts",v:myGP.length,c:C.green},{l:"Follow-Ups",v:myGP.filter(l=>l.status==="followup").length,c:C.amber},{l:"Appointments",v:myGP.filter(l=>l.status==="appointment").length,c:C.indigo},{l:"Closed",v:myGP.filter(l=>l.status==="closed").length,c:C.navy}];
 
   const showAssignCol=role==="superadmin"||(role==="vd"&&vdMode==="team");
   return (
@@ -73,14 +73,14 @@ export const LeadsPage = ({ role, navigateTo }) => {
       {/* Breadcrumb */}
       <div style={{ display:"flex",alignItems:"center",gap:6,fontSize:12,color:C.muted,marginBottom:20 }}>
         <span onClick={()=>navigateTo("Dashboard")} style={{ cursor:"pointer",color:C.blue,fontWeight:600 }}>Dashboard</span>
-        <span>›</span><span style={{ color:C.text,fontWeight:600 }}>Lead Management</span>
+        <span>›</span><span style={{ color:C.text,fontWeight:600 }}>Contact Management</span>
         <span style={{ marginLeft:6,fontSize:11,padding:"2px 8px",borderRadius:12,background:cfg+"18",color:cfg,fontWeight:700 }}>{{superadmin:"Super Admin",vd:"Sales Director",gp:"Consultant"}[role]}</span>
-        {role==="vd"&&<span style={{ fontSize:11,padding:"2px 8px",borderRadius:12,background:vdMode==="personal"?C.indigo+"15":C.primary+"15",color:vdMode==="personal"?C.indigo:C.navy,fontWeight:700 }}>{vdMode==="personal"?"👤 My Leads":"👥 My Team"}</span>}
+        {role==="vd"&&<span style={{ fontSize:11,padding:"2px 8px",borderRadius:12,background:vdMode==="personal"?C.indigo+"15":C.primary+"15",color:vdMode==="personal"?C.indigo:C.navy,fontWeight:700 }}>{vdMode==="personal"?"👤 My Contacts":"👥 My Team"}</span>}
       </div>
       {/* Header */}
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22 }}>
         <div>
-          <h1 style={{ margin:0,fontSize:24,fontWeight:800,color:C.navy,letterSpacing:"-0.02em" }}>Lead Management</h1>
+          <h1 style={{ margin:0,fontSize:24,fontWeight:800,color:C.navy,letterSpacing:"-0.02em" }}>Contact Management</h1>
           <p style={{ margin:"4px 0 0",fontSize:13,color:C.slate }}>
             {role==="superadmin"&&"Full org view — assign, monitor and control all leads."}
             {role==="vd"&&vdMode==="personal"&&"Your personal pipeline — contact, schedule, and log outcomes."}
@@ -90,7 +90,7 @@ export const LeadsPage = ({ role, navigateTo }) => {
         </div>
         <div style={{ display:"flex",gap:10,alignItems:"center" }}>
           {role==="vd"&&<ModePill mode={vdMode} onChange={handleModeChange} />}
-          {role==="superadmin" && <button onClick={()=>navigateTo("LeadCapture")} style={{ padding:"8px 14px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>📥 Lead Capture</button>}
+          {role==="superadmin" && <button onClick={()=>navigateTo("LeadCapture")} style={{ padding:"8px 14px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>📥 Contact Capture</button>}
           {(role==="superadmin"||(role==="vd"&&vdMode==="team"))
             ?<button onClick={()=>navigateTo("AutoAssign")} style={{ padding:"8px 14px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer" }}>⚡ Auto-Assign by ZIP</button>
             :<button onClick={()=>{ const top=filteredLeads.find(l=>!["closed","no_interest"].includes(l.status)); if(top)openDrawer(top,"🤖 AI"); }} style={{ padding:"8px 14px",borderRadius:7,border:"none",background:C.ai,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6 }}>🤖 AI Call Script</button>}
@@ -109,7 +109,7 @@ export const LeadsPage = ({ role, navigateTo }) => {
       {(role==="gp"||(role==="vd"&&vdMode==="personal")) && (
         <div style={{ padding:"11px 16px",borderRadius:8,background:C.ai+"08",border:`1px solid ${C.ai}20`,marginBottom:16,display:"flex",alignItems:"center",gap:10 }}>
           <span style={{ fontSize:16 }}>🤖</span>
-          <span style={{ fontSize:12,color:C.ai,fontWeight:600 }}>Leads sorted by AI Priority Score — highest opportunity first.</span>
+          <span style={{ fontSize:12,color:C.ai,fontWeight:600 }}>Contacts sorted by AI Priority Score — highest opportunity first.</span>
           <span style={{ marginLeft:"auto",fontSize:11,color:C.muted }}>Score = source intent + campaign + region + engagement history</span>
         </div>
       )}

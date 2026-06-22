@@ -9,7 +9,7 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const kpis = [
-    { label:"My Leads",      value:62,     unit:"",    delta:"+8 Week",  up:true,  sub:"active",          warn:false, good:false },
+    { label:"My Contacts",      value:62,     unit:"",    delta:"+8 Week",  up:true,  sub:"active",          warn:false, good:false },
     { label:"Due Today",     value:5,      unit:"",    delta:"2 overdue",up:false,sub:"Calls",         warn:true,  good:false },
     { label:"Not Reached",   value:9,      unit:"",    delta:"−2 Week",  up:false, sub:"Attempt ≥3",     warn:false, good:false },
     { label:"Conversion",       value:"8,1",  unit:"%",   delta:"+0,3 pp",   up:true,  sub:"MTD",            warn:false, good:true  },
@@ -274,11 +274,11 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
         <div style={{ background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden" }}>
           <div style={{ padding:"18px 22px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${C.border}` }}>
             <div style={{ fontSize:20,fontWeight:500,color:C.text }}>
-              Priority Leads
+              Priority Contacts
               <span style={{ fontFamily:"monospace",fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.indigo,
                 marginLeft:10,padding:"3px 7px",background:C.indigo+"15",borderRadius:4 }}>Vion Scorer</span>
             </div>
-            <button onClick={()=>navigateTo("Leads")} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.blue,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>All Leads →</button>
+            <button onClick={()=>navigateTo("Leads")} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.blue,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>All Contacts →</button>
           </div>
           <div style={{ padding:"8px 22px 16px" }}>
             {PRIORITY_LEADS.map((lead,i)=>(

@@ -130,7 +130,7 @@ export const SettingsPage = ({ role, navigateTo }) => {
                   <div style={{ fontSize:11,color:C.muted }}>Dear Max, I wanted to follow up on our conversation about the Q1 Finanz…</div>
                 </div>
               </div>
-              <div style={{ fontSize:11,color:C.muted,marginTop:6 }}>Leads will see <strong>{role==="gp"?"Anna Klein":role==="vd"?"Thomas Müller":"vion CRM"}</strong> as the sender — not a generic vion address.</div>
+              <div style={{ fontSize:11,color:C.muted,marginTop:6 }}>Contacts will see <strong>{role==="gp"?"Anna Klein":role==="vd"?"Thomas Müller":"vion CRM"}</strong> as the sender — not a generic vion address.</div>
             </SettingsCard>
             <button onClick={save} style={{ padding:"10px 24px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Save Changes</button>
           </>
@@ -153,14 +153,14 @@ export const SettingsPage = ({ role, navigateTo }) => {
                 <SettingsToggle label="New lead assigned to me"  sub="Instant alert when a lead is assigned to your queue"      defaultOn={true} />
                 <SettingsToggle label="Follow-up due today"      sub="Reminder each morning for leads due for contact"          defaultOn={true} />
                 <SettingsToggle label="Appointment reminder"     sub="Alert 1 hour before each scheduled appointment"          defaultOn={true} />
-                <SettingsToggle label="Lead status changed"      sub="When a lead in your pipeline changes status"             defaultOn={false} />
+                <SettingsToggle label="Contact status changed"      sub="When a lead in your pipeline changes status"             defaultOn={false} />
               </SettingsCard>
             )}
 
             {/* ── VD only: team management ── */}
             {(role==="vd"||role==="superadmin") && (
               <SettingsCard title="Team Alerts">
-                <SettingsToggle label="Lead assigned to my team"   sub="When any lead is assigned to a consultant in your team"  defaultOn={true} />
+                <SettingsToggle label="Contact assigned to my team"   sub="When any lead is assigned to a consultant in your team"  defaultOn={true} />
                 <SettingsToggle label="GP conversion rate drop"    sub="Alert when a consultant's rate drops 10% week-on-week"   defaultOn={true} />
                 <SettingsToggle label="Script adherence low"       sub="When a GP falls below the adherence threshold"           defaultOn={role==="vd"} />
               </SettingsCard>

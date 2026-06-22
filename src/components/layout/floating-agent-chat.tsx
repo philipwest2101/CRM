@@ -71,7 +71,7 @@ export const FloatingAgentChat = ({ role }) => {
             <div style={{ width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>🤖</div>
             <div>
               <div style={{ fontSize:13,fontWeight:800,color:"#fff" }}>vion AI Agent</div>
-              <div style={{ fontSize:10,color:"rgba(255,255,255,0.7)" }}>Lead management assistant · always on</div>
+              <div style={{ fontSize:10,color:"rgba(255,255,255,0.7)" }}>Contact management assistant · always on</div>
             </div>
             <div style={{ marginLeft:"auto",width:8,height:8,borderRadius:"50%",background:"#4ADE80",boxShadow:"0 0 0 3px rgba(74,222,128,0.3)" }} />
           </div>

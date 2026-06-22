@@ -25,7 +25,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
       /* ── VD view: show MY team's consultants ── */
       if(isVD) return (<>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
-          <KpiBox label="Team Leads" value="890" sub="+18% vs last month" color={C.navy} />
+          <KpiBox label="Team Contacts" value="890" sub="+18% vs last month" color={C.navy} />
           <KpiBox label="Team Appointments" value="54" sub="+11% vs last month" color={C.indigo} />
           <KpiBox label="Team Closed (MTD)" value="34" sub="+26% vs last month" color={C.green} />
           <KpiBox label="Team Conv. Rate" value="7.1%" sub="+0.9pp vs last month" color={C.purple} />
@@ -65,7 +65,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
       /* ── SA view: show all Sales Directors ── */
       return (<>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
-          <KpiBox label="Total Org Leads" value="2,904" sub="+12% vs last month" color={C.navy} />
+          <KpiBox label="Total Org Contacts" value="2,904" sub="+12% vs last month" color={C.navy} />
           <KpiBox label="Total Appointments" value="134" sub="+23% vs last month" color={C.indigo} />
           <KpiBox label="Total Closed (MTD)" value="89" sub="+31% vs last month" color={C.green} />
           <KpiBox label="Avg Conv. Rate" value="6.2%" sub="+1.1pp vs last month" color={C.purple} />
@@ -100,9 +100,9 @@ export const ReportDetail = ({ report, role, onBack }) => {
 
     if(report.key==="campaign_roi") return (<>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
-        <KpiBox label="Total Leads (MTD)" value="2,904" sub="Across all sources" color={C.navy} />
+        <KpiBox label="Total Contacts (MTD)" value="2,904" sub="Across all sources" color={C.navy} />
         <KpiBox label="Best Campaign" value="Q1 Finanz" sub="8.6% conv. rate" color={C.indigo} />
-        <KpiBox label="Avg Cost-per-Lead" value="€4.20" sub="−€0.80 vs Jan" color={C.green} />
+        <KpiBox label="Avg Cost-per-Contact" value="€4.20" sub="−€0.80 vs Jan" color={C.green} />
         <KpiBox label="Zapier Status" value="⚠ Down" sub="0 leads in 6h" color={C.red} />
       </div>
       <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
@@ -119,7 +119,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
       </div>
       <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:16 }}>
         <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}` }}>
-          <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:14 }}>Leads by Source</div>
+          <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:14 }}>Contacts by Source</div>
           {[["Meta Ads",1240,C.indigo],["Landing Pages",780,C.blue],["Google Sheets",430,C.green],["CSV",205,C.amber],["Other / Zapier",249,C.muted]].map(([n,v,col])=>(
             <div key={n} style={{ marginBottom:10 }}>
               <div style={{ display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4 }}>
@@ -130,7 +130,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
           ))}
         </div>
         <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}` }}>
-          <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:14 }}>Monthly Lead Volume Trend</div>
+          <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:14 }}>Monthly Contact Volume Trend</div>
           <BarChart data={[{l:"Aug",v:210},{l:"Sep",v:248},{l:"Oct",v:295},{l:"Nov",v:340},{l:"Dec",v:290},{l:"Jan",v:380},{l:"Feb",v:412}]} color={C.indigo} height={65} />
           <div style={{ marginTop:12,padding:"8px 12px",borderRadius:8,background:C.red+"0A",border:`1px solid ${C.red}20`,fontSize:11,color:C.red,fontWeight:600 }}>
             ⚠ Zapier webhook disconnected — 0 leads captured since 09:14 today. Reconnect in Settings → Integrations.
