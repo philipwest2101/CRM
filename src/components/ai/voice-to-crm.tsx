@@ -105,7 +105,7 @@ Output ONLY valid JSON, no markdown:
             ))}
           </div>
           <button onClick={stopRecording}
-            style={{ padding:"12px 32px",borderRadius:24,border:"none",background:"#fff",color:C.red,border:`2px solid ${C.red}`,fontSize:14,fontWeight:700,cursor:"pointer" }}>
+            style={{ padding:"12px 32px",borderRadius:24,background:"#fff",color:C.red,border:`2px solid ${C.red}`,fontSize:14,fontWeight:700,cursor:"pointer" }}>
             ⏹ Stop
           </button>
         </div>

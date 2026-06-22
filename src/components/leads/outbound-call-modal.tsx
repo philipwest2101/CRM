@@ -61,12 +61,10 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
     setLifecycle(suggestions.lifecycle);
     setStageStatus(suggestions.stageStatus);
     setCallReport(suggestions.reportImproved);
-    setPopoverOpen(false);
     setAiDismissed(true);
   };
 
   const handleIgnore = () => {
-    setPopoverOpen(false);
     setAiDismissed(true);
   };
 
