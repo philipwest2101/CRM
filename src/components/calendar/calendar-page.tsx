@@ -10,7 +10,7 @@ import { C } from "../../theme";
 // priority) each get one fixed colour.
 const PRIORITY_COLOR   = { urgent:"#B42318", high:"#F04438", medium:"#F79009", normal:"#F79009", low:"#667085" };
 const APPOINTMENT_COLOR = "#0E9384";   // teal
-const EVENT_COLOR       = "#BE185D";   // magenta
+const EVENT_COLOR       = "#2563EB";   // blue
 const PRIORITY_LEGEND  = [["urgent","Urgent"],["high","High"],["medium","Medium"],["low","Low"]];
 
 export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder }) => {
@@ -20,22 +20,19 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [calFilter,   setCalFilter]   = useState("mine");   // each role sees only its own calendar
   const [showEvents,  setShowEvents]  = useState(true);
   const [typeFilter,  setTypeFilter]  = useState("all");
-  const [statusFilter,setStatusFilter]= useState("all");
   const [view,        setView]        = useState("month"); // month | week | day
   const [showNew,     setShowNew]     = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [editActivity,setEditActivity]= useState(null);
   const [selected,    setSelected]    = useState(null);    // activity detail modal
   const [selectedDate,setSelectedDate]= useState(TODAY);  // date whose list shows below
-  const [sortBy,      setSortBy]      = useState("time");  // time | priority
   const [taskModal,   setTaskModal]   = useState(null);    // { mode, data }
   const [apptModal,   setApptModal]   = useState(null);    // { mode, data }
   const [outcomeAppt, setOutcomeAppt] = useState(null);
 
   const myGP = "Anna Klein"; const myVD = "Thomas Müller";
 
-  // Every role sees only its own calendar
-  const calOptions = [{v:"mine",l:"My Calendar"}];
+  // Every role sees only its own calendar (calFilter is locked to "mine")
 
   // ── Events on the calendar ────────────────────────────────────────────────
   // Events have no priority, so each one carries its own colour (defined in
@@ -91,7 +88,6 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
   // ── Task / Appointment modal helpers ──────────────────────────────────────
   const NOW_TIME  = "12:00";
-  const PRIO_RANK = { urgent:-1, high:0, medium:1, normal:1, low:2 };
   const isAppt = (a) => APPOINTMENT_TYPE_KEYS.includes(a?.type) || a?.entityType==="appointment" || a?.category==="appointment";
   const focusDate = (d) => { if(!d) return; setCurrentDate(new Date(d+"T12:00")); setSelectedDate(d); };
 
@@ -125,6 +121,11 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     setTaskModal(null); focusDate(f.date);
   };
   const doneTask = (f) => { setActivities(prev=>prev.filter(x=>x.id!==f.id)); setTaskModal(null); };
+  const deleteTask = (f) => {
+    setActivities(prev=>prev.filter(x=>x.id!==f.id));
+    const i = ACTIVITIES_STORE.findIndex(x=>x.id===f.id); if (i>=0) ACTIVITIES_STORE.splice(i,1);
+    setTaskModal(null);
+  };
 
   const submitAppt = (f, mode) => {
     if (mode==="edit") {
@@ -188,17 +189,6 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
       <div style={{ padding:"12px 20px",borderBottom:`1px solid ${C.border}`,background:"#fff",
         display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",flexShrink:0 }}>
         <h1 style={{ margin:0,fontSize:18,fontWeight:800,color:C.navy }}>📅 Calendar & Activities</h1>
-
-        {/* Calendar DDL */}
-        <div style={{ position:"relative" }}>
-          <select value={calFilter} onChange={e=>setCalFilter(e.target.value)}
-            style={{ padding:"6px 28px 6px 10px",borderRadius:8,border:`1.5px solid ${C.indigo}40`,
-              background:C.indigo+"08",color:C.indigo,fontSize:12,fontWeight:700,
-              fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none" }}>
-            {calOptions.map(opt=><option key={opt.v} value={opt.v}>{opt.l}</option>)}
-          </select>
-          <div style={{ position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:9,color:C.indigo }}>▼</div>
-        </div>
 
         {/* Type filter */}
         <div style={{ position:"relative" }}>
@@ -503,31 +493,12 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 {(byDate[selectedDate]||[]).length} {(byDate[selectedDate]||[]).length===1?"activity":"activities"}
               </div>
             </div>
-
-            {/* Filters */}
-            <div style={{ display:"flex",gap:6 }}>
-              <div style={{ position:"relative" }}>
-                <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}
-                  style={{ padding:"5px 24px 5px 8px",borderRadius:7,border:`1px solid ${statusFilter!=="all"?C.accent:C.border}`,
-                    background:statusFilter!=="all"?C.accent+"08":"#fff",
-                    color:statusFilter!=="all"?C.accent:C.muted,
-                    fontSize:11,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none" }}>
-                  <option value="all">All status</option>
-                  <option value="upcoming">Upcoming</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="done">Done</option>
-                </select>
-                <div style={{ position:"absolute",right:5,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:9,color:C.muted }}>▼</div>
-              </div>
-            </div>
           </div>
 
           {/* Activity list for selected date — grouped Overdue / Upcoming, two columns */}
           <div style={{ flex:1,overflowY:"auto",padding:"12px 16px" }}>
             {(()=>{
-              const dayItems = (byDate[selectedDate]||[]).filter(a => statusFilter==="all"||a.status===statusFilter);
+              const dayItems = (byDate[selectedDate]||[]);
 
               if(dayItems.length===0) return (
                 <div style={{ padding:"40px 20px",textAlign:"center",color:C.muted }}>
@@ -544,9 +515,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
               );
 
               const isOverdue = (a) => a.status!=="done" && (selectedDate < TODAY || (selectedDate===TODAY && (a.time||"99:99") < NOW_TIME));
-              const sortFn = (a,b) => sortBy==="priority"
-                ? ((PRIO_RANK[a.priority]??1)-(PRIO_RANK[b.priority]??1)) || (a.time||"").localeCompare(b.time||"")
-                : (a.time||"").localeCompare(b.time||"");
+              const sortFn = (a,b) => (a.time||"").localeCompare(b.time||"");
               const overdue  = dayItems.filter(isOverdue).sort(sortFn);
               const upcoming = dayItems.filter(a=>!isOverdue(a)).sort(sortFn);
 
@@ -587,17 +556,6 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
               return (
                 <>
-                  {/* Sort control */}
-                  <div style={{ display:"flex",justifyContent:"flex-end",alignItems:"center",gap:8,marginBottom:12 }}>
-                    <span style={{ fontSize:11,color:C.muted,fontWeight:600 }}>Sort by</span>
-                    <div style={{ display:"inline-flex",border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden" }}>
-                      {[["time","Time"],["priority","Priority"]].map(([k,l])=>(
-                        <button key={k} onClick={()=>setSortBy(k)}
-                          style={{ padding:"5px 12px",border:"none",background:sortBy===k?C.primary:"#fff",
-                            color:sortBy===k?"#fff":C.slate,fontSize:11,fontWeight:sortBy===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
                   {group("Overdue",C.red,overdue)}
                   {group("Upcoming",C.green,upcoming)}
                 </>
@@ -682,6 +640,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
         onClose={()=>setTaskModal(null)}
         onSubmit={submitTask}
         onDone={doneTask}
+        onDelete={deleteTask}
         onLogCall={()=>{}}
         onMakeCall={()=>{}}
       />}

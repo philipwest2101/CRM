@@ -26,7 +26,7 @@ const blank = (selectedDate) => ({
   emailTemplate:"", repeatOn:false, repeatEvery:1, repeatUnit:"day", recur:"Once", note:"",
 });
 
-export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onSubmit, onDone, onLogCall, onMakeCall }) => {
+export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onSubmit, onDone, onDelete, onLogCall, onMakeCall }) => {
   const [m, setM]   = useState(mode);                       // active mode (view can switch to edit)
   const [f, setF]   = useState(() => {
     const init = task ? { ...blank(selectedDate), ...task } : blank(selectedDate);
@@ -106,8 +106,10 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
                   <button onClick={()=>onMakeCall&&onMakeCall(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, cursor:"pointer", padding:0 }}>Make a Call</button>
                 </>
               )}
+              <button onClick={()=>onDelete&&onDelete(f)} title="Delete this task permanently"
+                style={{ marginLeft:"auto", background:"none", border:"none", color:C.red, fontSize:12, fontWeight:700, cursor:"pointer", padding:0 }}>🗑 Delete</button>
               <button onClick={()=>onDone&&onDone(f)} title="Done = remove from the calendar (task is done)"
-                style={{ marginLeft:"auto", padding:"9px 22px", borderRadius:9, border:"none", background:C.green, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ Done</button>
+                style={{ padding:"9px 22px", borderRadius:9, border:"none", background:C.green, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ Done</button>
             </div>
           </div>
         ) : (
@@ -203,6 +205,10 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
               style={{ ...input, minHeight:70, resize:"none", lineHeight:1.5 }}/>)}
 
             <div style={{ display:"flex", gap:10, marginTop:6 }}>
+              {m==="edit" && (
+                <button onClick={()=>onDelete&&onDelete(f)} title="Delete this task permanently"
+                  style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.red}40`, background:"#fff", color:C.red, fontSize:13, fontWeight:700, cursor:"pointer" }}>🗑 Delete</button>
+              )}
               <button onClick={onClose} style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:13, fontWeight:600, cursor:"pointer" }}>Cancel</button>
               <button onClick={()=>canSave && onSubmit && onSubmit({ ...f, recur:f.repeatOn?composeRecur(f.repeatEvery,f.repeatUnit):"Once", kind:"task" }, m)} disabled={!canSave}
                 style={{ flex:2, padding:"10px", borderRadius:9, border:"none", background:canSave?C.primary:"#E2E8F0", color:canSave?"#fff":C.muted, fontSize:13, fontWeight:700, cursor:canSave?"pointer":"default" }}>
