@@ -6,11 +6,12 @@ import { AppointmentOutcomeModal } from "../appointments/appointment-outcome-mod
 import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS, EVENTS_LIST } from "../../lib/core";
 import { C } from "../../theme";
 
-// Activity titles are coloured by priority. Events have no priority, so every
-// event shares one colour.
-const PRIORITY_COLOR  = { urgent:"#B42318", high:"#F04438", medium:"#F79009", normal:"#F79009", low:"#667085" };
-const EVENT_COLOR     = "#BE185D";
-const PRIORITY_LEGEND = [["urgent","Urgent"],["high","High"],["medium","Medium"],["low","Low"]];
+// Tasks are coloured by priority; appointments and events (which have no
+// priority) each get one fixed colour.
+const PRIORITY_COLOR   = { urgent:"#B42318", high:"#F04438", medium:"#F79009", normal:"#F79009", low:"#667085" };
+const APPOINTMENT_COLOR = "#0E9384";   // teal
+const EVENT_COLOR       = "#BE185D";   // magenta
+const PRIORITY_LEGEND  = [["urgent","Urgent"],["high","High"],["medium","Medium"],["low","Low"]];
 
 export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder }) => {
   const TODAY    = "2026-02-24";
@@ -59,11 +60,13 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     };
   })).filter(x => x.date), []);
 
-  // Effective type meta for an activity — colour comes from priority (events
-  // share one colour). Type still drives the icon.
+  // Effective type meta for an activity — colour depends on category: tasks by
+  // priority, appointments one colour, events one colour. Type drives the icon.
   const metaOf = (a) => {
     const base = ACTIVITY_TYPES[a?.type] || ACTIVITY_TYPES.note;
-    const col = a?.isEvent ? EVENT_COLOR : (PRIORITY_COLOR[a?.priority] || PRIORITY_COLOR.medium);
+    const col = a?.isEvent ? EVENT_COLOR
+      : base.category === "task" ? (PRIORITY_COLOR[a?.priority] || PRIORITY_COLOR.medium)
+      : APPOINTMENT_COLOR;
     return { ...base, color:col, bg:col+"18" };
   };
 
@@ -462,18 +465,22 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             );
           })()}
 
-          {/* Priority legend — title colour reflects priority; events share one colour */}
+          {/* Legend — tasks by priority; appointments + events one colour each */}
           <div style={{ padding:"6px 12px",borderTop:`1px solid ${C.border}`,background:"#FAFAFA",
             display:"flex",gap:12,flexWrap:"wrap",alignItems:"center" }}>
-            <span style={{ fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em" }}>Priority</span>
+            <span style={{ fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em" }}>Tasks</span>
             {PRIORITY_LEGEND.map(([k,l])=>(
               <div key={k} style={{ display:"flex",alignItems:"center",gap:4 }}>
                 <div style={{ width:8,height:8,borderRadius:3,background:PRIORITY_COLOR[k] }}/>
                 <span style={{ fontSize:9,color:C.slate }}>{l}</span>
               </div>
             ))}
+            <div style={{ display:"flex",alignItems:"center",gap:4,paddingLeft:6,borderLeft:`1px solid ${C.border}` }}>
+              <div style={{ width:8,height:8,borderRadius:3,background:APPOINTMENT_COLOR }}/>
+              <span style={{ fontSize:9,color:C.slate }}>📅 Appointments</span>
+            </div>
             {showEvents && (
-              <div style={{ display:"flex",alignItems:"center",gap:4,paddingLeft:6,borderLeft:`1px solid ${C.border}` }}>
+              <div style={{ display:"flex",alignItems:"center",gap:4 }}>
                 <div style={{ width:8,height:8,borderRadius:3,background:EVENT_COLOR }}/>
                 <span style={{ fontSize:9,color:C.slate }}>🎟️ Events</span>
               </div>
