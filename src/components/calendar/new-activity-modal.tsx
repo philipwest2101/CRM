@@ -9,7 +9,7 @@ export const NewActivityModal = ({ onClose, role, onAdd, initial=null }) => {
   const [title,    setTitle]    = useState(initial?.title||"");
   const [lead,     setLead]     = useState(initial?.lead||"");
   const [date,     setDate]     = useState(initial?.date||"");
-  const [time,     setTime]     = useState(initial?.time||"");
+  const [time,     setTime]     = useState(initial?.time||"09:00");
   const [end,      setEnd]      = useState(initial?.end||"");
   const [priority, setPriority] = useState(initial?.priority||"normal");
   const [recur,    setRecur]    = useState(initial?.recur||"Once");
@@ -20,7 +20,7 @@ export const NewActivityModal = ({ onClose, role, onAdd, initial=null }) => {
   const [saved,    setSaved]    = useState(false);
 
   const at = ACTIVITY_TYPES[type];
-  const canSave = title.trim() && date;
+  const canSave = title.trim() && date && (!at.timeLabel || time);   // Time required when the type has a time
 
   return (
     <>
@@ -104,7 +104,7 @@ export const NewActivityModal = ({ onClose, role, onAdd, initial=null }) => {
         {at.timeLabel && (
           <div style={{ display:"grid",gridTemplateColumns:at.hasEnd?"1fr 1fr":"1fr",gap:10,marginBottom:12 }}>
             <div>
-              <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>{at.timeLabel}</label>
+              <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>{at.timeLabel} *</label>
               <input type="time" value={time} onChange={e=>setTime(e.target.value)}
                 style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/>
             </div>
@@ -160,6 +160,7 @@ export const NewActivityModal = ({ onClose, role, onAdd, initial=null }) => {
             <div style={{ position:"relative" }}>
               <select value={priority} onChange={e=>setPriority(e.target.value)}
                 style={{ width:"100%",padding:"9px 28px 9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",appearance:"none",outline:"none",background:"#fff" }}>
+                <option value="urgent">🚨 Urgent</option>
                 <option value="high">🔴 High</option>
                 <option value="normal">🟡 Normal</option>
                 <option value="low">⚪ Low</option>

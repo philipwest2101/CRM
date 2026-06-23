@@ -11,23 +11,29 @@ const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px 
 const TYPE_META = {
   call:  { icon:"📞", label:"Call"  },
   email: { icon:"✉️", label:"Email" },
-  note:  { icon:"📝", label:"Note"  },
+  note:  { icon:"✅", label:"To Do" },
 };
-const PRIORITIES = [["low","Low",C.slate],["medium","Medium",C.amber],["high","High",C.red]];
-const REMINDER_OPTS = [["15","15 Minutes Before"],["30","30 Minutes Before"],["60","1 Hour Before"]];
+const PRIORITIES = [["low","Low",C.slate],["medium","Medium",C.amber],["high","High",C.red],["urgent","Urgent","#B42318"]];
+const REMINDER_OPTS = [["15","15 Minutes Before"],["30","30 Minutes Before"],["60","1 Hour Before"],["custom","Custom Date"]];
 
 const blank = (selectedDate) => ({
   type:"call", title:"", contact:"", priority:"medium",
-  date:selectedDate||"", time:"", reminderOn:true, reminder:"30",
-  emailTemplate:"", recur:"Once", note:"",
+  date:selectedDate||"", time:"09:00", reminderOn:true, reminder:"30", reminderCustom:"",
+  emailTemplate:"", repeatOn:false, recur:"Daily", note:"",
 });
 
 export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onSubmit, onDone, onLogCall, onMakeCall }) => {
   const [m, setM]   = useState(mode);                       // active mode (view can switch to edit)
-  const [f, setF]   = useState(task ? { ...blank(selectedDate), ...task } : blank(selectedDate));
+  const [f, setF]   = useState(() => {
+    const init = task ? { ...blank(selectedDate), ...task } : blank(selectedDate);
+    if (!init.time) init.time = "09:00";                    // Time is mandatory — default 9 AM
+    if (task && task.recur && task.recur !== "Once") init.repeatOn = true;
+    if (init.repeatOn && (!init.recur || init.recur === "Once")) init.recur = "Daily";
+    return init;
+  });
   const set = (k,v) => setF(prev => ({ ...prev, [k]:v }));
   const isView = m === "view";
-  const canSave = f.title.trim() && f.date;
+  const canSave = f.title.trim() && f.date && f.time;       // Time now required
   const tm = TYPE_META[f.type] || TYPE_META.note;
 
   const titleText = m==="create" ? "Create Task"
@@ -75,7 +81,9 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
             {row("📅 Date & Time", `${f.date}${f.time?` · ${f.time}`:""}`)}
             {row("👤 Contact", f.contact)}
             {row("⚡ Priority", (PRIORITIES.find(p=>p[0]===f.priority)||[])[1])}
-            {f.reminderOn && row("⏰ Reminder", (REMINDER_OPTS.find(r=>r[0]===String(f.reminder))||[])[1])}
+            {f.reminderOn && row("⏰ Reminder", f.reminder==="custom"
+              ? (f.reminderCustom ? `Custom · ${f.reminderCustom.replace("T"," ")}` : "Custom Date")
+              : (REMINDER_OPTS.find(r=>r[0]===String(f.reminder))||[])[1])}
             {row("🔁 Recurring", f.recur && f.recur!=="Once" ? f.recur : null)}
             {f.note && (
               <div style={{ marginTop:12 }}>
@@ -133,11 +141,11 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
 
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
               <div><label style={lbl}>Date *</label><input type="date" value={f.date} onChange={e=>set("date",e.target.value)} style={input}/></div>
-              <div><label style={lbl}>Time</label><input type="time" value={f.time} onChange={e=>set("time",e.target.value)} style={input}/></div>
+              <div><label style={lbl}>Time *</label><input type="time" value={f.time} onChange={e=>set("time",e.target.value)} style={input}/></div>
             </div>
 
             {/* Reminder */}
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:f.reminderOn&&f.reminder==="custom"?8:12 }}>
               <label style={{ display:"flex", alignItems:"center", gap:7, fontSize:12, color:C.slate, cursor:"pointer", whiteSpace:"nowrap" }}>
                 <input type="checkbox" checked={f.reminderOn} onChange={e=>set("reminderOn",e.target.checked)} style={{ accentColor:C.primary, width:14, height:14 }}/>
                 Reminder
@@ -146,23 +154,35 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
                 {REMINDER_OPTS.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
+            {/* Custom reminder date/time — shown when "Custom Date" picked */}
+            {f.reminderOn && f.reminder==="custom" && (
+              <div style={{ marginBottom:12 }}>
+                <label style={lbl}>Remind me on</label>
+                <input type="datetime-local" value={f.reminderCustom} onChange={e=>set("reminderCustom",e.target.value)} style={input}/>
+              </div>
+            )}
 
-            {/* Edit-only extras: Email Template + Recurring */}
+            {/* Set to Repeat — recurrence for recurrent tasks */}
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+              <label style={{ display:"flex", alignItems:"center", gap:7, fontSize:12, color:C.slate, cursor:"pointer", whiteSpace:"nowrap" }}>
+                <input type="checkbox" checked={f.repeatOn}
+                  onChange={e=>{ const on=e.target.checked; setF(prev=>({ ...prev, repeatOn:on, recur:on&&(!prev.recur||prev.recur==="Once")?"Daily":prev.recur })); }}
+                  style={{ accentColor:C.primary, width:14, height:14 }}/>
+                🔁 Set to Repeat
+              </label>
+              <select value={f.recur} disabled={!f.repeatOn} onChange={e=>set("recur",e.target.value)} style={{ ...input, opacity:f.repeatOn?1:0.5 }}>
+                {["Daily","Weekly","Monthly","Yearly"].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+
+            {/* Edit-only extra: Email Template */}
             {m==="edit" && (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
-                <div>
-                  <label style={lbl}>Email Template</label>
-                  <select value={f.emailTemplate} onChange={e=>set("emailTemplate",e.target.value)} style={input}>
-                    <option value="">None</option>
-                    {EMAIL_TEMPLATES_STORE.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Recurring</label>
-                  <select value={f.recur} onChange={e=>set("recur",e.target.value)} style={input}>
-                    {["Once","Daily","Weekly","Monthly","Yearly"].map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
+              <div style={{ marginBottom:12 }}>
+                <label style={lbl}>Email Template</label>
+                <select value={f.emailTemplate} onChange={e=>set("emailTemplate",e.target.value)} style={input}>
+                  <option value="">None</option>
+                  {EMAIL_TEMPLATES_STORE.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
               </div>
             )}
 
@@ -171,7 +191,7 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
 
             <div style={{ display:"flex", gap:10, marginTop:6 }}>
               <button onClick={onClose} style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:13, fontWeight:600, cursor:"pointer" }}>Cancel</button>
-              <button onClick={()=>canSave && onSubmit && onSubmit({ ...f, kind:"task" }, m)} disabled={!canSave}
+              <button onClick={()=>canSave && onSubmit && onSubmit({ ...f, recur:f.repeatOn?f.recur:"Once", kind:"task" }, m)} disabled={!canSave}
                 style={{ flex:2, padding:"10px", borderRadius:9, border:"none", background:canSave?C.primary:"#E2E8F0", color:canSave?"#fff":C.muted, fontSize:13, fontWeight:700, cursor:canSave?"pointer":"default" }}>
                 {m==="edit" ? "Update" : "Save"}
               </button>
