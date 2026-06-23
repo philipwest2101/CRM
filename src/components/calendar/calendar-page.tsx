@@ -3,7 +3,7 @@ import { NewActivityModal } from "./new-activity-modal";
 import { TaskModal } from "./task-modal";
 import { AppointmentModal } from "../appointments/appointment-modal";
 import { AppointmentOutcomeModal } from "../appointments/appointment-outcome-modal";
-import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS } from "../../lib/core";
+import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS, EVENTS_LIST } from "../../lib/core";
 import { C } from "../../theme";
 
 export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder }) => {
@@ -35,8 +35,41 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     manager:    [{v:"all",l:"Organisation Calendar"},{v:"mine",l:"My Calendar"},{v:"Thomas Müller",l:"Thomas Müller"},{v:"Anna Klein",l:"Anna Klein"}],
   }[role] || [{v:"mine",l:"My Calendar"}];
 
+  // ── Events on the calendar ────────────────────────────────────────────────
+  // Events have no priority, so each one carries its own colour (defined in
+  // EVENTS_LIST). We flatten every event date into a calendar entry that keeps
+  // its event colour, and surface a colour legend so they stay distinguishable.
+  const MONTH_IDX = { january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11 };
+  const parseEventDate = (label) => {
+    const mt = String(label||"").match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+    if (!mt) return null;
+    const mo = MONTH_IDX[mt[2].toLowerCase()];
+    if (mo == null) return null;
+    return `${mt[3]}-${String(mo+1).padStart(2,"0")}-${String(Number(mt[1])).padStart(2,"0")}`;
+  };
+  const eventActivities = useMemo(() => EVENTS_LIST.flatMap(ev => ev.dates.map(d => {
+    const [start, end] = String(d.time||"").split("–").map(s=>s.trim());
+    return {
+      id:`ev_${d.id}`, type:"event", title:ev.name, lead:null,
+      date:parseEventDate(d.label), time:start||"", end:end||"", location:d.location,
+      status:d.status==="past"?"done":"upcoming", recur:"Once", priority:null,
+      isEvent:true, eventId:ev.id, eventColor:ev.color, eventIcon:ev.icon,
+      entityType:"event", category:"event",
+    };
+  })).filter(x => x.date), []);
+
+  // Effective type meta for an activity — events override the shared colour
+  const metaOf = (a) => {
+    const base = ACTIVITY_TYPES[a?.type] || ACTIVITY_TYPES.note;
+    return a?.isEvent && a.eventColor
+      ? { ...base, color:a.eventColor, bg:a.eventColor+"18", icon:a.eventIcon||base.icon }
+      : base;
+  };
+
+  const baseActs = showEvents ? [...activities, ...eventActivities] : activities;
+
   // Filter activities
-  const visible = activities.filter(a => {
+  const visible = baseActs.filter(a => {
     if (typeFilter !== "all" && a.type !== typeFilter) return false;
     // "mine" filter: show activities belonging to current GP, OR activities with no gp set (unowned)
     if (calFilter === "mine" && a.gp && a.gp !== myGP) return false;
@@ -59,12 +92,13 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const focusDate = (d) => { if(!d) return; setCurrentDate(new Date(d+"T12:00")); setSelectedDate(d); };
 
   const openActivity = (a) => {
+    if (a.isEvent) { setSelected(a); return; }   // events are read-only → detail panel
     if (isAppt(a)) {
       setApptModal({ mode:"view", data:{
         id:a.id, title:a.title, contact:a.lead, apptType:a.apptType||"Consultation Appointment",
         date:a.date, time:a.time, end:a.end, location:a.location, attendees:a.attendees,
-        attachment:a.attachment, attachments:a.attachments, notify:a.notify,
-        autoCalendar:a.autoCalendar, reminder:a.reminder, reminderCustom:a.reminderCustom, note:a.note, reminderOn:true }});
+        attachment:a.attachment, attachments:a.attachments,
+        reminder:a.reminder, reminderCustom:a.reminderCustom, note:a.note, reminderOn:true }});
     } else {
       setTaskModal({ mode:"view", data:{
         id:a.id, type:TASK_TYPE_KEYS.includes(a.type)?a.type:"note", title:a.title, contact:a.lead,
@@ -90,11 +124,11 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
   const submitAppt = (f, mode) => {
     if (mode==="edit") {
-      setActivities(prev=>prev.map(x=>x.id===f.id ? { ...x, type:"consultation", title:f.title, lead:f.contact, apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, attendees:f.attendees, attachment:f.attachment, attachments:f.attachments, notify:f.notify, autoCalendar:f.autoCalendar, reminder:f.reminder, reminderCustom:f.reminderCustom, note:f.note } : x));
+      setActivities(prev=>prev.map(x=>x.id===f.id ? { ...x, type:"consultation", title:f.title, lead:f.contact, apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, attendees:f.attendees, attachment:f.attachment, attachments:f.attachments, reminder:f.reminder, reminderCustom:f.reminderCustom, note:f.note } : x));
     } else {
       const act = { id:`appt_${Date.now()}`, type:"consultation", title:f.title, lead:f.contact, leadId:null,
         apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, attendees:f.attendees,
-        attachment:f.attachment, attachments:f.attachments, notify:f.notify, autoCalendar:f.autoCalendar,
+        attachment:f.attachment, attachments:f.attachments,
         reminder:f.reminder, reminderCustom:f.reminderCustom, note:f.note, recur:"Once", status:"upcoming", entityType:"appointment",
         category:"appointment", gp:myGP, vd:myVD, channels:f.reminderOn?["push","inapp"]:["inapp"] };
       setActivities(prev=>[act,...prev]); ACTIVITIES_STORE.unshift(act);
@@ -129,7 +163,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   );
 
   const ActivityChip = ({a, compact=false}) => {
-    const at = ACTIVITY_TYPES[a.type] || ACTIVITY_TYPES.note;
+    const at = metaOf(a);
     return (
       <div onClick={e=>{e.stopPropagation();setSelected(a);}}
         style={{ display:"flex",alignItems:"center",gap:4,padding:compact?"2px 5px":"4px 7px",
@@ -258,7 +292,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 const isToday = dateStr === TODAY;
                 const isSel   = dateStr === selectedDate;
                 const dayActs = byDate[dateStr] || [];
-                const typeColors = [...new Set(dayActs.map(a=>ACTIVITY_TYPES[a.type]?.color||C.muted))].slice(0,3);
+                const typeColors = [...new Set(dayActs.map(a=>metaOf(a).color))].slice(0,3);
                 return (
                   <div key={idx} onClick={()=>isValid&&setSelectedDate(dateStr)}
                     style={{ minHeight:72,padding:"5px 4px",borderBottom:`1px solid ${C.border}`,
@@ -272,7 +306,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                           color:isToday||isSel?"#fff":C.text,
                           display:"flex",alignItems:"center",justifyContent:"center" }}>{dayNum}</div>
                       </div>
-                      {dayActs.slice(0,2).map(a=>{ const at=ACTIVITY_TYPES[a.type]||ACTIVITY_TYPES.note; return (
+                      {dayActs.slice(0,2).map(a=>{ const at=metaOf(a); return (
                         <div key={a.id} title={a.title}
                           style={{ fontSize:9,fontWeight:600,color:at.color,background:at.bg,
                             borderLeft:`2px solid ${at.color}`,padding:"1px 4px",
@@ -335,7 +369,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                           padding:"2px",cursor:"pointer",background:ds===selectedDate?"#EFF6FF20":"#fff",
                           position:"relative",minHeight:52 }}>
                         {slotActs.length===0 ? null :
-                         slotActs.length===1 ? (()=>{ const a=slotActs[0]; const at=ACTIVITY_TYPES[a.type]||ACTIVITY_TYPES.note; return (
+                         slotActs.length===1 ? (()=>{ const a=slotActs[0]; const at=metaOf(a); return (
                            <div title={`${a.title} ${a.time||""}`}
                              style={{ fontSize:9,fontWeight:600,color:at.color,background:at.bg,
                                borderLeft:`2px solid ${at.color}`,padding:"2px 4px",borderRadius:"0 4px 4px 0",
@@ -346,7 +380,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                          /* EDGE CASE: multiple activities in same slot */
                          (
                            <div style={{ position:"relative" }}>
-                             {slotActs.slice(0,2).map((a,ai)=>{ const at=ACTIVITY_TYPES[a.type]||ACTIVITY_TYPES.note; return (
+                             {slotActs.slice(0,2).map((a,ai)=>{ const at=metaOf(a); return (
                                <div key={a.id} title={`${a.title} ${a.time||""}`}
                                  style={{ fontSize:8,fontWeight:600,color:at.color,background:at.bg,
                                    borderLeft:`2px solid ${at.color}`,padding:"1px 3px",
@@ -397,7 +431,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                       <div style={{ flex:1,padding:"4px 8px",display:"flex",
                         flexDirection:hasConflict?"row":"column",gap:4,flexWrap:"wrap" }}>
                         {slotActs.length===0 ? null : slotActs.map((a,ai)=>{
-                          const at=ACTIVITY_TYPES[a.type]||ACTIVITY_TYPES.note;
+                          const at=metaOf(a);
                           return (
                             <div key={a.id}
                               style={{ flex:hasConflict?`0 0 calc(${100/Math.min(slotActs.length,3)}% - 4px)`:"1",
@@ -438,6 +472,20 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             ))}
             <span style={{ marginLeft:"auto",fontSize:9,color:C.muted }}>{visible.length} activities total</span>
           </div>
+
+          {/* Events colour legend — events carry no priority, so colour identifies each one */}
+          {showEvents && (
+            <div style={{ padding:"6px 12px",borderTop:`1px solid ${C.border}`,background:"#FAFAFA",
+              display:"flex",gap:12,flexWrap:"wrap",alignItems:"center" }}>
+              <span style={{ fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em" }}>🎟️ Events</span>
+              {EVENTS_LIST.map(ev=>(
+                <div key={ev.id} style={{ display:"flex",alignItems:"center",gap:4 }}>
+                  <div style={{ width:8,height:8,borderRadius:3,background:ev.color }}/>
+                  <span style={{ fontSize:9,color:C.slate }}>{ev.icon} {ev.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Day list panel ─────────────────────────────────────────────── */}
@@ -502,7 +550,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
               const upcoming = dayItems.filter(a=>!isOverdue(a)).sort(sortFn);
 
               const card = (a) => {
-                const at = ACTIVITY_TYPES[a.type]||ACTIVITY_TYPES.note;
+                const at = metaOf(a);
                 const prioCol = a.priority==="high"?C.red:a.priority==="low"?C.slate:C.amber;
                 return (
                   <div key={a.id} onClick={()=>openActivity(a)}
@@ -560,7 +608,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
       {/* ── Activity detail modal ──────────────────────────────────────────── */}
       {selected && (()=>{
-        const at = ACTIVITY_TYPES[selected.type]||ACTIVITY_TYPES.note;
+        const at = metaOf(selected);
         const sm = ACTIVITY_STATUS_META[selected.status]||ACTIVITY_STATUS_META.pending;
         return (
           <>

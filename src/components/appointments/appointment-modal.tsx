@@ -32,7 +32,6 @@ const blank = (selectedDate) => ({
   date:selectedDate||"", time:"09:00", end:"",
   location:"",
   attachments:[],
-  autoCalendar:true, notify:[],
   reminderOn:true, reminder:"30", reminderCustom:"",
   note:"",
 });
@@ -52,8 +51,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
     // Single reminder (migrate legacy reminders array if present)
     if (Array.isArray(init.reminders) && init.reminders.length) { init.reminder = init.reminders[0].val||"30"; init.reminderCustom = init.reminders[0].custom||""; }
     if (init.reminder == null) init.reminder = "30";
-    // Notify list defaults to every attendee
-    init.notify = Array.isArray(init.notify) ? init.notify.filter(e=>emails.includes(e)) : [...emails];
     // Migrate a custom "Other" type into its own field
     if (init.apptType && !APPOINTMENT_TYPES.includes(init.apptType)) { init.apptTypeOther = init.apptType; init.apptType = "Other"; }
     return init;
@@ -63,11 +60,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
 
   // ── Attendees: single searchable multiselect (contacts + free emails) ──────
   const attendeeArr = f.attendees;
-  const writeAttendees = (arr) => setF(prev => {
-    const keptNotify = prev.notify.filter(e => arr.includes(e));
-    const newlyAdded = arr.filter(e => !prev.attendees.includes(e));
-    return { ...prev, attendees:arr, contact:arr[0]||"", notify:[...keptNotify, ...newlyAdded] };
-  });
+  const writeAttendees = (arr) => setF(prev => ({ ...prev, attendees:arr, contact:arr[0]||"" }));
   const toggleAttendee = (email) => writeAttendees(
     attendeeArr.includes(email) ? attendeeArr.filter(e=>e!==email) : [...attendeeArr, email]
   );
@@ -79,18 +72,11 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
   const extraSelected = attendeeArr.filter(e => !leadByEmail(e));   // typed emails not in leads
   const canAddTyped = isEmail(attQuery.trim()) && !attendeeArr.includes(attQuery.trim());
 
-  const toggleNotify = (email) => setF(prev => ({
-    ...prev,
-    notify: prev.notify.includes(email) ? prev.notify.filter(e=>e!==email) : [...prev.notify, email],
-  }));
-
   // ── Attachments: multiselect (system docs + uploads) ──────────────────────
   const fileRef = useRef(null);
   const addAttachment = (name) => setF(prev => prev.attachments.includes(name)
     ? prev : { ...prev, attachments:[...prev.attachments, name] });
   const removeAttachment = (name) => setF(prev => ({ ...prev, attachments:prev.attachments.filter(a=>a!==name) }));
-
-  const calOn = f.autoCalendar;
 
   // "Other" appointment type requires a custom label
   const apptTypeOk = f.apptType !== "Other" || f.apptTypeOther.trim();
@@ -139,7 +125,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
             {rowR("🏷 Type", f.apptType==="Other" ? (f.apptTypeOther||"Other") : f.apptType)}
             {rowR("👥 Attendees", attendeeArr.map(attLabelOf).join(", "))}
             {rowR("📍 Meeting Location", f.location)}
-            {calOn && rowR("📆 Calendar", `Auto-added · invite to ${f.notify.length} attendee${f.notify.length!==1?"s":""}`)}
             {rowR("📎 Attachments", f.attachments.join(", "))}
             {f.reminderOn && rowR("⏰ Reminder", reminderLabel(f.reminder,f.reminderCustom))}
             {f.note && (
@@ -170,7 +155,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
                     <span key={email} style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 8px", borderRadius:20,
                       background:"#F1F5F9", border:`1px solid ${C.border}`, fontSize:11.5, fontWeight:600, color:C.text }}>
                       {displayName(email) || email}
-                      {i===0 && <span style={{ fontSize:9, color:C.primaryDark, fontWeight:700 }}>· Primary</span>}
                       <span onClick={e=>{ e.stopPropagation(); toggleAttendee(email); }} style={{ color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</span>
                     </span>
                   ))}
@@ -242,47 +226,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
               onChange={e=>set("location",e.target.value)}
               placeholder="ARTIST Boutique Hotel — Vienna  ·  or https://meet.…" style={input}/>)}
 
-            {/* Contact Notification — calendar invite + per-attendee email choice */}
-            <div style={{ marginBottom:12, padding:"12px 14px", borderRadius:10,
-              background:f.autoCalendar?C.primary+"0A":"#F8FAFC", border:`1px solid ${f.autoCalendar?C.primary+"40":C.border}` }}>
-              <label style={{ ...lbl, marginBottom:8 }}>Contact Notification</label>
-              <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-                <div onClick={()=>set("autoCalendar",!f.autoCalendar)}
-                  style={{ width:36, height:20, borderRadius:10, background:f.autoCalendar?C.primary:"#CBD5E1", cursor:"pointer", position:"relative", flexShrink:0, marginTop:1, transition:"background 0.2s" }}>
-                  <div style={{ position:"absolute", top:2, left:f.autoCalendar?18:2, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:12.5, fontWeight:700, color:C.navy }}>📆 Add to calendars &amp; notify contacts</div>
-                  <div style={{ fontSize:11, color:C.slate, marginTop:3, lineHeight:1.45 }}>
-                    Adds the appointment to your calendar and emails a calendar invite to the selected attendees.
-                  </div>
-                </div>
-              </div>
-
-              {/* Per-attendee email notification choice */}
-              {f.autoCalendar && attendeeArr.length>0 && (
-                  <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${C.primary}22` }}>
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
-                      <span style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em" }}>
-                        Email invite to <span style={{ color:C.slate }}>· {f.notify.length}/{attendeeArr.length}</span>
-                      </span>
-                      <span style={{ display:"flex", gap:10 }}>
-                        <button onClick={()=>set("notify",[...attendeeArr])} style={{ background:"none", border:"none", color:C.primaryDark, fontSize:11, fontWeight:700, cursor:"pointer", padding:0 }}>All</button>
-                        <button onClick={()=>set("notify",[])} style={{ background:"none", border:"none", color:C.slate, fontSize:11, fontWeight:700, cursor:"pointer", padding:0 }}>None</button>
-                      </span>
-                    </div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:4, maxHeight:128, overflowY:"auto", paddingRight:4 }}>
-                      {attendeeArr.map(email=>(
-                        <label key={email} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:C.slate, cursor:"pointer" }}>
-                          <input type="checkbox" checked={f.notify.includes(email)} onChange={()=>toggleNotify(email)} style={{ accentColor:C.primary, width:14, height:14, flexShrink:0 }}/>
-                          <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{displayName(email)||email}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </div>
-
             {/* Attachments — multiselect: system docs + uploads */}
             <div style={{ marginBottom:12 }}>
               <label style={lbl}>Attachments</label>
@@ -335,7 +278,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
                   contact: attendeeArr.length ? (displayName(attendeeArr[0])||attendeeArr[0]) : "",
                   attendees: attendeeArr.map(attLabelOf).join(", "),
                   attachment: f.attachments.join(", "),
-                  autoCalendar: calOn,
                   kind:"appointment",
                 }, m)} disabled={!canSave}
                 style={{ flex:2, padding:"10px", borderRadius:9, border:"none", background:canSave?C.primary:"#E2E8F0", color:canSave?"#fff":C.muted, fontSize:13, fontWeight:700, cursor:canSave?"pointer":"default" }}>
