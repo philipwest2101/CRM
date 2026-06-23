@@ -64,7 +64,7 @@ export const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
           {/* Name */}
           <div>
             <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Rule Name *</label>
-            <input value={form.name} onChange={e=>f("name",e.target.value)} placeholder="e.g. New Lead Assigned"
+            <input value={form.name} onChange={e=>f("name",e.target.value)} placeholder="e.g. New Contact Assigned"
               style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/>
           </div>
           {/* Trigger — only events that don't yet have a rule are selectable (one rule per event) */}

@@ -20,8 +20,8 @@ export const LeadCapturePage = ({ role, navigateTo }) => {
       {/* Header */}
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:11,fontWeight:700,color:C.muted,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:4 }}>Leads · Integration</div>
-          <h1 style={{ margin:0,fontSize:26,fontWeight:800,color:C.navy,letterSpacing:"-0.02em" }}>Lead Capture & Integration</h1>
+          <div style={{ fontSize:11,fontWeight:700,color:C.muted,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:4 }}>Contacts · Integration</div>
+          <h1 style={{ margin:0,fontSize:26,fontWeight:800,color:C.navy,letterSpacing:"-0.02em" }}>Contact Capture & Integration</h1>
           <p style={{ margin:"4px 0 0",fontSize:13,color:C.slate }}>Manage all lead sources, field mappings, and import history.</p>
         </div>
         <div style={{ display:"flex",gap:8 }}>
@@ -141,7 +141,7 @@ export const LeadCapturePage = ({ role, navigateTo }) => {
                 <span style={{ fontSize:16 }}>🔒</span>
                 <div style={{ fontSize:12,color:"#1E40AF" }}>
                   <strong>GDPR Note:</strong> The fields <code>consent_newsletter</code> and <code>email</code> are required for Double Opt-In.
-                  Leads without newsletter consent will not receive marketing emails.
+                  Contacts without newsletter consent will not receive marketing emails.
                 </div>
               </div>
             </div>

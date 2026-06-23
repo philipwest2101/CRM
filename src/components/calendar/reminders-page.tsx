@@ -500,7 +500,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
             {/* Lead field selector */}
             {newTplData.triggerBasis==="lead_field" && (
               <div style={{ marginBottom:14,padding:"12px 14px",borderRadius:9,background:"#EFF6FF",border:"1px solid #BFDBFE" }}>
-                <label style={{ fontSize:11,fontWeight:700,color:C.blue,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:8 }}>Lead profile field</label>
+                <label style={{ fontSize:11,fontWeight:700,color:C.blue,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:8 }}>Contact profile field</label>
                 <div style={{ position:"relative" }}>
                   <select value={newTplData.dateSource}
                     onChange={e=>{
@@ -630,7 +630,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
                 <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Linked to</label>
                 <select value={fEntity} onChange={e=>setFEntity(e.target.value)}
                   style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none",background:"#fff",color:C.text }}>
-                  <option value="lead">📋 Lead</option>
+                  <option value="lead">📋 Contact</option>
                   <option value="contact">👤 Contact</option>
                   <option value="deal">💼 Deal</option>
                   <option value="appointment">📅 Appointment</option>

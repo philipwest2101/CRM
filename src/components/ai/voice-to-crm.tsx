@@ -68,7 +68,7 @@ Output ONLY valid JSON, no markdown:
 
       {/* Lead selector */}
       <div style={{ marginBottom:16 }}>
-        <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Lead (optional — links note to lead)</label>
+        <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Contact (optional — links note to lead)</label>
         <div style={{ position:"relative" }}>
           <select value={selectedLead||""} onChange={e=>setSelectedLead(e.target.value||null)}
             style={{ width:"100%",padding:"9px 30px 9px 12px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",appearance:"none",outline:"none",background:"#fff" }}>

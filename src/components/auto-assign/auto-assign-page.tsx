@@ -88,7 +88,7 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
       {/* Header */}
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:11,fontWeight:700,color:C.muted,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:4 }}>Leads · Auto-Assignment</div>
+          <div style={{ fontSize:11,fontWeight:700,color:C.muted,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:4 }}>Contacts · Auto-Assignment</div>
           <h1 style={{ margin:0,fontSize:26,fontWeight:800,color:C.navy,letterSpacing:"-0.02em" }}>Auto-Assign by ZIP</h1>
           <p style={{ margin:"4px 0 0",fontSize:13,color:C.slate }}>Automatically route unassigned leads to consultants based on ZIP code rules.</p>
         </div>
@@ -99,7 +99,7 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
           </button>
           <button onClick={()=>navigateTo("Leads")}
             style={{ padding:"8px 14px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>
-            ← Back to Leads
+            ← Back to Contacts
           </button>
         </div>
       </div>
@@ -107,7 +107,7 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
       {/* KPI strip */}
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
         {[
-          { label:"Unassigned Leads", value:assignments.length, color:C.red,    sub:"awaiting assignment" },
+          { label:"Unassigned Contacts", value:assignments.length, color:C.red,    sub:"awaiting assignment" },
           { label:"ZIP Matched",      value:matched,            color:C.green,  sub:`${assignments.length?Math.round(matched/assignments.length*100):0}% auto-routable` },
           { label:"No ZIP Match",     value:unmatched,          color:C.amber,  sub:"manual assignment needed" },
           { label:"Selected",         value:selected,           color:C.navy,   sub:"ready to assign" },
@@ -182,7 +182,7 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
       {/* Filter bar + action */}
       <div style={{ display:"flex",gap:10,alignItems:"center",marginBottom:14,padding:"12px 16px",background:"#fff",borderRadius:10,border:`1px solid ${C.border}` }}>
         <div style={{ display:"flex",background:"#F1F5F9",borderRadius:8,padding:3,gap:2 }}>
-          {[["all","All Leads"],["matched","ZIP Matched"],["unmatched","No Match"]].map(([v,l])=>(
+          {[["all","All Contacts"],["matched","ZIP Matched"],["unmatched","No Match"]].map(([v,l])=>(
             <button key={v} onClick={()=>setFilterStatus(v)}
               style={{ padding:"5px 12px",borderRadius:6,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
                 background:filterStatus===v?"#fff":"transparent",color:filterStatus===v?C.navy:C.muted,
@@ -315,7 +315,7 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
                 <Field label="ZIP Prefix *">
                   <input value={ruleForm.prefix} onChange={e=>setRuleForm(f=>({...f,prefix:e.target.value}))}
                     placeholder="e.g. 80" maxLength={5} style={inp}/>
-                  <div style={{ fontSize:10,color:C.muted,marginTop:3 }}>Leads whose ZIP starts with this will match</div>
+                  <div style={{ fontSize:10,color:C.muted,marginTop:3 }}>Contacts whose ZIP starts with this will match</div>
                 </Field>
                 <Field label="Region / City *">
                   <input value={ruleForm.city} onChange={e=>setRuleForm(f=>({...f,city:e.target.value}))}

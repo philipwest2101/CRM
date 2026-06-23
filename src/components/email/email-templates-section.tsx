@@ -135,7 +135,7 @@ export const EmailTemplatesSection = ({ navigateTo, role }) => {
         <div style={{ marginBottom:16,padding:"10px 14px",borderRadius:9,
           background:role==="gp"?C.green+"06":C.indigo+"06",
           border:`1px solid ${role==="gp"?C.green+"30":C.indigo+"30"}`,fontSize:11,color:C.slate,lineHeight:1.6 }}>
-          {role==="gp" && <><strong style={{color:C.green}}>Your personal templates</strong> are available for both manual sends (Lead Detail) and bulk email campaigns. Org-wide templates are read-only.</>}
+          {role==="gp" && <><strong style={{color:C.green}}>Your personal templates</strong> are available for both manual sends (Contact Detail) and bulk email campaigns. Org-wide templates are read-only.</>}
           {role==="vd" && <><strong style={{color:C.indigo}}>Your personal templates</strong> are available for both manual sends and bulk email campaigns. You can also manage your team's personal templates. Org-wide templates are read-only.</>}
         </div>
       )}

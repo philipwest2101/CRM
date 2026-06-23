@@ -123,7 +123,7 @@ export const AutomationsSection = ({ role }) => {
             </div>
             {newTpl.triggerBasis==="lead_field" && (
               <div style={{ marginBottom:12,padding:"10px 12px",borderRadius:9,background:"#EFF6FF",border:"1px solid #BFDBFE" }}>
-                <label style={{ fontSize:11,fontWeight:700,color:C.blue,display:"block",marginBottom:6 }}>Lead field</label>
+                <label style={{ fontSize:11,fontWeight:700,color:C.blue,display:"block",marginBottom:6 }}>Contact field</label>
                 <select value={newTpl.dateSource} onChange={e=>setNewTpl(p=>({...p,dateSource:e.target.value,dateSourceLabel:e.target.options[e.target.selectedIndex].text}))}
                   style={{ width:"100%",padding:"8px 12px",borderRadius:8,border:"1px solid #BFDBFE",background:"#fff",fontSize:12,fontFamily:"inherit",outline:"none" }}>
                   <option value="">Select field…</option>

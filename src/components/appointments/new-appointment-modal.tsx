@@ -50,14 +50,14 @@ export const NewAppointmentModal = ({ lead, onClose, role, onAdd }) => {
 
         {/* Lead */}
         <div style={{ marginBottom:12 }}>
-          <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Lead</label>
+          <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Contact</label>
           {lead ? (
             <div style={{ padding:"9px 12px",borderRadius:8,background:C.indigo+"08",border:`1px solid ${C.indigo}25`,fontSize:13,fontWeight:600,color:C.text }}>
               {lead.name}
             </div>
           ) : (
             <input value={aLead} onChange={e=>setALead(e.target.value)}
-              placeholder="Search lead name…"
+              placeholder="Search contact name…"
               style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/>
           )}
         </div>

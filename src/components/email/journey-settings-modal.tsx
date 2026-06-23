@@ -34,7 +34,7 @@ export const JourneySettingsModal = ({ journey, onSave, onClose }) => {
             </div>
           ))}
           <div style={{ padding:"12px 14px",borderRadius:8,background:"#FFFBEB",border:`1px solid ${C.amber}30`,fontSize:11,color:C.slate }}>
-            ⚠️ Changes take effect on the next triggered send. Leads already in this journey are not affected.
+            ⚠️ Changes take effect on the next triggered send. Contacts already in this journey are not affected.
           </div>
         </div>
         <div style={{ padding:"14px 20px",borderTop:`1px solid ${C.border}`,display:"flex",gap:10,justifyContent:"flex-end",flexShrink:0 }}>

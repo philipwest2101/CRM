@@ -11,6 +11,8 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
   const [notifs,      setNotifs]      = useState(NOTIFICATIONS);
   const [notifFilter, setNotifFilter] = useState("all");
   const [lang,        setLang]        = useState("EN");
+  const [menuOpen,    setMenuOpen]    = useState(null);   // which top-menu dropdown is open
+  const [profileOpen, setProfileOpen] = useState(false);  // profile dropdown
   const [pushToast,   setPushToast]   = useState(null);   // simulated push notification
   // Expose setPushToast to parent via ref so any page can fire a toast
   React.useEffect(() => { if (pushRef) pushRef.current = (title,body) => { setPushToast({title,body}); setTimeout(()=>setPushToast(null),4500); }; }, []);
@@ -64,14 +66,39 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
   return (
     <>
     <div style={{ background:C.primary,padding:"0 28px",display:"flex",alignItems:"center",height:54,gap:24,boxShadow:"0 1px 4px rgba(0,0,0,0.3)",position:"sticky",top:0,zIndex:200 }}>
-      <span style={{ color:"#fff",fontWeight:800,fontSize:16,letterSpacing:"-0.02em",flexShrink:0 }}>vion <span style={{ color:"#60A5FA" }}>CRM</span></span>
+      <span style={{ color:"#fff",fontWeight:800,fontSize:16,letterSpacing:"-0.02em",flexShrink:0 }}>vion world <span style={{ color:"rgba(255,255,255,0.45)",fontWeight:400 }}>|</span> <span style={{ color:"#60A5FA" }}>CRM</span></span>
       <div style={{ display:"flex",gap:2 }}>
-        {["Dashboard","Leads","Calendar","Email Marketing","Reports","Education","Settings"].map(item=>{
-          const active=page===item || (item==="Leads" && (page==="AutoAssign"||page==="LeadCapture"||page==="LeadDetail")) || (item==="Reports" && page==="Reports") || (item==="Calendar" && (page==="Appointments"||page==="Reminders"||page==="Activities"));
+        {[
+          { label:"Dashboard", page:"Dashboard" },
+          { label:"Contacts",  page:"Leads",           sub:[["Contacts List","Leads"],["Imports History","LeadCapture"]] },
+          { label:"Calendar",  page:"Calendar" },
+          { label:"Newsletter",page:"Email Marketing", sub:[["Bulk Emails History","Email Marketing"]] },
+          { label:"Reports",   page:"Reports",         sub:[["Report 1","Reports"],["Report 2","Reports"],["Report 3","Reports"]] },
+        ].map(item=>{
+          const active = page===item.page
+            || (item.page==="Leads" && (page==="AutoAssign"||page==="LeadCapture"||page==="LeadDetail"))
+            || (item.page==="Calendar" && (page==="Appointments"||page==="Reminders"||page==="Activities"));
           return (
-            <button key={item} onClick={()=>setPage(item)} style={{ padding:"6px 14px",background:active?"rgba(255,255,255,0.12)":"transparent",border:"none",borderRadius:6,color:active?"#60A5FA":"#CBD5E1",fontSize:13,fontWeight:active?700:400,cursor:"pointer",fontFamily:"inherit",borderBottom:active?"2px solid #60A5FA":"2px solid transparent",display:"flex",alignItems:"center",gap:4 }}>
-              {item}
-            </button>
+            <div key={item.label} style={{ position:"relative" }}>
+              <button onClick={()=>{ setPage(item.page); setMenuOpen(item.sub ? (menuOpen===item.label?null:item.label) : null); }}
+                style={{ padding:"6px 14px",background:active?"rgba(255,255,255,0.12)":"transparent",border:"none",borderRadius:6,color:active?"#60A5FA":"#CBD5E1",fontSize:13,fontWeight:active?700:400,cursor:"pointer",fontFamily:"inherit",borderBottom:active?"2px solid #60A5FA":"2px solid transparent",display:"flex",alignItems:"center",gap:5 }}>
+                {item.label}{item.sub && <span style={{ fontSize:9,opacity:0.7 }}>▾</span>}
+              </button>
+              {item.sub && menuOpen===item.label && (<>
+                <div onClick={()=>setMenuOpen(null)} style={{ position:"fixed",inset:0,zIndex:250 }}/>
+                <div style={{ position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:260,background:"#fff",borderRadius:10,
+                  boxShadow:"0 8px 28px rgba(0,0,0,0.18)",border:`1px solid ${C.border}`,minWidth:190,padding:"6px 0" }}>
+                  {item.sub.map(([label,dest])=>(
+                    <div key={label} onClick={()=>{ setMenuOpen(null); setPage(dest); }}
+                      style={{ padding:"9px 16px",fontSize:13,color:C.text,cursor:"pointer",fontWeight:500 }}
+                      onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </>)}
+            </div>
           );
         })}
       </div>
@@ -96,8 +123,33 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
           🔔
           {unread>0 && <span style={{ position:"absolute",top:4,right:4,width:16,height:16,borderRadius:"50%",background:C.red,border:"2px solid "+C.navy,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:"#fff",lineHeight:1 }}>{unread}</span>}
         </button>
-        <Avatar name={userName} size={28} color={r.color} />
-        <span style={{ color:"#CBD5E1",fontSize:12 }}>{r.label}</span>
+        {/* 👤 Profile dropdown */}
+        <div style={{ position:"relative" }}>
+          <button onClick={()=>setProfileOpen(o=>!o)}
+            style={{ display:"flex",alignItems:"center",gap:8,background:profileOpen?"rgba(255,255,255,0.12)":"transparent",border:"none",borderRadius:8,padding:"3px 8px 3px 4px",cursor:"pointer" }}>
+            <Avatar name={userName} size={28} color={r.color} />
+            <span style={{ color:"#fff",fontSize:12,fontWeight:600 }}>Hi, {userName}</span>
+            <span style={{ fontSize:9,color:"#CBD5E1" }}>▾</span>
+          </button>
+          {profileOpen && (<>
+            <div onClick={()=>setProfileOpen(false)} style={{ position:"fixed",inset:0,zIndex:250 }}/>
+            <div style={{ position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:260,background:"#fff",borderRadius:10,
+              boxShadow:"0 8px 28px rgba(0,0,0,0.18)",border:`1px solid ${C.border}`,minWidth:180,padding:"6px 0" }}>
+              <div style={{ padding:"8px 16px 6px",borderBottom:`1px solid ${C.border}`,marginBottom:4 }}>
+                <div style={{ fontSize:13,fontWeight:800,color:C.navy }}>{userName}</div>
+                <div style={{ fontSize:11,color:C.muted }}>{r.label}</div>
+              </div>
+              {[["👤 My Profile",()=>setPage("Settings")],["⚙️ Settings",()=>setPage("Settings")],["↪️ Logout",()=>{}]].map(([label,fn])=>(
+                <div key={label} onClick={()=>{ setProfileOpen(false); fn(); }}
+                  style={{ padding:"9px 16px",fontSize:13,color:C.text,cursor:"pointer",fontWeight:500 }}
+                  onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  {label}
+                </div>
+              ))}
+            </div>
+          </>)}
+        </div>
       </div>
     </div>
 
@@ -152,7 +204,7 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
               <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Linked to</label>
               <select value={remEntity} onChange={e=>setRemEntity(e.target.value)}
                 style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none",background:"#fff",color:C.text }}>
-                <option value="lead">📋 Lead</option>
+                <option value="lead">📋 Contact</option>
                 <option value="contact">👤 Contact</option>
                 <option value="deal">💼 Deal</option>
                 <option value="appointment">📅 Appointment</option>
@@ -327,7 +379,7 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
                   {n.leadId && (
                     <button onClick={()=>{ markRead(n.id); setNotifOpen(false); setPage("Leads"); }}
                       style={{ padding:"3px 10px",borderRadius:6,border:"none",background:n.color+"15",color:n.color,fontSize:10,fontWeight:700,cursor:"pointer" }}>
-                      Open Lead →
+                      Open Contact →
                     </button>
                   )}
                   <button onClick={()=>dismiss(n.id)}

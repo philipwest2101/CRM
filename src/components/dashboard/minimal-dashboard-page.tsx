@@ -217,7 +217,7 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
             color={C.navy}
           />
           <KpiCard
-            label="New Leads"
+            label="New Contacts"
             value={newLeads.length}
             sub={
               isGP

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { NewActivityModal } from "./new-activity-modal";
+import { TaskModal } from "./task-modal";
+import { AppointmentModal } from "../appointments/appointment-modal";
+import { AppointmentOutcomeModal } from "../appointments/appointment-outcome-modal";
 import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS } from "../../lib/core";
 import { C } from "../../theme";
 
@@ -17,6 +20,10 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [editActivity,setEditActivity]= useState(null);
   const [selected,    setSelected]    = useState(null);    // activity detail modal
   const [selectedDate,setSelectedDate]= useState(TODAY);  // date whose list shows below
+  const [sortBy,      setSortBy]      = useState("time");  // time | priority
+  const [taskModal,   setTaskModal]   = useState(null);    // { mode, data }
+  const [apptModal,   setApptModal]   = useState(null);    // { mode, data }
+  const [outcomeAppt, setOutcomeAppt] = useState(null);
 
   const myGP = "Anna Klein"; const myVD = "Thomas Müller";
 
@@ -44,6 +51,56 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     if (!byDate[a.date]) byDate[a.date] = [];
     byDate[a.date].push(a);
   });
+
+  // ── Task / Appointment modal helpers ──────────────────────────────────────
+  const NOW_TIME  = "12:00";
+  const PRIO_RANK = { high:0, medium:1, normal:1, low:2 };
+  const isAppt = (a) => APPOINTMENT_TYPE_KEYS.includes(a?.type) || a?.entityType==="appointment" || a?.category==="appointment";
+  const focusDate = (d) => { if(!d) return; setCurrentDate(new Date(d+"T12:00")); setSelectedDate(d); };
+
+  const openActivity = (a) => {
+    if (isAppt(a)) {
+      setApptModal({ mode:"view", data:{
+        id:a.id, title:a.title, contact:a.lead, apptType:a.apptType||"Consultation Appointment",
+        date:a.date, time:a.time, end:a.end, location:a.location, attendees:a.attendees, attachment:a.attachment,
+        note:a.note, reminderOn:true, reminder:"30" }});
+    } else {
+      setTaskModal({ mode:"view", data:{
+        id:a.id, type:TASK_TYPE_KEYS.includes(a.type)?a.type:"note", title:a.title, contact:a.lead,
+        priority:a.priority||"medium", date:a.date, time:a.time, note:a.note, recur:a.recur||"Once",
+        reminderOn:true, reminder:"30" }});
+    }
+  };
+
+  const submitTask = (f, mode) => {
+    if (mode==="edit") {
+      setActivities(prev=>prev.map(x=>x.id===f.id ? { ...x, type:f.type, title:f.title, lead:f.contact, priority:f.priority, date:f.date, time:f.time, note:f.note, recur:f.recur } : x));
+    } else {
+      const act = { id:`act_${Date.now()}`, type:f.type, title:f.title, lead:f.contact, leadId:null,
+        date:f.date, time:f.time, end:"", priority:f.priority, note:f.note, recur:f.recur||"Once",
+        status:"upcoming", entityType:"task", category:"task", gp:myGP, vd:myVD,
+        channels:f.reminderOn?["push","inapp"]:["inapp"] };
+      setActivities(prev=>[act,...prev]); ACTIVITIES_STORE.unshift(act);
+      addReminder && addReminder({ ...act });
+    }
+    setTaskModal(null); focusDate(f.date);
+  };
+  const doneTask = (f) => { setActivities(prev=>prev.filter(x=>x.id!==f.id)); setTaskModal(null); };
+
+  const submitAppt = (f, mode) => {
+    if (mode==="edit") {
+      setActivities(prev=>prev.map(x=>x.id===f.id ? { ...x, type:"consultation", title:f.title, lead:f.contact, apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, attendees:f.attendees, attachment:f.attachment, note:f.note } : x));
+    } else {
+      const act = { id:`appt_${Date.now()}`, type:"consultation", title:f.title, lead:f.contact, leadId:null,
+        apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, attendees:f.attendees,
+        attachment:f.attachment, note:f.note, recur:"Once", status:"upcoming", entityType:"appointment",
+        category:"appointment", gp:myGP, vd:myVD, channels:f.reminderOn?["push","inapp"]:["inapp"] };
+      setActivities(prev=>[act,...prev]); ACTIVITIES_STORE.unshift(act);
+      addAppointment && addAppointment({ ...act, start:f.time, notes:f.note });
+    }
+    setApptModal(null); focusDate(f.date);
+  };
+  const cancelAppt = (f) => { setActivities(prev=>prev.filter(x=>x.id!==f.id)); setApptModal(null); };
 
   // Month grid helpers
   const year = currentDate.getFullYear();
@@ -153,41 +210,24 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             setCurrentDate(d); }}
             style={{ width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>›</button>
 
-          {/* Add Activity — split button with chevron dropdown */}
+          {/* + Add ▾ — Create Task / Schedule Appointment */}
           <div style={{ position:"relative" }}>
-            <div style={{ display:"flex",borderRadius:8,overflow:"hidden",border:`1px solid ${C.primary}` }}>
-              <button onClick={()=>{ setEditActivity(null); setShowNew(true); setShowAddMenu(false); }}
-                style={{ padding:"7px 14px",border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
-                + Add Activity
-              </button>
-              <button onClick={()=>setShowAddMenu(v=>!v)}
-                style={{ padding:"7px 10px",border:"none",borderLeft:"1px solid rgba(255,255,255,0.25)",background:C.primary,color:"#fff",fontSize:11,cursor:"pointer" }}>▾</button>
-            </div>
+            <button onClick={()=>setShowAddMenu(v=>!v)}
+              style={{ padding:"7px 16px",border:"none",borderRadius:8,background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6 }}>
+              + Add <span style={{ fontSize:10 }}>▾</span>
+            </button>
             {showAddMenu && (<>
               <div onClick={()=>setShowAddMenu(false)} style={{ position:"fixed",inset:0,zIndex:200 }}/>
               <div style={{ position:"absolute",top:"calc(100% + 4px)",right:0,zIndex:201,background:"#fff",borderRadius:12,
-                boxShadow:"0 8px 32px rgba(0,0,0,0.15)",border:`1px solid ${C.border}`,minWidth:240,padding:"6px 0" }}>
-                <div style={{ padding:"6px 14px 4px",fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em" }}>Appointments</div>
-                {APPOINTMENT_TYPE_KEYS.map(k=>{ const v=ACTIVITY_TYPES[k]; return (
-                  <div key={k} onClick={()=>{ setShowAddMenu(false); setEditActivity({type:k,title:"",date:selectedDate}); setShowNew(true); }}
-                    style={{ display:"flex",alignItems:"center",gap:10,padding:"8px 14px",cursor:"pointer" }}
+                boxShadow:"0 8px 32px rgba(0,0,0,0.15)",border:`1px solid ${C.border}`,minWidth:220,padding:"6px 0" }}>
+                {[["✅ Create Task",()=>setTaskModal({mode:"create"})],["📅 Schedule Appointment",()=>setApptModal({mode:"create"})]].map(([label,fn])=>(
+                  <div key={label} onClick={()=>{ setShowAddMenu(false); fn(); }}
+                    style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",fontSize:13,fontWeight:600,color:C.text }}
                     onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
                     onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <span style={{ fontSize:16,width:22,textAlign:"center" }}>{v.icon}</span>
-                    <div style={{ fontSize:12,fontWeight:600,color:C.text }}>{v.label}</div>
+                    {label}
                   </div>
-                );})}
-                <div style={{ height:1,background:C.border,margin:"4px 0" }}/>
-                <div style={{ padding:"6px 14px 4px",fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em" }}>Tasks</div>
-                {TASK_TYPE_KEYS.map(k=>{ const v=ACTIVITY_TYPES[k]; return (
-                  <div key={k} onClick={()=>{ setShowAddMenu(false); setEditActivity({type:k,title:"",date:selectedDate}); setShowNew(true); }}
-                    style={{ display:"flex",alignItems:"center",gap:10,padding:"8px 14px",cursor:"pointer" }}
-                    onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <span style={{ fontSize:16,width:22,textAlign:"center" }}>{v.icon}</span>
-                    <div style={{ fontSize:12,fontWeight:600,color:C.text }}>{v.label}</div>
-                  </div>
-                );})}
+                ))}
               </div>
             </>)}
           </div>
@@ -433,92 +473,85 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             </div>
           </div>
 
-          {/* Activity list for selected date */}
+          {/* Activity list for selected date — grouped Overdue / Upcoming, two columns */}
           <div style={{ flex:1,overflowY:"auto",padding:"12px 16px" }}>
-
-            {/* Future dates — show all activities */}
-            {/* Past dates — show all (no Done button, just info) */}
             {(()=>{
-              const dayItems = (byDate[selectedDate]||[])
-                .filter(a => statusFilter==="all"||a.status===statusFilter)
-                .sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+              const dayItems = (byDate[selectedDate]||[]).filter(a => statusFilter==="all"||a.status===statusFilter);
 
               if(dayItems.length===0) return (
                 <div style={{ padding:"40px 20px",textAlign:"center",color:C.muted }}>
                   <div style={{ fontSize:32,marginBottom:10 }}>📭</div>
                   <div style={{ fontSize:13,fontWeight:600 }}>No activities on this day</div>
-                  <div style={{ fontSize:12,marginTop:4 }}>Click "+ Add Activity" to schedule something</div>
-                  <button onClick={()=>setShowNew(true)}
-                    style={{ marginTop:16,padding:"8px 18px",borderRadius:8,border:"none",
-                      background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
-                    + Add Activity
-                  </button>
+                  <div style={{ fontSize:12,marginTop:4 }}>Use "+ Add" to create a task or schedule an appointment</div>
+                  <div style={{ display:"flex",gap:8,justifyContent:"center",marginTop:16 }}>
+                    <button onClick={()=>setTaskModal({mode:"create"})}
+                      style={{ padding:"8px 16px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>✅ Create Task</button>
+                    <button onClick={()=>setApptModal({mode:"create"})}
+                      style={{ padding:"8px 16px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>📅 Schedule Appointment</button>
+                  </div>
                 </div>
               );
 
-              return dayItems.map(a=>{
+              const isOverdue = (a) => a.status!=="done" && (selectedDate < TODAY || (selectedDate===TODAY && (a.time||"99:99") < NOW_TIME));
+              const sortFn = (a,b) => sortBy==="priority"
+                ? ((PRIO_RANK[a.priority]??1)-(PRIO_RANK[b.priority]??1)) || (a.time||"").localeCompare(b.time||"")
+                : (a.time||"").localeCompare(b.time||"");
+              const overdue  = dayItems.filter(isOverdue).sort(sortFn);
+              const upcoming = dayItems.filter(a=>!isOverdue(a)).sort(sortFn);
+
+              const card = (a) => {
                 const at = ACTIVITY_TYPES[a.type]||ACTIVITY_TYPES.note;
-                const sm = ACTIVITY_STATUS_META[a.status]||ACTIVITY_STATUS_META.pending;
+                const prioCol = a.priority==="high"?C.red:a.priority==="low"?C.slate:C.amber;
                 return (
-                  <div key={a.id} style={{ display:"flex",gap:12,marginBottom:10,
-                    padding:"12px 14px",borderRadius:10,background:"#fff",
-                    border:`1px solid ${C.border}`,borderLeft:`4px solid ${at.color}` }}>
-
-                    {/* Time column */}
-                    <div style={{ width:52,flexShrink:0,textAlign:"center" }}>
-                      <div style={{ fontSize:13,fontWeight:800,color:at.color }}>{a.time||"—"}</div>
-                      {a.end && <div style={{ fontSize:10,color:C.muted,marginTop:1 }}>{a.end}</div>}
-                      <div style={{ width:28,height:28,borderRadius:"50%",background:at.bg,
-                        display:"flex",alignItems:"center",justifyContent:"center",
-                        fontSize:14,margin:"6px auto 0",border:`1px solid ${at.color}25` }}>
-                        {at.icon}
-                      </div>
-                    </div>
-
-                    {/* Content */}
+                  <div key={a.id} onClick={()=>openActivity(a)}
+                    style={{ cursor:"pointer",display:"flex",gap:10,padding:"10px 12px",borderRadius:10,
+                      background:"#fff",border:`1px solid ${C.border}`,borderLeft:`4px solid ${at.color}`,minWidth:0 }}>
+                    <div style={{ fontSize:16,flexShrink:0 }}>{at.icon}</div>
                     <div style={{ flex:1,minWidth:0 }}>
-                      <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap" }}>
-                        <div style={{ fontSize:13,fontWeight:700,color:C.text }}>{a.title}</div>
-                        <span style={{ fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:8,
-                          background:at.color+"15",color:at.color,textTransform:"uppercase" }}>{at.short}</span>
-                        <span style={{ fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8,
-                          background:sm.color+"15",color:sm.color,textTransform:"uppercase" }}>{sm.label}</span>
-                        {a.recur&&a.recur!=="Once"&&(
-                          <span style={{ fontSize:9,color:C.muted,fontWeight:600 }}>🔁 {a.recur}</span>
-                        )}
+                      <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                        <span style={{ fontSize:11,fontWeight:800,color:at.color }}>{a.time||"—"}{a.end?` – ${a.end}`:""}</span>
+                        <span style={{ width:7,height:7,borderRadius:"50%",background:prioCol,flexShrink:0 }} title={`${a.priority||"normal"} priority`}/>
+                        {a.recur&&a.recur!=="Once" && <span style={{ fontSize:9,color:C.muted }}>🔁</span>}
                       </div>
-                      {a.lead && <div style={{ fontSize:11,color:C.muted }}>👤 {a.lead}</div>}
-                      {a.location && <div style={{ fontSize:11,color:C.muted }}>📍 {a.location}</div>}
-                      {a.link && <div style={{ fontSize:11,color:C.blue }}>🔗 {a.link}</div>}
-                      {a.note && <div style={{ fontSize:11,color:C.slate,marginTop:3,lineHeight:1.4 }}>{a.note}</div>}
+                      <div style={{ fontSize:12,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.title}</div>
+                      {a.lead && <div style={{ fontSize:10,color:C.muted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>👤 {a.lead}</div>}
+                      {a.note && <div style={{ fontSize:10,color:C.slate,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.note}</div>}
                     </div>
-
-                    {/* Actions — Edit + Delete only (no Done) */}
-                    <div style={{ display:"flex",flexDirection:"column",gap:5,flexShrink:0 }}>
-                      <button onClick={()=>{ setEditActivity(a); setShowNew(true); }}
-                        style={{ padding:"5px 10px",borderRadius:7,border:`1px solid ${C.border}`,
-                          background:"#fff",color:C.slate,fontSize:11,fontWeight:600,cursor:"pointer" }}>
-                        ✏️
-                      </button>
-                      <button onClick={()=>{ if(window.confirm("Delete this activity?"))
-                          setActivities(prev=>prev.filter(x=>x.id!==a.id)); }}
-                        style={{ padding:"5px 10px",borderRadius:7,border:`1px solid ${C.red}25`,
-                          background:C.red+"06",color:C.red,fontSize:11,fontWeight:600,cursor:"pointer" }}>
-                        🗑
-                      </button>
-                    </div>
+                    <button onClick={(e)=>{ e.stopPropagation(); openActivity(a); }}
+                      style={{ alignSelf:"flex-start",border:"none",background:"none",color:C.muted,fontSize:16,cursor:"pointer",lineHeight:1,padding:"0 2px",flexShrink:0 }}>⋯</button>
                   </div>
                 );
-              });
-            })()}
+              };
 
-            {/* All activities summary strip at bottom */}
-            {(byDate[selectedDate]||[]).length > 0 && (
-              <div style={{ marginTop:8,padding:"8px 12px",borderRadius:9,
-                background:"#F8FAFC",border:`1px solid ${C.border}`,fontSize:11,color:C.muted }}>
-                📊 {visible.filter(a=>a.date>=TODAY).length} upcoming · {visible.filter(a=>a.date<TODAY).length} past across all dates
-              </div>
-            )}
+              const group = (title,col,items) => items.length===0 ? null : (
+                <div style={{ marginBottom:18 }}>
+                  <div style={{ fontSize:11,fontWeight:800,color:col,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8 }}>
+                    {title} <span style={{ color:C.muted }}>({items.length})</span>
+                  </div>
+                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+                    {items.map(card)}
+                  </div>
+                </div>
+              );
+
+              return (
+                <>
+                  {/* Sort control */}
+                  <div style={{ display:"flex",justifyContent:"flex-end",alignItems:"center",gap:8,marginBottom:12 }}>
+                    <span style={{ fontSize:11,color:C.muted,fontWeight:600 }}>Sort by</span>
+                    <div style={{ display:"inline-flex",border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden" }}>
+                      {[["time","Time"],["priority","Priority"]].map(([k,l])=>(
+                        <button key={k} onClick={()=>setSortBy(k)}
+                          style={{ padding:"5px 12px",border:"none",background:sortBy===k?C.primary:"#fff",
+                            color:sortBy===k?"#fff":C.slate,fontSize:11,fontWeight:sortBy===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {group("Overdue",C.red,overdue)}
+                  {group("Upcoming",C.green,upcoming)}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -589,6 +622,36 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             setSelectedDate(act.date);
           }
         }}/>}
+
+      {/* ── Task modal (create / edit / view) ──────────────────────────────── */}
+      {taskModal && <TaskModal
+        mode={taskModal.mode}
+        task={taskModal.data}
+        selectedDate={selectedDate}
+        onClose={()=>setTaskModal(null)}
+        onSubmit={submitTask}
+        onDone={doneTask}
+        onLogCall={()=>{}}
+        onMakeCall={()=>{}}
+      />}
+
+      {/* ── Appointment modal (create / edit / view) ───────────────────────── */}
+      {apptModal && <AppointmentModal
+        mode={apptModal.mode}
+        appt={apptModal.data}
+        selectedDate={selectedDate}
+        onClose={()=>setApptModal(null)}
+        onSubmit={submitAppt}
+        onCancelAppt={cancelAppt}
+        onSetOutcome={(f)=>{ setApptModal(null); setOutcomeAppt(f); }}
+      />}
+
+      {/* ── Appointment outcome modal ──────────────────────────────────────── */}
+      {outcomeAppt && <AppointmentOutcomeModal
+        appt={outcomeAppt}
+        onClose={()=>setOutcomeAppt(null)}
+        onSave={()=>{ if(outcomeAppt?.id) setActivities(prev=>prev.map(x=>x.id===outcomeAppt.id?{...x,status:"done"}:x)); setOutcomeAppt(null); }}
+      />}
     </div>
   );
 };

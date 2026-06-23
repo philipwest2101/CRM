@@ -307,7 +307,7 @@ export const ReportsPage = ({ role, navigateTo }) => {
             {/* Row 1: Unassigned leads + Org Quota + Sources */}
             <div style={{ display:"grid",gridTemplateColumns:"2fr 1.2fr 1.2fr",gap:14,marginBottom:16 }}>
 
-              {/* Unassigned Leads */}
+              {/* Unassigned Contacts */}
               <SASmartAssignment />
 
               {/* Org Quota MTD */}
@@ -590,12 +590,12 @@ export const ReportsPage = ({ role, navigateTo }) => {
               </div>
             ))}
             <div style={{ marginTop:8,display:"flex",gap:14 }}>
-              <div style={{ display:"flex",alignItems:"center",gap:5 }}><div style={{ width:10,height:6,borderRadius:2,background:MGR_COLOR+"60" }}/><span style={{ fontSize:10,color:C.muted }}>Leads</span></div>
+              <div style={{ display:"flex",alignItems:"center",gap:5 }}><div style={{ width:10,height:6,borderRadius:2,background:MGR_COLOR+"60" }}/><span style={{ fontSize:10,color:C.muted }}>Contacts</span></div>
               <div style={{ display:"flex",alignItems:"center",gap:5 }}><div style={{ width:10,height:6,borderRadius:2,background:C.green }}/><span style={{ fontSize:10,color:C.muted }}>Closed</span></div>
             </div>
           </Card>
           <Card style={{ padding:"18px 20px" }}>
-            <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:14 }}>AI Lead Score Distribution</div>
+            <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:14 }}>AI Contact Score Distribution</div>
             {[{label:"Hot (80–100)",count:312,pct:37,color:C.red},{label:"Warm (40–79)",count:490,pct:46,color:C.amber},{label:"Cold (0–39)",count:145,pct:17,color:C.muted}].map(s=>(
               <div key={s.label} style={{ marginBottom:14 }}>
                 <div style={{ display:"flex",justifyContent:"space-between",marginBottom:5 }}><span style={{ fontSize:12,fontWeight:700 }}>{s.label}</span><span style={{ fontSize:12,fontWeight:800,color:s.color }}>{s.count} leads</span></div>
