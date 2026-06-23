@@ -16,10 +16,14 @@ const TYPE_META = {
 const PRIORITIES = [["low","Low",C.slate],["medium","Medium",C.amber],["high","High",C.red],["urgent","Urgent","#B42318"]];
 const REMINDER_OPTS = [["15","15 Minutes Before"],["30","30 Minutes Before"],["60","1 Hour Before"],["custom","Custom Date"]];
 
+const REPEAT_UNITS = ["day","week","month","year"];
+const composeRecur = (every, unit) => `Every ${every} ${unit}${every>1?"s":""}`;
+const legacyUnit = { Daily:"day", Weekly:"week", Monthly:"month", Yearly:"year" };
+
 const blank = (selectedDate) => ({
   type:"call", title:"", contact:"", priority:"medium",
   date:selectedDate||"", time:"09:00", reminderOn:true, reminder:"30", reminderCustom:"",
-  emailTemplate:"", repeatOn:false, recur:"Daily", note:"",
+  emailTemplate:"", repeatOn:false, repeatEvery:1, repeatUnit:"day", recur:"Once", note:"",
 });
 
 export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onSubmit, onDone, onLogCall, onMakeCall }) => {
@@ -27,8 +31,12 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
   const [f, setF]   = useState(() => {
     const init = task ? { ...blank(selectedDate), ...task } : blank(selectedDate);
     if (!init.time) init.time = "09:00";                    // Time is mandatory — default 9 AM
-    if (task && task.recur && task.recur !== "Once") init.repeatOn = true;
-    if (init.repeatOn && (!init.recur || init.recur === "Once")) init.recur = "Daily";
+    if (task && task.recur && task.recur !== "Once") {
+      init.repeatOn = true;
+      if (legacyUnit[task.recur]) { init.repeatEvery = 1; init.repeatUnit = legacyUnit[task.recur]; }
+      else { const mt = String(task.recur).match(/Every\s+(\d+)\s+(day|week|month|year)/i);
+        if (mt) { init.repeatEvery = Number(mt[1]); init.repeatUnit = mt[2].toLowerCase(); } }
+    }
     return init;
   });
   const set = (k,v) => setF(prev => ({ ...prev, [k]:v }));
@@ -162,16 +170,21 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
               </div>
             )}
 
-            {/* Set to Repeat — recurrence for recurrent tasks */}
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+            {/* Set to Repeat — recurrence with an interval counter */}
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, flexWrap:"wrap" }}>
               <label style={{ display:"flex", alignItems:"center", gap:7, fontSize:12, color:C.slate, cursor:"pointer", whiteSpace:"nowrap" }}>
                 <input type="checkbox" checked={f.repeatOn}
-                  onChange={e=>{ const on=e.target.checked; setF(prev=>({ ...prev, repeatOn:on, recur:on&&(!prev.recur||prev.recur==="Once")?"Daily":prev.recur })); }}
+                  onChange={e=>set("repeatOn",e.target.checked)}
                   style={{ accentColor:C.primary, width:14, height:14 }}/>
-                🔁 Set to Repeat
+                🔁 Set to repeat:
               </label>
-              <select value={f.recur} disabled={!f.repeatOn} onChange={e=>set("recur",e.target.value)} style={{ ...input, opacity:f.repeatOn?1:0.5 }}>
-                {["Daily","Weekly","Monthly","Yearly"].map(o => <option key={o} value={o}>{o}</option>)}
+              <span style={{ fontSize:12, color:f.repeatOn?C.slate:C.muted }}>every</span>
+              <input type="number" min={1} max={365} value={f.repeatEvery} disabled={!f.repeatOn}
+                onChange={e=>set("repeatEvery",Math.max(1,Number(e.target.value)||1))}
+                style={{ ...input, width:72, opacity:f.repeatOn?1:0.5, padding:"9px 8px" }}/>
+              <select value={f.repeatUnit} disabled={!f.repeatOn} onChange={e=>set("repeatUnit",e.target.value)}
+                style={{ ...input, width:120, opacity:f.repeatOn?1:0.5 }}>
+                {REPEAT_UNITS.map(u => <option key={u} value={u}>{u}{f.repeatEvery>1?"s":""}</option>)}
               </select>
             </div>
 
@@ -191,7 +204,7 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
 
             <div style={{ display:"flex", gap:10, marginTop:6 }}>
               <button onClick={onClose} style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:13, fontWeight:600, cursor:"pointer" }}>Cancel</button>
-              <button onClick={()=>canSave && onSubmit && onSubmit({ ...f, recur:f.repeatOn?f.recur:"Once", kind:"task" }, m)} disabled={!canSave}
+              <button onClick={()=>canSave && onSubmit && onSubmit({ ...f, recur:f.repeatOn?composeRecur(f.repeatEvery,f.repeatUnit):"Once", kind:"task" }, m)} disabled={!canSave}
                 style={{ flex:2, padding:"10px", borderRadius:9, border:"none", background:canSave?C.primary:"#E2E8F0", color:canSave?"#fff":C.muted, fontSize:13, fontWeight:700, cursor:canSave?"pointer":"default" }}>
                 {m==="edit" ? "Update" : "Save"}
               </button>

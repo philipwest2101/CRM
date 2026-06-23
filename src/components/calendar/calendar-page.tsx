@@ -62,9 +62,9 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     if (isAppt(a)) {
       setApptModal({ mode:"view", data:{
         id:a.id, title:a.title, contact:a.lead, apptType:a.apptType||"Consultation Appointment",
-        date:a.date, time:a.time, end:a.end, location:a.location, meetingType:a.meetingType, attendees:a.attendees,
-        attachment:a.attachment, attachments:a.attachments, reminders:a.reminders, notify:a.notify,
-        autoCalendar:a.autoCalendar, note:a.note, reminderOn:true }});
+        date:a.date, time:a.time, end:a.end, location:a.location, attendees:a.attendees,
+        attachment:a.attachment, attachments:a.attachments, notify:a.notify,
+        autoCalendar:a.autoCalendar, reminder:a.reminder, reminderCustom:a.reminderCustom, note:a.note, reminderOn:true }});
     } else {
       setTaskModal({ mode:"view", data:{
         id:a.id, type:TASK_TYPE_KEYS.includes(a.type)?a.type:"note", title:a.title, contact:a.lead,
@@ -90,12 +90,12 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
   const submitAppt = (f, mode) => {
     if (mode==="edit") {
-      setActivities(prev=>prev.map(x=>x.id===f.id ? { ...x, type:"consultation", title:f.title, lead:f.contact, apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, meetingType:f.meetingType, attendees:f.attendees, attachment:f.attachment, attachments:f.attachments, reminders:f.reminders, notify:f.notify, autoCalendar:f.autoCalendar, note:f.note } : x));
+      setActivities(prev=>prev.map(x=>x.id===f.id ? { ...x, type:"consultation", title:f.title, lead:f.contact, apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, attendees:f.attendees, attachment:f.attachment, attachments:f.attachments, notify:f.notify, autoCalendar:f.autoCalendar, reminder:f.reminder, reminderCustom:f.reminderCustom, note:f.note } : x));
     } else {
       const act = { id:`appt_${Date.now()}`, type:"consultation", title:f.title, lead:f.contact, leadId:null,
-        apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, meetingType:f.meetingType, attendees:f.attendees,
-        attachment:f.attachment, attachments:f.attachments, reminders:f.reminders, notify:f.notify, autoCalendar:f.autoCalendar,
-        note:f.note, recur:"Once", status:"upcoming", entityType:"appointment",
+        apptType:f.apptType, date:f.date, time:f.time, end:f.end, location:f.location, attendees:f.attendees,
+        attachment:f.attachment, attachments:f.attachments, notify:f.notify, autoCalendar:f.autoCalendar,
+        reminder:f.reminder, reminderCustom:f.reminderCustom, note:f.note, recur:"Once", status:"upcoming", entityType:"appointment",
         category:"appointment", gp:myGP, vd:myVD, channels:f.reminderOn?["push","inapp"]:["inapp"] };
       setActivities(prev=>[act,...prev]); ACTIVITIES_STORE.unshift(act);
       addAppointment && addAppointment({ ...act, start:f.time, notes:f.note });
