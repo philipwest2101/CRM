@@ -26,7 +26,7 @@ export const NewActivityModal = ({ onClose, role, onAdd, initial=null }) => {
     <>
       <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:400 }}/>
       <div style={{ position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
-        width:500,maxHeight:"90vh",overflowY:"auto",background:"#fff",borderRadius:16,zIndex:500,
+        width:560,maxHeight:"90vh",overflowY:"auto",background:"#fff",borderRadius:16,zIndex:500,
         boxShadow:"0 24px 64px rgba(0,0,0,0.2)",fontFamily:"inherit",padding:"24px" }}>
 
         {/* Header */}

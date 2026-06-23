@@ -23,16 +23,13 @@ const LOCATION_PLACEHOLDER = {
 };
 
 // ── Email helpers ───────────────────────────────────────────────────────────
-// Attendees are stored as email addresses. A lead "has email integrated with
-// the CRM" → in this prototype we treat consenting leads as integrated, and any
-// valid external email is assumed reachable too.
+// Attendees are stored as email addresses.
 const isEmail      = (s) => /^[^\s,()]+@[^\s,()]+\.[^\s,()]+$/.test(String(s||"").trim());
 const extractEmail = (s) => { const mt = String(s||"").match(/[^\s,()]+@[^\s,()]+\.[^\s,()]+/); return mt ? mt[0] : null; };
 const leadByEmail = (email) => ALL_LEADS.find(l => l.email.toLowerCase() === String(email).toLowerCase());
 const leadByName  = (name)  => ALL_LEADS.find(l => name && name.includes(l.name));
 const displayName = (email) => (leadByEmail(email)||{}).name || "";
 const asEmail     = (entry) => extractEmail(entry) || ((leadByName(entry)||{}).email || entry);
-const isIntegrated = (email) => { const l = leadByEmail(email); return l ? !!l.consent : isEmail(email); };
 const toArr = (v) => Array.isArray(v) ? v.filter(Boolean)
   : (typeof v === "string" && v ? v.split(",").map(s=>s.trim()).filter(Boolean) : []);
 
@@ -62,8 +59,8 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
     init.reminders = Array.isArray(init.reminders) && init.reminders.length
       ? init.reminders
       : [{ val:init.reminder||"30", custom:init.reminderCustom||"" }];
-    // Notify list defaults to every integrated attendee
-    init.notify = Array.isArray(init.notify) ? init.notify.filter(e=>emails.includes(e)) : emails.filter(isIntegrated);
+    // Notify list defaults to every attendee
+    init.notify = Array.isArray(init.notify) ? init.notify.filter(e=>emails.includes(e)) : [...emails];
     if (!init.meetingType) init.meetingType = /^https?:|meet\.|zoom|teams/i.test(init.location||"") ? "Video Conference" : "In Person";
     return init;
   });
@@ -74,7 +71,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
   const attendeeArr = f.attendees;
   const writeAttendees = (arr) => setF(prev => {
     const keptNotify = prev.notify.filter(e => arr.includes(e));
-    const newlyAdded = arr.filter(e => !prev.attendees.includes(e) && isIntegrated(e));
+    const newlyAdded = arr.filter(e => !prev.attendees.includes(e));
     return { ...prev, attendees:arr, contact:arr[0]||"", notify:[...keptNotify, ...newlyAdded] };
   });
   const toggleAttendee = (email) => writeAttendees(
@@ -126,13 +123,12 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
   ) : null;
 
   const attLabelOf = (email) => { const n = displayName(email); return n ? `${email} (${n})` : email; };
-  const invitable = attendeeArr.filter(isIntegrated);
 
   return (
     <>
       <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", zIndex:600 }}/>
       <div style={{ position:"fixed", top:"50%", left:"50%", transform:"translate(-50%,-50%)",
-        width:500, maxHeight:"92vh", overflowY:"auto", background:"#fff", borderRadius:16, zIndex:700,
+        width:600, maxHeight:"92vh", overflowY:"auto", background:"#fff", borderRadius:16, zIndex:700,
         boxShadow:"0 24px 64px rgba(0,0,0,0.2)", fontFamily:"inherit", padding:"22px 24px" }}>
 
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
@@ -185,8 +181,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
                   {attendeeArr.length===0 && <span style={{ color:C.muted }}>Select attendees</span>}
                   {attendeeArr.map((email,i)=>(
                     <span key={email} style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 8px", borderRadius:20,
-                      background:isIntegrated(email)?C.primary+"14":"#F1F5F9", border:`1px solid ${isIntegrated(email)?C.primary+"55":C.border}`, fontSize:11.5, fontWeight:600, color:C.text }}>
-                      {isIntegrated(email) && <span title="Email integrated with CRM" style={{ fontSize:9 }}>📧</span>}
+                      background:"#F1F5F9", border:`1px solid ${C.border}`, fontSize:11.5, fontWeight:600, color:C.text }}>
                       {displayName(email) || email}
                       {i===0 && <span style={{ fontSize:9, color:C.primaryDark, fontWeight:700 }}>· Primary</span>}
                       <span onClick={e=>{ e.stopPropagation(); toggleAttendee(email); }} style={{ color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</span>
@@ -227,7 +222,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
                             <input type="checkbox" checked={checked} readOnly style={{ accentColor:C.primary, width:14, height:14 }}/>
                             <span style={{ color:C.text }}>{l.email}</span>
                             <span style={{ color:C.muted }}>({l.name})</span>
-                            {!l.consent && <span style={{ marginLeft:"auto", fontSize:10, color:C.amber, fontWeight:600 }}>no email sync</span>}
                           </label>
                         );})}
                         {leadOptions.length===0 && !canAddTyped && (
@@ -277,7 +271,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
                   <div style={{ flex:1 }}>
                     <div style={{ fontSize:12.5, fontWeight:700, color:C.navy }}>📆 Add to organiser &amp; contact calendars</div>
                     <div style={{ fontSize:11, color:C.slate, marginTop:3, lineHeight:1.45 }}>
-                      Generates a video-conference link and adds the appointment to your calendar and each notified attendee’s calendar (when their email is integrated with the CRM).
+                      Generates a video-conference link, adds the appointment to your calendar, and emails a calendar invite to the selected attendees.
                     </div>
                   </div>
                 </div>
@@ -286,20 +280,21 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
                 {f.autoCalendar && attendeeArr.length>0 && (
                   <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${C.primary}22` }}>
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
-                      <span style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em" }}>Email invite to</span>
+                      <span style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em" }}>
+                        Email invite to <span style={{ color:C.slate }}>· {f.notify.length}/{attendeeArr.length}</span>
+                      </span>
                       <span style={{ display:"flex", gap:10 }}>
-                        <button onClick={()=>set("notify",invitable)} style={{ background:"none", border:"none", color:C.primaryDark, fontSize:11, fontWeight:700, cursor:"pointer", padding:0 }}>All</button>
+                        <button onClick={()=>set("notify",[...attendeeArr])} style={{ background:"none", border:"none", color:C.primaryDark, fontSize:11, fontWeight:700, cursor:"pointer", padding:0 }}>All</button>
                         <button onClick={()=>set("notify",[])} style={{ background:"none", border:"none", color:C.slate, fontSize:11, fontWeight:700, cursor:"pointer", padding:0 }}>None</button>
                       </span>
                     </div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-                      {attendeeArr.map(email=>{ const ok = isIntegrated(email); return (
-                        <label key={email} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:ok?C.slate:C.muted, cursor:ok?"pointer":"not-allowed" }}>
-                          <input type="checkbox" disabled={!ok} checked={ok && f.notify.includes(email)} onChange={()=>toggleNotify(email)} style={{ accentColor:C.primary, width:14, height:14 }}/>
-                          <span>{displayName(email)||email}</span>
-                          {!ok && <span style={{ fontSize:10, color:C.amber, fontWeight:600 }}>no email sync</span>}
+                    <div style={{ display:"flex", flexDirection:"column", gap:4, maxHeight:128, overflowY:"auto", paddingRight:4 }}>
+                      {attendeeArr.map(email=>(
+                        <label key={email} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:C.slate, cursor:"pointer" }}>
+                          <input type="checkbox" checked={f.notify.includes(email)} onChange={()=>toggleNotify(email)} style={{ accentColor:C.primary, width:14, height:14, flexShrink:0 }}/>
+                          <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{displayName(email)||email}</span>
                         </label>
-                      );})}
+                      ))}
                     </div>
                   </div>
                 )}

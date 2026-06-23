@@ -58,7 +58,7 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
     <>
       <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", zIndex:600 }}/>
       <div style={{ position:"fixed", top:"50%", left:"50%", transform:"translate(-50%,-50%)",
-        width:480, maxHeight:"92vh", overflowY:"auto", background:"#fff", borderRadius:16, zIndex:700,
+        width:560, maxHeight:"92vh", overflowY:"auto", background:"#fff", borderRadius:16, zIndex:700,
         boxShadow:"0 24px 64px rgba(0,0,0,0.2)", fontFamily:"inherit", padding:"22px 24px" }}>
 
         {/* Header */}
