@@ -13,6 +13,7 @@ import { LeadsPage } from "./components/leads/leads-page";
 import { MVPContactsPage } from "./components/leads/mvp-contacts-page";
 import { ReportsPage } from "./components/reports/reports-page";
 import { SettingsPage } from "./components/settings/settings-page";
+import { MVPSettingsPage } from "./components/settings/mvp-settings-page";
 import { ACTIVITIES_STORE, APPOINTMENTS, EMAIL_TEMPLATES_STORE, WORKFLOW_RULES_STORE } from "./lib/core";
 import { C } from "./theme";
 
@@ -194,7 +195,9 @@ export default function CRMAppV5() {
       {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
       {page==="AutoAssign"      && <AutoAssignPage        role={role} navigateTo={navigateTo} />}
       {page==="LeadCapture"     && <LeadCapturePage       role={role} navigateTo={navigateTo} />}
-      {page==="Settings"        && <SettingsPage          role={role} navigateTo={navigateTo} />}
+      {page==="Settings"        && (version==="mvp"
+                                      ? <MVPSettingsPage  role={role} navigateTo={navigateTo} />
+                                      : <SettingsPage     role={role} navigateTo={navigateTo} />)}
       {page==="Email Marketing"  && <EmailMarketingPage     role={role} navigateTo={navigateTo} />}
       {page==="Education"      && <EducationPage        role={role} navigateTo={navigateTo} />}
       {page==="GPEducation"    && <GPEducationPage      navigateTo={navigateTo} />}

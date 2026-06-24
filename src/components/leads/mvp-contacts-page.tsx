@@ -4,22 +4,24 @@ import { C } from "../../theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACTS PAGE
-// A lightweight, import-first Contact List — the MVP counterpart to the rich
-// "Full" Contact Management view. Layout follows the product design mockups:
-// list view selector, sortable/filterable columns, and a multi-step import flow.
+// Import-first Contact List (the MVP counterpart to the rich "Full" view):
+//  · multi-view selector with per-view column configuration (Edit View)
+//  · sortable/filterable, column-driven table
+//  · multi-step Import wizard
+//  · full tabbed Add Contact page
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── status → lifecycle / stage mapping ───────────────────────────────────────
 const LIFECYCLE = {
-  open:        { stage: "Lead",        status: "New",         tone: C.green },
-  in_progress: { stage: "Lead",        status: "To Do",       tone: C.slate },
-  attempted:   { stage: "Lead",        status: "To Do",       tone: C.slate },
-  not_reached: { stage: "Lead",        status: "To Do",       tone: C.slate },
-  followup:    { stage: "Lead",        status: "To Do",       tone: C.slate },
-  appointment: { stage: "Opportunity", status: "New",         tone: C.green },
-  closed:      { stage: "Customer",    status: "Won",         tone: C.green },
-  no_interest: { stage: "N/A",         status: "N/A",         tone: null    },
-  dnc:         { stage: "N/A",         status: "N/A",         tone: null    },
+  open:        { stage: "Lead",        status: "New",   tone: C.green },
+  in_progress: { stage: "Lead",        status: "To Do", tone: C.slate },
+  attempted:   { stage: "Lead",        status: "To Do", tone: C.slate },
+  not_reached: { stage: "Lead",        status: "To Do", tone: C.slate },
+  followup:    { stage: "Lead",        status: "To Do", tone: C.slate },
+  appointment: { stage: "Opportunity", status: "New",   tone: C.green },
+  closed:      { stage: "Customer",    status: "Won",   tone: C.green },
+  no_interest: { stage: "N/A",         status: "N/A",   tone: null    },
+  dnc:         { stage: "N/A",         status: "N/A",   tone: null    },
 };
 
 const LIFECYCLE_OPTIONS = ["Lead", "Opportunity", "Customer", "N/A"];
@@ -29,46 +31,73 @@ const toContact = (l) => {
   const [first, ...rest] = l.name.split(" ");
   const lc = LIFECYCLE[l.status] || LIFECYCLE.no_interest;
   return {
-    id: l.id,
-    first,
-    last: rest.join(" "),
-    name: l.name,
-    lifecycle: lc.stage,
-    stageStatus: lc.status,
-    tone: lc.tone,
-    phone: l.phone,
-    email: l.email,
+    id: l.id, first, last: rest.join(" "), name: l.name,
+    lifecycle: lc.stage, stageStatus: lc.status, tone: lc.tone,
+    phone: l.phone, email: l.email,
+    website: l.website || "—",
+    assignee: l.assignedGP || "Unassigned",
+    create: l.created || "—",
+    registration: l.registration || "—",
+    linkedin: l.linkedin || "—",
+    accountSource: l.source || "—",
+    assigned: !!l.assignedGP,
   };
 };
 
-// ── shared inline styles ─────────────────────────────────────────────────────
+// ── column registry ───────────────────────────────────────────────────────────
+// filter: "text" | "lifecycle" | "status" | null   ·   locked columns are always
+// present in every view and cannot be removed in the Edit View dialog.
+const COLUMNS = {
+  name:          { label: "Name",                locked: true,  filter: "text",      group: "Main Information" },
+  email:         { label: "Email",               locked: false, filter: "text",      group: "Main Information" },
+  phone:         { label: "Phone Number",        locked: true,  filter: "text",      group: "Main Information" },
+  website:       { label: "Website",             locked: false, filter: null,        group: "Main Information" },
+  assignee:      { label: "Assignee",            locked: false, filter: null,        group: "Main Information" },
+  lifecycle:     { label: "Lifecycle Stage",     locked: true,  filter: "lifecycle", group: "Main Information" },
+  stageStatus:   { label: "Stage Status",        locked: false, filter: "status",    group: "Main Information" },
+  create:        { label: "Create Date",         locked: true,  filter: null,        group: "Main Information" },
+  registration:  { label: "Registration Number", locked: false, filter: null,        group: "Main Information" },
+  linkedin:      { label: "LinkedIn",            locked: false, filter: null,        group: "Main Information" },
+  accountSource: { label: "Account Source",      locked: false, filter: null,        group: "Main Information" },
+};
+const COLUMN_KEYS = Object.keys(COLUMNS);
+const DEFAULT_COLS = ["name", "lifecycle", "stageStatus", "phone", "email"];
+
+const VIEW_FILTERS = {
+  all:     () => true,
+  pending: (c) => !c.assigned,
+  custom1: (c) => c.lifecycle === "Lead",
+  custom2: (c) => c.lifecycle === "Opportunity",
+};
+
 const fieldStyle = {
   width: "100%", padding: "9px 12px", borderRadius: 8,
   border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit",
   color: C.text, boxSizing: "border-box", outline: "none", background: "#fff",
 };
 
-// ── status / lifecycle pill ──────────────────────────────────────────────────
 const StagePill = ({ label, tone }) => {
   if (!tone) return <span style={{ fontSize: 13, color: C.muted }}>{label}</span>;
   return (
-    <span style={{
-      display: "inline-block", padding: "3px 12px", borderRadius: 16,
-      fontSize: 12, fontWeight: 600, background: tone + "1A", color: tone,
-    }}>
+    <span style={{ display: "inline-block", padding: "3px 12px", borderRadius: 16, fontSize: 12, fontWeight: 600, background: tone + "1A", color: tone }}>
       {label}
     </span>
   );
 };
 
-const IconBtn = ({ title, onClick, children }) => (
+const renderCell = (key, c) => {
+  if (key === "name")        return <span style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: "underline", textUnderlineOffset: 2 }}>{c.name}</span>;
+  if (key === "lifecycle")   return <span style={{ fontSize: 13, color: c.lifecycle === "N/A" ? C.muted : C.text }}>{c.lifecycle}</span>;
+  if (key === "stageStatus") return <StagePill label={c.stageStatus} tone={c.tone} />;
+  return <span style={{ fontSize: 13, color: C.slate }}>{c[key] ?? "—"}</span>;
+};
+
+const IconBtn = ({ title, onClick, active, children }) => (
   <button title={title} onClick={onClick} style={{
-    width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`,
-    background: "#fff", color: C.slate, cursor: "pointer",
-    display: "grid", placeItems: "center", fontSize: 15,
-  }}>
-    {children}
-  </button>
+    width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`,
+    background: active ? C.primarySoft : "#fff", color: active ? C.primaryDark : C.slate,
+    cursor: "pointer", display: "grid", placeItems: "center", fontSize: 15,
+  }}>{children}</button>
 );
 
 const SortArrows = () => (
@@ -78,65 +107,224 @@ const SortArrows = () => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// VIEW SELECTOR (dropdown)
+// ─────────────────────────────────────────────────────────────────────────────
+const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
+  const [open, setOpen] = useState(false);
+  const active = views.find(v => v.id === activeId);
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderRadius: 8,
+        border: `1px solid ${open ? C.primary : C.border}`, background: "#fff", cursor: "pointer", fontFamily: "inherit",
+      }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: C.primaryDark }}>{active?.name}</span>
+        <span style={{ fontSize: 13, color: C.muted }}>({counts[active?.id] ?? 0})</span>
+        <span style={{ fontSize: 10, color: C.slate, transform: open ? "rotate(180deg)" : "none" }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
+          <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 260, background: "#fff", borderRadius: 12, boxShadow: "0 12px 36px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 240, padding: "6px 0" }}>
+            {views.map(v => (
+              <div key={v.id} onClick={() => { onSelect(v.id); setOpen(false); }}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: v.id === activeId ? 700 : 500, color: v.id === activeId ? C.primaryDark : C.text }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <span>{v.name}</span>
+                <span style={{ color: C.muted, fontWeight: 500 }}>({counts[v.id] ?? 0})</span>
+              </div>
+            ))}
+            <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 4 }}>
+              <div onClick={() => { onAddView(); setOpen(false); }}
+                style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, color: C.primary }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <span style={{ fontSize: 14 }}>＋</span> Add View
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EDIT VIEW (column picker)
+// ─────────────────────────────────────────────────────────────────────────────
+const EditViewModal = ({ view, onClose, onApply }) => {
+  const [name, setName]         = useState(view.name);
+  const [selected, setSelected] = useState(view.columns);          // ordered keys
+  const [availChecked, setAvailChecked] = useState(() => new Set());
+  const [selChecked, setSelChecked]     = useState(() => new Set());
+  const [availSearch, setAvailSearch]   = useState("");
+  const [selSearch, setSelSearch]       = useState("");
+
+  const selSet = new Set(selected);
+
+  const toggleAvail = (key) => setAvailChecked(prev => {
+    const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n;
+  });
+  const toggleSel = (key) => setSelChecked(prev => {
+    const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n;
+  });
+
+  const moveRight = () => {                       // available → selected
+    const add = [...availChecked].filter(k => !selSet.has(k));
+    if (!add.length) return;
+    setSelected(prev => [...prev, ...add]);
+    setAvailChecked(new Set());
+  };
+  const moveLeft = () => {                         // selected → available (non-locked)
+    const rm = [...selChecked].filter(k => !COLUMNS[k].locked);
+    if (!rm.length) return;
+    setSelected(prev => prev.filter(k => !rm.includes(k)));
+    setSelChecked(new Set());
+  };
+  const removeOne = (key) => { if (!COLUMNS[key].locked) setSelected(prev => prev.filter(k => k !== key)); };
+  const reorder = (dir) => {                       // move checked selected up/down by one
+    const idxs = selected.map((k, i) => selChecked.has(k) ? i : -1).filter(i => i >= 0);
+    if (!idxs.length) return;
+    const arr = [...selected];
+    if (dir === "up") {
+      idxs.forEach(i => { if (i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; } });
+    } else {
+      idxs.reverse().forEach(i => { if (i < arr.length - 1) { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; } });
+    }
+    setSelected(arr);
+  };
+
+  const availList = COLUMN_KEYS.filter(k => COLUMNS[k].label.toLowerCase().includes(availSearch.toLowerCase()));
+  const selList   = selected.filter(k => COLUMNS[k].label.toLowerCase().includes(selSearch.toLowerCase()));
+
+  const Panel = ({ children }) => (
+    <div style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 16px 12px", minWidth: 0 }}>{children}</div>
+  );
+  const SearchBox = ({ value, onChange }) => (
+    <div style={{ position: "relative", marginBottom: 12 }}>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder="Search"
+        style={{ ...fieldStyle, paddingRight: 32 }} />
+      <span style={{ position: "absolute", right: 11, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 13 }}>🔍</span>
+    </div>
+  );
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 840, maxWidth: "94vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "24px 28px", fontFamily: "inherit", maxHeight: "92vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: C.navy }}>Edit View</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: C.muted, lineHeight: 1 }}>×</button>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <label style={{ fontSize: 13, color: C.slate, display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>Name * <span title="Shown in the view selector" style={{ color: C.muted }}>ⓘ</span></label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="View name" style={{ ...fieldStyle, maxWidth: 360, background: C.light }} />
+        </div>
+
+        <div style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+          {/* Available */}
+          <Panel>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 12 }}>Available Columns</div>
+            <SearchBox value={availSearch} onChange={setAvailSearch} />
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 12px", maxHeight: 230, overflowY: "auto" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>
+                Main Information <span style={{ color: C.muted }}>▲</span>
+              </div>
+              {availList.map(k => {
+                const isSel = selSet.has(k);
+                return (
+                  <label key={k} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 2px", cursor: isSel ? "default" : "pointer", opacity: isSel ? 0.45 : 1 }}>
+                    <input type="checkbox" disabled={isSel} checked={isSel || availChecked.has(k)} onChange={() => toggleAvail(k)} style={{ width: 15, height: 15, accentColor: C.primary }} />
+                    <span style={{ fontSize: 13, color: C.text }}>{COLUMNS[k].label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </Panel>
+
+          {/* Move buttons */}
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 12 }}>
+            <button onClick={moveRight} title="Add to view" style={{ width: 40, height: 40, borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", fontSize: 16, color: C.slate }}>›</button>
+            <button onClick={moveLeft} title="Remove from view" style={{ width: 40, height: 40, borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", fontSize: 16, color: C.slate }}>‹</button>
+          </div>
+
+          {/* Selected */}
+          <Panel>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>Selected Columns</div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: C.slate }}>{selected.length}</span>
+            </div>
+            <SearchBox value={selSearch} onChange={setSelSearch} />
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "6px 8px", maxHeight: 230, overflowY: "auto" }}>
+              {selList.map(k => (
+                <div key={k} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 4px" }}>
+                  <input type="checkbox" disabled={COLUMNS[k].locked} checked={selChecked.has(k)} onChange={() => toggleSel(k)} style={{ width: 15, height: 15, accentColor: C.primary }} />
+                  <span style={{ flex: 1, fontSize: 13, color: COLUMNS[k].locked ? C.muted : C.text }}>{COLUMNS[k].label}</span>
+                  {!COLUMNS[k].locked && (
+                    <button onClick={() => removeOne(k)} title="Remove" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 15 }}>×</button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
+              <button onClick={() => reorder("up")} title="Move up" style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", color: C.slate }}>↑</button>
+              <button onClick={() => reorder("down")} title="Move down" style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", color: C.slate }}>↓</button>
+            </div>
+          </Panel>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 22 }}>
+          <button onClick={onClose} style={{ padding: "9px 22px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button disabled={!name.trim()} onClick={() => onApply({ ...view, name: name.trim(), columns: selected })}
+            style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: name.trim() ? C.primary : C.border, color: name.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>Apply</button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // IMPORT WIZARD
 // ─────────────────────────────────────────────────────────────────────────────
 const ImportContactsModal = ({ onClose }) => {
-  const [step, setStep]       = useState("source");   // source | upload | importing | done
+  const [step, setStep]       = useState("source");
   const [progress, setProgress] = useState(0);
   const timerRef = useRef(null);
 
   const runImport = () => {
-    setStep("importing");
-    setProgress(0);
+    setStep("importing"); setProgress(0);
     timerRef.current = setInterval(() => {
       setProgress(p => {
-        if (p >= 100) {
-          clearInterval(timerRef.current);
-          setStep("done");
-          return 100;
-        }
+        if (p >= 100) { clearInterval(timerRef.current); setStep("done"); return 100; }
         return p + 8;
       });
     }, 120);
   };
-
   React.useEffect(() => () => clearInterval(timerRef.current), []);
 
   const Overlay = ({ children, width = 520 }) => (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
-      <div style={{
-        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
-        width, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500,
-        boxShadow: "0 24px 64px rgba(0,0,0,0.22)", fontFamily: "inherit",
-        padding: "22px 24px", maxHeight: "90vh", overflowY: "auto",
-      }}>
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", fontFamily: "inherit", padding: "22px 24px", maxHeight: "90vh", overflowY: "auto" }}>
         {children}
       </div>
     </>
   );
-
   const Header = ({ title, back }) => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {back && (
-          <button onClick={back} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: C.slate, lineHeight: 1 }}>←</button>
-        )}
+        {back && <button onClick={back} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: C.slate, lineHeight: 1 }}>←</button>}
         <div style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{title}</div>
       </div>
       <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted, lineHeight: 1 }}>×</button>
     </div>
   );
 
-  // ── Step 1: choose a source ────────────────────────────────────────────────
   if (step === "source") {
     const SourceCard = ({ icon, title, sub, hint, onClick }) => (
-      <button onClick={onClick} style={{
-        flex: 1, background: C.light, border: `1px solid ${C.border}`, borderRadius: 12,
-        padding: "26px 18px", cursor: "pointer", textAlign: "center", fontFamily: "inherit",
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-        transition: "border-color .15s",
-      }}
+      <button onClick={onClick} style={{ flex: 1, background: C.light, border: `1px solid ${C.border}`, borderRadius: 12, padding: "26px 18px", cursor: "pointer", textAlign: "center", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}
         onMouseEnter={e => e.currentTarget.style.borderColor = C.primary}
         onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
         <div style={{ fontSize: 34 }}>{icon}</div>
@@ -156,14 +344,10 @@ const ImportContactsModal = ({ onClose }) => {
       </Overlay>
     );
   }
-
-  // ── Step 2: upload + map ────────────────────────────────────────────────────
   if (step === "upload") {
     return (
       <Overlay width={580}>
         <Header title="Import Contacts" back={() => setStep("source")} />
-
-        {/* Rules box */}
         <div style={{ background: C.primarySoft, border: `1px solid ${C.primary}33`, borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>Import Rules &amp; Requirements</div>
@@ -178,13 +362,8 @@ const ImportContactsModal = ({ onClose }) => {
             <li>First Name and Last Name are required.</li>
           </ul>
         </div>
-
-        {/* Uploaded file */}
         <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, marginBottom: 8 }}>Upload your CSV or Excel file</div>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12, padding: "14px 16px",
-          border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 18,
-        }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 18 }}>
           <span style={{ fontSize: 22 }}>📗</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>File name.xlsx</div>
@@ -193,27 +372,17 @@ const ImportContactsModal = ({ onClose }) => {
           <span style={{ fontSize: 12, fontWeight: 600, color: C.green, display: "flex", alignItems: "center", gap: 5 }}>✓ Ready to Import</span>
           <button onClick={() => setStep("source")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: C.muted }}>×</button>
         </div>
-
-        {/* Worksheet + view */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 8 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Worksheet *</label>
-            <select style={fieldStyle} defaultValue="Worksheet_1">
-              <option>Worksheet_1</option>
-              <option>Worksheet_2</option>
-            </select>
+            <select style={fieldStyle} defaultValue="Worksheet_1"><option>Worksheet_1</option><option>Worksheet_2</option></select>
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Contacts View *</label>
-            <select style={fieldStyle} defaultValue="">
-              <option value="" disabled>Select Contacts View</option>
-              <option>My Contacts</option>
-              <option>All Contacts</option>
-            </select>
+            <select style={fieldStyle} defaultValue=""><option value="" disabled>Select Contacts View</option><option>My Contacts</option><option>All Contacts</option></select>
           </div>
         </div>
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 22 }}>Columns detected: 5 &nbsp;|&nbsp; Rows detected: 1,000</div>
-
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
           <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
           <button onClick={runImport} style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Import</button>
@@ -221,17 +390,11 @@ const ImportContactsModal = ({ onClose }) => {
       </Overlay>
     );
   }
-
-  // ── Step 3: importing ───────────────────────────────────────────────────────
   if (step === "importing") {
     return (
       <Overlay width={460}>
         <div style={{ padding: "20px 8px", textAlign: "center" }}>
-          <div style={{
-            width: 52, height: 52, margin: "0 auto 18px", borderRadius: "50%",
-            border: `4px solid ${C.border}`, borderTopColor: C.primary,
-            animation: "mvpSpin 0.8s linear infinite",
-          }} />
+          <div style={{ width: 52, height: 52, margin: "0 auto 18px", borderRadius: "50%", border: `4px solid ${C.border}`, borderTopColor: C.primary, animation: "mvpSpin 0.8s linear infinite" }} />
           <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, marginBottom: 16 }}>Importing 1,000 Records</div>
           <div style={{ height: 6, borderRadius: 4, background: C.border, overflow: "hidden", marginBottom: 12 }}>
             <div style={{ height: "100%", width: `${progress}%`, background: C.primary, borderRadius: 4, transition: "width .12s linear" }} />
@@ -242,8 +405,6 @@ const ImportContactsModal = ({ onClose }) => {
       </Overlay>
     );
   }
-
-  // ── Step 4: completed ───────────────────────────────────────────────────────
   const StatCard = ({ dot, label, value, color }) => (
     <div style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.slate, marginBottom: 6 }}>
@@ -263,9 +424,9 @@ const ImportContactsModal = ({ onClose }) => {
       </div>
       <div style={{ fontSize: 13, color: C.slate, margin: "4px 0 18px" }}>Download the error report, fix the issues, and re-import.</div>
       <div style={{ display: "flex", gap: 14, marginBottom: 22 }}>
-        <StatCard dot={C.slate}  label="Total Records" value="248" color={C.navy} />
-        <StatCard dot={C.green}  label="Imported"      value="244" color={C.green} />
-        <StatCard dot={C.red}    label="Errors"        value="4"   color={C.red} />
+        <StatCard dot={C.slate} label="Total Records" value="248" color={C.navy} />
+        <StatCard dot={C.green} label="Imported" value="244" color={C.green} />
+        <StatCard dot={C.red} label="Errors" value="4" color={C.red} />
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
         <button style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: C.primarySoft, color: C.primaryDark, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>⬇ Download Error Report</button>
@@ -276,113 +437,253 @@ const ImportContactsModal = ({ onClose }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ADD CONTACT MODAL (minimal)
+// ADD CONTACT (full tabbed page)
 // ─────────────────────────────────────────────────────────────────────────────
-const AddContactModal = ({ onClose, onAdd }) => {
-  const [f, setF] = useState({ first: "", last: "", email: "", phone: "", lifecycle: "Lead" });
-  const valid = f.first.trim() && f.last.trim();
+const ADD_TABS = ["Basic", "Personal", "Address", "Business", "Financial", "Reason"];
+
+const Field = ({ label, children }) => (
+  <div style={{ marginBottom: 18 }}>
+    <label style={{ fontSize: 13, fontWeight: 500, color: C.navy, display: "block", marginBottom: 7 }}>{label}</label>
+    {children}
+  </div>
+);
+const TextInput = (p) => <input {...p} style={{ ...fieldStyle, padding: "11px 13px" }} />;
+const Select = ({ children, ...p }) => <select {...p} style={{ ...fieldStyle, padding: "11px 13px", color: p.value ? C.text : C.muted }}>{children}</select>;
+
+const AddContactPage = ({ onCancel, onSave }) => {
+  const [tab, setTab] = useState("Basic");
+  const [f, setF] = useState({
+    first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
+    salutation: "", dob: "", gender: "", nationality: "", language: "",
+    street: "", houseNo: "", zip: "", city: "", country: "",
+    company: "", employment: "", position: "", companySize: "", decisionRole: "None", industry: "",
+    income: "", netWorth: "", risk: "", horizon: "",
+    source: "", campaign: "", product: "", notes: "",
+  });
   const set = (k) => (e) => setF(prev => ({ ...prev, [k]: e.target.value }));
+  const valid = f.first.trim() && f.last.trim();
+
+  const reset = () => setF(prev => Object.fromEntries(Object.keys(prev).map(k => [k, k === "lifecycle" ? "Lead" : k === "stageStatus" ? "New" : k === "decisionRole" ? "None" : ""])));
+
+  const Grid = ({ children, cols = 2 }) => (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 18 }}>{children}</div>
+  );
+
   return (
-    <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>Add Contact</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>First Name *</label>
-            <input style={fieldStyle} value={f.first} onChange={set("first")} placeholder="First name" />
-          </div>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Last Name *</label>
-            <input style={fieldStyle} value={f.last} onChange={set("last")} placeholder="Last name" />
-          </div>
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Email</label>
-          <input style={fieldStyle} value={f.email} onChange={set("email")} placeholder="name@example.com" />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Phone Number</label>
-            <input style={fieldStyle} value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" />
-          </div>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Lifecycle Stage</label>
-            <select style={fieldStyle} value={f.lifecycle} onChange={set("lifecycle")}>
-              {LIFECYCLE_OPTIONS.map(o => <option key={o}>{o}</option>)}
-            </select>
-          </div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-          <button disabled={!valid} onClick={() => { onAdd(f); onClose(); }} style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: valid ? C.primary : C.border, color: valid ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Add Contact</button>
+    <div style={{ padding: "20px 28px 0", fontFamily: "inherit" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 18 }}>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>Add Contact</h1>
+        <span style={{ fontSize: 13, color: C.muted }}>Contacts . Add Contact</span>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 26, borderBottom: `1px solid ${C.border}`, marginBottom: 0 }}>
+        {ADD_TABS.map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            padding: "10px 2px 14px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+            fontSize: 14, fontWeight: tab === t ? 700 : 500, color: tab === t ? C.primaryDark : C.slate,
+            borderBottom: tab === t ? `2px solid ${C.primary}` : "2px solid transparent", marginBottom: -1,
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {/* Body */}
+      <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "26px 80px", marginTop: 18, minHeight: 340 }}>
+        {tab === "Basic" && (<>
+          <Grid>
+            <Field label="First Name *"><TextInput value={f.first} onChange={set("first")} placeholder="First name" /></Field>
+            <Field label="Last Name *"><TextInput value={f.last} onChange={set("last")} placeholder="Last name" /></Field>
+          </Grid>
+          <Grid>
+            <Field label="Email"><TextInput value={f.email} onChange={set("email")} placeholder="name@example.com" /></Field>
+            <Field label="Phone Number"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
+          </Grid>
+          <Grid>
+            <Field label="Lifecycle Stage"><Select value={f.lifecycle} onChange={set("lifecycle")}>{LIFECYCLE_OPTIONS.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            <Field label="Stage Status"><Select value={f.stageStatus} onChange={set("stageStatus")}>{STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}</Select></Field>
+          </Grid>
+        </>)}
+
+        {tab === "Personal" && (<>
+          <Grid>
+            <Field label="Salutation"><Select value={f.salutation} onChange={set("salutation")}><option value="">Select Salutation</option><option>Mr.</option><option>Ms.</option><option>Dr.</option></Select></Field>
+            <Field label="Date of Birth"><TextInput type="date" value={f.dob} onChange={set("dob")} /></Field>
+          </Grid>
+          <Grid>
+            <Field label="Gender"><Select value={f.gender} onChange={set("gender")}><option value="">Select Gender</option><option>Male</option><option>Female</option><option>Other</option></Select></Field>
+            <Field label="Nationality"><TextInput value={f.nationality} onChange={set("nationality")} placeholder="Nationality" /></Field>
+          </Grid>
+          <Field label="Preferred Language"><Select value={f.language} onChange={set("language")}><option value="">Select Language</option><option>German</option><option>English</option><option>French</option><option>Czech</option></Select></Field>
+        </>)}
+
+        {tab === "Address" && (<>
+          <Grid cols={3}>
+            <div style={{ gridColumn: "span 2" }}><Field label="Street"><TextInput value={f.street} onChange={set("street")} placeholder="Street" /></Field></div>
+            <Field label="House No."><TextInput value={f.houseNo} onChange={set("houseNo")} placeholder="No." /></Field>
+          </Grid>
+          <Grid cols={3}>
+            <Field label="ZIP"><TextInput value={f.zip} onChange={set("zip")} placeholder="ZIP" /></Field>
+            <Field label="City"><TextInput value={f.city} onChange={set("city")} placeholder="City" /></Field>
+            <Field label="Country"><TextInput value={f.country} onChange={set("country")} placeholder="Country" /></Field>
+          </Grid>
+        </>)}
+
+        {tab === "Business" && (<>
+          <Field label="Company"><TextInput value={f.company} onChange={set("company")} placeholder="Company" /></Field>
+          <Grid>
+            <Field label="Employment Type"><Select value={f.employment} onChange={set("employment")}><option value="">Select Employment Type</option><option>Employed</option><option>Self-employed</option><option>Business Owner</option><option>Retired</option></Select></Field>
+            <Field label="Position"><Select value={f.position} onChange={set("position")}><option value="">Select Position</option><option>Manager</option><option>Director</option><option>C-Level</option><option>Staff</option></Select></Field>
+          </Grid>
+          <Field label="Company Size"><Select value={f.companySize} onChange={set("companySize")}><option value="">Select Company Size</option><option>1–10</option><option>11–50</option><option>51–200</option><option>200+</option></Select></Field>
+          <Field label="Decision Making Role">
+            <div style={{ display: "flex", gap: 40, paddingTop: 4 }}>
+              {["None", "Decision Maker", "Influencer", "End User"].map(r => (
+                <label key={r} style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, color: C.text }}>
+                  <input type="radio" name="decisionRole" checked={f.decisionRole === r} onChange={() => setF(prev => ({ ...prev, decisionRole: r }))} style={{ accentColor: C.primary, width: 16, height: 16 }} />
+                  {r}
+                </label>
+              ))}
+            </div>
+          </Field>
+          <Field label="Industry"><TextInput value={f.industry} onChange={set("industry")} placeholder="Industry" /></Field>
+        </>)}
+
+        {tab === "Financial" && (<>
+          <Grid>
+            <Field label="Annual Income"><TextInput value={f.income} onChange={set("income")} placeholder="€ —" /></Field>
+            <Field label="Net Worth"><TextInput value={f.netWorth} onChange={set("netWorth")} placeholder="€ —" /></Field>
+          </Grid>
+          <Grid>
+            <Field label="Risk Appetite"><Select value={f.risk} onChange={set("risk")}><option value="">Select Risk Appetite</option><option>Conservative</option><option>Balanced</option><option>Growth</option><option>Aggressive</option></Select></Field>
+            <Field label="Investment Horizon"><Select value={f.horizon} onChange={set("horizon")}><option value="">Select Horizon</option><option>Short (&lt; 3y)</option><option>Medium (3–7y)</option><option>Long (7y+)</option></Select></Field>
+          </Grid>
+        </>)}
+
+        {tab === "Reason" && (<>
+          <Grid>
+            <Field label="Lead Source"><Select value={f.source} onChange={set("source")}><option value="">Select Lead Source</option><option>Meta Ads</option><option>Landing Page</option><option>Referral</option><option>Event</option></Select></Field>
+            <Field label="Campaign"><Select value={f.campaign} onChange={set("campaign")}><option value="">Select Campaign</option><option>General</option><option>Q1 Finanz</option><option>Gold</option></Select></Field>
+          </Grid>
+          <Field label="Product Interest"><TextInput value={f.product} onChange={set("product")} placeholder="Product interest" /></Field>
+          <Field label="Notes">
+            <textarea value={f.notes} onChange={set("notes")} placeholder="Any details about this contact…"
+              style={{ ...fieldStyle, padding: "11px 13px", minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
+          </Field>
+        </>)}
+      </div>
+
+      {/* Footer */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 24px" }}>
+        <button onClick={onCancel} style={{ padding: "10px 8px", background: "none", border: "none", color: C.slate, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button disabled={!valid} onClick={() => { onSave(f); reset(); setTab("Basic"); }}
+            style={{ padding: "11px 22px", borderRadius: 9, border: "none", background: valid ? C.primarySoft : C.light, color: valid ? C.primaryDark : C.muted, fontSize: 14, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Save &amp; New</button>
+          <button disabled={!valid} onClick={() => { onSave(f); onCancel(); }}
+            style={{ padding: "11px 30px", borderRadius: 9, border: "none", background: valid ? C.primary : C.border, color: valid ? "#fff" : C.muted, fontSize: 14, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Save</button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
+const INITIAL_VIEWS = [
+  { id: "my",      name: "My Contacts",         filter: "all",     columns: DEFAULT_COLS },
+  { id: "pending", name: "Pending Assignments", filter: "pending", columns: ["name", "lifecycle", "stageStatus", "assignee", "create"] },
+  { id: "cv1",     name: "Custom View 1",       filter: "custom1", columns: ["name", "email", "phone", "stageStatus"] },
+  { id: "cv2",     name: "Custom View 2",       filter: "custom2", columns: ["name", "lifecycle", "accountSource", "create"] },
+];
+
 export const MVPContactsPage = ({ navigateTo }) => {
   const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
+  const [views, setViews]       = useState(INITIAL_VIEWS);
+  const [activeView, setActiveView] = useState("my");
+  const [mode, setMode]         = useState("list");   // list | add
   const [showImport, setShowImport] = useState(false);
-  const [showAdd, setShowAdd]       = useState(false);
-  const [selected, setSelected]     = useState(() => new Set());
+  const [editView, setEditView] = useState(null);     // view being edited / added
+  const [selected, setSelected] = useState(() => new Set());
 
   // filters (live)
-  const [fName, setFName]           = useState("");
+  const [fName, setFName] = useState("");
   const [fLifecycle, setFLifecycle] = useState("");
-  const [fStatus, setFStatus]       = useState("");
-  const [fPhone, setFPhone]         = useState("");
-  const [fEmail, setFEmail]         = useState("");
-
+  const [fStatus, setFStatus] = useState("");
+  const [fPhone, setFPhone] = useState("");
+  const [fEmail, setFEmail] = useState("");
   const resetFilters = () => { setFName(""); setFLifecycle(""); setFStatus(""); setFPhone(""); setFEmail(""); };
 
-  const rows = useMemo(() => contacts.filter(c =>
-    (!fName      || c.name.toLowerCase().includes(fName.toLowerCase())) &&
-    (!fLifecycle || c.lifecycle === fLifecycle) &&
-    (!fStatus    || c.stageStatus === fStatus) &&
-    (!fPhone     || (c.phone || "").replace(/\s/g, "").includes(fPhone.replace(/\s/g, ""))) &&
-    (!fEmail     || (c.email || "").toLowerCase().includes(fEmail.toLowerCase()))
-  ), [contacts, fName, fLifecycle, fStatus, fPhone, fEmail]);
+  const view = views.find(v => v.id === activeView) || views[0];
+  const cols = view.columns;
+
+  const counts = useMemo(() => Object.fromEntries(
+    views.map(v => [v.id, contacts.filter(VIEW_FILTERS[v.filter] || (() => true)).length])
+  ), [views, contacts]);
+
+  const rows = useMemo(() => {
+    const base = contacts.filter(VIEW_FILTERS[view.filter] || (() => true));
+    return base.filter(c =>
+      (!fName      || c.name.toLowerCase().includes(fName.toLowerCase())) &&
+      (!fLifecycle || c.lifecycle === fLifecycle) &&
+      (!fStatus    || c.stageStatus === fStatus) &&
+      (!fPhone     || (c.phone || "").replace(/\s/g, "").includes(fPhone.replace(/\s/g, ""))) &&
+      (!fEmail     || (c.email || "").toLowerCase().includes(fEmail.toLowerCase()))
+    );
+  }, [contacts, view, fName, fLifecycle, fStatus, fPhone, fEmail]);
 
   const allChecked = rows.length > 0 && rows.every(r => selected.has(r.id));
-  const toggleAll = () => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (allChecked) rows.forEach(r => next.delete(r.id));
-      else            rows.forEach(r => next.add(r.id));
-      return next;
-    });
-  };
-  const toggleOne = (id) => setSelected(prev => {
+  const toggleAll = () => setSelected(prev => {
     const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (allChecked) rows.forEach(r => next.delete(r.id)); else rows.forEach(r => next.add(r.id));
     return next;
   });
+  const toggleOne = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const addContact = (f) => {
-    const lc = LIFECYCLE[f.lifecycle === "Lead" ? "open" : "no_interest"];
     setContacts(prev => [{
-      id: `NEW-${Date.now()}`,
-      first: f.first, last: f.last, name: `${f.first} ${f.last}`.trim(),
-      lifecycle: f.lifecycle,
-      stageStatus: f.lifecycle === "N/A" ? "N/A" : "New",
-      tone: f.lifecycle === "N/A" ? null : C.green,
+      id: `NEW-${Date.now()}`, first: f.first, last: f.last, name: `${f.first} ${f.last}`.trim(),
+      lifecycle: f.lifecycle, stageStatus: f.stageStatus,
+      tone: f.stageStatus === "Won" || f.stageStatus === "New" ? C.green : f.stageStatus === "N/A" ? null : C.slate,
       phone: f.phone || "—", email: f.email || "—",
+      website: "—", assignee: "Unassigned", create: "Today",
+      registration: "—", linkedin: "—", accountSource: f.source || "—", assigned: false,
     }, ...prev]);
   };
 
-  const TH = ({ label, grow }) => (
-    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate, whiteSpace: "nowrap", width: grow ? "auto" : undefined }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{label} <SortArrows /></span>
-    </th>
-  );
+  const applyView = (next) => {
+    if (views.some(v => v.id === next.id)) setViews(prev => prev.map(v => v.id === next.id ? next : v));
+    else { setViews(prev => [...prev, next]); setActiveView(next.id); }
+    setEditView(null);
+  };
+  const deleteView = () => {
+    if (views.length <= 1) return;
+    setViews(prev => prev.filter(v => v.id !== activeView));
+    setActiveView(views[0].id === activeView ? views[1].id : views[0].id);
+  };
+
+  // ── Add Contact full page ───────────────────────────────────────────────────
+  if (mode === "add") {
+    return <AddContactPage onCancel={() => setMode("list")} onSave={addContact} />;
+  }
+
+  const filterCell = (key) => {
+    const ft = COLUMNS[key].filter;
+    if (ft === "text" && key === "name")  return <input value={fName} onChange={e => setFName(e.target.value)} placeholder="Contact" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />;
+    if (ft === "text" && key === "phone") return <input value={fPhone} onChange={e => setFPhone(e.target.value)} placeholder="Phone number" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />;
+    if (ft === "text" && key === "email") return <input value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="Email" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />;
+    if (ft === "lifecycle") return (
+      <select value={fLifecycle} onChange={e => setFLifecycle(e.target.value)} style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12, color: fLifecycle ? C.text : C.muted }}>
+        <option value="">Select lifecycle...</option>{LIFECYCLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+    if (ft === "status") return (
+      <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12, color: fStatus ? C.text : C.muted }}>
+        <option value="">Select status</option>{STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+    return null;
+  };
 
   return (
     <div style={{ padding: "24px 28px", fontFamily: "inherit" }}>
@@ -391,22 +692,19 @@ export const MVPContactsPage = ({ navigateTo }) => {
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>Contact List</h1>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setShowImport(true)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>⬇ Import</button>
-          <button onClick={() => setShowAdd(true)} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add Contact</button>
+          <button onClick={() => setMode("add")} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add Contact</button>
         </div>
       </div>
 
       {/* View selector row */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <select defaultValue="my" style={{ ...fieldStyle, width: "auto", paddingRight: 28, fontWeight: 600, color: C.navy, cursor: "pointer" }}>
-          <option value="my">{`My Contacts (${contacts.length})`}</option>
-          <option value="all">{`All Contacts (${contacts.length})`}</option>
-        </select>
-        <IconBtn title="Rename view">✎</IconBtn>
-        <IconBtn title="Delete view">🗑</IconBtn>
+        <ViewSelector views={views} activeId={activeView} counts={counts}
+          onSelect={setActiveView}
+          onAddView={() => setEditView({ id: `v-${Date.now()}`, name: "", filter: "all", columns: DEFAULT_COLS })} />
+        <IconBtn title="Edit view" onClick={() => setEditView(view)}>✎</IconBtn>
+        <IconBtn title="Delete view" onClick={deleteView}>🗑</IconBtn>
         <IconBtn title="Export view">⬆</IconBtn>
-        {selected.size > 0 && (
-          <span style={{ marginLeft: 8, fontSize: 12, color: C.slate, fontWeight: 600 }}>{selected.size} selected</span>
-        )}
+        {selected.size > 0 && <span style={{ marginLeft: 8, fontSize: 12, color: C.slate, fontWeight: 600 }}>{selected.size} selected</span>}
       </div>
 
       {/* Table */}
@@ -418,68 +716,50 @@ export const MVPContactsPage = ({ navigateTo }) => {
                 <th style={{ padding: "12px 16px", width: 44 }}>
                   <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />
                 </th>
-                <TH label="Name" />
-                <TH label="Lifecycle Stage" />
-                <TH label="Stage Status" />
-                <TH label="Phone Number" />
-                <TH label="Email" grow />
+                {cols.map(k => (
+                  <th key={k} style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate, whiteSpace: "nowrap" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{COLUMNS[k].label} <SortArrows /></span>
+                  </th>
+                ))}
               </tr>
               {/* Filter row */}
               <tr style={{ background: "#fff", borderBottom: `1px solid ${C.border}` }}>
                 <td />
-                <td style={{ padding: "8px 16px" }}>
-                  <input value={fName} onChange={e => setFName(e.target.value)} placeholder="Contact" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />
-                </td>
-                <td style={{ padding: "8px 16px" }}>
-                  <select value={fLifecycle} onChange={e => setFLifecycle(e.target.value)} style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12, color: fLifecycle ? C.text : C.muted }}>
-                    <option value="">Select lifecycle...</option>
-                    {LIFECYCLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </td>
-                <td style={{ padding: "8px 16px" }}>
-                  <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12, color: fStatus ? C.text : C.muted }}>
-                    <option value="">Select status</option>
-                    {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </td>
-                <td style={{ padding: "8px 16px" }}>
-                  <input value={fPhone} onChange={e => setFPhone(e.target.value)} placeholder="Phone number" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />
-                </td>
-                <td style={{ padding: "8px 16px" }}>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <input value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="Email" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />
-                    <button title="Apply filters" style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.green, cursor: "pointer" }}>✓</button>
-                    <button title="Reset filters" onClick={resetFilters} style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, cursor: "pointer" }}>↺</button>
-                  </div>
-                </td>
+                {cols.map((k, i) => (
+                  <td key={k} style={{ padding: "8px 16px" }}>
+                    {i === cols.length - 1 ? (
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        {filterCell(k)}
+                        <button title="Apply filters" style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.green, cursor: "pointer" }}>✓</button>
+                        <button title="Reset filters" onClick={resetFilters} style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, cursor: "pointer" }}>↺</button>
+                      </div>
+                    ) : filterCell(k)}
+                  </td>
+                ))}
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: C.muted, fontSize: 13 }}>No contacts match your filters.</td></tr>
+                <tr><td colSpan={cols.length + 1} style={{ padding: "40px", textAlign: "center", color: C.muted, fontSize: 13 }}>No contacts match your filters.</td></tr>
               )}
-              {rows.map((c) => (
+              {rows.map(c => (
                 <tr key={c.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                   <td style={{ padding: "14px 16px" }}>
                     <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />
                   </td>
-                  <td style={{ padding: "14px 16px" }}>
-                    <span onClick={() => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone })}
-                      style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: "underline", textUnderlineOffset: 2, cursor: "pointer" }}>
-                      {c.name}
-                    </span>
-                  </td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: c.lifecycle === "N/A" ? C.muted : C.text }}>{c.lifecycle}</td>
-                  <td style={{ padding: "14px 16px" }}><StagePill label={c.stageStatus} tone={c.tone} /></td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: C.slate }}>{c.phone}</td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: C.slate }}>{c.email}</td>
+                  {cols.map(k => (
+                    <td key={k} style={{ padding: "14px 16px", cursor: k === "name" ? "pointer" : "default" }}
+                      onClick={k === "name" ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }) : undefined}>
+                      {renderCell(k, c)}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: C.muted }}>Showing {rows.length} of {contacts.length} contacts</span>
+          <span style={{ fontSize: 12, color: C.muted }}>Showing {rows.length} of {counts[activeView] ?? contacts.length} contacts</span>
           <div style={{ display: "flex", gap: 5 }}>
             {["←", "1", "2", "3", "→"].map(p => (
               <button key={p} style={{ padding: "5px 11px", borderRadius: 7, border: p === "1" ? "none" : `1px solid ${C.border}`, background: p === "1" ? C.primary : "#fff", color: p === "1" ? "#fff" : C.slate, fontSize: 12, cursor: "pointer" }}>{p}</button>
@@ -489,7 +769,7 @@ export const MVPContactsPage = ({ navigateTo }) => {
       </div>
 
       {showImport && <ImportContactsModal onClose={() => setShowImport(false)} />}
-      {showAdd    && <AddContactModal onClose={() => setShowAdd(false)} onAdd={addContact} />}
+      {editView && <EditViewModal view={editView} onClose={() => setEditView(null)} onApply={applyView} />}
     </div>
   );
 };
