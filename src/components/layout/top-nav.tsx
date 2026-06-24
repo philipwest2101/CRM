@@ -65,8 +65,18 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
 
   return (
     <>
-    <div style={{ background:C.primary,padding:"0 28px",display:"flex",alignItems:"center",height:54,gap:24,boxShadow:"0 1px 4px rgba(0,0,0,0.3)",position:"sticky",top:0,zIndex:200 }}>
-      <span style={{ color:"#fff",fontWeight:800,fontSize:16,letterSpacing:"-0.02em",flexShrink:0 }}>vion world <span style={{ color:"rgba(255,255,255,0.45)",fontWeight:400 }}>|</span> <span style={{ color:"#60A5FA" }}>CRM</span></span>
+    <div style={{ background:"linear-gradient(90deg, #FF9000 0%, #FFB733 55%, #FFC94F 100%)",padding:"0 28px",display:"flex",alignItems:"center",height:54,gap:24,boxShadow:"0 1px 4px rgba(0,0,0,0.15)",position:"sticky",top:0,zIndex:200 }}>
+      <div style={{ display:"flex",alignItems:"center",gap:9,flexShrink:0 }}>
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" style={{ flexShrink:0 }} aria-hidden="true">
+          <circle cx="15" cy="15" r="13" stroke="#fff" strokeWidth="2" />
+          <path d="M9.5 9.5 L20.5 20.5 M20.5 9.5 L9.5 20.5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
+        <span style={{ color:"#fff",fontSize:17,letterSpacing:"-0.02em" }}>
+          <span style={{ fontWeight:800 }}>vion</span><span style={{ fontWeight:400,color:"rgba(255,255,255,0.92)" }}>world</span>
+          <span style={{ color:"rgba(255,255,255,0.5)",fontWeight:300,margin:"0 7px" }}>|</span>
+          <span style={{ fontWeight:600,letterSpacing:"0.04em" }}>CRM</span>
+        </span>
+      </div>
       <div style={{ display:"flex",gap:2 }}>
         {[
           { label:"Dashboard", page:"Dashboard" },
@@ -81,7 +91,7 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
           return (
             <div key={item.label} style={{ position:"relative" }}>
               <button onClick={()=>{ setPage(item.page); setMenuOpen(item.sub ? (menuOpen===item.label?null:item.label) : null); }}
-                style={{ padding:"6px 14px",background:active?"rgba(255,255,255,0.12)":"transparent",border:"none",borderRadius:6,color:active?"#60A5FA":"#CBD5E1",fontSize:13,fontWeight:active?700:400,cursor:"pointer",fontFamily:"inherit",borderBottom:active?"2px solid #60A5FA":"2px solid transparent",display:"flex",alignItems:"center",gap:5 }}>
+                style={{ padding:"6px 14px",background:active?"rgba(255,255,255,0.18)":"transparent",border:"none",borderRadius:6,color:"#fff",fontSize:13,fontWeight:active?700:500,cursor:"pointer",fontFamily:"inherit",borderBottom:active?"2px solid #fff":"2px solid transparent",display:"flex",alignItems:"center",gap:5 }}>
                 {item.label}{item.sub && <span style={{ fontSize:9,opacity:0.7 }}>▾</span>}
               </button>
               {item.sub && menuOpen===item.label && (<>
@@ -103,33 +113,33 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
         })}
       </div>
       <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:12 }}>
-        <span style={{ fontSize:11,color:"#94A3B8" }}>View as:</span>
-        <div style={{ display:"flex",gap:3,background:"rgba(255,255,255,0.1)",borderRadius:8,padding:3 }}>
+        <span style={{ fontSize:11,color:"rgba(255,255,255,0.8)" }}>View as:</span>
+        <div style={{ display:"flex",gap:3,background:"rgba(255,255,255,0.18)",borderRadius:8,padding:3 }}>
           {Object.entries(roles).map(([key,v])=>(
-            <button key={key} onClick={()=>setRole(key)} style={{ padding:"4px 11px",borderRadius:6,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",background:role===key?"#fff":"transparent",color:role===key?v.color:"#94A3B8" }}>{v.abbr}</button>
+            <button key={key} onClick={()=>setRole(key)} style={{ padding:"4px 11px",borderRadius:6,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",background:role===key?"#fff":"transparent",color:role===key?v.color:"rgba(255,255,255,0.85)" }}>{v.abbr}</button>
           ))}
         </div>
         <button onClick={()=>setLang(l=>l==="EN"?"DE":"EN")}
-          style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,padding:"4px 10px",cursor:"pointer",color:"#CBD5E1",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4 }}>
+          style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:7,padding:"4px 10px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4 }}>
           🌐 {lang}
         </button>
         {/* ➕ Quick create reminder */}
         <button onClick={()=>{setShowCreate(true);setNotifOpen(false);}} title="Create reminder"
-          style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:7,padding:"5px 10px",cursor:"pointer",color:"#CBD5E1",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
+          style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:7,padding:"5px 10px",cursor:"pointer",color:"#fff",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:5 }}>
           ⏰ <span style={{ fontSize:11 }}>Remind</span>
         </button>
         {/* 🔔 Notification bell */}
-        <button onClick={()=>setNotifOpen(o=>!o)} style={{ position:"relative",background:notifOpen?"rgba(255,255,255,0.15)":"rgba(255,255,255,0.08)",border:"none",borderRadius:8,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",fontSize:17,transition:"background 0.15s" }}>
+        <button onClick={()=>setNotifOpen(o=>!o)} style={{ position:"relative",background:notifOpen?"rgba(255,255,255,0.28)":"rgba(255,255,255,0.15)",border:"none",borderRadius:8,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff",fontSize:17,transition:"background 0.15s" }}>
           🔔
-          {unread>0 && <span style={{ position:"absolute",top:4,right:4,width:16,height:16,borderRadius:"50%",background:C.red,border:"2px solid "+C.navy,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:"#fff",lineHeight:1 }}>{unread}</span>}
+          {unread>0 && <span style={{ position:"absolute",top:4,right:4,width:16,height:16,borderRadius:"50%",background:C.red,border:"2px solid #FF9000",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:"#fff",lineHeight:1 }}>{unread}</span>}
         </button>
         {/* 👤 Profile dropdown */}
         <div style={{ position:"relative" }}>
           <button onClick={()=>setProfileOpen(o=>!o)}
-            style={{ display:"flex",alignItems:"center",gap:8,background:profileOpen?"rgba(255,255,255,0.12)":"transparent",border:"none",borderRadius:8,padding:"3px 8px 3px 4px",cursor:"pointer" }}>
+            style={{ display:"flex",alignItems:"center",gap:8,background:profileOpen?"rgba(255,255,255,0.22)":"transparent",border:"none",borderRadius:8,padding:"3px 8px 3px 4px",cursor:"pointer" }}>
             <Avatar name={userName} size={28} color={r.color} />
             <span style={{ color:"#fff",fontSize:12,fontWeight:600 }}>Hi, {userName}</span>
-            <span style={{ fontSize:9,color:"#CBD5E1" }}>▾</span>
+            <span style={{ fontSize:9,color:"rgba(255,255,255,0.85)" }}>▾</span>
           </button>
           {profileOpen && (<>
             <div onClick={()=>setProfileOpen(false)} style={{ position:"fixed",inset:0,zIndex:250 }}/>
