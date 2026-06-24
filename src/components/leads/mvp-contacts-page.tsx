@@ -41,6 +41,7 @@ const toContact = (l) => {
     linkedin: l.linkedin || "—",
     accountSource: l.source || "—",
     assigned: !!l.assignedGP,
+    gdpr: l.consent === false,   // GDPR consent still pending
   };
 };
 
@@ -75,6 +76,10 @@ const fieldStyle = {
   border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit",
   color: C.text, boxSizing: "border-box", outline: "none", background: "#fff",
 };
+
+const Label = ({ children }) => (
+  <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>{children}</label>
+);
 
 const StagePill = ({ label, tone }) => {
   if (!tone) return <span style={{ fontSize: 13, color: C.muted }}>{label}</span>;
@@ -588,6 +593,155 @@ const AddContactPage = ({ onCancel, onSave }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BULK EMAIL
+// ─────────────────────────────────────────────────────────────────────────────
+const Avatar = ({ name }) => (
+  <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+    {name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
+  </div>
+);
+
+const GdprPill = () => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: C.primaryDark, background: C.primarySoft, padding: "4px 9px", borderRadius: 12 }}>ⓘ GDPR</span>
+);
+
+// Email preview — the rendered template a user sees before sending.
+const EmailPreviewModal = ({ onClose }) => (
+  <>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
+    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, maxWidth: "94vw", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", fontFamily: "inherit" }}>
+      <div style={{ padding: "20px 26px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 14 }}>
+          <span style={{ fontSize: 13, color: C.muted, width: 80 }}>Subject</span>
+          <span style={{ flex: 1, fontSize: 17, fontWeight: 700, color: C.navy }}>Subject #1</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 16 }}>
+          <span style={{ fontSize: 13, color: C.muted, width: 80 }}>Attachements</span>
+          <div style={{ display: "flex", gap: 12 }}>
+            {["FileName1.pdf", "FileName2.pdf"].map(f => (
+              <span key={f} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, color: C.text, background: C.primarySoft, padding: "9px 14px", borderRadius: 8 }}>📎 {f}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ height: 6, background: C.primary }} />
+      <div style={{ padding: "30px 40px" }}>
+        <div style={{ textAlign: "center", marginBottom: 26, fontSize: 22, fontWeight: 800 }}>
+          <span style={{ color: C.primary }}>ⓧ vion</span><span style={{ color: C.slate }}>world</span>
+        </div>
+        <div style={{ fontSize: 14, color: C.text, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 16px" }}>Hi John,</p>
+          <p style={{ margin: "0 0 16px" }}>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+          <p style={{ margin: "0 0 16px" }}>Thank You,</p>
+          <p style={{ margin: 0 }}>Vionworld - CRM Hub</p>
+        </div>
+      </div>
+      <div style={{ background: C.primary, color: "#fff", padding: "22px 30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 18, fontWeight: 800 }}>ⓧ vion<span style={{ fontWeight: 400 }}>world</span></span>
+        <span style={{ fontSize: 13, opacity: 0.95 }}>2024© Lead Connect</span>
+      </div>
+    </div>
+  </>
+);
+
+// Send Bulk Email — composer + recipients sub-view.
+const SendBulkEmailModal = ({ contacts, onClose }) => {
+  const [view, setView]       = useState("main");   // main | recipients
+  const [recipients, setRecipients] = useState(contacts);
+  const [schedule, setSchedule] = useState(true);
+  const [tpl, setTpl]         = useState("Email Template #1");
+  const [preview, setPreview] = useState(false);
+  const gdprCount = recipients.filter(r => r.gdpr).length;
+  const removeRcpt = (id) => setRecipients(prev => prev.filter(r => r.id !== id));
+
+  const Shell = ({ children }) => (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 560, maxWidth: "94vw", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 26px", fontFamily: "inherit" }}>
+        {children}
+      </div>
+    </>
+  );
+
+  if (view === "recipients") {
+    return (
+      <Shell>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={() => setView("main")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: C.slate }}>←</button>
+            <span style={{ fontSize: 19, fontWeight: 700, color: C.navy }}>Send Bulk Email</span>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
+        <div>
+          {recipients.map(r => (
+            <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 2px", borderBottom: `1px solid ${C.border}` }}>
+              <Avatar name={r.name} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: C.navy }}>{r.name}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{r.email}</div>
+              </div>
+              {r.gdpr && <GdprPill />}
+              <button onClick={() => removeRcpt(r.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: C.muted }}>×</button>
+            </div>
+          ))}
+          {recipients.length === 0 && <div style={{ padding: "30px", textAlign: "center", color: C.muted, fontSize: 13 }}>No recipients left.</div>}
+        </div>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+        <span style={{ fontSize: 19, fontWeight: 700, color: C.navy }}>Send Bulk Email</span>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+      </div>
+
+      {/* selection banner */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.primarySoft, borderRadius: 10, padding: "13px 16px", marginBottom: 20 }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{contacts.length} contacts selected</span>
+        {gdprCount > 0 && <GdprPill />}
+        <button onClick={() => setView("recipients")} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700, color: C.primaryDark }}>
+          Recipients ({recipients.length}) ›
+        </button>
+      </div>
+
+      {/* template */}
+      <Label>Email Template *</Label>
+      <div style={{ position: "relative", marginBottom: 6 }}>
+        <div style={{ ...fieldStyle, padding: "12px 14px", display: "flex", alignItems: "center" }}>
+          <span style={{ flex: 1, fontSize: 14, color: tpl ? C.text : C.muted }}>{tpl || "Select Email Template"}</span>
+          {tpl && <span onClick={() => setTpl("")} style={{ cursor: "pointer", color: C.muted }}>×</span>}
+        </div>
+      </div>
+      <div style={{ textAlign: "right", marginBottom: 16 }}>
+        <span onClick={() => setPreview(true)} style={{ fontSize: 13, fontWeight: 700, color: C.primaryDark, cursor: "pointer", textDecoration: "underline" }}>Preview Email Template</span>
+      </div>
+
+      {/* schedule */}
+      <label style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
+        <input type="checkbox" checked={schedule} onChange={e => setSchedule(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Schedule
+      </label>
+      {schedule && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+          <div><Label>Date *</Label><input type="date" style={{ ...fieldStyle, color: C.muted }} /></div>
+          <div><Label>Time *</Label><input type="time" style={{ ...fieldStyle, color: C.muted }} /></div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+        <button onClick={onClose} style={{ padding: "9px 30px", borderRadius: 9, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
+      </div>
+
+      {preview && <EmailPreviewModal onClose={() => setPreview(false)} />}
+    </Shell>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 const INITIAL_VIEWS = [
@@ -603,6 +757,7 @@ export const MVPContactsPage = ({ navigateTo }) => {
   const [activeView, setActiveView] = useState("my");
   const [mode, setMode]         = useState("list");   // list | add
   const [showImport, setShowImport] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);    // Send Bulk Email modal
   const [editView, setEditView] = useState(null);     // view being edited / added
   const [selected, setSelected] = useState(() => new Set());
 
@@ -704,6 +859,8 @@ export const MVPContactsPage = ({ navigateTo }) => {
         <IconBtn title="Edit view" onClick={() => setEditView(view)}>✎</IconBtn>
         <IconBtn title="Delete view" onClick={deleteView}>🗑</IconBtn>
         <IconBtn title="Export view">⬆</IconBtn>
+        <IconBtn title="Send bulk email" active={selected.size > 0}
+          onClick={() => { if (selected.size > 0) setShowBulk(true); }}>✉</IconBtn>
         {selected.size > 0 && <span style={{ marginLeft: 8, fontSize: 12, color: C.slate, fontWeight: 600 }}>{selected.size} selected</span>}
       </div>
 
@@ -769,6 +926,7 @@ export const MVPContactsPage = ({ navigateTo }) => {
       </div>
 
       {showImport && <ImportContactsModal onClose={() => setShowImport(false)} />}
+      {showBulk && <SendBulkEmailModal contacts={contacts.filter(c => selected.has(c.id))} onClose={() => setShowBulk(false)} />}
       {editView && <EditViewModal view={editView} onClose={() => setEditView(null)} onApply={applyView} />}
     </div>
   );

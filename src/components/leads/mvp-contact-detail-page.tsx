@@ -134,42 +134,155 @@ const EmailModal = ({ onClose }) => {
   );
 };
 
-// ── Task composer ─────────────────────────────────────────────────────────────
-const TaskModal = ({ onClose }) => {
-  const [repeat, setRepeat] = useState(true);
-  const [n, setN] = useState(1);
-  const [title, setTitle] = useState("");
+// ── shared form controls (Task / Appointment) ────────────────────────────────
+const Segmented = ({ options, value, onChange }) => (
+  <div style={{ display: "flex", gap: 8 }}>
+    {options.map(([key, label, icon]) => {
+      const on = value === key;
+      return (
+        <button key={key} onClick={() => onChange(key)} style={{
+          flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          padding: "9px 8px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: on ? 700 : 500,
+          border: `1.5px solid ${on ? C.primary : C.border}`, background: on ? C.primarySoft : "#fff", color: on ? C.primaryDark : C.slate,
+        }}>{icon && <span>{icon}</span>}{label}</button>
+      );
+    })}
+  </div>
+);
+
+const ReminderBlock = () => {
+  const [on, setOn] = useState(false);
+  const [opt, setOpt] = useState("15 Minutes Before");
   return (
-    <ModalShell icon="☑️" title="Task" width={640} onClose={onClose}>
-      <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <div><Label>Due Date *</Label><input type="date" style={placeholderSelect} /></div>
-        <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: on ? "1fr 1fr" : "auto 1fr", gap: 16, alignItems: "center" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
+          <input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Reminder
+        </label>
+        <select value={opt} onChange={e => setOpt(e.target.value)} style={fieldStyle}>
+          {["15 Minutes Before", "30 Minutes Before", "1 Hour Before", "1 Day Before", "Custom"].map(o => <option key={o}>{o}</option>)}
+        </select>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <div><Label>Task Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Task Type</option><option>Call</option><option>Email</option><option>Meeting</option><option>Follow-up</option></select></div>
-        <div><Label>Task Priority *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Task Priority</option><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></div>
+      {opt === "Custom" && on && (
+        <div style={{ marginTop: 12 }}>
+          <Label>Remind me on</Label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <input type="date" style={placeholderSelect} /><input type="time" style={placeholderSelect} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const RecurringBlock = () => {
+  const [on, setOn] = useState(false);
+  const [n, setN] = useState(1);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
+        <input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Recurring
+      </label>
+      {on && (<>
+        <span style={{ fontSize: 13, color: C.slate }}>Every</span>
+        <div style={{ display: "flex", alignItems: "center", border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+          <input value={n} onChange={e => setN(Number(e.target.value) || 1)} style={{ width: 46, border: "none", outline: "none", padding: "9px 10px", fontSize: 13, fontFamily: "inherit" }} />
+          <div style={{ display: "flex", flexDirection: "column", borderLeft: `1px solid ${C.border}` }}>
+            <button onClick={() => setN(v => v + 1)} style={{ border: "none", background: "#fff", cursor: "pointer", fontSize: 9, padding: "1px 7px", color: C.slate }}>▲</button>
+            <button onClick={() => setN(v => Math.max(1, v - 1))} style={{ border: "none", borderTop: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", fontSize: 9, padding: "1px 7px", color: C.slate }}>▼</button>
+          </div>
+        </div>
+        <select style={{ ...fieldStyle, width: 130 }} defaultValue="Day"><option>Day</option><option>Week</option><option>Month</option></select>
+      </>)}
+    </div>
+  );
+};
+
+// ── Task composer (Add Task) ──────────────────────────────────────────────────
+const TaskModal = ({ onClose }) => {
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState("call");
+  const [priority, setPriority] = useState("medium");
+  return (
+    <ModalShell icon="☑️" title="Add Task" width={560} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 16, marginBottom: 16, alignItems: "end" }}>
+        <div><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>Sandra Richter</option><option>Markus Bauer</option></select></div>
+        <div><Label>Type *</Label><Segmented value={type} onChange={setType} options={[["call", "Call", "📞"], ["email", "Email", "✉"], ["todo", "To Do", "☑"]]} /></div>
       </div>
       <div style={{ marginBottom: 16 }}>
-        <Label>Description *</Label>
-        <textarea style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} placeholder="Description" />
+        <Label>Priority *</Label>
+        <Segmented value={priority} onChange={setPriority} options={[["low", "Low"], ["medium", "Medium"], ["high", "High"], ["urgent", "Urgent"]]} />
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
-          <input type="checkbox" checked={repeat} onChange={e => setRepeat(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Repeat every
-        </label>
-        {repeat && (<>
-          <div style={{ display: "flex", alignItems: "center", border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
-            <input value={n} onChange={e => setN(Number(e.target.value) || 1)} style={{ width: 50, border: "none", outline: "none", padding: "9px 10px", fontSize: 13, fontFamily: "inherit" }} />
-            <div style={{ display: "flex", flexDirection: "column", borderLeft: `1px solid ${C.border}` }}>
-              <button onClick={() => setN(v => v + 1)} style={{ border: "none", background: "#fff", cursor: "pointer", fontSize: 9, padding: "1px 7px", color: C.slate }}>▲</button>
-              <button onClick={() => setN(v => Math.max(1, v - 1))} style={{ border: "none", borderTop: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", fontSize: 9, padding: "1px 7px", color: C.slate }}>▼</button>
-            </div>
-          </div>
-          <select style={{ ...fieldStyle, width: 160 }} defaultValue="Day"><option>Day</option><option>Week</option><option>Month</option></select>
-        </>)}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
       </div>
-      <FooterBtns onClose={onClose} label="Create" disabled={!title.trim()} />
+      <ReminderBlock />
+      <RecurringBlock />
+      <div style={{ marginBottom: 20 }}>
+        <Label>Description</Label>
+        <textarea style={{ ...fieldStyle, minHeight: 80, resize: "vertical", lineHeight: 1.5 }} placeholder="Description" />
+      </div>
+      <FooterBtns onClose={onClose} label="Save" disabled={!title.trim()} />
+    </ModalShell>
+  );
+};
+
+// ── Appointment composer (Add Appointment) ────────────────────────────────────
+const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other"];
+const AppointmentModal = ({ onClose }) => {
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState("Consultation Appointment");
+  return (
+    <ModalShell icon="📅" title="Add Appointment" width={560} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
+      <div style={{ marginBottom: 16 }}><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>Sandra Richter</option><option>Markus Bauer</option></select></div>
+      <div style={{ marginBottom: 16 }}><Label>Attendees</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>olivia.ruth@email.com</option><option>john.smith@email.com</option></select></div>
+      <div style={{ marginBottom: 16 }}>
+        <Label>Type *</Label>
+        <select value={type} onChange={e => setType(e.target.value)} style={fieldStyle}>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select>
+        {type === "Other" && <input style={{ ...fieldStyle, marginTop: 10 }} placeholder="Enter Appointment Type" />}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
+        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Start *</Label><input type="time" style={placeholderSelect} /></div>
+        <div><Label>End *</Label><input type="time" style={placeholderSelect} /></div>
+      </div>
+      <div style={{ marginBottom: 16 }}><Label>Meeting Location / Link</Label><input style={fieldStyle} placeholder="Location or video link" /></div>
+      <div style={{ marginBottom: 16 }}><Label>Attachment</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>sample.pdf</option></select></div>
+      <ReminderBlock />
+      <div style={{ marginBottom: 20 }}>
+        <Label>Description</Label>
+        <textarea style={{ ...fieldStyle, minHeight: 80, resize: "vertical", lineHeight: 1.5 }} placeholder="Description" />
+      </div>
+      <FooterBtns onClose={onClose} label="Save" disabled={!title.trim()} />
+    </ModalShell>
+  );
+};
+
+// ── Appointment Outcome ───────────────────────────────────────────────────────
+const AppointmentOutcomeModal = ({ onClose }) => {
+  const [status, setStatus] = useState("");
+  const [report, setReport] = useState("");
+  return (
+    <ModalShell icon="📅" title="Appointment Outcome" width={560} onClose={onClose}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 13, color: C.slate }}>🕒 Monday, January 5, 2026 | 11:30 - 12:00</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, fontSize: 13, color: C.text }}>
+        <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.indigo, color: "#fff", display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700 }}>SR</span> Sandra Richter
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <Label>Meeting Status *</Label>
+        <select value={status} onChange={e => setStatus(e.target.value)} style={{ ...fieldStyle, color: status ? C.text : C.muted }}>
+          <option value="">Choose…</option>{["Completed", "No Show", "Rescheduled", "Cancelled"].map(o => <option key={o}>{o}</option>)}
+        </select>
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <Label>Meeting Report *</Label>
+        <textarea value={report} onChange={e => setReport(e.target.value)} style={{ ...fieldStyle, minHeight: 100, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <StageStatusRow />
+      <FooterBtns onClose={onClose} label="Save" disabled={!status || !report.trim()} />
     </ModalShell>
   );
 };
@@ -293,35 +406,48 @@ const ScanQRModal = ({ onClose }) => {
   );
 };
 
-// ── Labels picker (popover) — supports custom labels ──────────────────────────
-const LabelsPicker = ({ selected, options, onToggle, onAddLabel, onClose }) => {
+// ── Labels picker (popover) — full label functionality (name + colour + desc) ─
+const LABEL_PALETTE = ["#DC2626", "#D97706", "#059669", "#0891B2", "#4338CA", "#7C3AED", "#DB2777", "#64748B"];
+const LabelsPicker = ({ selected, options, colors, onToggle, onAddLabel, onClose }) => {
   const [q, setQ] = useState("");
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
+  const [color, setColor] = useState(LABEL_PALETTE[0]);
+  const [desc, setDesc] = useState("");
   const list = options.filter(l => l.toLowerCase().includes(q.toLowerCase()));
-  const commit = () => { if (name.trim()) { onAddLabel(name.trim()); setName(""); setAdding(false); } };
+  const commit = () => { if (name.trim()) { onAddLabel(name.trim(), color, desc.trim()); setName(""); setDesc(""); setColor(LABEL_PALETTE[0]); setAdding(false); } };
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
-      <div style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 260, width: 230, background: "#fff", borderRadius: 12, boxShadow: "0 12px 36px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, padding: "10px 0" }}>
+      <div style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 260, width: 250, background: "#fff", borderRadius: 12, boxShadow: "0 12px 36px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, padding: "10px 0" }}>
         <div style={{ position: "relative", padding: "0 12px 8px" }}>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search" style={{ ...fieldStyle, padding: "8px 30px 8px 10px" }} />
           <span style={{ position: "absolute", right: 22, top: 8, color: C.muted, fontSize: 13 }}>🔍</span>
         </div>
         <div style={{ maxHeight: 170, overflowY: "auto" }}>
           {list.map(l => (
-            <label key={l} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", cursor: "pointer", fontSize: 13, color: C.text }}
+            <label key={l} title={(colors && colors[l]?.desc) || ""} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", cursor: "pointer", fontSize: 13, color: C.text }}
               onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
               <input type="checkbox" checked={selected.includes(l)} onChange={() => onToggle(l)} style={{ width: 15, height: 15, accentColor: C.primary }} />
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: (colors && colors[l]?.color) || C.slate, flexShrink: 0 }} />
               {l}
             </label>
           ))}
         </div>
-        <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 12px 2px" }}>
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 14px 4px" }}>
           {adding ? (
-            <div style={{ display: "flex", gap: 6 }}>
-              <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commit(); }} placeholder="New label" autoFocus style={{ ...fieldStyle, padding: "7px 9px" }} />
-              <button onClick={commit} disabled={!name.trim()} style={{ padding: "0 12px", borderRadius: 8, border: "none", background: name.trim() ? C.primary : C.border, color: name.trim() ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>Add</button>
+            <div>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Label name" autoFocus style={{ ...fieldStyle, padding: "8px 10px", marginBottom: 8 }} />
+              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                {LABEL_PALETTE.map(col => (
+                  <button key={col} onClick={() => setColor(col)} style={{ width: 20, height: 20, borderRadius: "50%", background: col, cursor: "pointer", border: color === col ? `2px solid ${C.navy}` : "2px solid #fff", boxShadow: `0 0 0 1px ${C.border}` }} />
+                ))}
+              </div>
+              <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description (optional)" style={{ ...fieldStyle, padding: "8px 10px", marginBottom: 8 }} />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button onClick={() => setAdding(false)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "transparent", color: C.slate, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={commit} disabled={!name.trim()} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: name.trim() ? C.primary : C.border, color: name.trim() ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>Add</button>
+              </div>
             </div>
           ) : (
             <span onClick={() => setAdding(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.primary, cursor: "pointer" }}>＋ Add Label</span>
@@ -357,14 +483,24 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline }) => {
+const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline, onAppointment, onOutcome }) => {
   const [gdpr, setGdpr] = useState(true);
   const [labels, setLabels] = useState(["Label 1"]);
   const [options, setOptions] = useState(["Test 1", "Do Not Call", "Callback Set", "Friend", "Friend1"]);
+  const [colors, setColors] = useState({
+    "Label 1": { color: C.primary, desc: "" }, "Test 1": { color: "#0891B2", desc: "" },
+    "Do Not Call": { color: "#64748B", desc: "Contact requested no phone contact" },
+    "Callback Set": { color: "#059669", desc: "Follow-up call scheduled" },
+    "Friend": { color: "#7C3AED", desc: "" }, "Friend1": { color: "#DB2777", desc: "" },
+  });
   const [pickerOpen, setPickerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const toggle = (l) => setLabels(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
-  const addCustom = (l) => { setOptions(prev => prev.includes(l) ? prev : [...prev, l]); setLabels(prev => prev.includes(l) ? prev : [...prev, l]); };
+  const addCustom = (l, color, desc) => {
+    setOptions(prev => prev.includes(l) ? prev : [...prev, l]);
+    setColors(prev => ({ ...prev, [l]: { color: color || C.slate, desc: desc || "" } }));
+    setLabels(prev => prev.includes(l) ? prev : [...prev, l]);
+  };
 
   return (
     <Card style={{ padding: "20px 18px", alignSelf: "start" }}>
@@ -388,18 +524,19 @@ const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline }) => {
         <Badge icon="✉" label="Subscribed" color={C.blue} />
       </div>
 
+      {/* Actions (bell/notification icon removed) */}
       <div style={{ display: "flex", gap: 14, paddingBottom: 14, borderBottom: `1px solid ${C.border}`, marginBottom: 16, fontSize: 17 }}>
         <span title="Email" onClick={onEmail} style={{ cursor: "pointer", color: C.primary }}>✉️</span>
         <span title="Log a Call" onClick={onLogCall} style={{ cursor: "pointer", color: C.primary }}>🤝</span>
-        <span title="Reminder" onClick={onTask} style={{ cursor: "pointer", color: C.primary }}>🔔</span>
-        <span title="Task" onClick={onTask} style={{ cursor: "pointer", color: C.primary }}>☑️</span>
+        <span title="Add Task" onClick={onTask} style={{ cursor: "pointer", color: C.primary }}>☑️</span>
+        <span title="Add Appointment" onClick={onAppointment} style={{ cursor: "pointer", color: C.primary }}>📅</span>
         <span style={{ position: "relative" }}>
           <span title="More" onClick={() => setMoreOpen(o => !o)} style={{ cursor: "pointer", color: C.slate }}>⋮</span>
           {moreOpen && (
             <>
               <div onClick={() => setMoreOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
-              <div style={{ position: "absolute", top: 24, left: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 150, padding: "5px 0" }}>
-                {[["📞 Log a Call", onLogCall], ["ⓘ Offline Log", onOffline], ["☑️ Add Task", onTask]].map(([label, fn]) => (
+              <div style={{ position: "absolute", top: 24, left: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 170, padding: "5px 0" }}>
+                {[["📞 Log a Call", onLogCall], ["ⓘ Offline Log", onOffline], ["📅 Add Appointment", onAppointment], ["✓ Appointment Outcome", onOutcome]].map(([label, fn]) => (
                   <div key={label} onClick={() => { setMoreOpen(false); fn(); }} style={{ padding: "9px 14px", fontSize: 13, color: C.text, cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap" }}
                     onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{label}</div>
                 ))}
@@ -420,13 +557,17 @@ const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline }) => {
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Labels</div>
         <div style={{ position: "relative", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {labels.map(l => (
-            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.primaryDark, background: C.primarySoft, padding: "5px 10px", borderRadius: 8 }}>
-              {l} <span onClick={() => toggle(l)} style={{ cursor: "pointer" }}>×</span>
-            </span>
-          ))}
+          {labels.map(l => {
+            const col = colors[l]?.color || C.primary;
+            return (
+              <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: col, background: col + "14", padding: "5px 10px", borderRadius: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
+                {l} <span onClick={() => toggle(l)} style={{ cursor: "pointer" }}>×</span>
+              </span>
+            );
+          })}
           <span onClick={() => setPickerOpen(o => !o)} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: C.slate, border: `1px dashed ${C.border}`, padding: "5px 10px", borderRadius: 8, cursor: "pointer" }}>＋ Add</span>
-          {pickerOpen && <LabelsPicker selected={labels} options={options} onToggle={toggle} onAddLabel={addCustom} onClose={() => setPickerOpen(false)} />}
+          {pickerOpen && <LabelsPicker selected={labels} options={options} colors={colors} onToggle={toggle} onAddLabel={addCustom} onClose={() => setPickerOpen(false)} />}
         </div>
       </div>
     </Card>
@@ -731,7 +872,8 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18, alignItems: "start" }}>
         <IdentityRail c={c}
           onEmail={() => setModal("email")} onTask={() => setModal("task")}
-          onLogCall={() => setModal("logcall")} onOffline={() => setModal("offline")} />
+          onLogCall={() => setModal("logcall")} onOffline={() => setModal("offline")}
+          onAppointment={() => setModal("appointment")} onOutcome={() => setModal("outcome")} />
 
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -751,10 +893,12 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
         </div>
       </div>
 
-      {modal === "email"   && <EmailModal onClose={() => setModal(null)} />}
-      {modal === "task"    && <TaskModal onClose={() => setModal(null)} />}
-      {modal === "logcall" && <LogCallModal onClose={() => setModal(null)} />}
-      {modal === "offline" && <OfflineLogModal onClose={() => setModal(null)} />}
+      {modal === "email"       && <EmailModal onClose={() => setModal(null)} />}
+      {modal === "task"        && <TaskModal onClose={() => setModal(null)} />}
+      {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} />}
+      {modal === "offline"     && <OfflineLogModal onClose={() => setModal(null)} />}
+      {modal === "appointment" && <AppointmentModal onClose={() => setModal(null)} />}
+      {modal === "outcome"     && <AppointmentOutcomeModal onClose={() => setModal(null)} />}
     </div>
   );
 };
