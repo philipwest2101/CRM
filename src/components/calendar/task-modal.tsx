@@ -8,10 +8,12 @@ import { C } from "../../theme";
 const lbl   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em", display:"block", marginBottom:5 };
 const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text };
 
-// Task types come from the shared ACTIVITY_TYPES so the label/icon for each
-// type (call / email / note) is identical here and in the Add-Activity modal.
+// Task types come from the shared ACTIVITY_TYPES so call/email stay in sync
+// with the Add-Activity modal. The "note" type is surfaced to consultants as a
+// "To Do" task (✅) here, even though the activity feed labels it "Note".
+const TASK_TYPE_OVERRIDE = { note: { icon: "✅", label: "To Do" } };
 const TYPE_META = Object.fromEntries(
-  TASK_TYPE_KEYS.map(k => [k, { icon: ACTIVITY_TYPES[k].icon, label: ACTIVITY_TYPES[k].label }])
+  TASK_TYPE_KEYS.map(k => [k, TASK_TYPE_OVERRIDE[k] || { icon: ACTIVITY_TYPES[k].icon, label: ACTIVITY_TYPES[k].label }])
 );
 // Priorities come from the shared canonical set (low / normal / high / urgent).
 const PRIORITIES = PRIORITY_KEYS.map(k => [k, PRIORITY_META[k].label, PRIORITY_META[k].color]);

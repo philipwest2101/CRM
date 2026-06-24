@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
-import { MiniCalendar } from "../ui/mini-calendar";
 import { PRIORITY_META, DONE_STATUSES } from "../../lib/core";
 
 // ── Role → user mapping (matches mock data in CRMAppV5.jsx) ──────────────────
@@ -190,13 +189,6 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
     .filter(a => a.entityType !== "reminder" && a.entityType !== "task")
     .slice(0, 8);
 
-  // Days in Feb 2026 that have an appointment → highlighted in the mini calendar
-  const calendarHighlights = [...new Set(
-    scopedAppts
-      .filter(a => typeof a.date === "string" && a.date.startsWith("2026-02") && a.status !== "cancelled")
-      .map(a => Number(a.date.slice(8, 10)))
-  )];
-
   // ── Panel titles per role ────────────────────────────────────────────────────
   const leadsTitle    = isGP ? "My New Contacts" : isVD ? "Team New Contacts" : "New Contacts";
   const contactsLabel = isGP ? "My Contacts" : isVD ? "Team Contacts" : "Total Contacts";
@@ -268,14 +260,8 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
           />
         </div>
 
-        {/* ── Main layout: left work area | right rail ───────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
-
-          {/* ── LEFT work area: Contacts + Tasks on top, Recent Activity below ── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-            {/* Top row: New Contacts | Reminders & Tasks */}
-            <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr", gap: 14, alignItems: "start" }}>
+        {/* ── Top row: New Contacts | Reminders & Tasks | Appointments Today ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
 
           {/* ── New Contacts panel ───────────────────────────────────────────── */}
           <Card>
@@ -400,82 +386,14 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
               })}
             </div>
           </Card>
-            </div>{/* end top row */}
 
-            {/* ── Recent Activity — fills the space beneath Contacts & Tasks ── */}
-            <Card>
-              <CardHeader
-                title={isGP ? "My Recent Activity" : isVD ? "Team Recent Activity" : "Recent Activity"}
-                action={<LinkBtn label="All Activity →" onClick={() => navigateTo("Calendar")} />}
-              />
-              <div style={{ padding: "6px 16px 12px" }}>
-                {recentActivity.length === 0 ? (
-                  <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                    No recent activity.
-                  </div>
-                ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", columnGap: 24, rowGap: 0 }}>
-                    {recentActivity.map((act) => {
-                      const iconBg = { call: C.green, video: C.indigo, email: C.amber, inperson: C.blue, note: C.purple }[act.type] || C.muted;
-                      return (
-                        <div key={act.id} style={{
-                          display: "flex", gap: 11, alignItems: "center",
-                          padding: "7px 0",
-                          borderBottom: `1px solid ${C.border}`,
-                        }}>
-                          <div style={{
-                            width: 30, height: 30, borderRadius: "50%",
-                            background: iconBg + "18", display: "grid", placeItems: "center",
-                            fontSize: 14, flexShrink: 0,
-                          }}>
-                            {TYPE_ICON[act.type] || "📋"}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{act.title}</div>
-                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
-                              {!isGP && act.gp && <>{act.gp} · </>}
-                              {act.date} {act.time}
-                            </div>
-                          </div>
-                          <span style={{
-                            fontSize: 9, fontFamily: "monospace", padding: "2px 7px",
-                            borderRadius: 20, flexShrink: 0,
-                            background: C.muted + "18", color: C.muted, fontWeight: 600,
-                            textTransform: "capitalize",
-                          }}>
-                            {act.status}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </Card>
-
-          </div>{/* end LEFT work area */}
-
-          {/* ── Right rail: mini calendar + today's appointments ───────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-            {/* Mini calendar */}
-            <Card>
-              <CardHeader
-                title="Calendar"
-                action={<LinkBtn label="Open →" onClick={() => navigateTo("Calendar")} />}
-              />
-              <div style={{ padding: "10px 14px 12px" }}>
-                <MiniCalendar highlightDays={calendarHighlights} />
-              </div>
-            </Card>
-
-            {/* Today's appointments — directly under the calendar */}
-            <Card>
-              <CardHeader
-                title={apptsTitle}
-                action={<LinkBtn label="Calendar →" onClick={() => navigateTo("Calendar")} />}
-              />
-              <div style={{ padding: "2px 14px 8px" }}>
+          {/* ── Appointments Today — third column ────────────────────────────── */}
+          <Card>
+            <CardHeader
+              title={apptsTitle}
+              action={<LinkBtn label="Calendar →" onClick={() => navigateTo("Calendar")} />}
+            />
+            <div style={{ padding: "2px 14px 8px" }}>
                 {todayAppts.length === 0 ? (
                   <div style={{ padding: "14px 0", textAlign: "center", color: C.muted, fontSize: 12.5 }}>
                     No appointments today.
@@ -509,8 +427,58 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
                 })}
               </div>
             </Card>
-          </div>
         </div>
+
+        {/* ── Recent Activity — full width below the top row ────────────────── */}
+        <Card>
+          <CardHeader
+            title={isGP ? "My Recent Activity" : isVD ? "Team Recent Activity" : "Recent Activity"}
+            action={<LinkBtn label="All Activity →" onClick={() => navigateTo("Calendar")} />}
+          />
+          <div style={{ padding: "6px 16px 12px" }}>
+            {recentActivity.length === 0 ? (
+              <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
+                No recent activity.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", columnGap: 24, rowGap: 0 }}>
+                {recentActivity.map((act) => {
+                  const iconBg = { call: C.green, video: C.indigo, email: C.amber, inperson: C.blue, note: C.purple }[act.type] || C.muted;
+                  return (
+                    <div key={act.id} style={{
+                      display: "flex", gap: 11, alignItems: "center",
+                      padding: "7px 0",
+                      borderBottom: `1px solid ${C.border}`,
+                    }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: "50%",
+                        background: iconBg + "18", display: "grid", placeItems: "center",
+                        fontSize: 14, flexShrink: 0,
+                      }}>
+                        {TYPE_ICON[act.type] || "📋"}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{act.title}</div>
+                        <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                          {!isGP && act.gp && <>{act.gp} · </>}
+                          {act.date} {act.time}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 9, fontFamily: "monospace", padding: "2px 7px",
+                        borderRadius: 20, flexShrink: 0,
+                        background: C.muted + "18", color: C.muted, fontWeight: 600,
+                        textTransform: "capitalize",
+                      }}>
+                        {act.status}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Card>
 
       </div>
     </div>
