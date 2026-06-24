@@ -107,6 +107,8 @@ To close this gap, the team must:
 
 Until that exists, **codegen output for the logo cannot be correct** and should be treated as a placeholder.
 
+**Confirmed treatment (decided):** on the colored (orange) header chrome the wordmark renders **solid white (`#FFFFFF`) with no accent color** — the whole lockup, including any `CRM` / divider segment, is white. Do not tint any part of the wordmark with the blue primary; the blue `CRM` seen in early codegen was the dual-primary blue (§5.1) leaking in and is incorrect. *(Treatment on light/neutral chrome is still TBD once a logo asset exists.)*
+
 ---
 
 ## 2. Component Library
@@ -276,7 +278,7 @@ This mapping was **not extracted from the file** — it is a reasonable starting
 | Element | Token / value |
 |---|---|
 | Bar height | `--header-height` (80px), content capped at `--content-max-width` |
-| Bar background | **decision-dependent** (see `--color-primary`) — confirm in Figma whether the bar is colored chrome or neutral |
+| Bar background | **confirmed: orange chrome `#FF9000`** (decided). Logo + text on the bar are white (§1.5). Note: this settles the *header* only — it does **not** resolve the canonical-primary token decision in §5.1/§8 for buttons, links, and focus rings. |
 | Logo | the exported SVG asset from §1.5 — **not** a text node |
 | Nav item (default) | `--text-sm` / Inter Medium 500 |
 | Nav item (active) | weight + a pill/underline in the chosen primary; confirm exact treatment in Figma |
