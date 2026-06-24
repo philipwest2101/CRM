@@ -206,18 +206,18 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
             style={{ padding:"8px 18px",borderRadius:7,border:"none",
               background:selected>0?C.green:"#E2E8F0",color:selected>0?"#fff":C.muted,
               fontSize:12,fontWeight:700,cursor:selected>0?"pointer":"default",transition:"all 0.2s" }}>
-            ⚡ Assign {selected>0?`${selected} Lead${selected!==1?"s":""}`:""} →
+            ⚡ Assign {selected>0?`${selected} Contact${selected!==1?"s":""}`:""} →
           </button>
         </div>
       </div>
 
-      {/* Lead assignment table */}
+      {/* Contact assignment table */}
       <div style={{ background:"#fff",borderRadius:12,border:`1px solid ${C.border}`,overflow:"hidden" }}>
         <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
           <thead>
             <tr style={{ background:"#F8FAFC",borderBottom:`2px solid ${C.border}` }}>
               <th style={{ padding:"10px 14px",width:36 }}/>
-              {["Lead","Location","Source / Campaign","Assign To","VD","ZIP Match","Created",""].map(h=>(
+              {["Contact","Location","Source / Campaign","Assign To","VD","ZIP Match","Created",""].map(h=>(
                 <th key={h} style={{ padding:"10px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em" }}>{h}</th>
               ))}
             </tr>
@@ -337,7 +337,7 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
                   <input value={ruleForm.convRate} onChange={e=>setRuleForm(f=>({...f,convRate:e.target.value}))}
                     placeholder="e.g. 7.5" type="number" step="0.1" min="0" max="100" style={inp}/>
                 </Field>
-                <Field label="Capacity (max leads)">
+                <Field label="Capacity (max contacts)">
                   <input value={ruleForm.capacity} onChange={e=>setRuleForm(f=>({...f,capacity:e.target.value}))}
                     placeholder="e.g. 80" type="number" min="1" style={inp}/>
                 </Field>
@@ -393,4 +393,4 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
   );
 };
 
-// ─── Lead Capture Page (LC-01 to LC-07, LDM-01 to LDM-05) ───────────────────
+// ─── Contact Capture Page (LC-01 to LC-07, LDM-01 to LDM-05) ───────────────────

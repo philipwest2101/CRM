@@ -70,7 +70,7 @@ export default function CRMAppV5() {
   const runWorkflow = React.useCallback((trigger, lead) => {
     const activeRules = WORKFLOW_RULES_STORE.filter(r => r.active && r.trigger === trigger);
     activeRules.forEach(rule => {
-      const leadName = lead?.name || "Lead";
+      const leadName = lead?.name || "Contact";
       const leadLang = lead?.lang || "de";
       const langFlag = leadLang === "en" ? "🇬🇧" : "🇩🇪";
 
@@ -105,7 +105,7 @@ export default function CRMAppV5() {
         else                                   due.setDate(due.getDate() + v);
         const reminder = {
           id: `r_wf_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
-          title: taskTitle.replace("{lead}", leadName).replace("{attempt}", lead?.attempts||1),
+          title: taskTitle.replace("{contact}", leadName).replace("{attempt}", lead?.attempts||1),
           lead: leadName,
           entityType: "lead",
           date: due.toISOString().slice(0,10),

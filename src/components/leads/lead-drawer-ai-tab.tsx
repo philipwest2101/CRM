@@ -44,7 +44,7 @@ export const LeadDrawerAITab = ({ lead, role }) => {
     try {
       const raw = await callClaudeAPI(
         `You classify call outcomes for a CRM. Return ONLY JSON: {"status":"followup"|"appointment"|"no_interest"|"attempted"|"closed","label":"human label","color":"hex","followup":"date or empty","nextAction":"string","reasoning":"string","confidence":0-100,"suggestAppointment":bool}`,
-        `Call note: "${callNotes}". Lead: ${lead.name}, campaign: ${lead.campaign}, attempts: ${lead.attempts}.`
+        `Call note: "${callNotes}". Contact: ${lead.name}, campaign: ${lead.campaign}, attempts: ${lead.attempts}.`
       );
       setClassified(JSON.parse(raw.replace(/```json|```/g,"").trim()));
     } catch {

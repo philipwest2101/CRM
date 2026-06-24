@@ -7,7 +7,7 @@ export const FloatingAgentChat = ({ role }) => {
   const [messages, setMessages] = useState([{
     from:"agent",
     text:`Hi! I'm your **vion AI Agent**. Ask me anything about your leads, pipeline, or performance — or click a suggestion below.`,
-    chips:["📊 My performance narrative","Which leads should I call today?","Show hot leads","How is my team performing?"]
+    chips:["📊 My performance narrative","Which contacts should I call today?","Show hot contacts","How is my team performing?"]
   }]);
   const [input, setInput]     = useState("");
   const [thinking, setThinking] = useState(false);
@@ -149,7 +149,7 @@ export const FloatingAgentChat = ({ role }) => {
 
           {/* Input */}
           <div style={{ padding:"10px 14px",borderTop:`1px solid ${C.border}`,display:"flex",gap:8,alignItems:"center" }}>
-            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send(input)} placeholder="Ask about leads, pipeline, performance…" style={{ flex:1,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"8px 12px",fontSize:12,fontFamily:"inherit",color:C.text,outline:"none" }} />
+            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send(input)} placeholder="Ask about contacts, pipeline, performance…" style={{ flex:1,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"8px 12px",fontSize:12,fontFamily:"inherit",color:C.text,outline:"none" }} />
             <button onClick={()=>send(input)} disabled={!input.trim()||thinking} style={{ width:36,height:36,borderRadius:10,border:"none",background:input.trim()&&!thinking?C.ai:"#E2E8F0",color:"#fff",fontSize:16,cursor:input.trim()&&!thinking?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.2s",flexShrink:0 }}>↑</button>
           </div>
         </div>
@@ -158,5 +158,5 @@ export const FloatingAgentChat = ({ role }) => {
   );
 };
 
-// ─── Lead Drawer ─────────────────────────────────────────────────────────────
+// ─── Contact Drawer ─────────────────────────────────────────────────────────────
 // Module-level notes store — persists across drawer re-opens within the session

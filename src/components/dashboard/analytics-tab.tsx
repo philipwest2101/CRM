@@ -6,16 +6,16 @@ export const AnalyticsTab = ({ role }) => {
   const [activeReport, setActiveReport] = useState(null);
   const isVD = role==="vd";
   const REPORTS = [
-    { key:"vd_performance", icon:"👥", title:isVD?"Team Performance":"VD Performance Report",   desc:"Director comparison: leads, appointments, closings and conversion rates.",     color:C.navy   },
-    { key:"campaign_roi",   icon:"📣", title:"Campaign & Source ROI",    desc:"Lead volume, cost-per-lead, and conversion by campaign and source channel.",    color:C.indigo },
+    { key:"vd_performance", icon:"👥", title:isVD?"Team Performance":"VD Performance Report",   desc:"Director comparison: contacts, appointments, closings and conversion rates.",     color:C.navy   },
+    { key:"campaign_roi",   icon:"📣", title:"Campaign & Source ROI",    desc:"Contact volume, cost-per-contact, and conversion by campaign and source channel.",    color:C.indigo },
     { key:"appointments",   icon:"📅", title:"Appointment Analytics",    desc:"Booking rate, show rate, cancellation rate by VD, GP, and campaign.",          color:C.blue   },
     { key:"closing",        icon:"✅", title:"Closing & Revenue Report", desc:"Closed deals, deal value, cycle length, and revenue attribution.",              color:C.green  },
     { key:"gdpr",           icon:"🔒", title:"GDPR Compliance",          desc:"Consent rates, opt-out trends, retargeting eligibility and retention.",        color:C.purple },
     { key:"email",          icon:"✉️", title:"Email Automation Stats",   desc:"Open rates, click rates, and conversion by automated journey.",                color:C.amber  },
   ];
   const quickMetrics = isVD
-    ? [{label:"Team Leads",value:"890",color:C.navy},{label:"Appointments",value:"54",color:C.indigo},{label:"Closed",value:"34",color:C.green},{label:"Not Reached",value:"125",color:C.red},{label:"Opt-in Rate",value:"76.4%",color:C.purple},{label:"Conv. Rate",value:"7.1%",color:C.amber}]
-    : [{label:"Total Leads",value:"2.904",color:C.navy},{label:"Appointments",value:"134",color:C.indigo},{label:"Closed",value:"89",color:C.green},{label:"Not Reached",value:"203",color:C.red},{label:"Opt-in Rate",value:"79.8%",color:C.purple},{label:"Conv. Rate",value:"6.2%",color:C.amber}];
+    ? [{label:"Team Contacts",value:"890",color:C.navy},{label:"Appointments",value:"54",color:C.indigo},{label:"Closed",value:"34",color:C.green},{label:"Not Reached",value:"125",color:C.red},{label:"Opt-in Rate",value:"76.4%",color:C.purple},{label:"Conv. Rate",value:"7.1%",color:C.amber}]
+    : [{label:"Total Contacts",value:"2.904",color:C.navy},{label:"Appointments",value:"134",color:C.indigo},{label:"Closed",value:"89",color:C.green},{label:"Not Reached",value:"203",color:C.red},{label:"Opt-in Rate",value:"79.8%",color:C.purple},{label:"Conv. Rate",value:"6.2%",color:C.amber}];
   if(activeReport) return <ReportDetail report={activeReport} role={role} onBack={()=>setActiveReport(null)} />;
   return (
     <div style={{ padding:"24px 0" }}>

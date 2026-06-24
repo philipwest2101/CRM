@@ -120,14 +120,14 @@ export let DOCUMENT_TYPES_STORE = DEFAULT_DOCUMENT_TYPES.map(d=>({...d}));
 // ─── Label Store (SA-managed, org-wide) ──────────────────────────────────────
 
 export let LABELS_STORE = [
-  { id:"lbl1", name:"Hot Lead",       color:"#DC2626", desc:"High intent, prioritise now",        active:true  },
+  { id:"lbl1", name:"Hot Contact",       color:"#DC2626", desc:"High intent, prioritise now",        active:true  },
   { id:"lbl2", name:"VIP",            color:"#7C3AED", desc:"Key account or referral",             active:true  },
   { id:"lbl3", name:"GDPR Pending",   color:"#D97706", desc:"Consent form not yet returned",       active:true  },
-  { id:"lbl4", name:"Campaign Q1",    color:"#0891B2", desc:"Q1 2026 Finanz campaign lead",        active:true  },
-  { id:"lbl5", name:"Do Not Call",    color:"#64748B", desc:"Lead requested no phone contact",     active:true  },
+  { id:"lbl4", name:"Campaign Q1",    color:"#0891B2", desc:"Q1 2026 Finanz campaign contact",        active:true  },
+  { id:"lbl5", name:"Do Not Call",    color:"#64748B", desc:"Contact requested no phone contact",     active:true  },
   { id:"lbl6", name:"Callback Set",   color:"#059669", desc:"Follow-up call scheduled",            active:true  },
   { id:"lbl7", name:"Appointment Set",color:"#4338CA", desc:"Advisory appointment confirmed",      active:true  },
-  { id:"lbl8", name:"Lost",           color:"#94A3B8", desc:"Lead closed as lost",                 active:false },
+  { id:"lbl8", name:"Lost",           color:"#94A3B8", desc:"Contact closed as lost",                 active:false },
 ];
 
 
@@ -144,11 +144,11 @@ export let STATUS_AUTOMATION_CONFIG = { notReachedThreshold:5 };
 // Semantic flags the automation engine targets instead of status names.
 
 export const STATUS_FLAGS = [
-  { id:"isNewDefault",         label:"Default for new leads" },
+  { id:"isNewDefault",         label:"Default for new contacts" },
   { id:"isNotReachedTerminal", label:"Not-reached terminal (counter target)" },
   { id:"isAppointment",        label:"Appointment (triggers calendar sync)" },
   { id:"isWon",                label:"Closed-won (triggers post-sale)" },
-  { id:"excludesOutreach",     label:"Excludes lead from all outreach (DNC)" },
+  { id:"excludesOutreach",     label:"Excludes contact from all outreach (DNC)" },
   { id:"retargetingEligible",  label:"Retargeting / nurture eligible (with consent)" },
 ];
 
@@ -211,7 +211,7 @@ export const ALL_LEADS = [
   { id:"L-1030", lang:"de", name:"Ben Schulze",     email:"b.schulze@t-online.de",   phone:"+49 176 3345678", zip:"10178", city:"Berlin",    source:"Google Sheets", campaign:"Partner Ref",  status:"followup",    assignedVD:"Ralf Fischer",  assignedGP:"Ben Hartmann",  created:"4 days ago",   consent:false, attempts:2 },
 ];
 
-// ─── P0 AI: Live Lead Scoring ─────────────────────────────────────────────────
+// ─── P0 AI: Live Contact Scoring ─────────────────────────────────────────────────
 // Module-level cache — scores persist for the session, never re-fetch the same lead
 
 export const AI_SCORE_CACHE = {};
@@ -235,7 +235,7 @@ export const scoreLeadWithAI = async (lead) => {
 
 Score this lead from 0–100 and classify their tier. Use ONLY these tiers: hot (80–100), warm (40–79), cold (0–39), closed (score=100, only if status=closed).
 
-Lead data:
+Contact data:
 - Status: ${lead.status}
 - Source: ${lead.source} — intent: ${SOURCE_INTENT[lead.source] || "unknown"}
 - Campaign: ${lead.campaign} — historical conv. rate: ${CAMPAIGN_CONV[lead.campaign] || "unknown"}
@@ -243,7 +243,7 @@ Lead data:
 - GDPR consent: ${lead.consent ? "yes (double opt-in confirmed)" : "NO — limits email retargeting"}
 - Contact attempts: ${lead.attempts} of 5 max
 - Assigned: ${lead.assignedGP ? "yes, to "+lead.assignedGP : "unassigned"}
-- Lead age: ${lead.created}
+- Contact age: ${lead.created}
 
 Scoring guidance (apply all that are relevant):
 - status=closed → score=100, tier=closed
@@ -319,15 +319,15 @@ ALL_LEADS.forEach(l => { if (l.labels) LEAD_LABELS_STORE[l.id] = [...l.labels]; 
 export let WORKFLOW_RULES_STORE = [
   {
     id:"wf1", active:true,
-    name:"New Lead Assigned", trigger:"lead_assigned", category:"acquisition",
+    name:"New Contact Assigned", trigger:"lead_assigned", category:"acquisition",
     emailTemplateId:null, emailJourney:"welcome",
     sendEmail:true, emailToLead:true, emailRoles:[],
     setStatus:false, setStatusKey:"",
-    createTask:true, taskType:"call", taskTitle:"Call {lead} to introduce yourself within 24h", taskPriority:"high",
+    createTask:true, taskType:"call", taskTitle:"Call {contact} to introduce yourself within 24h", taskPriority:"high",
     taskRoles:["gp"], taskDueValue:1, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 hour before",
     sendPush:true, pushRoles:["gp"],
     threshold:5, delay:0, delayUnit:"minutes",
-    description:"Welcome email to the lead, a 24h intro-call task for the consultant, and an instant push alert.",
+    description:"Welcome email to the contact, a 24h intro-call task for the consultant, and an instant push alert.",
   },
   {
     id:"wf2", active:true,
@@ -339,7 +339,7 @@ export let WORKFLOW_RULES_STORE = [
     taskRoles:["gp"], taskDueValue:0, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 hour before",
     sendPush:true, pushRoles:["gp","vd"],
     threshold:5, delay:0, delayUnit:"minutes",
-    description:"After the final failed attempt: move the lead to Not Reached, send a re-engagement email, and alert GP + VD.",
+    description:"After the final failed attempt: move the contact to Not Reached, send a re-engagement email, and alert GP + VD.",
   },
   {
     id:"wf3", active:true,
@@ -347,11 +347,11 @@ export let WORKFLOW_RULES_STORE = [
     emailTemplateId:null, emailJourney:"reminder",
     sendEmail:true, emailToLead:true, emailRoles:[],
     setStatus:true, setStatusKey:"appointment",
-    createTask:true, taskType:"note", taskTitle:"Prepare for appointment with {lead}", taskPriority:"normal",
+    createTask:true, taskType:"note", taskTitle:"Prepare for appointment with {contact}", taskPriority:"normal",
     taskRoles:["gp"], taskDueValue:0, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 day before",
     sendPush:true, pushRoles:["gp"],
     threshold:5, delay:0, delayUnit:"minutes",
-    description:"Confirm the appointment to the lead, set status to Appointment Scheduled, and give the consultant a prep task.",
+    description:"Confirm the appointment to the contact, set status to Appointment Scheduled, and give the consultant a prep task.",
   },
   {
     id:"wf4", active:true,
@@ -363,7 +363,7 @@ export let WORKFLOW_RULES_STORE = [
     taskRoles:["gp"], taskDueValue:0, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 hour before",
     sendPush:true, pushRoles:["vd","superadmin"],
     threshold:5, delay:0, delayUnit:"minutes",
-    description:"Send the customer a post-sale nurture email, mark the lead Closed, and notify VD + Super Admin (email + push).",
+    description:"Send the customer a post-sale nurture email, mark the contact Closed, and notify VD + Super Admin (email + push).",
   },
   {
     id:"wf5", active:true,
@@ -371,11 +371,11 @@ export let WORKFLOW_RULES_STORE = [
     emailTemplateId:null, emailJourney:null,
     sendEmail:false, emailToLead:false, emailRoles:[],
     setStatus:true, setStatusKey:"dnc",
-    createTask:true, taskType:"note", taskTitle:"Verify {lead} is removed from all outreach lists", taskPriority:"high",
+    createTask:true, taskType:"note", taskTitle:"Verify {contact} is removed from all outreach lists", taskPriority:"high",
     taskRoles:["superadmin"], taskDueValue:0, taskDueUnit:"days", taskRemind:false, taskRemindLead:"at due time",
     sendPush:true, pushRoles:["gp","vd","superadmin"],
     threshold:5, delay:0, delayUnit:"minutes",
-    description:"No lead email (compliant). Move to Do Not Contact, create a Super Admin verification task, and notify all roles.",
+    description:"No contact email (compliant). Move to Do Not Contact, create a Super Admin verification task, and notify all roles.",
   },
 ];
 
@@ -447,21 +447,21 @@ export const classifyOutcome = (text) => {
       suggestAppointment:false,
       agentSuggestion: null };
   if ((t.includes("interessiert") || t.includes("interest") || t.includes("callback") || t.includes("rückruf")) && !t.includes("kein") && !t.includes("nicht"))
-    return { status:"followup", label:"Follow Up", color:C.purple, nextAction:"Call back as agreed", followup:"+2 days", confidence:88, reasoning:"Lead expressed interest and requested a follow-up callback.",
+    return { status:"followup", label:"Follow Up", color:C.purple, nextAction:"Call back as agreed", followup:"+2 days", confidence:88, reasoning:"Contact expressed interest and requested a follow-up callback.",
       suggestAppointment: true,
-      agentSuggestion: "The lead expressed **genuine interest** — this is exactly the right moment to lock in a time while motivation is high. I recommend proposing a **20-minute video call** rather than another phone call: it signals seriousness and increases show rate by ~18%. Based on their profile, **Tuesday or Thursday morning (10:00–11:30)** are the strongest slots for this ZIP region. Would you like to book it now?" };
+      agentSuggestion: "The contact expressed **genuine interest** — this is exactly the right moment to lock in a time while motivation is high. I recommend proposing a **20-minute video call** rather than another phone call: it signals seriousness and increases show rate by ~18%. Based on their profile, **Tuesday or Thursday morning (10:00–11:30)** are the strongest slots for this ZIP region. Would you like to book it now?" };
   if (t.includes("nicht erreicht") || t.includes("nicht erreichbar") || t.includes("keine antwort") || t.includes("mailbox") || t.includes("not reached") || t.includes("no answer"))
     return { status:"attempted", label:"Attempted", color:C.amber, nextAction:"Retry tomorrow morning", followup:"+1 day", confidence:97, reasoning:"No contact made — voicemail or no answer detected.",
       suggestAppointment: false,
       agentSuggestion: null };
   if (t.includes("kein interesse") || t.includes("nicht interesse") || t.includes("not interested") || t.includes("ablehnung") || t.includes("nein danke"))
-    return { status:"no_interest", label:"No Interest", color:C.muted, nextAction:"Archive lead", followup:"", confidence:92, reasoning:"Explicit rejection or disinterest detected.",
+    return { status:"no_interest", label:"No Interest", color:C.muted, nextAction:"Archive contact", followup:"", confidence:92, reasoning:"Explicit rejection or disinterest detected.",
       suggestAppointment: false,
       agentSuggestion: null };
   if (t.includes("erreicht") || t.includes("reached") || t.includes("gesprochen") || t.includes("spoken"))
     return { status:"in_progress", label:"In Progress", color:C.blue, nextAction:"Send follow-up email", followup:"+1 day", confidence:85, reasoning:"Contact was made — continuing conversation.",
       suggestAppointment: true,
-      agentSuggestion: "Good — contact was made. The next step that moves leads forward fastest is **scheduling a structured appointment** rather than leaving it open-ended. Leads who have a confirmed time slot are **3× more likely to close** than those waiting for a callback. I can pull up available slots now — want to set one?" };
+      agentSuggestion: "Good — contact was made. The next step that moves contacts forward fastest is **scheduling a structured appointment** rather than leaving it open-ended. Contacts who have a confirmed time slot are **3× more likely to close** than those waiting for a callback. I can pull up available slots now — want to set one?" };
   return { status:"in_progress", label:"In Progress", color:C.blue, nextAction:"Review and update manually", followup:"", confidence:62, reasoning:"General activity detected — please review status manually.",
     suggestAppointment: false,
     agentSuggestion: null };
@@ -470,7 +470,7 @@ export const classifyOutcome = (text) => {
 // ─── Static CRM Data ──────────────────────────────────────────────────────────
 
 export const SA_KPIS = [
-  { label:"Total Leads",  value:"2.904", delta:"+12%",   up:true,  color:C.navy,   spark:[40,55,48,62,70,65,80,75,90,88,95,102] },
+  { label:"Total Contacts",  value:"2.904", delta:"+12%",   up:true,  color:C.navy,   spark:[40,55,48,62,70,65,80,75,90,88,95,102] },
   { label:"Unassigned",   value:"47",    delta:"-8",     up:true,  color:C.red,    spark:[80,72,68,60,55,58,52,48,47,44,40,47]  },
   { label:"Appointments", value:"134",   delta:"+23%",   up:true,  color:C.indigo, spark:[60,65,70,80,75,85,90,95,100,110,120,134] },
   { label:"Closed (MTD)", value:"89",    delta:"+31%",   up:true,  color:C.green,  spark:[20,28,35,40,45,52,58,63,70,75,82,89]  },
@@ -502,14 +502,14 @@ export const SA_RECENT = [
 ];
 
 export const VD_KPIS = [
-  { label:"Team Leads",   value:"890", delta:"+18%", up:true, color:C.indigo },
+  { label:"Team Contacts",   value:"890", delta:"+18%", up:true, color:C.indigo },
   { label:"Unassigned",   value:"12",  delta:"-3",   up:true, color:C.red    },
   { label:"Appointments", value:"54",  delta:"+11%", up:true, color:C.blue   },
   { label:"Closed (MTD)", value:"34",  delta:"+26%", up:true, color:C.green  },
 ];
 
 export const VD_PERSONAL_KPIS = [
-  { label:"My Leads",     value:"6",  delta:"+2",    up:true, color:C.indigo },
+  { label:"My Contacts",     value:"6",  delta:"+2",    up:true, color:C.indigo },
   { label:"Due Today",    value:"3",  delta:"calls", up:null, color:C.amber  },
   { label:"Appointments", value:"2",  delta:"+1",    up:true, color:C.blue   },
   { label:"Closed (MTD)", value:"1",  delta:"new",   up:null, color:C.green  },
@@ -540,7 +540,7 @@ export const VD_SCHEDULE = [
 ];
 
 export const GP_KPIS = [
-  { label:"My Leads",     value:"62", delta:"+8",    up:true, color:C.green },
+  { label:"My Contacts",     value:"62", delta:"+8",    up:true, color:C.green },
   { label:"Due Today",    value:"5",  delta:"calls", up:null, color:C.amber },
   { label:"Not Reached",  value:"9",  delta:"-2",    up:true, color:C.red   },
   { label:"Closed (MTD)", value:"14", delta:"+3",    up:true, color:C.navy  },
@@ -555,15 +555,15 @@ export const GP_PRIORITY = [
 ];
 
 export const GP_FUNNEL  = [
-  { label:"Leads Contacted",  value:48, max:62, color:C.blue   },
-  { label:"Leads Reached",    value:33, max:62, color:C.indigo },
+  { label:"Contacts Contacted",  value:48, max:62, color:C.blue   },
+  { label:"Contacts Reached",    value:33, max:62, color:C.indigo },
   { label:"Appointments Set", value:21, max:62, color:C.purple },
   { label:"Closed",           value:14, max:62, color:C.green  },
 ];
 
 export const VD_FUNNEL  = [
-  { label:"Leads Contacted",  value:5, max:6, color:C.blue   },
-  { label:"Leads Reached",    value:4, max:6, color:C.indigo },
+  { label:"Contacts Contacted",  value:5, max:6, color:C.blue   },
+  { label:"Contacts Reached",    value:4, max:6, color:C.indigo },
   { label:"Appointments Set", value:2, max:6, color:C.purple },
   { label:"Closed",           value:1, max:6, color:C.green  },
 ];
@@ -600,9 +600,9 @@ export let STATUS_META = buildStatusMeta();
 export const TIMELINE_EVENTS = [
   { time:"Today, 09:30", actor:"Anna Klein",     action:"Scheduled follow-up call for 14:00",             type:"call"    },
   { time:"Today, 09:00", actor:"Anna Klein",     action:"Contact attempt #2 — reached, interested in offer", type:"attempt" },
-  { time:"Today, 08:20", actor:"System",         action:"Lead auto-assigned to Anna Klein (ZIP match)",    type:"assign"  },
+  { time:"Today, 08:20", actor:"System",         action:"Contact auto-assigned to Anna Klein (ZIP match)",    type:"assign"  },
   { time:"Today, 08:16", actor:"System",         action:"Welcome email sent automatically",               type:"email"   },
-  { time:"Today, 07:52", actor:"System",         action:"Lead captured via Landing Page (Webinar März)",  type:"import"  },
+  { time:"Today, 07:52", actor:"System",         action:"Contact captured via Landing Page (Webinar März)",  type:"import"  },
 ];
 
 // ─── Appointments Data ────────────────────────────────────────────────────────
@@ -717,14 +717,14 @@ export const APPOINTMENTS = [
   { id:"A-108", date:"2026-02-24", start:"10:00", end:"10:45", type:"call",     lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"2nd contact — high score 92. Aim to set appointment." },
   { id:"A-109", date:"2026-02-24", start:"11:30", end:"12:00", type:"call",     lead:"Peter Hoffmann",  leadId:"L-1039", gp:"Marc Otto",      vd:"Thomas Müller", status:"upcoming",  notes:"Re-attempt after no-show yesterday" },
   { id:"A-110", date:"2026-02-24", start:"14:00", end:"15:00", type:"video",    lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"confirmed", notes:"Strategy session — pre-close. Prepare 3 options." },
-  { id:"A-111", date:"2026-02-24", start:"15:30", end:"16:30", type:"inperson", lead:"Dirk Schumacher", leadId:"L-1052", gp:"Thomas Müller",  vd:"Thomas Müller", status:"confirmed", notes:"VD direct appointment — Partner Ref lead" },
+  { id:"A-111", date:"2026-02-24", start:"15:30", end:"16:30", type:"inperson", lead:"Dirk Schumacher", leadId:"L-1052", gp:"Thomas Müller",  vd:"Thomas Müller", status:"confirmed", notes:"VD direct appointment — Partner Ref contact" },
   { id:"A-112", date:"2026-02-24", start:"16:00", end:"17:00", type:"video",    lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",     vd:"Lisa Weber",    status:"upcoming",  notes:"Follow-up from Monday — qualification call" },
   // ── Rest of week ───────────────────────────────────────────────────────────
-  { id:"A-113", date:"2026-02-25", start:"09:30", end:"10:00", type:"call",     lead:"Claudia Becker",  leadId:"L-1034", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Giveaway lead — follow-up call" },
+  { id:"A-113", date:"2026-02-25", start:"09:30", end:"10:00", type:"call",     lead:"Claudia Becker",  leadId:"L-1034", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Giveaway contact — follow-up call" },
   { id:"A-114", date:"2026-02-25", start:"11:00", end:"12:00", type:"video",    lead:"Ralf Neumann",    leadId:"L-1050", gp:"Thomas Müller",  vd:"Thomas Müller", status:"upcoming",  notes:"Proposal review — Q1 Finanz" },
   { id:"A-115", date:"2026-02-25", start:"14:00", end:"14:30", type:"call",     lead:"Monika Braun",    leadId:"L-1036", gp:"Kai Becker",     vd:"Lisa Weber",    status:"cancelled", notes:"Client cancelled — reschedule" },
   { id:"A-116", date:"2026-02-26", start:"10:00", end:"11:30", type:"inperson", lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Full financial consultation — close expected" },
-  { id:"A-117", date:"2026-02-26", start:"14:30", end:"15:00", type:"call",     lead:"Karla Metz",      leadId:"L-1053", gp:"Thomas Müller",  vd:"Thomas Müller", status:"upcoming",  notes:"Messe FFM lead — first real conversation" },
+  { id:"A-117", date:"2026-02-26", start:"14:30", end:"15:00", type:"call",     lead:"Karla Metz",      leadId:"L-1053", gp:"Thomas Müller",  vd:"Thomas Müller", status:"upcoming",  notes:"Messe FFM contact — first real conversation" },
   { id:"A-118", date:"2026-02-26", start:"16:00", end:"17:00", type:"video",    lead:"Ben Schulze",     leadId:"L-1030", gp:"Ben Hartmann",   vd:"Ralf Fischer",  status:"upcoming",  notes:"Partner Ref — qualification call" },
   { id:"A-119", date:"2026-02-27", start:"09:00", end:"09:30", type:"call",     lead:"Nina Hartmann",   leadId:"L-1031", gp:"Tanja Vogt",     vd:"Lisa Weber",    status:"upcoming",  notes:"Messe FFM — in progress, moved forward" },
   { id:"A-120", date:"2026-02-27", start:"11:00", end:"12:00", type:"video",    lead:"Hanna Vogel",     leadId:"L-1033", gp:"Marc Otto",      vd:"Thomas Müller", status:"upcoming",  notes:"Q1 Finanz — first appointment after cold outreach" },
@@ -785,9 +785,9 @@ CURRENT PIPELINE STATE:
 - Unassigned: ${unassigned.length}
 - Today's appointments: ${APPOINTMENTS.filter(a=>a.date==="2026-02-24").length}
 - Org conversion rate: 6.2% | Best GP: Anna Klein at 8.1%
-${role==="superadmin" ? "- Jana Kruse team underperforming at 3.9% for 6 weeks\n- Zapier webhook disconnected — 0 leads in 6h" : ""}
-${role==="vd" ? "- Your team: 890 leads, 34 closed MTD, 7.1% conv rate\n- Messe FFM: 125 assigned, only 22 contacted — priority this week" : ""}
-${role==="gp" ? "- Your leads: 62 total, 14 closed MTD, 8.1% conv rate (#1 in team)\n- Top priority: Sandra Richter (score 92), call before 10:30 today" : ""}
+${role==="superadmin" ? "- Jana Kruse team underperforming at 3.9% for 6 weeks\n- Zapier webhook disconnected — 0 contacts in 6h" : ""}
+${role==="vd" ? "- Your team: 890 contacts, 34 closed MTD, 7.1% conv rate\n- Messe FFM: 125 assigned, only 22 contacted — priority this week" : ""}
+${role==="gp" ? "- Your contacts: 62 total, 14 closed MTD, 8.1% conv rate (#1 in team)\n- Top priority: Sandra Richter (score 92), call before 10:30 today" : ""}
 
 RESPONSE STYLE: Be concise, direct, and actionable. Use **bold** for key names/numbers. Use bullet points for lists. Max 3-4 sentences or a short list. This is a chat widget — keep responses short. Speak in a professional but friendly tone. Today is Tuesday, 24 February 2026.`;
 };
@@ -822,7 +822,7 @@ RESPONSE STYLE: Be concise and actionable. Use **bold** for key points. Max 3-4 
 export const agentReply = (msg, lead, role) => {
   const t = msg.toLowerCase();
 
-  // ── Lead-specific replies ────────────────────────────────────────────────
+  // ── Contact-specific replies ────────────────────────────────────────────────
   if (lead) {
     const ai   = AI_SCORES[lead.id];
     const tier = ai ? SCORE_TIER[ai.tier] : null;
@@ -838,10 +838,10 @@ export const agentReply = (msg, lead, role) => {
       text: lead.status === "appointment"
         ? `${lead.name} has an appointment confirmed. **Pre-call prep is the priority**:\n\n• Review their campaign (${lead.campaign}) — ${lead.source} source signals high intent\n• Prepare 3 concrete financial strategy options\n• Confirm time 2h before via SMS\n• Aim to close or advance to proposal stage in this call.`
         : lead.status === "followup"
-        ? `${lead.name} expressed interest but needs a follow-up. **Recommended approach**:\n\n• Lead with the specific concern they raised\n• Reference the ${lead.campaign} campaign benefit they signed up for\n• Offer two concrete appointment times — never ask open-ended\n• Keep it under 8 minutes.`
+        ? `${lead.name} expressed interest but needs a follow-up. **Recommended approach**:\n\n• Contact with the specific concern they raised\n• Reference the ${lead.campaign} campaign benefit they signed up for\n• Offer two concrete appointment times — never ask open-ended\n• Keep it under 8 minutes.`
         : lead.attempts >= 3
         ? `After ${lead.attempts} attempts, try a **pattern interrupt**:\n\n• Call from a different number if possible\n• Try before 09:00 or after 17:30 — off-peak slots\n• Send a short email first (use the draft I can generate)\n• If no response after attempt 5, mark Not Reached and archive.`
-        : `${lead.name} is a fresh lead (${lead.source}, ${lead.campaign}). **First contact strategy**:\n\n• Call within 4h of capture — reach rates drop 80% after 24h\n• Lead with the specific campaign offer they responded to\n• Goal of first call: qualify intent and set an appointment, not close.`,
+        : `${lead.name} is a fresh lead (${lead.source}, ${lead.campaign}). **First contact strategy**:\n\n• Call within 4h of capture — reach rates drop 80% after 24h\n• Contact with the specific campaign offer they responded to\n• Goal of first call: qualify intent and set an appointment, not close.`,
       chips: ["Draft a follow-up email","When should I call?","Generate call script"]
     };
 
@@ -880,7 +880,7 @@ export const agentReply = (msg, lead, role) => {
     };
 
     return {
-      text: `I'm your AI agent for **${lead.name}**. I can help you with:\n\n• Lead scoring explanation\n• Best approach & call strategy\n• Contact time windows\n• Follow-up email drafts\n• Timeline summary\n• Close probability assessment`,
+      text: `I'm your AI agent for **${lead.name}**. I can help you with:\n\n• Contact scoring explanation\n• Best approach & call strategy\n• Contact time windows\n• Follow-up email drafts\n• Timeline summary\n• Close probability assessment`,
       chips: ["What's the best approach?","When should I call?","Draft a follow-up email","Explain the AI score"]
     };
   }
@@ -893,33 +893,33 @@ export const agentReply = (msg, lead, role) => {
   const appts      = ALL_LEADS.filter(l=>l.status==="appointment");
 
   if (t.match(/hot|priority|top|best|urgent/)) return {
-    text: `**Top ${Math.min(hotLeads.length,3)} Hot Leads right now:**\n\n${hotLeads.slice(0,3).map((l,i)=>`${i+1}. **${l.name}** — Score ${AI_SCORES[l.id].score}/100\n   ${l.campaign} · ${l.city} · ${STATUS_META[l.status]?.label}`).join("\n\n")}`,
-    chips: ["Show unassigned leads","Which leads need follow-up?","How is my team performing?"]
+    text: `**Top ${Math.min(hotLeads.length,3)} Hot Contacts right now:**\n\n${hotLeads.slice(0,3).map((l,i)=>`${i+1}. **${l.name}** — Score ${AI_SCORES[l.id].score}/100\n   ${l.campaign} · ${l.city} · ${STATUS_META[l.status]?.label}`).join("\n\n")}`,
+    chips: ["Show unassigned contacts","Which contacts need follow-up?","How is my team performing?"]
   };
 
   if (t.match(/call today|due today|contact today|should i call/)) return {
     text: `**5 contacts due today** (by priority score):\n\n${hotLeads.slice(0,5).map((l,i)=>`${i+1}. **${l.name}** (${AI_SCORES[l.id].score}) — ${STATUS_META[l.status]?.label}`).join("\n")}\n\nI recommend starting with Sandra Richter (score 92) — she opened the welcome email 3× and her best contact window is **13:00–15:00 today**.`,
-    chips: ["Generate script for top lead","Show hot leads","Show follow-ups"]
+    chips: ["Generate script for top contact","Show hot contacts","Show follow-ups"]
   };
 
   if (t.match(/unassigned|not assigned|assign/)) return {
     text: `There are **${unassigned.length} unassigned leads** right now:\n\n${unassigned.map(l=>`• **${l.name}** — ${l.source} · ${l.city}`).join("\n")}\n\nAI Smart Assignment suggestion:\n• Markus Bauer → **Anna Klein** (94% match)\n• Hanna Vogel → **Marc Otto** (88% match)\n\nUse the AI Insights tab to approve assignments in bulk.`,
-    chips: ["Show hot leads","How is my team performing?"]
+    chips: ["Show hot contacts","How is my team performing?"]
   };
 
   if (t.match(/follow.?up|follow up/)) return {
     text: `**${followups.length} leads in Follow-Up status:**\n\n${followups.map(l=>`• **${l.name}** — ${l.city} · ${l.attempts} attempts · ${l.assignedGP ?? "Unassigned"}`).join("\n")}\n\nAll of these leads expressed interest. Recommended: contact within 24h of last interaction for best conversion.`,
-    chips: ["Show hot leads","Show unassigned leads","Show appointments"]
+    chips: ["Show hot contacts","Show unassigned contacts","Show appointments"]
   };
 
   if (t.match(/appointment|appt|scheduled|booked/)) return {
     text: `**${appts.length} active appointments:**\n\n${appts.map(l=>`• **${l.name}** — ${l.city} · ${l.assignedGP ?? "Unassigned"} · AI Score ${AI_SCORES[l.id]?.score ?? "?"}`).join("\n")}\n\nTeam close rate on appointments is **68%** this month. Ensure each consultant has a prepared brief.`,
-    chips: ["How is my team performing?","Show hot leads"]
+    chips: ["How is my team performing?","Show hot contacts"]
   };
 
   if (t.match(/not reached|unreachable|no answer/)) return {
     text: `**${notReached.length} leads marked Not Reached:**\n\n${notReached.map(l=>`• **${l.name}** — ${l.attempts} attempts · ${l.assignedGP ?? "Unassigned"}`).join("\n")}\n\n⚠️ Felix Wagner has hit 5 attempts (max). Recommend archiving.\n\nFor the others: try calling before 09:00 or after 17:30 — off-peak slots improve reach rates by up to 40%.`,
-    chips: ["Show hot leads","Show unassigned leads"]
+    chips: ["Show hot contacts","Show unassigned contacts"]
   };
 
   if (t.match(/conversion|conv.? rate|performing|performance|team/)) return {
@@ -928,22 +928,22 @@ export const agentReply = (msg, lead, role) => {
       : role==="vd"
       ? `**Team Performance — Thomas Müller's Team:**\n\n• Team conv. rate: **7.1%** (org average: 6.2%)\n• Anna Klein: **8.1%** 🏆\n• Marc Otto: **6.7%** (+1.2pp MoM ↑)\n• Nina Schmitt: **5.4%**\n\nPriority: 125 Messe FFM leads still uncontacted.`
       : `**Your Performance — Anna Klein:**\n\n• Conv. rate: **8.1%** (#1 in team 🏆)\n• 14 closed this month (+3 vs January)\n• 21 appointments set, 62 leads total\n• Best campaign: Q1 Finanz (25% conv.)\n\nYou're outperforming team average by 1.9pp.`,
-    chips: ["Show hot leads","Which leads should I call today?","Show unassigned leads"]
+    chips: ["Show hot contacts","Which contacts should I call today?","Show unassigned contacts"]
   };
 
   if (t.match(/meta ads?|landing page|source|campaign/)) return {
-    text: `**Lead Sources this month:**\n\n• Meta Ads: 1,240 leads (7.2% conv.)\n• Landing Pages: 780 leads (6.7% conv.)\n• Google Sheets: 430 leads (6.5% conv.)\n• CSV: 205 leads (4.4% conv.)\n• Other: 249 leads (2.8% conv.)\n\n⚠️ Zapier source currently **disconnected** — 0 leads captured in last 6h.`,
-    chips: ["Show hot leads","How is my team performing?"]
+    text: `**Contact Sources this month:**\n\n• Meta Ads: 1,240 leads (7.2% conv.)\n• Landing Pages: 780 leads (6.7% conv.)\n• Google Sheets: 430 leads (6.5% conv.)\n• CSV: 205 leads (4.4% conv.)\n• Other: 249 leads (2.8% conv.)\n\n⚠️ Zapier source currently **disconnected** — 0 leads captured in last 6h.`,
+    chips: ["Show hot contacts","How is my team performing?"]
   };
 
   if (t.match(/gdpr|consent|opt.?in/)) return {
     text: `**GDPR Consent Status:**\n\n• 79.8% of leads have newsletter consent (2,316 of 2,904)\n• 588 leads without consent — retargeting restricted\n• 3 pending deletion requests\n\nIn your current view: ${ALL_LEADS.filter(l=>!l.consent).length} leads have no consent.`,
-    chips: ["Show hot leads","How is my team performing?"]
+    chips: ["Show hot contacts","How is my team performing?"]
   };
 
   return {
     text: `I'm your **vion CRM AI Agent**. I can help you with:\n\n• 🔥 Finding hot and priority leads\n• 📞 Identifying who to call today\n• 📊 Team and conversion performance\n• 📋 Unassigned and not-reached leads\n• 💡 Campaign and source insights\n• 🔒 GDPR and consent status\n\nOr open a lead to get **lead-specific advice** — strategy, call timing, email drafts, and close probability.`,
-    chips: ["Which leads should I call today?","Show hot leads","Show unassigned leads","How is my team performing?"]
+    chips: ["Which contacts should I call today?","Show hot contacts","Show unassigned contacts","How is my team performing?"]
   };
 };
 
@@ -957,17 +957,17 @@ export const CALL_TRANSCRIPTS = {
     date:"Today, 14:02", duration:"4m 18s", gp:"Anna Klein", consentGiven:true,
     lines:[
       { speaker:"GP",   text:"Good afternoon, this is Anna Klein from vion Financial. Am I speaking with Sandra Richter?" },
-      { speaker:"Lead", text:"Yes, speaking." },
+      { speaker:"Contact", text:"Yes, speaking." },
       { speaker:"GP",   text:"Wonderful! I'm reaching out because you registered for our March Webinar programme a few days ago. I just wanted to personally introduce myself and see if you had any questions." },
-      { speaker:"Lead", text:"Oh right, yes I did sign up. I've been a bit busy to be honest." },
+      { speaker:"Contact", text:"Oh right, yes I did sign up. I've been a bit busy to be honest." },
       { speaker:"GP",   text:"Completely understandable — that's exactly why I wanted to make this quick. In just a few minutes I can explain how we help people like yourself build a clearer financial picture. Would that be okay?" },
-      { speaker:"Lead", text:"Sure, go ahead." },
+      { speaker:"Contact", text:"Sure, go ahead." },
       { speaker:"GP",   text:"Great. Many of our Hamburg clients came to us with similar goals — building long-term wealth without complexity. One of them accelerated their financial position by 34% within 18 months using our personalised strategy. That's the kind of tailored approach we'd develop with you." },
-      { speaker:"Lead", text:"That does sound interesting. But I'm not sure I have enough money to invest right now." },
+      { speaker:"Contact", text:"That does sound interesting. But I'm not sure I have enough money to invest right now." },
       { speaker:"GP",   text:"That's a very common concern, and actually many of our clients started in the same position. Our first consultation is completely free — it's really just about understanding your situation before anything else." },
-      { speaker:"Lead", text:"Okay, that makes sense." },
+      { speaker:"Contact", text:"Okay, that makes sense." },
       { speaker:"GP",   text:"Perfect. So I have some availability this week — would Wednesday at 2pm or Thursday at 10am work for a 20-minute no-obligation consultation?" },
-      { speaker:"Lead", text:"Thursday at 10 works." },
+      { speaker:"Contact", text:"Thursday at 10 works." },
       { speaker:"GP",   text:"Excellent! I'll send you a confirmation right away. Looking forward to speaking with you then, Sandra." },
     ],
   },
@@ -975,11 +975,11 @@ export const CALL_TRANSCRIPTS = {
     date:"Yesterday, 11:15", duration:"2m 52s", gp:"Anna Klein", consentGiven:true,
     lines:[
       { speaker:"GP",   text:"Good morning, Mr. Hoffmann — Anna Klein from vion Financial. Hope I've caught you at a good time!" },
-      { speaker:"Lead", text:"Who is this again?" },
+      { speaker:"Contact", text:"Who is this again?" },
       { speaker:"GP",   text:"Anna Klein, from vion Financial. You were referred to us through our partner network." },
-      { speaker:"Lead", text:"I'm quite busy right now, can you call back?" },
+      { speaker:"Contact", text:"I'm quite busy right now, can you call back?" },
       { speaker:"GP",   text:"Of course — when would be a better time for you? Morning or afternoon?" },
-      { speaker:"Lead", text:"Try next week maybe." },
+      { speaker:"Contact", text:"Try next week maybe." },
       { speaker:"GP",   text:"Understood, I'll reach out early next week. Have a good day!" },
     ],
   },
@@ -993,14 +993,14 @@ export const SCRIPT_SECTIONS = ["greeting","pitch","hook","objections","close"];
 
 export const NOTIFICATIONS = [
   { id:1,  type:"reminder", icon:"⏰", color:"#7C3AED", title:"Reminder: Call Sandra Richter",   body:"Follow-up call due now. 2nd attempt — she requested callback before 15:00.",  time:"Just now",   read:false, leadId:"L-1040", action:"call"     },
-  { id:2,  type:"lead",     icon:"👤", color:"#3B82F6", title:"New lead assigned",               body:"Lars Dietrich (L-1032) assigned to you — AI score 84 🔥",                    time:"2 min ago",  read:false, leadId:"L-1032", action:"open"     },
-  { id:3,  type:"alert",    icon:"⚠️", color:"#EF4444", title:"Zapier webhook disconnected",     body:"0 leads captured since 09:14. Reconnect in Settings → Integrations.",         time:"6h ago",     read:false, leadId:null,     action:"settings" },
+  { id:2,  type:"lead",     icon:"👤", color:"#3B82F6", title:"New contact assigned",               body:"Lars Dietrich (L-1032) assigned to you — AI score 84 🔥",                    time:"2 min ago",  read:false, leadId:"L-1032", action:"open"     },
+  { id:3,  type:"alert",    icon:"⚠️", color:"#EF4444", title:"Zapier webhook disconnected",     body:"0 contacts captured since 09:14. Reconnect in Settings → Integrations.",         time:"6h ago",     read:false, leadId:null,     action:"settings" },
   { id:4,  type:"reminder", icon:"⏰", color:"#7C3AED", title:"Reminder: Follow-up Peter Hoffmann", body:"3rd contact attempt overdue by 1 day. AI score dropped to 71 — act today.", time:"1h ago",     read:false, leadId:"L-1039", action:"open"     },
   { id:5,  type:"appt",     icon:"📅", color:"#6366F1", title:"Appointment in 1 hour",           body:"Dirk Schumacher — In-person @ 14:00. Prepare advisory proposal.",             time:"58 min",     read:false, leadId:null,     action:"appt"     },
   { id:6,  type:"reminder", icon:"🔁", color:"#8B5CF6", title:"Birthday: Klaus Weber tomorrow",  body:"Klaus Weber's birthday is tomorrow. Consider sending a personal message.",     time:"Today 08:00",read:true,  leadId:null,     action:"open"     },
-  { id:7,  type:"lead",     icon:"👤", color:"#3B82F6", title:"3 new leads unassigned",          body:"Meta Ads batch imported — 34 leads awaiting assignment.",                     time:"Today 09:14",read:true,  leadId:null,     action:"leads"    },
-  { id:8,  type:"appt",     icon:"📅", color:"#6366F1", title:"Appointment completed",           body:"Anna Richter — Video call completed. Log the outcome in her lead profile.",    time:"Yesterday",  read:true,  leadId:null,     action:"open"     },
-  { id:9,  type:"reminder", icon:"⏰", color:"#7C3AED", title:"Workflow: Lead idle 7+ days",     body:"Claudia Becker (L-1038) has had no activity for 8 days. Re-engage now.",      time:"Yesterday",  read:true,  leadId:"L-1038", action:"open"     },
+  { id:7,  type:"lead",     icon:"👤", color:"#3B82F6", title:"3 new contacts unassigned",          body:"Meta Ads batch imported — 34 contacts awaiting assignment.",                     time:"Today 09:14",read:true,  leadId:null,     action:"leads"    },
+  { id:8,  type:"appt",     icon:"📅", color:"#6366F1", title:"Appointment completed",           body:"Anna Richter — Video call completed. Log the outcome in her contact profile.",    time:"Yesterday",  read:true,  leadId:null,     action:"open"     },
+  { id:9,  type:"reminder", icon:"⏰", color:"#7C3AED", title:"Workflow: Contact idle 7+ days",     body:"Claudia Becker (L-1038) has had no activity for 8 days. Re-engage now.",      time:"Yesterday",  read:true,  leadId:"L-1038", action:"open"     },
   { id:10, type:"alert",    icon:"✅", color:"#10B981", title:"ZIP rules updated",               body:"5 new ZIP routing rules added by Super Admin.",                               time:"2 days ago", read:true,  leadId:null,     action:null       },
 ];
 
@@ -1008,26 +1008,26 @@ export const NOTIFICATIONS = [
 export const AI_NARRATIVES = {
   superadmin: {
     headline: "Org performance is strong — but Jana Kruse's team needs attention.",
-    body: "February is tracking +31% ahead of January in closings (89 vs 68), driven by Thomas Müller's team at 7.1% conversion — the highest in the org. However, Jana Kruse's team at 3.9% is 2.3pp below average and has not improved in 6 weeks. The Messe FFM campaign shows an unusual drop: 240 leads captured, only 38 contacted (16%). Recommend redistributing 80 uncontacted Messe FFM leads to Ralf Fischer's team, who has capacity and a 5.2% baseline rate. GDPR opt-in is healthy at 79.8% but the Zapier source has been disconnected for 6 hours — 0 leads captured since 09:14.",
+    body: "February is tracking +31% ahead of January in closings (89 vs 68), driven by Thomas Müller's team at 7.1% conversion — the highest in the org. However, Jana Kruse's team at 3.9% is 2.3pp below average and has not improved in 6 weeks. The Messe FFM campaign shows an unusual drop: 240 contacts captured, only 38 contacted (16%). Recommend redistributing 80 uncontacted Messe FFM contacts to Ralf Fischer's team, who has capacity and a 5.2% baseline rate. GDPR opt-in is healthy at 79.8% but the Zapier source has been disconnected for 6 hours — 0 contacts captured since 09:14.",
     alerts:[
       { type:"warning", icon:"⚠️", color:C.red,    msg:"Zapier webhook disconnected — 6h data gap. Reconnect immediately." },
       { type:"insight", icon:"📉", color:C.amber,  msg:"Jana Kruse team conv. rate 3.9% — 2.3pp below org average for 6 weeks." },
-      { type:"insight", icon:"🎯", color:C.indigo, msg:"Messe FFM: 202 leads uncontacted. AI suggests reassigning 80 to Ralf Fischer." },
+      { type:"insight", icon:"🎯", color:C.indigo, msg:"Messe FFM: 202 contacts uncontacted. AI suggests reassigning 80 to Ralf Fischer." },
       { type:"success", icon:"🏆", color:C.green,  msg:"Thomas Müller team: best February in 18 months. Anna Klein: top closer at 8.1%." },
     ]
   },
   vd: {
-    headline: "Your team is outperforming the org — but Messe FFM leads are stalling.",
-    body: "Your team closed 34 leads in February (+26% vs January), led by Anna Klein at 8.1% conversion. Marc Otto improved by 1.2pp month-over-month, showing good trajectory. The main risk is Messe FFM — 125 leads assigned, only 22 contacted. AI recommends prioritising these leads in Anna Klein's queue this week, as she has the highest reach rate (64%) and the campaign historically performs best when contacted within 48h of capture. Your personal pipeline of 6 leads has a 16.7% conversion rate — significantly above your team average.",
+    headline: "Your team is outperforming the org — but Messe FFM contacts are stalling.",
+    body: "Your team closed 34 contacts in February (+26% vs January), led by Anna Klein at 8.1% conversion. Marc Otto improved by 1.2pp month-over-month, showing good trajectory. The main risk is Messe FFM — 125 contacts assigned, only 22 contacted. AI recommends prioritising these contacts in Anna Klein's queue this week, as she has the highest reach rate (64%) and the campaign historically performs best when contacted within 48h of capture. Your personal pipeline of 6 contacts has a 16.7% conversion rate — significantly above your team average.",
     alerts:[
       { type:"insight", icon:"🎯", color:C.indigo, msg:"Messe FFM: 103 uncontacted leads. Best match: Anna Klein (reach rate 64%)." },
-      { type:"success", icon:"📈", color:C.green,  msg:"Marc Otto improved 1.2pp MoM — consider assigning Q1 Finanz leads to him." },
+      { type:"success", icon:"📈", color:C.green,  msg:"Marc Otto improved 1.2pp MoM — consider assigning Q1 Finanz contacts to him." },
       { type:"insight", icon:"⏱️", color:C.amber,  msg:"3 follow-ups overdue >48h. AI suggests morning calls before 10:30." },
     ]
   },
   gp: {
-    headline: "You're #1 in the team — your hot leads need calls before 10:30 today.",
-    body: "You have the highest conversion rate in Thomas Müller's team at 8.1%, closing 14 leads in February. Your top opportunity right now is Sandra Richter (AI score 92) — she opened the welcome email 3 times and her Webinar März segment historically converts 68% when called within 24h of last email open. Peter Hoffmann has had 3 attempts — AI suggests trying between 08:00–09:30 on weekday mornings based on his ZIP code's historical reach data. Your 5 hot leads should be prioritised before 11:00 today for maximum reach probability.",
+    headline: "You're #1 in the team — your hot contacts need calls before 10:30 today.",
+    body: "You have the highest conversion rate in Thomas Müller's team at 8.1%, closing 14 contacts in February. Your top opportunity right now is Sandra Richter (AI score 92) — she opened the welcome email 3 times and her Webinar März segment historically converts 68% when called within 24h of last email open. Peter Hoffmann has had 3 attempts — AI suggests trying between 08:00–09:30 on weekday mornings based on his ZIP code's historical reach data. Your 5 hot contacts should be prioritised before 11:00 today for maximum reach probability.",
     alerts:[
       { type:"insight", icon:"🔥", color:C.red,    msg:"Sandra Richter (score 92): opened email 3× — call before 10:30 for highest reach rate." },
       { type:"insight", icon:"⏰", color:C.amber,  msg:"Peter Hoffmann: best reach window is 08:00–09:30. 3 attempts pending." },
@@ -1041,9 +1041,9 @@ export const AI_BEST_TIMES = {
   "L-1040": { window:"13:00–15:00", day:"Today", confidence:88, reason:"Webinar audience — afternoon engagement peak. Hamburg timezone." },
   "L-1039": { window:"08:00–09:30", day:"Tomorrow", confidence:82, reason:"Köln ZIP historically reached in early morning. 3rd attempt — try off-peak." },
   "L-1032": { window:"10:00–11:30", day:"Tomorrow", confidence:91, reason:"Appointment confirmed — pre-call prep window. München morning slot." },
-  "L-1053": { window:"17:00–18:30", day:"Today", confidence:76, reason:"Follow-up leads in München ZIP respond best late afternoon." },
+  "L-1053": { window:"17:00–18:30", day:"Today", confidence:76, reason:"Follow-up contacts in München ZIP respond best late afternoon." },
   "L-1050": { window:"09:00–10:30", day:"Today", confidence:84, reason:"Meta Ads Q1 Finanz audience — morning engagement. Same-day capture." },
-  "L-1041": { window:"11:00–12:30", day:"Today", confidence:79, reason:"Fresh Meta Ads lead — call within 4h of capture for 3× higher reach." },
+  "L-1041": { window:"11:00–12:30", day:"Today", confidence:79, reason:"Fresh Meta Ads contact — call within 4h of capture for 3× higher reach." },
 };
 
 
@@ -1111,10 +1111,10 @@ export const ROLEPLAY_PERSONAS = [
 
 
 export const SA_RECENT_ACTIVITY = [
-  { time:"2m ago",    icon:"📥", color:C.blue,   title:"47 leads imported",              sub:"Meta Ads — Q1 Finanz campaign"              },
+  { time:"2m ago",    icon:"📥", color:C.blue,   title:"47 contacts imported",              sub:"Meta Ads — Q1 Finanz campaign"              },
   { time:"15m ago",   icon:"🏆", color:C.green,  title:"Stefan Koch closed — €2.400",    sub:"Consultant: Kai Becker · Q1 Finanz"         },
   { time:"1h ago",    icon:"⚠️", color:C.red,    title:"Zapier webhook error",            sub:"Make/Zapier source disconnected"             },
-  { time:"2h ago",    icon:"👤", color:C.indigo, title:"Anna Klein — 8 leads assigned",   sub:"Auto-assign by ZIP · Frankfurt"              },
+  { time:"2h ago",    icon:"👤", color:C.indigo, title:"Anna Klein — 8 contacts assigned",   sub:"Auto-assign by ZIP · Frankfurt"              },
   { time:"3h ago",    icon:"📅", color:C.purple, title:"Appointment booked",              sub:"Sandra Richter — 14:00 Fri · Anna Klein"     },
   { time:"5h ago",    icon:"📞", color:C.slate,  title:"Call logged — Not Reached",       sub:"Felix Wagner · 5th attempt"                  },
   { time:"Yesterday", icon:"📊", color:C.amber,  title:"Weekly report generated",         sub:"Team performance — Thomas Müller"            },
@@ -1124,9 +1124,9 @@ export const VD_RECENT_ACTIVITY = [
   { time:"15m ago",   icon:"🏆", color:C.green,  title:"Anna Klein — deal closed",        sub:"€2.400 · Q1 Finanz"                         },
   { time:"1h ago",    icon:"🤖", color:C.ai,     title:"AI reassignment approved",         sub:"Nina Hartmann → Anna Klein"                  },
   { time:"2h ago",    icon:"📅", color:C.indigo, title:"Team appointment booked",          sub:"Marc Otto — Claudia Becker 16:00"            },
-  { time:"3h ago",    icon:"📥", color:C.blue,   title:"12 leads imported to team",        sub:"Messe FFM campaign"                          },
+  { time:"3h ago",    icon:"📥", color:C.blue,   title:"12 contacts imported to team",        sub:"Messe FFM campaign"                          },
   { time:"5h ago",    icon:"📞", color:C.slate,  title:"Marc Otto — 5 calls logged",       sub:"Q1 Finanz follow-ups"                        },
-  { time:"Yesterday", icon:"⚠️", color:C.amber,  title:"3 leads auto-updated",             sub:"5× not reached → status change"              },
+  { time:"Yesterday", icon:"⚠️", color:C.amber,  title:"3 contacts auto-updated",             sub:"5× not reached → status change"              },
 ];
 
 export const GP_RECENT_ACTIVITY = [
@@ -1134,7 +1134,7 @@ export const GP_RECENT_ACTIVITY = [
   { time:"1h ago",    icon:"📅", color:C.indigo, title:"Appointment booked",               sub:"Lars Dietrich — Thu 15:00 · Phone"           },
   { time:"2h ago",    icon:"✉️", color:C.blue,   title:"Follow-up email sent",             sub:"Claudia Becker · Email automation"           },
   { time:"3h ago",    icon:"🏆", color:C.green,  title:"Deal closed — €3.200",             sub:"Michael Braun · Q1 Finanz"                   },
-  { time:"Yesterday", icon:"📥", color:C.slate,  title:"2 new leads assigned",             sub:"Webinar März campaign"                       },
+  { time:"Yesterday", icon:"📥", color:C.slate,  title:"2 new contacts assigned",             sub:"Webinar März campaign"                       },
   { time:"Yesterday", icon:"📞", color:C.amber,  title:"3rd attempt — call logged",        sub:"Peter Hoffmann · Attempted"                  },
 ];
 
@@ -1147,7 +1147,7 @@ export const GP_GOALS = [
 export const VD_PERSONAL_GOALS = [
   { label:"Consultations held", target:10, current:7,  color:C.indigo },
   { label:"Deals closed (self)",target:4,  current:1,  color:C.green  },
-  { label:"My leads contacted",  target:6,  current:5,  color:C.blue   },
+  { label:"My contacts contacted",  target:6,  current:5,  color:C.blue   },
 ];
 
 export const VD_TEAM_GOALS = [
@@ -1173,7 +1173,7 @@ export const VD_SCHEDULE_FULL = [
 export const SA_GOALS_DATA = [
   { label:"Total closings (MTD)",   target:100, current:89,  color:C.green  },
   { label:"Appointments (MTD)",     target:150, current:134, color:C.indigo },
-  { label:"New leads imported",     target:300, current:248, color:C.blue   },
+  { label:"New contacts imported",     target:300, current:248, color:C.blue   },
 ];
 
 export const GP_UPCOMING_APPTS = [
@@ -1218,7 +1218,7 @@ export const TIMELINE_META = {
 export const BULK_EMAIL_CAMPAIGNS = [
   { id:"c1", name:"Q1 Finanz — Welcome Series",   status:"sent",      recipients:11920, valid:11920, sent:11920, delivered:11648, opens:4426, clicks:813,  bounces:272, unsubs:38, created:"10 Feb 2026", subject:"Your financial future starts here",      type:"marketing"     },
   { id:"c2", name:"Webinar März — Invitation",     status:"scheduled", recipients:8450,  valid:8102,  sent:0,     delivered:0,     opens:0,    clicks:0,    bounces:0,   unsubs:0,  created:"20 Feb 2026", subject:"You're invited: Webinar March 8",        type:"announcement"  },
-  { id:"c3", name:"Re-engagement — Inactive Leads",status:"draft",     recipients:3210,  valid:3100,  sent:0,     delivered:0,     opens:0,    clicks:0,    bounces:0,   unsubs:0,  created:"22 Feb 2026", subject:"We miss you — here's what's new",       type:"marketing"     },
+  { id:"c3", name:"Re-engagement — Inactive Contacts",status:"draft",     recipients:3210,  valid:3100,  sent:0,     delivered:0,     opens:0,    clicks:0,    bounces:0,   unsubs:0,  created:"22 Feb 2026", subject:"We miss you — here's what's new",       type:"marketing"     },
   { id:"c4", name:"Gold Package — Nurture #2",     status:"sending",   recipients:2890,  valid:2840,  sent:2101,  delivered:2044,  opens:710,  clicks:122,  bounces:57,  unsubs:9,  created:"23 Feb 2026", subject:"Why now is the right time for Gold",     type:"marketing"     },
   { id:"c5", name:"Event Recap — FFP Roadshow",    status:"paused",    recipients:1540,  valid:1498,  sent:900,   delivered:879,   opens:334,  clicks:71,   bounces:21,  unsubs:5,  created:"18 Feb 2026", subject:"Thank you for attending — recap inside", type:"announcement"  },
 ];
@@ -1276,9 +1276,9 @@ export const EM_STATUS_META = {
 
 
 export const BE_SEGMENTS = {
-  active_leads:  { label:"Active Leads",      total:890,  valid:847,  unsub:23, invalid:12, dupe:5,  consent:3  },
+  active_leads:  { label:"Active Contacts",      total:890,  valid:847,  unsub:23, invalid:12, dupe:5,  consent:3  },
   customers:     { label:"All Customers",      total:412,  valid:398,  unsub:7,  invalid:4,  dupe:2,  consent:1  },
-  not_reached:   { label:"Not Reached Leads",  total:125,  valid:119,  unsub:3,  invalid:2,  dupe:1,  consent:0  },
+  not_reached:   { label:"Not Reached Contacts",  total:125,  valid:119,  unsub:3,  invalid:2,  dupe:1,  consent:0  },
   followup:      { label:"Follow-up Pipeline", total:189,  valid:182,  unsub:4,  invalid:2,  dupe:1,  consent:0  },
   inactive_60:   { label:"Inactive 60+ days",  total:340,  valid:320,  unsub:10, invalid:7,  dupe:3,  consent:0  },
   opted_in:      { label:"Event Opt-Ins",       total:637,  valid:612,  unsub:15, invalid:8,  dupe:2,  consent:0  },
@@ -1320,7 +1320,7 @@ export const LC_FIELD_MAPPINGS = [
   { source:"phone_number",       crm:"Phone",                type:"Phone",     required:true  },
   { source:"zip_code",           crm:"ZIP Code",             type:"Text",      required:true  },
   { source:"campaign_id",        crm:"Campaign",             type:"Reference", required:false },
-  { source:"utm_source",         crm:"Lead Source",          type:"Text",      required:false },
+  { source:"utm_source",         crm:"Contact Source",          type:"Text",      required:false },
   { source:"consent_newsletter", crm:"Newsletter Consent",   type:"Boolean",   required:true  },
 ];
 
@@ -1350,16 +1350,16 @@ export const JOURNEY_META = {
 };
 
 export const AUDIT_EVENTS = [
-  { time:"Today 10:31", user:"Anna Klein",    role:"GP",   action:"Viewed lead",         target:"L-1028 · Sophie Lange",       ip:"192.168.1.44" },
+  { time:"Today 10:31", user:"Anna Klein",    role:"GP",   action:"Viewed contact",         target:"L-1028 · Sophie Lange",       ip:"192.168.1.44" },
   { time:"Today 10:28", user:"Anna Klein",    role:"GP",   action:"Logged call outcome", target:"L-1028 · Sophie Lange",       ip:"192.168.1.44" },
-  { time:"Today 09:45", user:"Thomas Müller", role:"VD",   action:"Reassigned lead",     target:"L-1033 → Anna Klein",         ip:"192.168.1.12" },
-  { time:"Today 09:30", user:"System",        role:"Auto", action:"Auto-assigned lead",  target:"L-1041 via ZIP 80331",        ip:"—"            },
-  { time:"Today 09:14", user:"System",        role:"Auto", action:"Import completed",    target:"IMP-0091 · 34 leads",         ip:"—"            },
+  { time:"Today 09:45", user:"Thomas Müller", role:"VD",   action:"Reassigned contact",     target:"L-1033 → Anna Klein",         ip:"192.168.1.12" },
+  { time:"Today 09:30", user:"System",        role:"Auto", action:"Auto-assigned contact",  target:"L-1041 via ZIP 80331",        ip:"—"            },
+  { time:"Today 09:14", user:"System",        role:"Auto", action:"Import completed",    target:"IMP-0091 · 34 contacts",         ip:"—"            },
   { time:"Today 09:12", user:"Anna Klein",    role:"GP",   action:"Sent document",       target:"L-1022 · Beratungsmappe.pdf", ip:"192.168.1.44" },
   { time:"Today 08:55", user:"Super Admin",   role:"SA",   action:"Updated ZIP rule",    target:"ZIP 80xxx → Anna Klein",      ip:"192.168.1.1"  },
   { time:"Today 08:20", user:"Anna Klein",    role:"GP",   action:"GDPR export",         target:"L-1041 · Article 15",         ip:"192.168.1.44" },
-  { time:"Yesterday",   user:"Thomas Müller", role:"VD",   action:"Viewed lead",         target:"L-1019 · Karl Braun",         ip:"192.168.1.12" },
-  { time:"Yesterday",   user:"Lisa Weber",    role:"VD",   action:"Updated lead status", target:"L-1055 → Closed Won",         ip:"192.168.2.8"  },
+  { time:"Yesterday",   user:"Thomas Müller", role:"VD",   action:"Viewed contact",         target:"L-1019 · Karl Braun",         ip:"192.168.1.12" },
+  { time:"Yesterday",   user:"Lisa Weber",    role:"VD",   action:"Updated contact status", target:"L-1055 → Closed Won",         ip:"192.168.2.8"  },
   { time:"Yesterday",   user:"System",        role:"Auto", action:"Email sent",          target:"L-1028 · Follow-up #1",       ip:"—"            },
   { time:"2 days ago",  user:"Super Admin",   role:"SA",   action:"Invited user",        target:"Jana Kruse · Sales Director", ip:"192.168.1.1"  },
 ];
@@ -1377,7 +1377,7 @@ export const WORKFLOW_CATEGORIES = [
 
 export const ACTION_META = {
   auto_email: { icon:"✉️", label:"Auto Email", color:"#3B82F6", desc:"System sends email automatically" },
-  set_status: { icon:"🔄", label:"Set Status",  color:"#0EA5E9", desc:"Move the lead to a status"        },
+  set_status: { icon:"🔄", label:"Set Status",  color:"#0EA5E9", desc:"Move the contact to a status"        },
   task:       { icon:"✅", label:"Task",        color:"#D97706", desc:"Creates a task for the consultant" },
   push:       { icon:"📱", label:"Push Alert",  color:"#7C3AED", desc:"Push notification to user(s)"    },
 };
@@ -1413,9 +1413,9 @@ export const CATEGORIES = [
 // §7 (automated parallel tracks). Keys kept stable for existing rules.
 
 export const AUTOMATION_TRIGGERS = [
-  { group:"Lead Entry & Assignment", color:"#3B82F6", items:[
-    { key:"new_lead_submitted",   label:"New lead submitted",                icon:"🆕", desc:"Lead captured via any entry point (§1, §7)" },
-    { key:"lead_assigned",        label:"Lead assigned to consultant",       icon:"⚡", desc:"SA/VD routes a lead down to a GP (§3)" },
+  { group:"Contact Entry & Assignment", color:"#3B82F6", items:[
+    { key:"new_lead_submitted",   label:"New contact submitted",                icon:"🆕", desc:"Contact captured via any entry point (§1, §7)" },
+    { key:"lead_assigned",        label:"Contact assigned to consultant",       icon:"⚡", desc:"SA/VD routes a contact down to a GP (§3)" },
   ]},
   { group:"Contact Loop", color:"#7C3AED", items:[
     { key:"lead_not_reached_1_4", label:"Not Reached — attempt 1–4×",        icon:"📵", desc:"Each failed attempt below threshold; push alert (§4)" },
@@ -1423,16 +1423,16 @@ export const AUTOMATION_TRIGGERS = [
     { key:"lead_not_interested",  label:"Reached — Not Interested",          icon:"👎", desc:"Reached but declined / bad timing (§4 Decision B)" },
   ]},
   { group:"Appointment & Closing", color:"#059669", items:[
-    { key:"appointment_scheduled",label:"Appointment scheduled",             icon:"📅", desc:"Lead interested; appointment on calendar (§5.1)" },
+    { key:"appointment_scheduled",label:"Appointment scheduled",             icon:"📅", desc:"Contact interested; appointment on calendar (§5.1)" },
     { key:"appointment_not_held", label:"Appointment cancelled / no-show",   icon:"❌", desc:"Held-status: cancelled or rescheduled (§5.2)" },
     { key:"lead_closed",          label:"Closed — New Customer",             icon:"🏆", desc:"Outcome: customer; closing recorded (§5.2, §7)" },
   ]},
   { group:"Follow-up & Nurture", color:"#D97706", items:[
     { key:"lead_followup",        label:"Follow-up / Undecided",             icon:"🔁", desc:"Outcome: undecided; future interval (§5.2)" },
-    { key:"lead_nurturing",       label:"Nurture / Retargeting (consent)",   icon:"🌱", desc:"Re-engage Not-Interested leads with valid consent (§7, §9)" },
+    { key:"lead_nurturing",       label:"Nurture / Retargeting (consent)",   icon:"🌱", desc:"Re-engage Not-Interested contacts with valid consent (§7, §9)" },
   ]},
   { group:"Compliance", color:"#DC2626", items:[
-    { key:"consent_withdrawn",    label:"Consent withdrawn / DNC",           icon:"🔒", desc:"Lead revokes consent — exclude from outreach (§6, §9)" },
+    { key:"consent_withdrawn",    label:"Consent withdrawn / DNC",           icon:"🔒", desc:"Contact revokes consent — exclude from outreach (§6, §9)" },
   ]},
 ];
 
@@ -1452,7 +1452,7 @@ export const TRIGGER_CATEGORY = {
 
 export const TRIGGER_COMPLIANCE = {
   consent_withdrawn: {
-    leadEmail: "This event means the lead opted out / is Do-Not-Contact. Emailing the lead may violate GDPR — consider notifying internal roles instead.",
+    leadEmail: "This event means the contact opted out / is Do-Not-Contact. Emailing the contact may violate GDPR — consider notifying internal roles instead.",
   },
 };
 
@@ -1521,7 +1521,7 @@ export const EVENTS_LIST = [
       { id:"E2a", label:"12 February 2026", time:"18:00 – 20:30", location:"vion Office Frankfurt, Mainzer Landstr. 50, 60325 Frankfurt", present:41, absent:9,  unspecified:4,  capacity:80, status:"past"     },
       { id:"E2b", label:"19 March 2026",    time:"18:00 – 20:30", location:"vion Office Frankfurt, Mainzer Landstr. 50, 60325 Frankfurt", present:0,  absent:0,  unspecified:29, capacity:80, status:"upcoming" },
     ],
-    description:"An exclusive evening event where qualified leads hear directly from senior consultants about investment strategies, gold concepts, and top company portfolios.",
+    description:"An exclusive evening event where qualified contacts hear directly from senior consultants about investment strategies, gold concepts, and top company portfolios.",
     jan:28, feb:41,
   },
   {

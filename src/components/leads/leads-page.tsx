@@ -62,9 +62,9 @@ export const LeadsPage = ({ role, navigateTo }) => {
   }).sort((a,b)=>(AI_SCORES[b.id]?.score||0)-(AI_SCORES[a.id]?.score||0));
 
   const kpis=
-    role==="superadmin"?[{l:"Total Leads",v:ALL_LEADS.length,c:C.navy},{l:"Unassigned",v:ALL_LEADS.filter(l=>!l.assignedGP).length,c:C.red},{l:"In Progress",v:ALL_LEADS.filter(l=>["in_progress","attempted"].includes(l.status)).length,c:C.blue},{l:"Closed (MTD)",v:ALL_LEADS.filter(l=>l.status==="closed").length,c:C.green}]
+    role==="superadmin"?[{l:"Total Contacts",v:ALL_LEADS.length,c:C.navy},{l:"Unassigned",v:ALL_LEADS.filter(l=>!l.assignedGP).length,c:C.red},{l:"In Progress",v:ALL_LEADS.filter(l=>["in_progress","attempted"].includes(l.status)).length,c:C.blue},{l:"Closed (MTD)",v:ALL_LEADS.filter(l=>l.status==="closed").length,c:C.green}]
     :role==="vd"&&vdMode==="personal"?[{l:"My Contacts",v:myPersonal.length,c:C.indigo},{l:"Follow-Ups",v:myPersonal.filter(l=>l.status==="followup").length,c:C.amber},{l:"Appointments",v:myPersonal.filter(l=>l.status==="appointment").length,c:C.blue},{l:"Closed (MTD)",v:myPersonal.filter(l=>l.status==="closed").length,c:C.green}]
-    :role==="vd"?[{l:"Team Leads",v:"890",c:C.navy},{l:"Unassigned",v:"12",c:C.red},{l:"Appointments",v:"54",c:C.blue},{l:"Closed (MTD)",v:"34",c:C.green}]
+    :role==="vd"?[{l:"Team Contacts",v:"890",c:C.navy},{l:"Unassigned",v:"12",c:C.red},{l:"Appointments",v:"54",c:C.blue},{l:"Closed (MTD)",v:"34",c:C.green}]
     :[{l:"My Contacts",v:myGP.length,c:C.green},{l:"Follow-Ups",v:myGP.filter(l=>l.status==="followup").length,c:C.amber},{l:"Appointments",v:myGP.filter(l=>l.status==="appointment").length,c:C.indigo},{l:"Closed",v:myGP.filter(l=>l.status==="closed").length,c:C.navy}];
 
   const showAssignCol=role==="superadmin"||(role==="vd"&&vdMode==="team");
@@ -143,7 +143,7 @@ export const LeadsPage = ({ role, navigateTo }) => {
             <table style={{ width:"100%",borderCollapse:"collapse",fontSize:13 }}>
               <thead>
                 <tr style={{ background:"#F8FAFC",borderBottom:`2px solid ${C.border}` }}>
-                  {["Lead","Source / Campaign","Status","AI Score","Attempts",showAssignCol&&"Assigned To","Created",""].filter(Boolean).map(h=>(
+                  {["Contact","Source / Campaign","Status","AI Score","Attempts",showAssignCol&&"Assigned To","Created",""].filter(Boolean).map(h=>(
                     <th key={h} style={{ padding:"10px 14px",textAlign:"left",fontSize:11,fontWeight:700,color:h==="AI Score"?C.ai:C.muted,letterSpacing:"0.05em",textTransform:"uppercase",whiteSpace:"nowrap" }}>{h}</th>
                   ))}
                 </tr>

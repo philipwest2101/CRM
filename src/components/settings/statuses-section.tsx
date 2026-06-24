@@ -40,7 +40,7 @@ export const StatusesSection = ({ role }) => {
     else        next = stages.map(s=>s.id===stageId?{ ...s, statuses:[...s.statuses,{...clean,id:`st${Date.now()}`}] }:s);
     persist(next); cancelDraft(); flash("Status saved");
   };
-  const deleteStatus = (id) => { if(!window.confirm("Delete this status? Leads currently in it would need reassigning.")) return; persist(stages.map(s=>({ ...s, statuses:s.statuses.filter(x=>x.id!==id) }))); flash("Status deleted"); };
+  const deleteStatus = (id) => { if(!window.confirm("Delete this status? Contacts currently in it would need reassigning.")) return; persist(stages.map(s=>({ ...s, statuses:s.statuses.filter(x=>x.id!==id) }))); flash("Status deleted"); };
 
   if(role!=="superadmin") return <div style={{ padding:"40px",textAlign:"center",color:C.muted,fontSize:13 }}>Only the Super Admin can configure statuses.</div>;
 

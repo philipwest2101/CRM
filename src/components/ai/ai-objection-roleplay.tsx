@@ -28,7 +28,7 @@ export const AIObjectionRoleplay = () => {
     setMessages(newMessages);
     setLoading(true);
 
-    const history = newMessages.map(m=>`${m.role==="gp"?"GP":"Lead"}: ${m.text}`).join("\n");
+    const history = newMessages.map(m=>`${m.role==="gp"?"GP":"Contact"}: ${m.text}`).join("\n");
     const isLast = turnCount + 1 >= MAX_TURNS;
 
     try {
@@ -42,7 +42,7 @@ export const AIObjectionRoleplay = () => {
 Persona: "${persona.label}" — your opening objection was: "${persona.opener}"
 Stay in character as this lead. React authentically to what the GP says.
 ${isLast ? `This is the FINAL exchange. After the GP's response, output EXACTLY this JSON structure (no other text):
-{"reaction": "<lead's final reaction in 1 sentence>", "verdict": "<Convinced|Not Convinced|Partial>", "score": <0-100>, "feedback": {"pitch": <0-100>, "empathy": <0-100>, "close": <0-100>}, "coaching": "<2-3 specific coaching sentences for the GP>", "highlight": "<quote the best thing the GP said>", "improve": "<quote what could be improved and why>"}` 
+{"reaction": "<contact's final reaction in 1 sentence>", "verdict": "<Convinced|Not Convinced|Partial>", "score": <0-100>, "feedback": {"pitch": <0-100>, "empathy": <0-100>, "close": <0-100>}, "coaching": "<2-3 specific coaching sentences for the GP>", "highlight": "<quote the best thing the GP said>", "improve": "<quote what could be improved and why>"}` 
 : `Reply as the lead in 1-2 sentences. Stay resistant but authentic. Don't be convinced too easily.`}`,
           messages:[{ role:"user", content: isLast
             ? `Conversation so far:\n${history}\n\nNow output the final JSON evaluation.`
@@ -121,7 +121,7 @@ ${isLast ? `This is the FINAL exchange. After the GP's response, output EXACTLY 
             <div style={{ maxWidth:"75%",padding:"9px 13px",borderRadius:m.role==="gp"?"14px 14px 3px 14px":"14px 14px 14px 3px",
               background:m.role==="gp"?C.ai:"#fff",color:m.role==="gp"?"#fff":C.text,fontSize:12,lineHeight:1.5,
               boxShadow:"0 1px 3px rgba(0,0,0,0.07)" }}>
-              {m.role==="lead"&&<div style={{ fontSize:10,fontWeight:700,color:C.amber,marginBottom:3 }}>Lead ({persona.label})</div>}
+              {m.role==="lead"&&<div style={{ fontSize:10,fontWeight:700,color:C.amber,marginBottom:3 }}>Contact ({persona.label})</div>}
               {m.role==="gp"&&<div style={{ fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.7)",marginBottom:3 }}>You (GP)</div>}
               {m.text}
             </div>

@@ -77,7 +77,7 @@ export const SASmartAssignment = () => {
           <thead>
             <tr style={{ borderBottom:`2px solid ${C.border}`,background:"#FAFAFA" }}>
               <th style={{ width:32,padding:"8px 12px" }}/>
-              {["Lead","Source · Campaign","City","Suggested GP","AI Reasoning","Confidence"].map(h=>(
+              {["Contact","Source · Campaign","City","Suggested GP","AI Reasoning","Confidence"].map(h=>(
                 <th key={h} style={{ padding:"8px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.04em",whiteSpace:"nowrap" }}>{h}</th>
               ))}
             </tr>

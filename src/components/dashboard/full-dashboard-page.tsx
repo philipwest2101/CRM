@@ -15,7 +15,7 @@ export const FullDashboardPage = ({ role, navigateTo }) => {
 
   // ── MGR KPIs & data ─────────────────────────────────────────────────────────
   const MGR_KPIS = [
-    { label:"Total Leads", value:947, delta:"+42", up:true, color:C.navy  },
+    { label:"Total Contacts", value:947, delta:"+42", up:true, color:C.navy  },
     { label:"Appointments",value:61,  delta:"+8",  up:true, color:C.indigo},
     { label:"Closings",    value:38,  delta:"+5",  up:true, color:C.green },
     { label:"Conversion",  value:"8.2%",delta:"+0.4pp",up:true,color:C.green},
@@ -27,7 +27,7 @@ export const FullDashboardPage = ({ role, navigateTo }) => {
   const maxL = Math.max(...MONTHLY_DATA.map(m=>m.leads));
 
   const VD_TODO = [
-    {label:"Review Marc Otto's 3 stale leads", time:"Overdue", done:false},
+    {label:"Review Marc Otto's 3 stale contacts", time:"Overdue", done:false},
     {label:"Approve Nina Schmitt's call plan",  time:"09:00",  done:false},
     {label:"Team call — 10:00",                 time:"10:00",  done:true },
     {label:"Update Q1 quota targets",           time:"Today",  done:false},
@@ -91,7 +91,7 @@ export const FullDashboardPage = ({ role, navigateTo }) => {
       {/* Super Admin Dashboard */}
       {role==="superadmin" && (()=>{
         const SA_KPIS_NEW = [
-          { label:"Total Leads",   value:"2.904", delta:"+127",   up:true,  sub:"active",          warn:false, good:false },
+          { label:"Total Contacts",   value:"2.904", delta:"+127",   up:true,  sub:"active",          warn:false, good:false },
           { label:"Unassigned",   value:"47",    delta:"−12",    up:false, sub:"Pending assignment",warn:true,  good:false },
           { label:"Appointments",        value:"134",   delta:"+23",    up:true,  sub:"Month",          warn:false, good:false },
           { label:"Closings",     value:"81",    delta:"+11",    up:true,  sub:"MTD",            warn:false, good:true  },
@@ -276,7 +276,7 @@ export const FullDashboardPage = ({ role, navigateTo }) => {
                   <div style={{ fontSize:18,fontWeight:500,color:C.text }}>Warnings</div>
                 </div>
                 <div style={{ padding:"10px 18px 14px",display:"flex",flexDirection:"column" }}>
-                  {[{title:"47 leads unassigned",meta:"Oldest open for 14h",sev:"red",time:"jetzt"},{title:"Zapier Sync Error",meta:"3 leads failed",sev:"red",time:"2h"},{title:"14 leads attempt 5/5",meta:"Auto-status tomorrow",sev:"gold",time:"today"},{title:"Appointment No-Show Rate",meta:"Nina Schmitt · 22%",sev:"gold",time:"3h"},{title:"Forecast updated",meta:"7,1% Conversion (+0,3pp)",sev:"blue",time:"5h"}].map((w,i)=>{
+                  {[{title:"47 contacts unassigned",meta:"Oldest open for 14h",sev:"red",time:"jetzt"},{title:"Zapier Sync Error",meta:"3 contacts failed",sev:"red",time:"2h"},{title:"14 contacts attempt 5/5",meta:"Auto-status tomorrow",sev:"gold",time:"today"},{title:"Appointment No-Show Rate",meta:"Nina Schmitt · 22%",sev:"gold",time:"3h"},{title:"Forecast updated",meta:"7,1% Conversion (+0,3pp)",sev:"blue",time:"5h"}].map((w,i)=>{
                     const col=w.sev==="red"?C.red:w.sev==="gold"?C.amber:C.blue;
                     return (<div key={i} style={{ display:"flex",gap:10,alignItems:"flex-start",padding:"9px 0",borderBottom:i<4?`1px solid ${C.border}`:"none" }}>
                       <div style={{ width:22,height:22,borderRadius:"50%",background:col+"15",border:`1px solid ${col}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:col,flexShrink:0,marginTop:1 }}>{w.sev==="blue"?"i":"!"}</div>

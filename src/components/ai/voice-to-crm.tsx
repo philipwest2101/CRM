@@ -66,7 +66,7 @@ Output ONLY valid JSON, no markdown:
         Dictate your call notes aloud — AI automatically formats them, sets the lead status, and creates the next follow-up action. No typing needed.
       </div>
 
-      {/* Lead selector */}
+      {/* Contact selector */}
       <div style={{ marginBottom:16 }}>
         <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Contact (optional — links note to lead)</label>
         <div style={{ position:"relative" }}>
@@ -161,7 +161,7 @@ Output ONLY valid JSON, no markdown:
             <strong style={{ color:C.amber }}>⚡ Next:</strong> {result.nextAction} — {result.nextDate}
           </div>
           <div style={{ display:"flex",gap:10 }}>
-            <button onClick={()=>alert("Call note saved to CRM and lead status updated.")}
+            <button onClick={()=>alert("Call note saved to CRM and contact status updated.")}
               style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
               ✅ Save to CRM
             </button>

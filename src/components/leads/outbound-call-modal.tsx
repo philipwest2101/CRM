@@ -41,16 +41,16 @@ export const OutboundCallModal = ({ lead, onClose, onWorkflow }) => {
   "reasoning": string — one sentence explaining the classification
 }
 
-Lead: ${lead.name} | Source: ${lead.source} | Campaign: ${lead.campaign} | Status: ${lead.status} | Attempts: ${lead.attempts}
+Contact: ${lead.name} | Source: ${lead.source} | Campaign: ${lead.campaign} | Status: ${lead.status} | Attempts: ${lead.attempts}
 Call duration: ${fmt(elapsed)} | Call report: "${callReport || "(no report yet)"}"
 
 Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
     callClaudeAPI(systemPrompt, "Analyse this call and return your suggestion JSON.")
       .then(raw => {
         try   { setSuggestions(JSON.parse(raw.replace(/```json|```/g,"").trim())); }
-        catch { setSuggestions({ callStatus: lead.attempts>=3?"Not Reached – No Answer":"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Consultant reached ${lead.name} via ${lead.source}. Lead expressed interest in ${lead.campaign} and requested a follow-up appointment.`, confidence:82, reasoning:`Lead source (${lead.source}) and campaign (${lead.campaign}) indicate high intent.` }); }
+        catch { setSuggestions({ callStatus: lead.attempts>=3?"Not Reached – No Answer":"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Consultant reached ${lead.name} via ${lead.source}. Contact expressed interest in ${lead.campaign} and requested a follow-up appointment.`, confidence:82, reasoning:`Contact source (${lead.source}) and campaign (${lead.campaign}) indicate high intent.` }); }
       })
-      .catch(() => setSuggestions({ callStatus:"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Reached ${lead.name}. Lead interested in ${lead.campaign}. Follow-up appointment scheduled.`, confidence:78, reasoning:"Inferred from lead profile and campaign context." }))
+      .catch(() => setSuggestions({ callStatus:"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Reached ${lead.name}. Contact interested in ${lead.campaign}. Follow-up appointment scheduled.`, confidence:78, reasoning:"Inferred from contact profile and campaign context." }))
       .finally(() => setSugLoading(false));
   }, [phase]);
 
@@ -89,7 +89,7 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
               style={{ width:28,height:28,borderRadius:"50%",border:`1px solid ${C.border}`,background:"#F8FAFC",color:C.muted,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:300 }}>×</button>
           </div>
 
-          {/* Lead bar */}
+          {/* Contact bar */}
           <div style={{ padding:"10px 14px",borderRadius:10,
             background: phase==="active"
               ? "linear-gradient(90deg,#DC2626,#EF4444)"

@@ -25,7 +25,7 @@ export const JourneySettingsModal = ({ journey, onSave, onClose }) => {
             ["Send delay",        delay,   setDelay,   "text"],
             ["Send from (email)", sender,  setSender,  "email"],
             ["Reply-to address",  replyTo, setReplyTo, "email"],
-            ["Max sends per lead",maxSend, setMaxSend, "number"],
+            ["Max sends per contact",maxSend, setMaxSend, "number"],
           ].map(([label,val,setter,type])=>(
             <div key={label} style={{ marginBottom:16 }}>
               <label style={{ display:"block",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5 }}>{label}</label>

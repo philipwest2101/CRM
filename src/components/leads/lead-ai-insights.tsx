@@ -32,7 +32,7 @@ Output ONLY valid JSON, no markdown or preamble:
 }`,
           messages: [{
             role: "user",
-            content: `Lead profile:
+            content: `Contact profile:
 Name: ${lead.name}
 Status: ${lead.status}
 Product interest: ${lead.product || "Unknown"}
@@ -77,7 +77,7 @@ Labels: ${lead.labels?.join(", ") || "None"}`
             <div style={{ fontSize:14,fontWeight:800,color:C.navy }}>AI Insights</div>
             <div style={{ fontSize:11,color:C.muted }}>
               {status==="idle"   && "Powered by Claude — click to generate"}
-              {status==="loading"&& "Analysing lead profile…"}
+              {status==="loading"&& "Analysing contact profile…"}
               {status==="done"   && `Score: ${insights?.score}/100 · ${insights?.scoreLabel} · ${insights?.sentiment} ${sentimentIcon[insights?.sentiment]||""}`}
               {status==="error"  && "Error — check API connection"}
             </div>

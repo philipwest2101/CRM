@@ -48,7 +48,7 @@ export const NewAppointmentModal = ({ lead, onClose, role, onAdd }) => {
             style={{ width:26,height:26,borderRadius:"50%",border:`1px solid ${C.border}`,background:"#F8FAFC",color:C.muted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>×</button>
         </div>
 
-        {/* Lead */}
+        {/* Contact */}
         <div style={{ marginBottom:12 }}>
           <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Contact</label>
           {lead ? (

@@ -20,7 +20,7 @@ export const AIInsightsTab = ({ role }) => {
 
   const SUB_TABS = [
     { id:"insights",  label:"📊 Insights",       desc:"Scores, timing, email drafts"    },
-    { id:"roleplay",  label:"🎭 Objection Roleplay", desc:"Practice with AI as lead"     },
+    { id:"roleplay",  label:"🎭 Objection Roleplay", desc:"Practice with AI as contact"     },
     { id:"voice",     label:"🎙️ Voice-to-CRM",    desc:"Dictate call notes"             },
     { id:"brief",     label:"📋 Meeting Prep",    desc:"AI brief before appointments"   },
   ];

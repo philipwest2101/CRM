@@ -27,7 +27,7 @@ Script opens: ${gp.scriptOpens} (usage rate: ${usageRate}%)
 Script adherence score (from call analysis): ${gp.adherence}/100
 Biggest gap identified: ${GAP_LABELS[gp.topGap] || gp.topGap}
 Conversion rate: ${gp.rate}
-Leads reached: ${gp.reached} / ${gp.leads}
+Contacts reached: ${gp.reached} / ${gp.leads}
 Appointments set: ${gp.appts}
 Deals closed: ${gp.closed}
 Known issue: "${gp.coachNote}"

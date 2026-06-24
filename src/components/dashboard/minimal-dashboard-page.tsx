@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
+import { MiniCalendar } from "../ui/mini-calendar";
 
 // ── Role → user mapping (matches mock data in CRMAppV5.jsx) ──────────────────
 const ROLE_USER = {
@@ -37,32 +38,32 @@ const Card = ({ children, style = {} }) => (
 
 const CardHeader = ({ title, action }) => (
   <div style={{
-    padding: "16px 20px 12px",
+    padding: "11px 16px 9px",
     borderBottom: `1px solid ${C.border}`,
     display: "flex", alignItems: "center", justifyContent: "space-between",
   }}>
-    <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{title}</div>
+    <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{title}</div>
     {action}
   </div>
 );
 
 const KpiCard = ({ label, value, sub, color = C.text, warn = false }) => (
   <Card>
-    <div style={{ padding: "18px 20px" }}>
+    <div style={{ padding: "13px 16px" }}>
       <div style={{
         fontSize: 10, color: C.muted, fontWeight: 700,
-        letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10,
+        letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6,
       }}>
         {label}
       </div>
       <div style={{
-        fontSize: 38, fontWeight: 400, letterSpacing: "-0.03em",
+        fontSize: 30, fontWeight: 400, letterSpacing: "-0.03em",
         lineHeight: 1, color: warn ? C.red : color,
       }}>
         {value}
       </div>
       {sub && (
-        <div style={{ marginTop: 8, fontSize: 11, color: C.muted }}>{sub}</div>
+        <div style={{ marginTop: 5, fontSize: 11, color: C.muted }}>{sub}</div>
       )}
     </div>
   </Card>
@@ -182,12 +183,19 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
     .filter(a => a.entityType !== "reminder")
     .slice(0, 6);
 
-  // ── Leads panel title & sub-label per role ───────────────────────────────────
-  const leadsTitle = isGP ? "My New Leads" : isVD ? "Team New Leads" : "New Leads";
+  // Days in Feb 2026 that have an appointment → highlighted in the mini calendar
+  const calendarHighlights = [...new Set(
+    scopedAppts
+      .filter(a => typeof a.date === "string" && a.date.startsWith("2026-02") && a.status !== "cancelled")
+      .map(a => Number(a.date.slice(8, 10)))
+  )];
+
+  // ── Contacts panel title & sub-label per role ───────────────────────────────────
+  const leadsTitle = isGP ? "My New Contacts" : isVD ? "Team New Contacts" : "New Contacts";
   const contactsLabel = isGP ? "My Contacts" : isVD ? "Team Contacts" : "Total Contacts";
   const remindersTitle = isGP ? "My Reminders & Tasks" : isVD ? "Team Reminders" : "Reminders & Tasks";
 
-  // Leads to show in panel (max 5)
+  // Contacts to show in panel (max 5)
   const leadsToShow = newLeads.slice(0, 5);
 
   // ── Reminder checklist state ─────────────────────────────────────────────────
@@ -199,8 +207,8 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
       <div style={{ padding: "0 28px 48px" }}>
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        <div style={{ padding: "28px 0 24px" }}>
-          <h1 style={{ fontSize: 32, fontWeight: 400, letterSpacing: "-0.025em", color: C.text, margin: 0 }}>
+        <div style={{ padding: "22px 0 18px" }}>
+          <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.025em", color: C.text, margin: 0 }}>
             {greeting}, {user.firstName}<span style={{ color: C.primary }}>.</span>
           </h1>
           <div style={{ marginTop: 6, fontSize: 12, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
@@ -209,7 +217,7 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
         </div>
 
         {/* ── KPI row ─────────────────────────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
           <KpiCard
             label={contactsLabel}
             value={totalContacts}
@@ -246,31 +254,31 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
         {/* ── Main two-column layout ───────────────────────────────────────── */}
         <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16, marginBottom: 16 }}>
 
-          {/* ── New Leads panel ───────────────────────────────────────────── */}
+          {/* ── New Contacts panel ───────────────────────────────────────────── */}
           <Card>
             <CardHeader
               title={leadsTitle}
               action={<LinkBtn label="All Contacts →" onClick={() => navigateTo("Leads")} />}
             />
-            <div style={{ padding: "4px 20px 16px" }}>
+            <div style={{ padding: "2px 16px 10px" }}>
               {/* VD/SA: unassigned warning banner */}
               {!isGP && unassignedCount > 0 && (
                 <div style={{
-                  margin: "8px 0 10px",
-                  padding: "8px 12px", borderRadius: 8,
+                  margin: "8px 0 8px",
+                  padding: "7px 12px", borderRadius: 8,
                   background: C.red + "08", border: `1px solid ${C.red}30`,
                   display: "flex", alignItems: "center", gap: 8,
                 }}>
                   <span style={{ fontSize: 13 }}>⚠️</span>
                   <span style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>
-                    {unassignedCount} lead{unassignedCount > 1 ? "s" : ""} not yet assigned to a consultant
+                    {unassignedCount} contact{unassignedCount > 1 ? "s" : ""} not yet assigned to a consultant
                   </span>
                 </div>
               )}
 
               {leadsToShow.length === 0 ? (
-                <div style={{ padding: "24px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                  {isGP ? "No new leads assigned to you." : "No new leads right now."}
+                <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
+                  {isGP ? "No new contacts assigned to you." : "No new contacts right now."}
                 </div>
               ) : leadsToShow.map((lead, i) => (
                 <div key={lead.id} style={{
@@ -278,7 +286,7 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
                   gridTemplateColumns: "36px 1fr auto auto",
                   alignItems: "center",
                   gap: 12,
-                  padding: "12px 0",
+                  padding: "8px 0",
                   borderBottom: i < leadsToShow.length - 1 ? `1px solid ${C.border}` : "none",
                 }}>
                   <Avatar name={lead.name} size={36} />
@@ -315,15 +323,29 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
             </div>
           </Card>
 
+          {/* ── Right column: mini calendar + reminders ───────────────────── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* ── Mini calendar ─────────────────────────────────────────────── */}
+          <Card>
+            <CardHeader
+              title="Calendar"
+              action={<LinkBtn label="Open →" onClick={() => navigateTo("Calendar")} />}
+            />
+            <div style={{ padding: "12px 16px 14px" }}>
+              <MiniCalendar highlightDays={calendarHighlights} />
+            </div>
+          </Card>
+
           {/* ── Reminders / Tasks panel ───────────────────────────────────── */}
           <Card>
             <CardHeader
               title={remindersTitle}
               action={<LinkBtn label="All →" onClick={() => navigateTo("Calendar")} />}
             />
-            <div style={{ padding: "4px 20px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ padding: "2px 16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
               {openReminders.length === 0 ? (
-                <div style={{ padding: "24px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
+                <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
                   No open reminders.
                 </div>
               ) : openReminders.slice(0, 6).map((rem) => {
@@ -334,10 +356,10 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
                     onClick={() => toggleReminder(rem.id)}
                     style={{
                       display: "flex", alignItems: "flex-start", gap: 10,
-                      padding: "10px 10px", borderRadius: 9, cursor: "pointer",
+                      padding: "7px 10px", borderRadius: 9, cursor: "pointer",
                       border: `1px solid ${done ? C.green + "40" : C.border}`,
                       background: done ? C.green + "06" : "#F8FAFC",
-                      marginBottom: 6,
+                      marginBottom: 4,
                     }}
                   >
                     <div style={{
@@ -370,6 +392,7 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
               })}
             </div>
           </Card>
+          </div>
         </div>
 
         {/* ── Today's Appointments ─────────────────────────────────────────── */}
@@ -379,7 +402,7 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
               title={isGP ? "My Appointments Today" : isVD ? "Team Appointments Today" : "Appointments Today"}
               action={<LinkBtn label="Calendar →" onClick={() => navigateTo("Calendar")} />}
             />
-            <div style={{ padding: "4px 20px 16px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            <div style={{ padding: "10px 16px 12px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
               {todayAppts.map((appt) => {
                 const typeColor = { call: C.green, video: C.indigo, inperson: C.amber, email: C.blue }[appt.type] || C.muted;
                 const statusColor = { upcoming: C.blue, confirmed: C.green, done: C.muted, noshow: C.red }[appt.status] || C.muted;
@@ -419,9 +442,9 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
             title={isGP ? "My Recent Activity" : isVD ? "Team Recent Activity" : "Recent Activity"}
             action={<LinkBtn label="All Activity →" onClick={() => navigateTo("Calendar")} />}
           />
-          <div style={{ padding: "4px 20px 16px" }}>
+          <div style={{ padding: "2px 16px 10px" }}>
             {recentActivity.length === 0 ? (
-              <div style={{ padding: "24px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
+              <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
                 No recent activity.
               </div>
             ) : recentActivity.map((act, i) => {
@@ -429,7 +452,7 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
               return (
                 <div key={act.id} style={{
                   display: "flex", gap: 12, alignItems: "flex-start",
-                  padding: "10px 0",
+                  padding: "6px 0",
                   borderBottom: i < recentActivity.length - 1 ? `1px solid ${C.border}` : "none",
                 }}>
                   <div style={{

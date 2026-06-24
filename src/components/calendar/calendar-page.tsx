@@ -583,7 +583,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 </div>
                 <button onClick={()=>setSelected(null)} style={{ width:26,height:26,borderRadius:"50%",border:`1px solid ${C.border}`,background:"#F8FAFC",color:C.muted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>×</button>
               </div>
-              {[["📅","Date & Time",`${selected.date}${selected.time?` · ${selected.time}`:""}${selected.end?` – ${selected.end}`:""}`],["👤","Lead",selected.lead||"—"],["🔁","Recurrence",selected.recur||"Once"],["⚡","Status",sm.label]].filter(([,l,v])=>v&&v!=="—").map(([ic,l,v])=>(
+              {[["📅","Date & Time",`${selected.date}${selected.time?` · ${selected.time}`:""}${selected.end?` – ${selected.end}`:""}`],["👤","Contact",selected.lead||"—"],["🔁","Recurrence",selected.recur||"Once"],["⚡","Status",sm.label]].filter(([,l,v])=>v&&v!=="—").map(([ic,l,v])=>(
                 <div key={l} style={{ display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:12 }}>
                   <span style={{ color:C.muted }}>{ic} {l}</span><span style={{ color:C.text,fontWeight:600 }}>{v}</span>
                 </div>

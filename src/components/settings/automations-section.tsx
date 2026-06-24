@@ -3,12 +3,12 @@ import { C } from "../../theme";
 
 export const AutomationsSection = ({ role }) => {
   const TEMPLATES = [
-    { id:"tpl1", name:"Birthday reminder",     icon:"🎂", desc:"3 days before lead's birthday",               recur:"Yearly", triggerBasis:"lead_field", dateSource:"lead.birthday",    dateSourceLabel:"Lead's birthday"      },
+    { id:"tpl1", name:"Birthday reminder",     icon:"🎂", desc:"3 days before contact's birthday",               recur:"Yearly", triggerBasis:"lead_field", dateSource:"lead.birthday",    dateSourceLabel:"Contact's birthday"      },
     { id:"tpl7", name:"Anniversary reminder",  icon:"🥂", desc:"3 days before contract anniversary",          recur:"Yearly", triggerBasis:"lead_field", dateSource:"lead.anniversary", dateSourceLabel:"Contract anniversary"  },
     { id:"tpl6", name:"GDPR renewal",          icon:"🔒", desc:"30 days before consent expiry",               recur:"Once",   triggerBasis:"lead_field", dateSource:"lead.gdprExpiry",  dateSourceLabel:"GDPR consent expiry"  },
     { id:"tpl2", name:"Follow-up after call",  icon:"📞", desc:"24h after a Callback requested call log",     recur:"Once",   triggerBasis:"crm_event",  dateSource:"after_call",       dateSourceLabel:"After call logged"    },
     { id:"tpl3", name:"Appointment reminder",  icon:"📅", desc:"1 hour before scheduled appointment",         recur:"Once",   triggerBasis:"crm_event",  dateSource:"before_appt",      dateSourceLabel:"Before appointment"   },
-    { id:"tpl4", name:"Inactivity alert",      icon:"💤", desc:"Lead idle for 7+ days with no activity",      recur:"Weekly", triggerBasis:"crm_event",  dateSource:"on_inactivity",    dateSourceLabel:"On inactivity"        },
+    { id:"tpl4", name:"Inactivity alert",      icon:"💤", desc:"Contact idle for 7+ days with no activity",      recur:"Weekly", triggerBasis:"crm_event",  dateSource:"on_inactivity",    dateSourceLabel:"On inactivity"        },
     { id:"tpl5", name:"Welcome series day 3",  icon:"👋", desc:"3 days after first contact registered",       recur:"Once",   triggerBasis:"crm_event",  dateSource:"after_first",      dateSourceLabel:"After first contact"  },
   ];
   const [tplActive,   setTplActive]   = useState({tpl1:true,tpl2:true,tpl3:false,tpl4:false,tpl5:false,tpl6:false,tpl7:false});
@@ -34,7 +34,7 @@ export const AutomationsSection = ({ role }) => {
 
       {/* Two groups: lead field vs CRM event */}
       {[
-        { title:"📋 From lead field", subtitle:"Date is read automatically from the lead's profile — no date picking needed", filter:"lead_field", color:C.blue, bg:"#EFF6FF" },
+        { title:"📋 From contact field", subtitle:"Date is read automatically from the contact's profile — no date picking needed", filter:"lead_field", color:C.blue, bg:"#EFF6FF" },
         { title:"⚡ CRM event triggers", subtitle:"Fires automatically when something happens in the CRM", filter:"crm_event", color:C.green, bg:"#F0FDF4" },
       ].map(group=>(
         <div key={group.filter} style={{ marginTop:20 }}>
@@ -110,7 +110,7 @@ export const AutomationsSection = ({ role }) => {
             <div style={{ marginBottom:12 }}>
               <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:8 }}>Trigger type</label>
               <div style={{ display:"flex",gap:10 }}>
-                {[["lead_field","📋 From lead field","Date comes from lead profile"],["crm_event","⚡ CRM event","Fires on a CRM action"]].map(([k,l,h])=>(
+                {[["lead_field","📋 From contact field","Date comes from contact profile"],["crm_event","⚡ CRM event","Fires on a CRM action"]].map(([k,l,h])=>(
                   <button key={k} onClick={()=>setNewTpl(p=>({...p,triggerBasis:k,dateSource:""}))}
                     style={{ flex:1,padding:"10px",borderRadius:9,textAlign:"left",
                       border:`1.5px solid ${newTpl.triggerBasis===k?C.indigo:C.border}`,

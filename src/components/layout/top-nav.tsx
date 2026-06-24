@@ -320,7 +320,7 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
 
           {/* Filter pills */}
           <div style={{ padding:"10px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",gap:6,flexShrink:0,flexWrap:"wrap" }}>
-            {[["all","All"],["reminder","Reminders"],["lead","Leads"],["appt","Appointments"],["alert","Alerts"]].map(([k,l])=>(
+            {[["all","All"],["reminder","Reminders"],["lead","Contacts"],["appt","Appointments"],["alert","Alerts"]].map(([k,l])=>(
               <button key={k} onClick={()=>setNotifFilter(k)}
                 style={{ padding:"3px 10px",borderRadius:20,border:`1px solid ${notifFilter===k?(k==="reminder"?"#7C3AED":C.primary):C.border}`,
                   background:notifFilter===k?(k==="reminder"?"#7C3AED":C.primary):"#fff",

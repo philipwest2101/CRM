@@ -161,7 +161,7 @@ export const AppointmentsPage = ({ role, navigateTo, appointments=APPOINTMENTS, 
                       <div style={{ fontSize:10, color:C.muted, marginTop:3 }}>{a.end}</div>
                     </div>
 
-                    {/* Lead name + details */}
+                    {/* Contact name + details */}
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
                         <span style={{ fontSize:14, fontWeight:700, color:C.text }}>{a.lead}</span>
@@ -199,7 +199,7 @@ export const AppointmentsPage = ({ role, navigateTo, appointments=APPOINTMENTS, 
                 style={{ width:26, height:26, borderRadius:"50%", border:`1px solid ${C.border}`, background:"#F8FAFC", cursor:"pointer", fontSize:14 }}>×</button>
             </div>
             {[
-              ["Lead",       selected.lead],
+              ["Contact",       selected.lead],
               ["Date",       selected.date],
               ["Time",       `${selected.start} – ${selected.end}`],
               ["Type",       APPT_TYPE_META[selected.type]?.label || selected.type],

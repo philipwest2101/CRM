@@ -25,7 +25,7 @@ export const AIMeetingPrepBrief = ({ leads=ALL_LEADS }) => {
           max_tokens:1200,
           system:`You are an AI assistant for vion CRM, a German financial advisory platform. Generate a concise pre-meeting brief for a GP advisor.
 Output ONLY valid JSON:
-{"headline": "<1 sentence executive summary>", "leadProfile": "<2-3 sentences about this lead's background, interests, and situation>", "keyObjectives": ["<objective 1>","<objective 2>","<objective 3>"], "openingLine": "<specific suggested opening line for the meeting>", "anticipatedObjections": [{"objection":"<likely objection>","response":"<suggested response>"}], "productMatch": {"primary":"<best fitting product>","reason":"<why it fits>","secondary":"<alternative product>"}, "doList": ["<do this>","<and this>"], "dontList": ["<avoid this>","<and this>"], "closingStrategy": "<specific closing technique to use>"}`,
+{"headline": "<1 sentence executive summary>", "leadProfile": "<2-3 sentences about this contact's background, interests, and situation>", "keyObjectives": ["<objective 1>","<objective 2>","<objective 3>"], "openingLine": "<specific suggested opening line for the meeting>", "anticipatedObjections": [{"objection":"<likely objection>","response":"<suggested response>"}], "productMatch": {"primary":"<best fitting product>","reason":"<why it fits>","secondary":"<alternative product>"}, "doList": ["<do this>","<and this>"], "dontList": ["<avoid this>","<and this>"], "closingStrategy": "<specific closing technique to use>"}`,
           messages:[{ role:"user", content:`Generate meeting prep brief for: Name: ${lead.name}, Status: ${lead.status}, Product: ${lead.product}, Source: ${lead.source||"Unknown"}, City: ${lead.city}, Attempts: ${lead.attempts||0}, AI Score: ${ai?.score||"N/A"}, Score reason: ${ai?.reasons?.[0]||"N/A"}, Language: ${lead.lang==="en"?"English":"German"}` }],
         })
       });
@@ -46,7 +46,7 @@ Output ONLY valid JSON:
         Before your next appointment, generate a 1-page AI briefing — lead profile, best opening line, anticipated objections, and product match.
       </div>
 
-      {/* Lead selector */}
+      {/* Contact selector */}
       {!brief && !loading && (
         <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
           {(apptLeads.length?apptLeads:leads).slice(0,6).map(lead=>{
@@ -96,7 +96,7 @@ Output ONLY valid JSON:
 
           {/* Brief sections */}
           <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
-            {/* Lead profile */}
+            {/* Contact profile */}
             <div style={{ padding:"14px 16px",borderRadius:11,background:"#fff",border:`1px solid ${C.border}` }}>
               <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6 }}>👤 Contact Profile</div>
               <div style={{ fontSize:12,color:C.slate,lineHeight:1.6 }}>{brief.leadProfile}</div>
@@ -165,7 +165,7 @@ Output ONLY valid JSON:
 
             {/* Actions */}
             <div style={{ display:"flex",gap:10 }}>
-              <button onClick={()=>alert("Brief saved to lead profile and synced to Calendar.")}
+              <button onClick={()=>alert("Brief saved to contact profile and synced to Calendar.")}
                 style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
                 💾 Save to Contact Profile
               </button>

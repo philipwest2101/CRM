@@ -3,7 +3,7 @@ import { C } from "../../theme";
 
 export const StatsPanel = ({ isVD }) => {
   const gpStats = [
-    { label:"Leads Assigned", value:62,    unit:"",   color:C.navy  },
+    { label:"Contacts Assigned", value:62,    unit:"",   color:C.navy  },
     { label:"Contacted",      value:48,    unit:"",   color:C.blue  },
     { label:"Appointments",   value:9,     unit:"",   color:C.indigo},
     { label:"Closings MTD",   value:5,     unit:"",   color:C.green },
@@ -11,7 +11,7 @@ export const StatsPanel = ({ isVD }) => {
     { label:"AI Time Saved",  value:47,    unit:"min",color:C.ai    },
   ];
   const vdStats = [
-    { label:"Team Leads",     value:890,   unit:"",   color:C.navy  },
+    { label:"Team Contacts",     value:890,   unit:"",   color:C.navy  },
     { label:"Appointments",   value:54,    unit:"",   color:C.indigo},
     { label:"Closings MTD",   value:34,    unit:"",   color:C.green },
     { label:"Not Reached",    value:125,   unit:"",   color:C.red   },

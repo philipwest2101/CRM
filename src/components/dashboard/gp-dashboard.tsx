@@ -267,10 +267,10 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
         </div>
       </div>
 
-      {/* ── Second Row: Priority Leads + Right Column ─────────────────────── */}
+      {/* ── Second Row: Priority Contacts + Right Column ─────────────────────── */}
       <div style={{ display:"grid",gridTemplateColumns:"1.7fr 1fr",gap:16 }}>
 
-        {/* Priority Leads */}
+        {/* Priority Contacts */}
         <div style={{ background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden" }}>
           <div style={{ padding:"18px 22px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${C.border}` }}>
             <div style={{ fontSize:20,fontWeight:500,color:C.text }}>

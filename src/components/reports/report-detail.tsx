@@ -32,7 +32,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
         </div>
         <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
           <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Consultant Breakdown — Thomas Müller's Team (MTD)</div>
-          <Tbl headers={["Consultant","Leads","Contacted","Reached","Appointments","Closed","Conv. Rate","Trend"]}
+          <Tbl headers={["Consultant","Contacts","Contacted","Reached","Appointments","Closed","Conv. Rate","Trend"]}
             rows={[
               ["Anna Klein",   "62","48","33","21","14",<span style={{color:C.green,fontWeight:700}}>8.1%</span>,<span style={{color:C.green,fontWeight:700}}>↑ +1.2pp</span>],
               ["Marc Otto",    "58","42","28","18","11",<span style={{color:C.green,fontWeight:700}}>6.7%</span>,<span style={{color:C.green,fontWeight:700}}>↑ +1.2pp</span>],
@@ -72,7 +72,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
         </div>
         <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
           <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Sales Director Breakdown (MTD)</div>
-          <Tbl headers={["Director","GPs","Leads","Contacted","Appointments","Closed","Conv. Rate","Self Leads"]}
+          <Tbl headers={["Director","GPs","Contacts","Contacted","Appointments","Closed","Conv. Rate","Self Contacts"]}
             rows={[
               ["Thomas Müller","3","890","668","54","34",<span style={{color:C.green,fontWeight:700}}>7.1%</span>,<span style={{color:C.indigo,fontWeight:700}}>6</span>],
               ["Lisa Weber","2","720","540","41","28",<span style={{color:C.green,fontWeight:700}}>6.5%</span>,"—"],
@@ -103,12 +103,12 @@ export const ReportDetail = ({ report, role, onBack }) => {
         <KpiBox label="Total Contacts (MTD)" value="2,904" sub="Across all sources" color={C.navy} />
         <KpiBox label="Best Campaign" value="Q1 Finanz" sub="8.6% conv. rate" color={C.indigo} />
         <KpiBox label="Avg Cost-per-Contact" value="€4.20" sub="−€0.80 vs Jan" color={C.green} />
-        <KpiBox label="Zapier Status" value="⚠ Down" sub="0 leads in 6h" color={C.red} />
+        <KpiBox label="Zapier Status" value="⚠ Down" sub="0 contacts in 6h" color={C.red} />
       </div>
       <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
         <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Campaign Performance Breakdown</div>
         <Tbl
-          headers={["Campaign","Source","Leads","Contacted","Appointments","Closed","Conv. Rate","Cost-per-Lead"]}
+          headers={["Campaign","Source","Contacts","Contacted","Appointments","Closed","Conv. Rate","Cost-per-Contact"]}
           rows={[
             ["Q1 Finanz","Meta Ads","840","630","72","34",<span style={{color:C.green,fontWeight:700}}>8.6%</span>,"€3.80"],
             ["Webinar März","Landing Page","620","496","48","22",<span style={{color:C.green,fontWeight:700}}>7.1%</span>,"€4.10"],
@@ -182,13 +182,13 @@ export const ReportDetail = ({ report, role, onBack }) => {
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
         <KpiBox label="Closed (MTD)" value="89" sub="+31% vs last month" color={C.green} />
         <KpiBox label="Total Revenue (MTD)" value="€178K" sub="+28% vs last month" color={C.navy} />
-        <KpiBox label="Avg Deal Value" value="€2,000" sub="Per closed lead" color={C.indigo} />
+        <KpiBox label="Avg Deal Value" value="€2,000" sub="Per closed contact" color={C.indigo} />
         <KpiBox label="Avg Sales Cycle" value="9.4 days" sub="−1.2 days vs Jan" color={C.purple} />
       </div>
       <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
         <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Closed Deals by Consultant (MTD)</div>
         <Tbl
-          headers={["Consultant","VD","Leads","Closed","Conv. Rate","Revenue","Avg Deal","Cycle (days)"]}
+          headers={["Consultant","VD","Contacts","Closed","Conv. Rate","Revenue","Avg Deal","Cycle (days)"]}
           rows={[
             ["Anna Klein","T. Müller","62","14",<span style={{color:C.green,fontWeight:700}}>8.1%</span>,"€28,000","€2,000","8.2"],
             ["Kai Becker","L. Weber","55","10",<span style={{color:C.green,fontWeight:700}}>7.3%</span>,"€24,000","€2,400","9.1"],
@@ -220,15 +220,15 @@ export const ReportDetail = ({ report, role, onBack }) => {
 
     if(report.key==="gdpr") return (<>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
-        <KpiBox label="Consent Rate" value="79.8%" sub="2,316 of 2,904 leads" color={C.green} />
+        <KpiBox label="Consent Rate" value="79.8%" sub="2,316 of 2,904 contacts" color={C.green} />
         <KpiBox label="No Consent" value="588" sub="Retargeting restricted" color={C.amber} />
         <KpiBox label="Deletion Requests" value="3" sub="Pending action" color={C.red} />
-        <KpiBox label="Double Opt-in" value="94.2%" sub="Of consented leads" color={C.indigo} />
+        <KpiBox label="Double Opt-in" value="94.2%" sub="Of consented contacts" color={C.indigo} />
       </div>
       <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
         <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Consent by Campaign Source</div>
         <Tbl
-          headers={["Source","Total Leads","Consented","No Consent","Consent Rate","Double Opt-in"]}
+          headers={["Source","Total Contacts","Consented","No Consent","Consent Rate","Double Opt-in"]}
           rows={[
             ["Meta Ads","1,240","1,042","198",<span style={{color:C.green,fontWeight:700}}>84.0%</span>,"97.1%"],
             ["Landing Page","780","655","125",<span style={{color:C.green,fontWeight:700}}>84.0%</span>,"95.6%"],
@@ -249,7 +249,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
             { type:"⚠ Deletion Request", lead:"Felix Wagner", detail:"5 attempts, no consent — pending deletion", color:C.red },
             { type:"⚠ Deletion Request", lead:"Ben Schulze", detail:"Requested data removal on Feb 21", color:C.red },
             { type:"⚠ Deletion Request", lead:"Monika Braun", detail:"No interest, opted out Feb 22", color:C.red },
-            { type:"ℹ No Consent", lead:"15 CSV leads", detail:"Imported without consent flag — review needed", color:C.amber },
+            { type:"ℹ No Consent", lead:"15 CSV contacts", detail:"Imported without consent flag — review needed", color:C.amber },
           ].map((a,i)=>(
             <div key={i} style={{ display:"flex",gap:10,padding:"9px 0",borderBottom:i<3?`1px solid ${C.border}`:"none",alignItems:"flex-start" }}>
               <span style={{ fontSize:16 }}>{a.type.split(" ")[0]}</span>
@@ -266,7 +266,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
 
     if(report.key==="email") return (<>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
-        <KpiBox label="Emails Sent (MTD)" value="5,808" sub="2× per lead avg" color={C.amber} />
+        <KpiBox label="Emails Sent (MTD)" value="5,808" sub="2× per contact avg" color={C.amber} />
         <KpiBox label="Open Rate" value="38.4%" sub="+3.2pp vs Jan" color={C.indigo} />
         <KpiBox label="Click Rate" value="12.1%" sub="+1.8pp vs Jan" color={C.blue} />
         <KpiBox label="Conv. from Email" value="2.8%" sub="Email-assisted closes" color={C.green} />
@@ -276,7 +276,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
         <Tbl
           headers={["Journey","Trigger","Sent","Open Rate","Click Rate","Appointments","Conv. Rate"]}
           rows={[
-            ["Welcome Email","Lead captured","2,904",<span style={{color:C.green,fontWeight:700}}>52.1%</span>,"18.4%","—","—"],
+            ["Welcome Email","Contact captured","2,904",<span style={{color:C.green,fontWeight:700}}>52.1%</span>,"18.4%","—","—"],
             ["Follow-up #1","No contact 24h","1,840",<span style={{color:C.indigo,fontWeight:700}}>41.3%</span>,"14.2%","62","3.4%"],
             ["Follow-up #2","No contact 72h","920",<span style={{color:C.amber,fontWeight:700}}>29.8%</span>,"10.1%","28","3.0%"],
             ["Appointment Reminder","Appt -24h","134",<span style={{color:C.green,fontWeight:700}}>88.1%</span>,"72.4%","—","—"],

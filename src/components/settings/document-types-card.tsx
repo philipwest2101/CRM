@@ -65,7 +65,7 @@ export const DocumentTypesCard = () => {
             <textarea value={form.body||""} onChange={e=>setForm(f=>({...f,body:e.target.value}))}
               style={{...inp,minHeight:100,resize:"vertical"}} />
           </F>
-          <F label="Checklist items — one per line (shown to the lead as what to provide)">
+          <F label="Checklist items — one per line (shown to the contact as what to provide)">
             <textarea value={form.instructions||""} onChange={e=>setForm(f=>({...f,instructions:e.target.value}))}
               placeholder={"Most recent payslip\nIf self-employed: last 2 years' tax returns\nIf retired: pension statement"}
               style={{...inp,minHeight:72,resize:"vertical"}} />

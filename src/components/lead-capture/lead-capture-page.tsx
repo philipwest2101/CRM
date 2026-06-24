@@ -33,9 +33,9 @@ export const LeadCapturePage = ({ role, navigateTo }) => {
       {/* KPI Strip */}
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:22 }}>
         {[
-          { label:"Total Leads Captured", value:totalLeads.toLocaleString(), icon:"👥", color:C.blue   },
+          { label:"Total Contacts Captured", value:totalLeads.toLocaleString(), icon:"👥", color:C.blue   },
           { label:"Active Sources",       value:`${connected} / ${LC_SOURCES.length}`, icon:"🔗", color:C.green  },
-          { label:"Leads Today",          value:"46",  icon:"📥", color:C.indigo },
+          { label:"Contacts Today",          value:"46",  icon:"📥", color:C.indigo },
           { label:"Errors / Warnings",    value:"1",   icon:"⚠️", color:C.red   },
         ].map(k=>(
           <div key={k.label} style={{ background:"#fff",borderRadius:12,padding:"18px 20px",border:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:16 }}>

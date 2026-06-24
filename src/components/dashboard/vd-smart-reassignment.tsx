@@ -5,7 +5,7 @@ import { C } from "../../theme";
 export const VDSmartReassignment = () => {
   const [approvedIds, setApprovedIds] = useState([]);
   const suggestions = [
-    {lead:"Nina Hartmann",  from:"Marc Otto", reason:"Anna Klein: 64% reach rate for Messe FFM leads — Marc is at capacity", score:89},
+    {lead:"Nina Hartmann",  from:"Marc Otto", reason:"Anna Klein: 64% reach rate for Messe FFM contacts — Marc is at capacity", score:89},
     {lead:"Claudia Becker", from:"Marc Otto", reason:"Giveaway campaign performs 2× better under Anna Klein historically",    score:83},
   ];
   return (

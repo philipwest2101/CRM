@@ -163,7 +163,7 @@ export const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                       <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>Send to</label>
                       <button type="button" onClick={()=>f("emailToLead",!form.emailToLead)}
                         style={{ padding:"6px 14px",borderRadius:20,border:`1.5px solid ${form.emailToLead?C.blue:C.border}`,background:form.emailToLead?C.blue:"#fff",color:form.emailToLead?"#fff":C.muted,fontSize:11,fontWeight:form.emailToLead?700:400,cursor:"pointer",fontFamily:"inherit" }}>
-                        {form.emailToLead?"✓ ":""}👤 Lead (journey email)
+                        {form.emailToLead?"✓ ":""}👤 Contact (journey email)
                       </button>
                       {form.emailToLead && leadEmailWarning && (
                         <div style={{ marginTop:8,padding:"8px 12px",borderRadius:8,background:C.red+"0A",border:`1px solid ${C.red}40`,display:"flex",gap:8,fontSize:11,color:C.text,lineHeight:1.45 }}>
@@ -177,7 +177,7 @@ export const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                       </div>
                       {!emailValid && <div style={{ marginTop:8,fontSize:10,fontWeight:700,color:C.red }}>Choose at least one recipient (lead or a role).</div>}
                     </div>
-                    {/* Lead journey config — only when the lead is a recipient */}
+                    {/* Contact journey config — only when the lead is a recipient */}
                     {form.emailToLead && (<>
                     {/* Journey selector — system auto-matches lead language */}
                     <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:6 }}>
@@ -263,9 +263,9 @@ export const RuleEditor = ({ initial, onSave, onCancel, takenTriggers }) => {
                       ))}</div>
                     </div>
                     <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Task title</label>
-                      <input value={form.taskTitle||""} onChange={e=>f("taskTitle",e.target.value)} placeholder="e.g. Follow up with {lead} within 24h"
+                      <input value={form.taskTitle||""} onChange={e=>f("taskTitle",e.target.value)} placeholder="e.g. Follow up with {contact} within 24h"
                         style={{ width:"100%",padding:"8px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/>
-                      <div style={{ fontSize:10,color:C.muted,marginTop:3 }}>Use {"{lead}"} to insert the lead name automatically</div>
+                      <div style={{ fontSize:10,color:C.muted,marginTop:3 }}>Use {"{contact}"} to insert the contact name automatically</div>
                     </div>
                     <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Priority</label>
                       <div style={{ display:"flex",gap:6 }}>{[["high","🔴 High"],["normal","🟡 Normal"],["low","⚪ Low"]].map(([k,l])=>(

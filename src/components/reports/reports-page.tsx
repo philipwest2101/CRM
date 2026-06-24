@@ -26,7 +26,7 @@ export const ReportsPage = ({ role, navigateTo }) => {
   ] : role==="superadmin" ? [
     { id:"analytics",  label:"Analytics" },
     { id:"directors",  label:"Director Performance" },
-    { id:"sources",    label:"Lead Sources" },
+    { id:"sources",    label:"Contact Sources" },
   ] : /* manager */ [
     { id:"overview",   label:"Org Overview" },
     { id:"team",       label:"Team Performance" },
@@ -132,7 +132,7 @@ export const ReportsPage = ({ role, navigateTo }) => {
             <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Campaign Performance</div>
             <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
               <thead><tr style={{ borderBottom:`2px solid ${C.border}` }}>
-                {["Campaign","Leads","Appts","Closed","Rate"].map(h=><th key={h} style={{ padding:"6px 8px",textAlign:"left",fontSize:10,fontWeight:700,color:C.muted }}>{h}</th>)}
+                {["Campaign","Contacts","Appts","Closed","Rate"].map(h=><th key={h} style={{ padding:"6px 8px",textAlign:"left",fontSize:10,fontWeight:700,color:C.muted }}>{h}</th>)}
               </tr></thead>
               <tbody>{[
                 {name:"Q1 Finanz",leads:24,appts:10,closed:6,rate:"25.0%"},
@@ -227,7 +227,7 @@ export const ReportsPage = ({ role, navigateTo }) => {
       ═══════════════════════════════════════════════════════════════════ */}
       {role==="superadmin" && (()=>{
         const SA_KPIS_NEW = [
-          { label:"Gesamt Leads",   value:"2.904", delta:"+127",   up:true,  sub:"aktiv",        warn:false, good:false },
+          { label:"Gesamt Contacts",   value:"2.904", delta:"+127",   up:true,  sub:"aktiv",        warn:false, good:false },
           { label:"Unzugewiesen",   value:"47",    delta:"−12",    up:false, sub:"Zuteilung offen",warn:true, good:false },
           { label:"Termine",        value:"134",   delta:"+23",    up:true,  sub:"Monat",        warn:false, good:false },
           { label:"Abschlüsse",     value:"81",    delta:"+11",    up:true,  sub:"MTD",          warn:false, good:true  },
@@ -331,7 +331,7 @@ export const ReportsPage = ({ role, navigateTo }) => {
                 </div>
               </div>
 
-              {/* Lead Sources + Conversion */}
+              {/* Contact Sources + Conversion */}
               <div style={{ background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden" }}>
                 <div style={{ padding:"16px 20px 12px",borderBottom:`1px solid ${C.border}` }}>
                   <div style={{ fontSize:18,fontWeight:500,color:C.text }}>Quellen <em style={{ color:C.indigo,fontWeight:400 }}>+ Konv.</em></div>
@@ -464,9 +464,9 @@ export const ReportsPage = ({ role, navigateTo }) => {
                 </div>
                 <div style={{ padding:"10px 18px 14px",display:"flex",flexDirection:"column",gap:0 }}>
                   {[
-                    { title:"47 Leads unzugewiesen",      meta:"Älteste seit 14h offen",                   sev:"red",  time:"jetzt" },
-                    { title:"Zapier Sync-Fehler",          meta:"3 Leads fehlgeschlagen · Sonstige",        sev:"red",  time:"2h"    },
-                    { title:"14 Leads Versuch 5/5",        meta:"Auto-Status → \"Nicht erreicht\" morgen",  sev:"gold", time:"heute" },
+                    { title:"47 Contacts unzugewiesen",      meta:"Älteste seit 14h offen",                   sev:"red",  time:"jetzt" },
+                    { title:"Zapier Sync-Fehler",          meta:"3 Contacts fehlgeschlagen · Sonstige",        sev:"red",  time:"2h"    },
+                    { title:"14 Contacts Versuch 5/5",        meta:"Auto-Status → \"Nicht erreicht\" morgen",  sev:"gold", time:"heute" },
                     { title:"Termin No-Show Quote",        meta:"Nina Schmitt · 22% diese Woche",           sev:"gold", time:"3h"    },
                     { title:"Forecast aktualisiert",       meta:"Monatsende: 7,1% Konversion (+0,3pp)",     sev:"blue", time:"5h"    },
                   ].map((w,i)=>{
@@ -611,7 +611,7 @@ export const ReportsPage = ({ role, navigateTo }) => {
         <Card style={{ padding:"18px 20px",marginBottom:14 }}>
           <table style={{ width:"100%",borderCollapse:"collapse" }}>
             <thead><tr style={{ borderBottom:`2px solid ${C.border}` }}>
-              {["Director","GPs","Leads","Closed","Conv.","AI Score","Adherence","Trend"].map(h=>(
+              {["Director","GPs","Contacts","Closed","Conv.","AI Score","Adherence","Trend"].map(h=>(
                 <th key={h} style={{ padding:"8px 10px",textAlign:"left",fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.04em" }}>{h}</th>
               ))}
             </tr></thead>
@@ -640,7 +640,7 @@ export const ReportsPage = ({ role, navigateTo }) => {
         <Card style={{ padding:"18px 20px",marginBottom:14 }}>
           <table style={{ width:"100%",borderCollapse:"collapse" }}>
             <thead><tr style={{ borderBottom:`2px solid ${C.border}` }}>
-              {["Campaign","Leads","Closed","Conv.","CPL","Revenue","ROI"].map(h=>(
+              {["Campaign","Contacts","Closed","Conv.","CPL","Revenue","ROI"].map(h=>(
                 <th key={h} style={{ padding:"8px 10px",textAlign:"left",fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.04em" }}>{h}</th>
               ))}
             </tr></thead>
@@ -689,11 +689,11 @@ export const ReportsPage = ({ role, navigateTo }) => {
         <SectionHeading id="adoption" label="AI Adoption" />
         <Card style={{ padding:"18px 20px" }}>
           {[
-            {label:"Lead Scoring",    pct:100,note:"All leads auto-scored",        color:C.green},
+            {label:"Contact Scoring",    pct:100,note:"All contacts auto-scored",        color:C.green},
             {label:"AI Call Script",  pct:72, note:"18/25 consultants this month", color:C.indigo},
             {label:"AI Call Logger",  pct:68, note:"Used on 68% of logged calls",  color:C.indigo},
             {label:"Call Analysis",   pct:41, note:"VoIP active",                  color:C.amber},
-            {label:"AI Agent",        pct:55, note:"Active in lead drawers",       color:C.blue},
+            {label:"AI Agent",        pct:55, note:"Active in contact drawers",       color:C.blue},
             {label:"Email Automation",pct:84, note:"3 active journeys running",    color:C.green},
           ].map(f=>(
             <div key={f.label} style={{ marginBottom:14 }}>

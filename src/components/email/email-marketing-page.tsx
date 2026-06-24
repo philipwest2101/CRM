@@ -587,7 +587,7 @@ export const EmailMarketingPage = ({ role, navigateTo }) => {
             </div>}
             <div style={{ background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,padding:"18px 22px" }}>
               <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Audience</div>
-              {[["Source","Active Leads — CRM segment"],["Total",fmt(beSel.recipients||0)],["✅ Valid",fmt(beSel.valid||0)],["— Unsubscribed","23"],["— Invalid","12"]].map(([k,v])=>(
+              {[["Source","Active Contacts — CRM segment"],["Total",fmt(beSel.recipients||0)],["✅ Valid",fmt(beSel.valid||0)],["— Unsubscribed","23"],["— Invalid","12"]].map(([k,v])=>(
                 <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:12 }}><span style={{ color:k.startsWith("—")?C.muted:C.text }}>{k}</span><span style={{ fontFamily:"monospace",fontWeight:600,color:k.startsWith("✅")?C.green:k.startsWith("—")?C.red:C.text }}>{v}</span></div>
               ))}
             </div>

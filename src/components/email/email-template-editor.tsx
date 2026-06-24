@@ -58,7 +58,7 @@ export const EmailTemplateEditor = ({ template, journeyColor, onSave, onClose })
                 ))}
               </div>
               <div style={{ fontSize:9,color:C.muted,marginTop:4 }}>
-                {lang==="de"?"Sent to leads with German preference":"Sent to leads with English preference"}
+                {lang==="de"?"Sent to contacts with German preference":"Sent to contacts with English preference"}
               </div>
             </div>
           </div>

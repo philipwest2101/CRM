@@ -155,7 +155,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
           </div>
         </div>
 
-        {/* Lead header row */}
+        {/* Contact header row */}
         <div style={{ display:"flex",alignItems:"center",gap:16,marginBottom:14 }}>
           <Avatar name={lead.name} size={48} />
           <div style={{ flex:1 }}>
@@ -695,7 +695,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
                   </SettingsCard>
                 </div>
 
-                {/* Contact + Lead details */}
+                {/* Contact + Contact details */}
                 <SettingsCard style={{ padding:"18px 20px" }}>
                   <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:0 }}>
                     <div>
@@ -726,7 +726,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
                     </div>
                     <div style={{ paddingLeft:20,borderLeft:`1px solid ${C.border}` }}>
                       <div style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10 }}>Contact Details</div>
-                      {[["Campaign",lead.campaign],["Lead ID",lead.id],["Assigned VD",lead.assignedVD||"—"],["Created",lead.created],...(lead.amount?[["Closing Amount",lead.amount]]:[])].map(([k,v])=>(
+                      {[["Campaign",lead.campaign],["Contact ID",lead.id],["Assigned VD",lead.assignedVD||"—"],["Created",lead.created],...(lead.amount?[["Closing Amount",lead.amount]]:[])].map(([k,v])=>(
                         <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.border}`,fontSize:12 }}>
                           <span style={{ color:C.muted }}>{k}</span>
                           <span style={{ color:k==="Closing Amount"?C.green:C.text,fontWeight:k==="Closing Amount"?700:400 }}>{v}</span>

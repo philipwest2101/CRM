@@ -5,8 +5,8 @@ import { C } from "../../theme";
 export const LanguageSection = ({ save, role, inp, Card, Field, Label }) => {
   const [previewLang, setPreviewLang] = useState("en");
   const PREVIEW = {
-    en: { dash:"Dashboard", leads:"Leads", appts:"Appointments", settings:"Settings", status:"Status", source:"Source", campaign:"Campaign", assign:"Assign", score:"AI Score", save:"Save Changes" },
-    de: { dash:"Übersicht", leads:"Leads", appts:"Termine", settings:"Einstellungen", status:"Status", source:"Quelle", campaign:"Kampagne", assign:"Zuweisen", score:"KI-Bewertung", save:"Änderungen speichern" },
+    en: { dash:"Dashboard", leads:"Contacts", appts:"Appointments", settings:"Settings", status:"Status", source:"Source", campaign:"Campaign", assign:"Assign", score:"AI Score", save:"Save Changes" },
+    de: { dash:"Übersicht", leads:"Kontakte", appts:"Termine", settings:"Einstellungen", status:"Status", source:"Quelle", campaign:"Kampagne", assign:"Zuweisen", score:"KI-Bewertung", save:"Änderungen speichern" },
   };
   const p = PREVIEW[previewLang];
   return (
@@ -31,7 +31,7 @@ export const LanguageSection = ({ save, role, inp, Card, Field, Label }) => {
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
             {[
               ["Navigation",`${p.dash} · ${p.leads} · ${p.appts} · ${p.settings}`],
-              ["Lead fields",`${p.status} · ${p.source} · ${p.campaign}`],
+              ["Contact fields",`${p.status} · ${p.source} · ${p.campaign}`],
               ["Actions",`${p.assign} · ${p.score}`],
               ["Buttons",p.save],
             ].map(([k,v])=>(

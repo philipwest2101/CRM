@@ -150,17 +150,17 @@ export const SettingsPage = ({ role, navigateTo }) => {
             {/* ── Consultant + VD: personal workflow ── */}
             {(role==="gp"||role==="vd") && (
               <SettingsCard title="My Workflow">
-                <SettingsToggle label="New lead assigned to me"  sub="Instant alert when a lead is assigned to your queue"      defaultOn={true} />
-                <SettingsToggle label="Follow-up due today"      sub="Reminder each morning for leads due for contact"          defaultOn={true} />
+                <SettingsToggle label="New contact assigned to me"  sub="Instant alert when a contact is assigned to your queue"      defaultOn={true} />
+                <SettingsToggle label="Follow-up due today"      sub="Reminder each morning for contacts due for contact"          defaultOn={true} />
                 <SettingsToggle label="Appointment reminder"     sub="Alert 1 hour before each scheduled appointment"          defaultOn={true} />
-                <SettingsToggle label="Contact status changed"      sub="When a lead in your pipeline changes status"             defaultOn={false} />
+                <SettingsToggle label="Contact status changed"      sub="When a contact in your pipeline changes status"             defaultOn={false} />
               </SettingsCard>
             )}
 
             {/* ── VD only: team management ── */}
             {(role==="vd"||role==="superadmin") && (
               <SettingsCard title="Team Alerts">
-                <SettingsToggle label="Contact assigned to my team"   sub="When any lead is assigned to a consultant in your team"  defaultOn={true} />
+                <SettingsToggle label="Contact assigned to my team"   sub="When any contact is assigned to a consultant in your team"  defaultOn={true} />
                 <SettingsToggle label="GP conversion rate drop"    sub="Alert when a consultant's rate drops 10% week-on-week"   defaultOn={true} />
                 <SettingsToggle label="Script adherence low"       sub="When a GP falls below the adherence threshold"           defaultOn={role==="vd"} />
               </SettingsCard>
@@ -169,9 +169,9 @@ export const SettingsPage = ({ role, navigateTo }) => {
             {/* ── SA only: system & org ── */}
             {role==="superadmin" && (
               <SettingsCard title="System & Organisation">
-                <SettingsToggle label="GDPR consent expiry"         sub="Alert 30 days before any lead's consent expires"         defaultOn={true} />
+                <SettingsToggle label="GDPR consent expiry"         sub="Alert 30 days before any contact's consent expires"         defaultOn={true} />
                 <SettingsToggle label="Zapier / integration errors" sub="Alert when a connected source fails to sync"             defaultOn={true} />
-                <SettingsToggle label="New lead source connected"   sub="When a new integration or import is configured"          defaultOn={true} />
+                <SettingsToggle label="New contact source connected"   sub="When a new integration or import is configured"          defaultOn={true} />
                 <SettingsToggle label="User account changes"        sub="New users added, roles changed, or access revoked"       defaultOn={true} />
               </SettingsCard>
             )}
@@ -188,7 +188,7 @@ export const SettingsPage = ({ role, navigateTo }) => {
             {/* ── All roles: email digest ── */}
             <SettingsCard title="Email Digest">
               {(role==="gp"||role==="vd") && <>
-                <SettingsToggle label="Daily pipeline summary"     sub="Morning email with your lead queue and appointments"     defaultOn={true} />
+                <SettingsToggle label="Daily pipeline summary"     sub="Morning email with your contact queue and appointments"     defaultOn={true} />
                 <SettingsToggle label="Weekly performance report"  sub="Every Monday with your personal stats"                  defaultOn={true} />
               </>}
               {(role==="vd"||role==="superadmin"||role==="manager") && (
@@ -289,7 +289,7 @@ export const SettingsPage = ({ role, navigateTo }) => {
               <button onClick={save} style={{ padding:"8px 20px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Update Password</button>
             </SettingsCard>
             <SettingsCard title="Data & Privacy (GDPR)">
-              <SettingsToggle label="Audit log (NF-11)"              sub="Log all user actions on lead records"                        defaultOn={true}  />
+              <SettingsToggle label="Audit log (NF-11)"              sub="Log all user actions on contact records"                        defaultOn={true}  />
               <SettingsToggle label="Session timeout after 30 min"   sub="Auto-logout on inactivity"                                  defaultOn={true}  />
               <SettingsToggle label="Two-factor authentication"       sub="Require 2FA on login"                                      defaultOn={false} />
               <div style={{ marginTop:14,padding:"12px 16px",borderRadius:8,background:"#EFF6FF",border:`1px solid ${C.blue}30`,fontSize:12,color:"#1E40AF" }}>

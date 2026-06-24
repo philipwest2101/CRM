@@ -50,13 +50,13 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
 
   const TEMPLATES = [
     // date-derived templates — no manual date picking, date comes from lead field
-    { id:"tpl1", name:"Birthday reminder",     icon:"🎂", desc:"3 days before lead's birthday",                 recur:"Yearly",  triggerBasis:"lead_field", dateSource:"lead.birthday",    dateSourceLabel:"Lead's birthday"     },
-    { id:"tpl7", name:"Anniversary reminder",  icon:"🥂", desc:"3 days before lead's contract anniversary",     recur:"Yearly",  triggerBasis:"lead_field", dateSource:"lead.anniversary", dateSourceLabel:"Contract anniversary" },
+    { id:"tpl1", name:"Birthday reminder",     icon:"🎂", desc:"3 days before contact's birthday",                 recur:"Yearly",  triggerBasis:"lead_field", dateSource:"lead.birthday",    dateSourceLabel:"Contact's birthday"     },
+    { id:"tpl7", name:"Anniversary reminder",  icon:"🥂", desc:"3 days before contact's contract anniversary",     recur:"Yearly",  triggerBasis:"lead_field", dateSource:"lead.anniversary", dateSourceLabel:"Contract anniversary" },
     { id:"tpl6", name:"GDPR renewal",          icon:"🔒", desc:"30 days before consent expiry",                 recur:"Once",    triggerBasis:"lead_field", dateSource:"lead.gdprExpiry",  dateSourceLabel:"GDPR consent expiry" },
     // event-driven templates — fired by CRM event, no date needed
     { id:"tpl2", name:"Follow-up after call",  icon:"📞", desc:"24h after a 'Callback requested' call log",     recur:"Once",    triggerBasis:"crm_event",  dateSource:null,               dateSourceLabel:"After call logged"   },
     { id:"tpl3", name:"Appointment reminder",  icon:"📅", desc:"1 hour before scheduled appointment",           recur:"Once",    triggerBasis:"crm_event",  dateSource:null,               dateSourceLabel:"Before appointment"  },
-    { id:"tpl4", name:"Inactivity alert",      icon:"💤", desc:"Lead idle for 7+ days with no activity",        recur:"Weekly",  triggerBasis:"crm_event",  dateSource:null,               dateSourceLabel:"On inactivity"       },
+    { id:"tpl4", name:"Inactivity alert",      icon:"💤", desc:"Contact idle for 7+ days with no activity",        recur:"Weekly",  triggerBasis:"crm_event",  dateSource:null,               dateSourceLabel:"On inactivity"       },
     { id:"tpl5", name:"Welcome series day 3",  icon:"👋", desc:"3 days after first contact registered",         recur:"Once",    triggerBasis:"crm_event",  dateSource:null,               dateSourceLabel:"After first contact" },
   ];
   const [tplActive, setTplActive] = useState({tpl1:true,tpl2:true,tpl3:false,tpl4:false,tpl5:false,tpl6:false,tpl7:false});
@@ -327,7 +327,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
         const ALL_PREFS = {
           gp: [
             { id:"manual",   label:"Manual reminders",        locked:false },
-            { id:"assign",   label:"Lead assignments",        locked:false },
+            { id:"assign",   label:"Contact assignments",        locked:false },
             { id:"appt",     label:"Appointment reminders",   locked:false },
             { id:"workflow", label:"Workflow reminders",      locked:false },
             { id:"quiet",    label:"Quiet hours (22:00–08:00)",locked:false },
@@ -335,7 +335,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
           ],
           vd: [
             { id:"manual",   label:"Manual reminders",        locked:false },
-            { id:"assign",   label:"Lead assignments",        locked:false },
+            { id:"assign",   label:"Contact assignments",        locked:false },
             { id:"appt",     label:"Appointment reminders",   locked:false },
             { id:"workflow", label:"Workflow reminders",      locked:false },
             { id:"mention",  label:"Mentions",                locked:false },
@@ -344,7 +344,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
           ],
           superadmin: [
             { id:"gdpr",     label:"GDPR / consent expiry",   locked:true  },
-            { id:"assign",   label:"Lead assignments",        locked:false },
+            { id:"assign",   label:"Contact assignments",        locked:false },
             { id:"workflow", label:"Workflow reminders",      locked:false },
             { id:"mention",  label:"Mentions",                locked:false },
             { id:"manual",   label:"Manual reminders",        locked:false },
@@ -430,7 +430,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
               <div style={{ fontSize:10,color:C.muted,marginTop:6,fontStyle:"italic" }}>
                 {privacyMode==="full"
                   ? "Push shows: 'Follow-up call — Sandra Richter · Q1 Finanz'"
-                  : "Push shows: 'You have a reminder' — lead details hidden on lock screen"}
+                  : "Push shows: 'You have a reminder' — contact details hidden on lock screen"}
               </div>
             </div>
             <div style={{ marginTop:8,padding:"9px 14px",borderRadius:8,background:"#F0FDF4",
@@ -474,7 +474,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
             <div style={{ marginBottom:14 }}>
               <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Description</label>
               <input value={newTplData.desc} onChange={e=>setNewTplData(p=>({...p,desc:e.target.value}))}
-                placeholder="e.g. 3 days before the lead's contract anniversary"
+                placeholder="e.g. 3 days before the contact's contract anniversary"
                 style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/>
             </div>
 
@@ -482,7 +482,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
             <div style={{ marginBottom:14 }}>
               <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:8 }}>How is the date determined?</label>
               <div style={{ display:"flex",gap:10 }}>
-                {[["lead_field","📋 From lead field","Date comes from a field on the lead's profile (e.g. birthday, anniversary)"],
+                {[["lead_field","📋 From contact field","Date comes from a field on the contact's profile (e.g. birthday, anniversary)"],
                   ["crm_event", "⚡ CRM event",      "Fires when something happens in the CRM (e.g. call logged, idle 7 days)"]
                 ].map(([k,l,hint])=>(
                   <button key={k} onClick={()=>setNewTplData(p=>({...p,triggerBasis:k,dateSource:"",dateSourceLabel:""}))}
@@ -497,14 +497,14 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
               </div>
             </div>
 
-            {/* Lead field selector */}
+            {/* Contact field selector */}
             {newTplData.triggerBasis==="lead_field" && (
               <div style={{ marginBottom:14,padding:"12px 14px",borderRadius:9,background:"#EFF6FF",border:"1px solid #BFDBFE" }}>
                 <label style={{ fontSize:11,fontWeight:700,color:C.blue,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:8 }}>Contact profile field</label>
                 <div style={{ position:"relative" }}>
                   <select value={newTplData.dateSource}
                     onChange={e=>{
-                      const opts = {"lead.birthday":"Lead's birthday","lead.anniversary":"Contract anniversary","lead.gdprExpiry":"GDPR consent expiry","lead.trialEnd":"Trial end date","lead.contractEnd":"Contract end date"};
+                      const opts = {"lead.birthday":"Contact's birthday","lead.anniversary":"Contract anniversary","lead.gdprExpiry":"GDPR consent expiry","lead.trialEnd":"Trial end date","lead.contractEnd":"Contract end date"};
                       setNewTplData(p=>({...p,dateSource:e.target.value,dateSourceLabel:opts[e.target.value]||e.target.value}));
                     }}
                     style={{ width:"100%",padding:"9px 32px 9px 12px",borderRadius:8,border:`1.5px solid #BFDBFE`,background:"#fff",fontSize:12,fontFamily:"inherit",appearance:"none",outline:"none" }}>
@@ -530,7 +530,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
                 <div style={{ position:"relative" }}>
                   <select value={newTplData.dateSource}
                     onChange={e=>{
-                      const opts = {"after_call_logged":"After call logged","before_appointment":"Before appointment","on_inactivity":"On lead inactivity","after_first_contact":"After first contact","on_lead_assigned":"On lead assigned"};
+                      const opts = {"after_call_logged":"After call logged","before_appointment":"Before appointment","on_inactivity":"On contact inactivity","after_first_contact":"After first contact","on_lead_assigned":"On contact assigned"};
                       setNewTplData(p=>({...p,dateSource:e.target.value,dateSourceLabel:opts[e.target.value]||e.target.value}));
                     }}
                     style={{ width:"100%",padding:"9px 32px 9px 12px",borderRadius:8,border:`1.5px solid #BBF7D0`,background:"#fff",fontSize:12,fontFamily:"inherit",appearance:"none",outline:"none" }}>

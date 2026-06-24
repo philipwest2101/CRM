@@ -73,7 +73,7 @@ export const WorkflowRulesSection = ({ role }) => {
         <div style={{ marginTop:14,padding:"12px 16px",borderRadius:10,background:C.red+"0A",border:`1px solid ${C.red}40` }}>
           <div style={{ fontSize:12,fontWeight:800,color:C.red,marginBottom:4 }}>⚠️ {unreachableStatuses.length} status{unreachableStatuses.length===1?"":"es"} unreachable</div>
           <div style={{ fontSize:11,color:C.text,lineHeight:1.5 }}>
-            No rule sets {unreachableStatuses.length===1?"this status":"these statuses"} and {unreachableStatuses.length===1?"it isn't":"they aren't"} manually selectable, so {unreachableStatuses.length===1?"a lead can":"leads can"} never enter {unreachableStatuses.length===1?"it":"them"}: {unreachableStatuses.map(s=>s.nameEn).join(", ")}. Add a rule with a “Set status” action, or mark them manually selectable in Settings → Statuses.
+            No rule sets {unreachableStatuses.length===1?"this status":"these statuses"} and {unreachableStatuses.length===1?"it isn't":"they aren't"} manually selectable, so {unreachableStatuses.length===1?"a contact can":"contacts can"} never enter {unreachableStatuses.length===1?"it":"them"}: {unreachableStatuses.map(s=>s.nameEn).join(", ")}. Add a rule with a “Set status” action, or mark them manually selectable in Settings → Statuses.
           </div>
         </div>
       )}
@@ -94,9 +94,9 @@ export const WorkflowRulesSection = ({ role }) => {
       {/* How it works explainer */}
       <div style={{ display:"flex",gap:8,marginTop:14,marginBottom:18,padding:"12px 16px",borderRadius:10,background:"#F8FAFC",border:`1px solid ${C.border}`,alignItems:"flex-start" }}>
         {[
-          { icon:"⚡", color:C.navy,    label:"Trigger", desc:"A CRM event fires the rule (new lead, call logged, appointment set…)" },
-          { icon:"🔄", color:"#0EA5E9", label:"→ Set status", desc:"Moves the lead to a configured status" },
-          { icon:"✉️", color:C.blue,    label:"→ Email", desc:"System auto-sends an email template to the lead" },
+          { icon:"⚡", color:C.navy,    label:"Trigger", desc:"A CRM event fires the rule (new contact, call logged, appointment set…)" },
+          { icon:"🔄", color:"#0EA5E9", label:"→ Set status", desc:"Moves the contact to a configured status" },
+          { icon:"✉️", color:C.blue,    label:"→ Email", desc:"System auto-sends an email template to the contact" },
           { icon:"✅", color:"#D97706", label:"→ Task", desc:"Creates a task (with optional reminder) for the consultant" },
           { icon:"📱", color:C.green,   label:"→ Push", desc:"Sends a push notification to the consultant" },
         ].map((s,i)=>(
@@ -247,15 +247,15 @@ export const WorkflowRulesSection = ({ role }) => {
                       if (hasTask) parts.push(`📋 ${(r.taskRoles||["gp"]).map(ab).join("/")}`);
                       if (hasPush) parts.push(`📱 ${(r.pushRoles||["gp"]).map(ab).join("/")}`);
                       if (hasEmail && (r.emailRoles||[]).length) parts.push(`✉️ ${(r.emailRoles).map(ab).join("/")}`);
-                      return <span style={{ fontSize:10,color:C.muted }}>{parts.length?parts.join(" · "):"→ Lead"}</span>;
+                      return <span style={{ fontSize:10,color:C.muted }}>{parts.length?parts.join(" · "):"→ Contact"}</span>;
                     })()}
                     <button onClick={()=>{
                       const actions=[]; const tpl=EMAIL_TEMPLATES_STORE.find(t=>t.id===r.emailTemplateId);
                       if(hasStatus && statusMeta) actions.push(`🔄 Status set: "${statusMeta.label}"`);
-                      if(hasEmail) actions.push(`✉️ Email sent: "${tpl?.name||"template"}" → Test Lead`);
-                      if(hasTask) actions.push(`✅ Task created: "${(r.taskTitle||r.reminderTitle)?.replace("{lead}","Test Lead")||r.name}"`);
-                      if(hasPush) actions.push(`📱 Push: "${r.name} — Test Lead"`);
-                      setTestLog(prev=>[{id:Date.now(),rule:r.name,trigger:trig.label,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),actions,lead:"Test Lead (Anna Muster)"},...prev.slice(0,9)]);
+                      if(hasEmail) actions.push(`✉️ Email sent: "${tpl?.name||"template"}" → Test Contact`);
+                      if(hasTask) actions.push(`✅ Task created: "${(r.taskTitle||r.reminderTitle)?.replace("{contact}","Test Contact")||r.name}"`);
+                      if(hasPush) actions.push(`📱 Push: "${r.name} — Test Contact"`);
+                      setTestLog(prev=>[{id:Date.now(),rule:r.name,trigger:trig.label,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),actions,lead:"Test Contact (Anna Muster)"},...prev.slice(0,9)]);
                     }} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.green}30`,background:C.green+"06",color:C.green,fontSize:11,fontWeight:600,cursor:"pointer" }}>▶ Test</button>
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export const WorkflowRulesSection = ({ role }) => {
                 <span style={{ fontSize:13 }}>⚡</span>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:12,fontWeight:700,color:C.text }}>{e.rule}</div>
-                  <div style={{ fontSize:10,color:C.muted }}>Trigger: {e.trigger} · Lead: {e.lead}</div>
+                  <div style={{ fontSize:10,color:C.muted }}>Trigger: {e.trigger} · Contact: {e.lead}</div>
                 </div>
                 <span style={{ fontSize:10,color:C.muted }}>{e.time}</span>
                 <span style={{ fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:8,background:C.green+"15",color:C.green,textTransform:"uppercase" }}>Simulated</span>

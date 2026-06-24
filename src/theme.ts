@@ -13,6 +13,6 @@ export const C = {
   muted:"#98A2B3",      // Gray/400
 };
 
-// ─── Lead Data ────────────────────────────────────────────────────────────────
+// ─── Contact Data ────────────────────────────────────────────────────────────────
 
 // Document types used in Files tab → Request Document (editable in Settings → Profile)

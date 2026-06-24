@@ -116,7 +116,7 @@ export const LeadDrawer = ({ lead, onClose, openTab }) => {
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
                 const url  = URL.createObjectURL(blob);
                 const a    = document.createElement("a"); a.href=url; a.download=`lead-${lead.id}-gdpr-export.json`; a.click(); URL.revokeObjectURL(url);
-              }} title="GDPR Article 15 — Export lead data" style={{ padding:"4px 10px",borderRadius:6,border:`1px solid ${C.border}`,background:"#fff",color:C.muted,fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4 }}>
+              }} title="GDPR Article 15 — Export contact data" style={{ padding:"4px 10px",borderRadius:6,border:`1px solid ${C.border}`,background:"#fff",color:C.muted,fontSize:10,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4 }}>
                 🔒 Export
               </button>
               <button onClick={onClose} style={{ background:"none",border:"none",fontSize:22,cursor:"pointer",color:C.muted }}>×</button>
@@ -258,7 +258,7 @@ export const LeadDrawer = ({ lead, onClose, openTab }) => {
                   </div>
                 </div>
 
-                {/* Contact + Lead details */}
+                {/* Contact + Contact details */}
                 <div style={{ padding:"13px 14px",borderRadius:10,border:`1px solid ${C.border}`,background:"#fff" }}>
                   <div style={{ fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:9 }}>Contact Details</div>
                   {[
@@ -274,7 +274,7 @@ export const LeadDrawer = ({ lead, onClose, openTab }) => {
                     </div>
                   ))}
                   <div style={{ marginTop:8,paddingTop:8,borderTop:`1px solid ${C.border}` }}>
-                    {[["Campaign",lead.campaign],["Lead ID",lead.id],["Assigned VD",lead.assignedVD||"—"],...(lead.amount?[["Closing Amount",lead.amount]]:[])].map(([k,v])=>(
+                    {[["Campaign",lead.campaign],["Contact ID",lead.id],["Assigned VD",lead.assignedVD||"—"],...(lead.amount?[["Closing Amount",lead.amount]]:[])].map(([k,v])=>(
                       <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.border}`,fontSize:11 }}>
                         <span style={{ color:C.muted }}>{k}</span>
                         <span style={{ color:k==="Closing Amount"?C.green:C.text,fontWeight:k==="Closing Amount"?700:400 }}>{v}</span>
@@ -390,7 +390,7 @@ export const LeadDrawer = ({ lead, onClose, openTab }) => {
           {tab==="Timeline" && (
             <div>
               {(() => {
-                const SHORT = { call:"Call activity", attempt:"Contact attempt", assign:"Lead assigned", email:"Email sent", import:"Lead captured" };
+                const SHORT = { call:"Call activity", attempt:"Contact attempt", assign:"Contact assigned", email:"Email sent", import:"Contact captured" };
                 const noteItems = savedNotes.map((n,i)=>({ key:`note-${i}`, ...TIMELINE_META.note, title:"Note added", actor:n.author, time:n.time, detail:n.text }));
                 const eventItems = TIMELINE_EVENTS.map((ev,i)=>{
                   const m = TIMELINE_META[ev.type] || TIMELINE_META.note;
@@ -433,7 +433,7 @@ export const LeadDrawer = ({ lead, onClose, openTab }) => {
                 ))}
               </div>
               <div style={{ padding:"12px 14px",borderRadius:8,background:"#FFFBEB",border:"1px solid #FDE68A",fontSize:12,color:"#92400E",marginBottom:14 }}>⚡ <strong>Auto-assign by ZIP:</strong> ZIP <strong>{lead.zip}</strong> → <strong>Thomas Müller</strong></div>
-              <button onClick={()=>alert("Assignment confirmed — lead reassigned successfully")} style={{ width:"100%",padding:10,borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Confirm Assignment</button>
+              <button onClick={()=>alert("Assignment confirmed — contact reassigned successfully")} style={{ width:"100%",padding:10,borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Confirm Assignment</button>
             </div>
           )}
 
@@ -504,7 +504,7 @@ export const LeadDrawer = ({ lead, onClose, openTab }) => {
           {/* ── UNIFIED AI TAB ── script + log + analysis + free chat in one place */}
           {tab==="🤖 AI" && (
             <div style={{ display:"flex",flexDirection:"column",height:"100%",padding:"18px 20px 16px",marginTop:-24,marginLeft:-24,marginRight:-24,width:"calc(100% + 48px)" }}>
-              {/* Lead context bar */}
+              {/* Contact context bar */}
               <div style={{ padding:"10px 14px",borderRadius:10,background:`linear-gradient(135deg,#4C1D95,${C.ai})`,marginBottom:14,display:"flex",alignItems:"center",gap:10,flexShrink:0 }}>
                 <span style={{ fontSize:18 }}>🤖</span>
                 <div style={{ flex:1 }}>
@@ -567,7 +567,7 @@ export const LeadDrawer = ({ lead, onClose, openTab }) => {
                         {/* Comms checklist */}
                         <div style={{ marginTop:10,marginBottom:12,padding:"10px 12px",borderRadius:9,background:"#fff",border:`1px solid ${C.border}` }}>
                           <div style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8 }}>Communications sent</div>
-                          {[{key:"email",icon:"✉️",label:"Email template sent"},{key:"sms",icon:"💬",label:"SMS / WhatsApp sent"},{key:"docs",icon:"📎",label:"Documents sent to lead"}].map(({key,icon,label})=>(
+                          {[{key:"email",icon:"✉️",label:"Email template sent"},{key:"sms",icon:"💬",label:"SMS / WhatsApp sent"},{key:"docs",icon:"📎",label:"Documents sent to contact"}].map(({key,icon,label})=>(
                             <label key={key} style={{ display:"flex",alignItems:"center",gap:9,marginBottom:6,cursor:"pointer" }}>
                               <input type="checkbox" checked={commsSent[key]} onChange={e=>setCommsSent(p=>({...p,[key]:e.target.checked}))} style={{ accentColor:C.indigo,width:14,height:14 }}/>
                               <span style={{ fontSize:11,color:commsSent[key]?C.text:C.slate }}>{icon} {label}</span>

@@ -6,7 +6,7 @@ export const ManagerDashboard = ({ navigateTo }) => {
   const [vdChecks,setVdChecks] = useState([false,false,false,false,true]);
 
   const KPIS = [
-    { label:"Team Leads",    value:"890",  delta:"+34",  up:true,  sub:"active",          warn:false, good:false },
+    { label:"Team Contacts",    value:"890",  delta:"+34",  up:true,  sub:"active",          warn:false, good:false },
     { label:"Appointments",       value:"54",   delta:"+6",   up:true,  sub:"Month",          warn:false, good:false },
     { label:"Closings",    value:"34",   delta:"+4",   up:true,  sub:"MTD",            warn:false, good:true  },
     { label:"Not Reached",value:"125",  delta:"−18",  up:false, sub:"≥3 Attempts",    warn:true,  good:false },
@@ -32,14 +32,14 @@ export const ManagerDashboard = ({ navigateTo }) => {
   ];
 
   const ALERTS = [
-    { icon:"⚠️", text:"Marc Otto: 3 leads without contact for 5 days",   sev:"warn"  },
+    { icon:"⚠️", text:"Marc Otto: 3 contacts without contact for 5 days",   sev:"warn"  },
     { icon:"🔴", text:"Nina Schmitt: Conversion below target (4.4% vs 7%)",sev:"crit"  },
-    { icon:"💡", text:"80 Messe-FFM leads can be assigned to Ralf Fischer", sev:"info" },
+    { icon:"💡", text:"80 Messe-FFM contacts can be assigned to Ralf Fischer", sev:"info" },
   ];
 
   const TEAM_PLAN = [
     { time:"09:00", gp:"Anna Klein",   task:"Sandra Richter — Call",      type:"call"  },
-    { time:"10:30", gp:"Kai Becker",   task:"Review: 5 new Meta Leads",    type:"review"},
+    { time:"10:30", gp:"Kai Becker",   task:"Review: 5 new Meta Contacts",    type:"review"},
     { time:"11:00", gp:"Ben Hartmann", task:"Video call P. Hoffmann",     type:"video" },
     { time:"14:00", gp:"Nina Schmitt", task:"Coaching session (VD)",        type:"coach" },
     { time:"15:00", gp:"Marc Otto",    task:"3 Nachfass-Calls",            type:"call"  },
@@ -51,7 +51,7 @@ export const ManagerDashboard = ({ navigateTo }) => {
     { icon:"🏆", text:"Kai Becker — Closing €4,800 · Q1 Finanz",     time:"20m"  },
     { icon:"📅", text:"Anna Klein — Appointment booked · Lars Dietrich",    time:"45m"  },
     { icon:"📞", text:"Ben Hartmann — Peter Hoffmann reached (2/5)",   time:"1h"   },
-    { icon:"✉️", text:"Vion Nurture — Follow-up email sent · 12 Leads", time:"2h"   },
+    { icon:"✉️", text:"Vion Nurture — Follow-up email sent · 12 Contacts", time:"2h"   },
     { icon:"⚠️", text:"Marc Otto — 4th attempt not reached · Weber",  time:"3h"   },
   ];
 
