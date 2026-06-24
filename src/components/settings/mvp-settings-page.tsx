@@ -3,16 +3,16 @@ import { C } from "../../theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP SETTINGS PAGE (Super Admin)
-// Left-rail section nav + a CRUD list per section. Language-bearing sections
-// (Products, Campaigns, …) show a flag set; configuration sections (Lifecycle
-// Stages, Stage Statuses) show a colour swatch instead.
+// Left-rail section nav + a CRUD list per section. Every section shows a
+// Name + Language pair, except Attachements (file list with pagination).
+// Add/Edit uses a per-language name editor (German is the required default).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LANGS = [
-  { key: "de", flag: "🇩🇪", label: "German"  },
-  { key: "en", flag: "🇬🇧", label: "English" },
-  { key: "fr", flag: "🇫🇷", label: "French"  },
-  { key: "cz", flag: "🇨🇿", label: "Czech"   },
+  { key: "de", flag: "🇩🇪", label: "German",  def: true  },
+  { key: "en", flag: "🇬🇧", label: "English"            },
+  { key: "fr", flag: "🇫🇷", label: "French"             },
+  { key: "cz", flag: "🇨🇿", label: "Czech"              },
 ];
 
 const L = (...keys) => Object.fromEntries(LANGS.map(l => [l.key, keys.includes(l.key)]));
@@ -20,15 +20,15 @@ const L = (...keys) => Object.fromEntries(LANGS.map(l => [l.key, keys.includes(l
 // ── seed data ─────────────────────────────────────────────────────────────────
 const SEED = {
   products: [
-    { id: "p1", name: "Financing",                    langs: L("de", "en", "fr") },
+    { id: "p1", name: "Financing",                        langs: L("de", "en", "fr") },
     { id: "p2", name: "Debt Restructuring (Refinancing)", langs: L("de", "en") },
-    { id: "p3", name: "ETFs - Securities",            langs: L("de", "en", "fr") },
-    { id: "p4", name: "Funds",                        langs: L("de", "en", "fr") },
-    { id: "p5", name: "Gold - Precious Metals",       langs: L("de", "en") },
-    { id: "p6", name: "Crypto",                       langs: L("de", "en", "fr", "cz") },
-    { id: "p7", name: "Life Insurance",               langs: L("de", "en", "fr") },
-    { id: "p8", name: "Asset Management",             langs: L("de", "en", "fr") },
-    { id: "p9", name: "Other Insurance",              langs: L("de", "en", "fr") },
+    { id: "p3", name: "ETFs - Securities",                langs: L("de", "en", "fr") },
+    { id: "p4", name: "Funds",                            langs: L("de", "en", "fr") },
+    { id: "p5", name: "Gold - Precious Metals",           langs: L("de", "en") },
+    { id: "p6", name: "Crypto",                           langs: L("de", "en", "fr", "cz") },
+    { id: "p7", name: "Life Insurance",                   langs: L("de", "en", "fr") },
+    { id: "p8", name: "Asset Management",                 langs: L("de", "en", "fr") },
+    { id: "p9", name: "Other Insurance",                  langs: L("de", "en", "fr") },
   ],
   sources: [
     { id: "s1", name: "Meta Ads",      langs: L("de", "en") },
@@ -40,15 +40,15 @@ const SEED = {
     { id: "s7", name: "Event",         langs: L("de", "en") },
   ],
   campaigns: [
-    { id: "c1", name: "General",                            langs: L("de", "en", "fr") },
-    { id: "c2", name: "Securities",                         langs: L("de") },
-    { id: "c3", name: "Financing",                          langs: L("de", "fr") },
+    { id: "c1", name: "General",                                langs: L("de", "en", "fr") },
+    { id: "c2", name: "Securities",                             langs: L("de") },
+    { id: "c3", name: "Financing",                              langs: L("de", "fr") },
     { id: "c4", name: "Participation in Customer Presentation", langs: L("de", "en", "fr") },
-    { id: "c5", name: "Real Estate",                        langs: L("de", "en") },
-    { id: "c6", name: "Fee-based Consulting",               langs: L("de", "en", "fr", "cz") },
-    { id: "c7", name: "Prospective Client",                 langs: L("de", "en", "fr") },
-    { id: "c8", name: "Participation in Business Opening",  langs: L("de", "en", "fr") },
-    { id: "c9", name: "Gold",                               langs: L("de", "en", "fr") },
+    { id: "c5", name: "Real Estate",                            langs: L("de", "en") },
+    { id: "c6", name: "Fee-based Consulting",                   langs: L("de", "en", "fr", "cz") },
+    { id: "c7", name: "Prospective Client",                     langs: L("de", "en", "fr") },
+    { id: "c8", name: "Participation in Business Opening",      langs: L("de", "en", "fr") },
+    { id: "c9", name: "Gold",                                   langs: L("de", "en", "fr") },
   ],
   templates: [
     { id: "t1", name: "Welcome Email",        langs: L("de", "en", "fr") },
@@ -57,48 +57,45 @@ const SEED = {
     { id: "t4", name: "GDPR Consent",         langs: L("de", "en") },
     { id: "t5", name: "Birthday Greeting",    langs: L("de", "en", "fr", "cz") },
   ],
-  attachments: [
-    { id: "a1", name: "GDPR Consent Form",  langs: L("de", "en") },
-    { id: "a2", name: "Product Brochure",   langs: L("de", "en", "fr") },
-    { id: "a3", name: "Contract Template",  langs: L("de", "en") },
-    { id: "a4", name: "ID Verification",    langs: L("de", "en") },
-  ],
+  attachments: Array.from({ length: 57 }, (_, i) => ({
+    id: `att${i + 1}`, name: `Attachment Name ${i + 1}`, type: i % 6 === 1 ? "img" : "pdf",
+  })),
   labels: [
-    { id: "lb1", name: "Hot Contact",  langs: L("de", "en"), color: "#F04438" },
-    { id: "lb2", name: "VIP",          langs: L("de", "en"), color: "#7C3AED" },
-    { id: "lb3", name: "GDPR Pending", langs: L("de", "en"), color: "#FDB022" },
-    { id: "lb4", name: "Campaign Q1",  langs: L("de", "en"), color: "#0891B2" },
-    { id: "lb5", name: "Do Not Call",  langs: L("de", "en"), color: "#667085" },
+    { id: "lb1", name: "Hot Contact",  langs: L("de", "en") },
+    { id: "lb2", name: "VIP",          langs: L("de", "en", "fr") },
+    { id: "lb3", name: "GDPR Pending", langs: L("de", "en") },
+    { id: "lb4", name: "Campaign Q1",  langs: L("de", "en") },
+    { id: "lb5", name: "Do Not Call",  langs: L("de", "en") },
   ],
   lifecycle: [
-    { id: "ls1", name: "New",         color: C.slate  },
-    { id: "ls2", name: "In Contact",  color: C.blue   },
-    { id: "ls3", name: "Appointment", color: C.indigo },
-    { id: "ls4", name: "Closing",     color: C.green  },
-    { id: "ls5", name: "Excluded",    color: C.muted  },
+    { id: "ls1", name: "New",         langs: L("de", "en", "fr") },
+    { id: "ls2", name: "In Contact",  langs: L("de", "en", "fr") },
+    { id: "ls3", name: "Appointment", langs: L("de", "en") },
+    { id: "ls4", name: "Closing",     langs: L("de", "en", "fr") },
+    { id: "ls5", name: "Excluded",    langs: L("de", "en") },
   ],
   statuses: [
-    { id: "ss1", name: "New / Open",             color: C.slate  },
-    { id: "ss2", name: "In Progress",            color: C.blue   },
-    { id: "ss3", name: "Attempted",              color: C.amber  },
-    { id: "ss4", name: "Not Reached",            color: C.red    },
-    { id: "ss5", name: "Not Interested",         color: C.muted  },
-    { id: "ss6", name: "Appointment Scheduled",  color: C.indigo },
-    { id: "ss7", name: "Follow Up",              color: C.purple },
-    { id: "ss8", name: "Closed / Customer",      color: C.green  },
-    { id: "ss9", name: "Do Not Contact",         color: C.slate  },
+    { id: "ss1", name: "New / Open",            parent: "New",         langs: L("de", "en", "fr") },
+    { id: "ss2", name: "In Progress",           parent: "In Contact",  langs: L("de", "en") },
+    { id: "ss3", name: "Attempted",             parent: "In Contact",  langs: L("de", "en", "fr") },
+    { id: "ss4", name: "Not Reached",           parent: "In Contact",  langs: L("de", "en") },
+    { id: "ss5", name: "Not Interested",        parent: "In Contact",  langs: L("de", "en", "fr") },
+    { id: "ss6", name: "Appointment Scheduled", parent: "Appointment", langs: L("de", "en") },
+    { id: "ss7", name: "Follow Up",             parent: "Appointment", langs: L("de", "en", "fr") },
+    { id: "ss8", name: "Closed / Customer",     parent: "Closing",     langs: L("de", "en", "fr", "cz") },
+    { id: "ss9", name: "Do Not Contact",        parent: "Excluded",    langs: L("de", "en") },
   ],
 };
 
 const SECTIONS = [
-  { key: "products",   label: "Products",        singular: "Product",       kind: "lang"  },
-  { key: "sources",    label: "Lead Sources",    singular: "Lead Source",   kind: "lang"  },
-  { key: "campaigns",  label: "Campaigns",       singular: "Campaign",      kind: "lang"  },
-  { key: "templates",  label: "Email Templates", singular: "Email Template",kind: "lang"  },
-  { key: "attachments",label: "Attachements",    singular: "Attachment",    kind: "lang"  },
-  { key: "labels",     label: "Labels",          singular: "Label",         kind: "color" },
-  { key: "lifecycle",  label: "Lifecycle Stages",singular: "Lifecycle Stage",kind: "color" },
-  { key: "statuses",   label: "Stage Statuses",  singular: "Stage Status",  kind: "color" },
+  { key: "products",   label: "Products",        singular: "Product",        kind: "lang"  },
+  { key: "sources",    label: "Lead Sources",    singular: "Lead Source",    kind: "lang"  },
+  { key: "campaigns",  label: "Campaigns",       singular: "Campaign",       kind: "lang"  },
+  { key: "templates",  label: "Email Templates", singular: "Email Template", kind: "lang"  },
+  { key: "attachments",label: "Attachements",    singular: "Attachement",    kind: "files" },
+  { key: "labels",     label: "Labels",          singular: "Label",          kind: "lang"  },
+  { key: "lifecycle",  label: "Lifecycle Stages",singular: "Lifecycle Stage",kind: "lang"  },
+  { key: "statuses",   label: "Stage Statuses",  singular: "Stage Status",   kind: "lang", parent: true },
 ];
 
 const fieldStyle = {
@@ -118,8 +115,20 @@ const FlagSet = ({ langs }) => (
   </div>
 );
 
+// ── file-type icon (Attachements) ─────────────────────────────────────────────
+const FileIcon = ({ type }) => {
+  const pdf = type === "pdf";
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      width: 26, height: 30, borderRadius: 4, fontSize: 7, fontWeight: 800, color: "#fff",
+      background: pdf ? C.red : C.amber, letterSpacing: "0.02em",
+    }}>{pdf ? "PDF" : "IMG"}</span>
+  );
+};
+
 // ── row 3-dot menu ────────────────────────────────────────────────────────────
-const RowMenu = ({ onEdit, onDelete }) => {
+const RowMenu = ({ actions }) => {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ position: "relative", display: "flex", justifyContent: "flex-end" }}>
@@ -131,8 +140,8 @@ const RowMenu = ({ onEdit, onDelete }) => {
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
-          <div style={{ position: "absolute", top: 32, right: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 130, padding: "5px 0" }}>
-            {[["Edit", onEdit], ["Delete", onDelete]].map(([label, fn]) => (
+          <div style={{ position: "absolute", top: 32, right: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 140, padding: "5px 0" }}>
+            {actions.map(([label, fn]) => (
               <div key={label} onClick={() => { setOpen(false); fn(); }}
                 style={{ padding: "9px 16px", fontSize: 13, color: label === "Delete" ? C.red : C.text, cursor: "pointer", fontWeight: 500 }}
                 onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
@@ -147,78 +156,125 @@ const RowMenu = ({ onEdit, onDelete }) => {
   );
 };
 
-// ── add / edit modal ──────────────────────────────────────────────────────────
-const ItemModal = ({ section, item, onClose, onSave }) => {
-  const isColor = section.kind === "color";
-  const [name, setName] = useState(item?.name || "");
-  const [langs, setLangs] = useState(item?.langs || L("de"));
-  const [color, setColor] = useState(item?.color || C.indigo);
-  const valid = name.trim();
-  const palette = [C.slate, C.blue, C.indigo, C.purple, C.amber, C.red, C.green, "#0891B2"];
+// ── add / edit modal — per-language name editor ───────────────────────────────
+const ItemModal = ({ section, item, lifecycleNames, onClose, onSave }) => {
+  const [names, setNames] = useState(() => {
+    const base = Object.fromEntries(LANGS.map(l => [l.key, ""]));
+    if (item) { base.de = item.name; LANGS.forEach(l => { if (item.langs?.[l.key]) base[l.key] = base[l.key] || (l.def ? item.name : ""); }); }
+    return base;
+  });
+  const [parent, setParent] = useState(item?.parent || "");
+  const setName = (k) => (e) => setNames(prev => ({ ...prev, [k]: e.target.value }));
+
+  const valid = names.de.trim() && (!section.parent || parent);
+
+  const save = () => {
+    const langs = Object.fromEntries(LANGS.map(l => [l.key, !!names[l.key].trim()]));
+    langs.de = true;
+    onSave({ ...item, id: item?.id || `new-${Date.now()}`, name: names.de.trim(), langs, ...(section.parent ? { parent } : {}) });
+  };
 
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 460, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{item ? "Edit" : "Add"} {section.singular}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{item ? "Edit" : "Add"} {section.singular}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
         </div>
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Name *</label>
-          <input style={fieldStyle} value={name} onChange={e => setName(e.target.value)} placeholder={`${section.singular} name`} autoFocus />
-        </div>
-        {isColor ? (
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 8 }}>Colour</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {palette.map(col => (
-                <button key={col} onClick={() => setColor(col)} style={{
-                  width: 28, height: 28, borderRadius: "50%", background: col, cursor: "pointer",
-                  border: color === col ? `3px solid ${C.navy}` : `2px solid #fff`, boxShadow: `0 0 0 1px ${C.border}`,
-                }} />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 8 }}>Languages</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {LANGS.map(l => (
-                <button key={l.key} onClick={() => setLangs(prev => ({ ...prev, [l.key]: !prev[l.key] }))}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                    border: `1.5px solid ${langs[l.key] ? C.primary : C.border}`, background: langs[l.key] ? C.primarySoft : "#fff", color: langs[l.key] ? C.primaryDark : C.slate }}>
-                  <span style={{ fontSize: 15 }}>{l.flag}</span> {l.key.toUpperCase()}
-                </button>
-              ))}
-            </div>
+
+        {section.parent && (
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Lifecycle Stage *</label>
+            <select value={parent} onChange={e => setParent(e.target.value)} style={{ ...fieldStyle, color: parent ? C.text : C.muted }}>
+              <option value="">Select Lifecycle Stage</option>
+              {(lifecycleNames || []).map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
           </div>
         )}
+
+        <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 9 }}>Name *</label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
+          {LANGS.map(l => (
+            <div key={l.key} style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <span style={{ position: "absolute", left: 12, fontSize: 16 }}>{l.flag}</span>
+              <input value={names[l.key]} onChange={setName(l.key)} placeholder={l.def ? "German (Default)" : l.label}
+                style={{ ...fieldStyle, paddingLeft: 40, paddingRight: l.def ? 86 : 12 }} />
+              {l.def && (
+                <span style={{ position: "absolute", right: 10, fontSize: 11, fontWeight: 600, color: C.primaryDark, background: C.primarySoft, padding: "3px 9px", borderRadius: 12 }}>Required</span>
+              )}
+            </div>
+          ))}
+        </div>
+
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
           <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-          <button disabled={!valid} onClick={() => onSave({ ...item, id: item?.id || `new-${Date.now()}`, name: name.trim(), langs, color })}
-            style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: valid ? C.primary : C.border, color: valid ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>
-            {item ? "Save" : `Add ${section.singular}`}
-          </button>
+          <button disabled={!valid} onClick={save}
+            style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: valid ? C.primary : C.border, color: valid ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Save</button>
         </div>
       </div>
     </>
   );
 };
 
+// ── add attachment modal ──────────────────────────────────────────────────────
+const AttachmentModal = ({ onClose, onSave }) => {
+  const [name, setName] = useState("");
+  const [type, setType] = useState("pdf");
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>Add Attachement</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Name *</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Attachment name" style={fieldStyle} autoFocus />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>File Type</label>
+          <select value={type} onChange={e => setType(e.target.value)} style={fieldStyle}>
+            <option value="pdf">PDF Document</option>
+            <option value="img">Image</option>
+          </select>
+        </div>
+        <div style={{ border: `1.5px dashed ${C.border}`, borderRadius: 10, padding: "22px", textAlign: "center", color: C.muted, fontSize: 13, marginBottom: 20 }}>
+          ⬆ Drag &amp; drop a file here, or click to browse
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button disabled={!name.trim()} onClick={() => onSave({ id: `att-${Date.now()}`, name: name.trim(), type })}
+            style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: name.trim() ? C.primary : C.border, color: name.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>Save</button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── table header cell ─────────────────────────────────────────────────────────
+const Th = ({ children, sort }) => (
+  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{children}{sort && <span style={{ color: C.muted }}>⇅</span>}</span>
+  </th>
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 export const MVPSettingsPage = () => {
   const [active, setActive]   = useState("products");
   const [data, setData]       = useState(SEED);
   const [search, setSearch]   = useState("");
-  const [editing, setEditing] = useState(null);   // { item } | { item:null } when adding
+  const [editing, setEditing] = useState(null);   // { item } | { item:null }
+  const [addingFile, setAddingFile] = useState(false);
+  const [page, setPage]       = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const section = SECTIONS.find(s => s.key === active);
   const items   = data[active] || [];
-  const rows = useMemo(
-    () => items.filter(i => i.name.toLowerCase().includes(search.toLowerCase())),
-    [items, search]
-  );
+  const filtered = useMemo(() => items.filter(i => i.name.toLowerCase().includes(search.toLowerCase())), [items, search]);
+
+  const switchSection = (key) => { setActive(key); setSearch(""); setPage(1); };
 
   const upsert = (item) => {
     setData(prev => {
@@ -228,7 +284,17 @@ export const MVPSettingsPage = () => {
     });
     setEditing(null);
   };
+  const addFile = (item) => { setData(prev => ({ ...prev, attachments: [item, ...prev.attachments] })); setAddingFile(false); };
   const remove = (id) => setData(prev => ({ ...prev, [active]: prev[active].filter(x => x.id !== id) }));
+
+  const isFiles = section.kind === "files";
+
+  // pagination (attachments)
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = isFiles ? filtered.slice((page - 1) * pageSize, page * pageSize) : filtered;
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
 
   return (
     <div style={{ padding: "24px 28px", fontFamily: "inherit" }}>
@@ -240,7 +306,7 @@ export const MVPSettingsPage = () => {
           {SECTIONS.map(s => {
             const on = s.key === active;
             return (
-              <div key={s.key} onClick={() => { setActive(s.key); setSearch(""); }}
+              <div key={s.key} onClick={() => switchSection(s.key)}
                 style={{ padding: "11px 14px", borderRadius: 9, cursor: "pointer", fontSize: 14, marginBottom: 2,
                   fontWeight: on ? 700 : 500, color: on ? C.primaryDark : C.slate, background: on ? C.primarySoft : "transparent" }}
                 onMouseEnter={e => { if (!on) e.currentTarget.style.background = "#F8FAFC"; }}
@@ -255,59 +321,73 @@ export const MVPSettingsPage = () => {
         <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 22px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{section.label}</div>
-            <button onClick={() => setEditing({ item: null })} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={() => isFiles ? setAddingFile(true) : setEditing({ item: null })} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               Add {section.singular}
             </button>
           </div>
 
           <div style={{ position: "relative", marginBottom: 14 }}>
             <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 14 }}>🔍</span>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search"
-              style={{ ...fieldStyle, paddingLeft: 34, maxWidth: 360 }} />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search" style={{ ...fieldStyle, paddingLeft: 34, maxWidth: 360 }} />
           </div>
 
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: C.light, borderBottom: `1px solid ${C.border}` }}>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>Name <span style={{ color: C.muted }}>⇅</span></span>
-                  </th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate }}>
-                    {section.kind === "color" ? "Colour" : "Language"}
-                  </th>
+                  <Th sort>Name</Th>
+                  {!isFiles && <Th>Language</Th>}
                   <th style={{ width: 56 }} />
                 </tr>
               </thead>
               <tbody>
-                {rows.length === 0 && (
-                  <tr><td colSpan={3} style={{ padding: "36px", textAlign: "center", color: C.muted, fontSize: 13 }}>No {section.label.toLowerCase()} found.</td></tr>
+                {pageItems.length === 0 && (
+                  <tr><td colSpan={isFiles ? 2 : 3} style={{ padding: "36px", textAlign: "center", color: C.muted, fontSize: 13 }}>No {section.label.toLowerCase()} found.</td></tr>
                 )}
-                {rows.map(item => (
+                {pageItems.map(item => (
                   <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "13px 16px", fontSize: 14, color: C.text }}>{item.name}</td>
-                    <td style={{ padding: "13px 16px" }}>
-                      {section.kind === "color"
-                        ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: C.slate }}>
-                            <span style={{ width: 12, height: 12, borderRadius: "50%", background: item.color, display: "inline-block" }} />
-                            {item.color}
-                          </span>
-                        : <FlagSet langs={item.langs} />}
+                    <td style={{ padding: "13px 16px", fontSize: 14, color: C.text }}>
+                      {isFiles
+                        ? <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><FileIcon type={item.type} />{item.name}</span>
+                        : item.name}
                     </td>
+                    {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}
                     <td style={{ padding: "13px 16px" }}>
-                      <RowMenu onEdit={() => setEditing({ item })} onDelete={() => remove(item.id)} />
+                      {isFiles
+                        ? <RowMenu actions={[["Preview", () => {}], ["Download", () => {}], ["Delete", () => remove(item.id)]]} />
+                        : <RowMenu actions={[["Edit", () => setEditing({ item })], ["Delete", () => remove(item.id)]]} />}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination footer (Attachements) */}
+            {isFiles && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: `1px solid ${C.border}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <span style={{ fontSize: 13, color: C.slate }}>Page {page} of {totalPages}</span>
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", cursor: page <= 1 ? "default" : "pointer", color: page <= 1 ? C.muted : C.slate }}>‹</button>
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", cursor: page >= totalPages ? "default" : "pointer", color: page >= totalPages ? C.muted : C.slate }}>›</button>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} style={{ ...fieldStyle, width: "auto", padding: "6px 10px" }}>
+                    {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <span style={{ fontSize: 13, color: C.slate }}>Displaying {from}-{to} of {total} records</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {editing && (
-        <ItemModal section={section} item={editing.item} onClose={() => setEditing(null)} onSave={upsert} />
+        <ItemModal section={section} item={editing.item}
+          lifecycleNames={data.lifecycle.map(l => l.name)}
+          onClose={() => setEditing(null)} onSave={upsert} />
       )}
+      {addingFile && <AttachmentModal onClose={() => setAddingFile(false)} onSave={addFile} />}
     </div>
   );
 };

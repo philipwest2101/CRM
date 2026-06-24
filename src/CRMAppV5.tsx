@@ -9,6 +9,7 @@ import { EventsPage } from "./components/events/events-page";
 import { TopNav } from "./components/layout/top-nav";
 import { LeadCapturePage } from "./components/lead-capture/lead-capture-page";
 import { LeadDetailPage } from "./components/leads/lead-detail-page";
+import { MVPContactDetailPage } from "./components/leads/mvp-contact-detail-page";
 import { LeadsPage } from "./components/leads/leads-page";
 import { MVPContactsPage } from "./components/leads/mvp-contacts-page";
 import { ReportsPage } from "./components/reports/reports-page";
@@ -190,7 +191,9 @@ export default function CRMAppV5() {
       {page==="Leads"           && (version==="mvp"
                                       ? <MVPContactsPage  role={role} navigateTo={navigateTo} />
                                       : <LeadsPage        role={role} navigateTo={navigateTo} />)}
-      {page==="LeadDetail"      && <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />}
+      {page==="LeadDetail"      && (version==="mvp"
+                                      ? <MVPContactDetailPage role={role} navigateTo={navigateTo} lead={currentLead} />
+                                      : <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />)}
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
       {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
       {page==="AutoAssign"      && <AutoAssignPage        role={role} navigateTo={navigateTo} />}
