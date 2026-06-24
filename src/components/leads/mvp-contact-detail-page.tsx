@@ -4,17 +4,21 @@ import { C } from "../../theme";
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
 // Left identity rail (shared) + tabbed content: Overview / Information /
-// Activities / Documents. Rail actions open Email / Task composers; Labels
-// open a picker; the Journey Pipeline and Documents tab support adding content.
+// Activities / Documents. Rail actions open Email / Task / Log-a-Call /
+// Offline-Log composers; Labels open a picker (with custom labels); the GDPR
+// badge is a clickable enable/disable toggle.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TABS = ["Overview", "Information", "Activities", "Documents"];
+const LIFECYCLE_OPTS = ["Lead", "Opportunity", "Customer", "N/A"];
+const STATUS_OPTS = ["New", "To Do", "Won", "N/A"];
 
 const fieldStyle = {
   width: "100%", padding: "10px 12px", borderRadius: 8,
   border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit",
   color: C.text, boxSizing: "border-box", outline: "none", background: "#fff",
 };
+const placeholderSelect = { ...fieldStyle, color: C.muted };
 
 // ── small shared bits ─────────────────────────────────────────────────────────
 const Card = ({ children, style }) => (
@@ -43,7 +47,18 @@ const FileBadge = ({ type }) => {
   return <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 30, borderRadius: 4, fontSize: 7, fontWeight: 800, color: "#fff", background: col }}>{txt}</span>;
 };
 
-// ── generic modal shell (Email / Task) ────────────────────────────────────────
+const Label = ({ children }) => (
+  <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>{children}</label>
+);
+
+const StageStatusRow = () => (
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
+    <div><Label>Lifecycle Stage</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Lifecycle Stage</option>{LIFECYCLE_OPTS.map(o => <option key={o}>{o}</option>)}</select></div>
+    <div><Label>Stage status</Label><select style={placeholderSelect} defaultValue=""><option value="">Select status</option>{STATUS_OPTS.map(o => <option key={o}>{o}</option>)}</select></div>
+  </div>
+);
+
+// ── generic modal shell ───────────────────────────────────────────────────────
 const ModalShell = ({ icon, title, width = 520, onClose, children }) => (
   <>
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
@@ -63,23 +78,16 @@ const ModalShell = ({ icon, title, width = 520, onClose, children }) => (
   </>
 );
 
-const Label = ({ children }) => (
-  <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>{children}</label>
+const FooterBtns = ({ onClose, label, disabled, onAction }) => (
+  <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+    <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+    <button disabled={disabled} onClick={onAction || onClose} style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: disabled ? C.border : C.primary, color: disabled ? C.muted : "#fff", fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer" }}>{label}</button>
+  </div>
 );
 
 // ── Email composer ────────────────────────────────────────────────────────────
 const EmailModal = ({ onClose }) => {
   const [schedule, setSchedule] = useState(true);
-  const Chip = ({ text, removable }) => (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: C.primaryDark, background: C.primarySoft, padding: "4px 9px", borderRadius: 8 }}>
-      {text}{removable && <span style={{ cursor: "pointer" }}>×</span>}
-    </span>
-  );
-  const ChipBox = ({ children }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "7px 10px", border: `1px solid ${C.border}`, borderRadius: 8, minHeight: 22 }}>
-      {children}<span style={{ width: 1, height: 16, background: C.border }} />
-    </div>
-  );
   const toolBtns = ["B", "I", "U", "⟸", "⟺", "⟹", "≔", "≕", "🖉", "T"];
   return (
     <ModalShell icon="✉️" title="Email" width={640} onClose={onClose}>
@@ -87,13 +95,18 @@ const EmailModal = ({ onClose }) => {
         <Label>From *</Label>
         <select style={fieldStyle} defaultValue="someone@gmail.com"><option>someone@gmail.com</option><option>sales@vionworld.com</option></select>
       </div>
+      {/* To / CC — dropdowns with placeholders */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
-        <div><Label>To *</Label><ChipBox><Chip text="Account/PC Email" /><Chip text="Example@gmail.com" removable /></ChipBox></div>
-        <div><Label>CC</Label><ChipBox><Chip text="someone@example.com" /></ChipBox></div>
+        <div><Label>To *</Label>
+          <select style={placeholderSelect} defaultValue=""><option value="" disabled>Select recipient</option><option>Account/PC Email</option><option>Example@gmail.com</option><option>lana.steiner@email.com</option></select>
+        </div>
+        <div><Label>CC</Label>
+          <select style={placeholderSelect} defaultValue=""><option value="" disabled>Select CC</option><option>someone@example.com</option><option>manager@vionworld.com</option></select>
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
-        <div><Label>Template</Label><select style={{ ...fieldStyle, color: C.muted }} defaultValue=""><option value="">Select Template</option><option>Welcome Email</option><option>Follow-up</option></select></div>
-        <div><Label>Attachment</Label><select style={{ ...fieldStyle, color: C.muted }} defaultValue=""><option value="">Select Attachment</option><option>Product Brochure</option></select></div>
+        <div><Label>Template</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Template</option><option>Welcome Email</option><option>Follow-up</option></select></div>
+        <div><Label>Attachment</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Attachment</option><option>Product Brochure</option></select></div>
       </div>
       <div style={{ marginBottom: 14 }}><Label>Subject *</Label><input style={fieldStyle} placeholder="Subject" /></div>
       <div style={{ marginBottom: 16 }}>
@@ -108,21 +121,15 @@ const EmailModal = ({ onClose }) => {
       <label style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
         <input type="checkbox" checked={schedule} onChange={e => setSchedule(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Schedule send
       </label>
+      {/* Schedule logic is email-only: just date & time (no lifecycle/status) */}
       {schedule && (<>
         <Label>Select Date &amp; Time</Label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
-          <input type="date" style={{ ...fieldStyle, color: C.muted }} />
-          <input type="time" style={{ ...fieldStyle, color: C.muted }} />
-        </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
-          <div><Label>Lifecycle Stage</Label><select style={{ ...fieldStyle, color: C.muted }} defaultValue=""><option value="">Select Stage</option><option>Lead</option><option>Opportunity</option></select></div>
-          <div><Label>Stage Status</Label><select style={{ ...fieldStyle, color: C.muted }} defaultValue=""><option value="">Select Status</option><option>New</option><option>To Do</option></select></div>
+          <input type="date" style={placeholderSelect} />
+          <input type="time" style={placeholderSelect} />
         </div>
       </>)}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-        <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-        <button onClick={onClose} style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
-      </div>
+      <FooterBtns onClose={onClose} label="Send" />
     </ModalShell>
   );
 };
@@ -136,12 +143,12 @@ const TaskModal = ({ onClose }) => {
     <ModalShell icon="☑️" title="Task" width={640} onClose={onClose}>
       <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <div><Label>Due Date *</Label><input type="date" style={{ ...fieldStyle, color: C.muted }} /></div>
-        <div><Label>Time *</Label><input type="time" style={{ ...fieldStyle, color: C.muted }} /></div>
+        <div><Label>Due Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <div><Label>Task Type *</Label><select style={{ ...fieldStyle, color: C.muted }} defaultValue=""><option value="">Select Task Type</option><option>Call</option><option>Email</option><option>Meeting</option><option>Follow-up</option></select></div>
-        <div><Label>Task Priority *</Label><select style={{ ...fieldStyle, color: C.muted }} defaultValue=""><option value="">Select Task Priority</option><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></div>
+        <div><Label>Task Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Task Type</option><option>Call</option><option>Email</option><option>Meeting</option><option>Follow-up</option></select></div>
+        <div><Label>Task Priority *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Task Priority</option><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option></select></div>
       </div>
       <div style={{ marginBottom: 16 }}>
         <Label>Description *</Label>
@@ -162,13 +169,60 @@ const TaskModal = ({ onClose }) => {
           <select style={{ ...fieldStyle, width: 160 }} defaultValue="Day"><option>Day</option><option>Week</option><option>Month</option></select>
         </>)}
       </div>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-        <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-        <button disabled={!title.trim()} onClick={onClose} style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: title.trim() ? C.primary : C.border, color: title.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: title.trim() ? "pointer" : "default" }}>Create</button>
-      </div>
+      <FooterBtns onClose={onClose} label="Create" disabled={!title.trim()} />
     </ModalShell>
   );
 };
+
+// ── Log a Call ────────────────────────────────────────────────────────────────
+const LogCallModal = ({ onClose }) => (
+  <ModalShell icon="📞" title="Log a Call" width={720} onClose={onClose}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div><Label>Contact Name/Number *</Label>
+        <div style={{ position: "relative" }}>
+          <input style={{ ...fieldStyle, paddingRight: 32 }} placeholder="Select Contact Name/Number" />
+          <span style={{ position: "absolute", right: 11, top: 10, color: C.muted }}>🔍</span>
+        </div>
+      </div>
+      <div><Label>Call Direction *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Call Direction</option><option>Inbound</option><option>Outbound</option></select></div>
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div><Label>Call Status *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Status</option><option>Reached</option><option>Not Reached</option><option>Voicemail</option><option>Callback Requested</option></select></div>
+      <div><Label>Call Duration *</Label>
+        <div style={{ position: "relative" }}>
+          <input style={{ ...fieldStyle, paddingRight: 40 }} placeholder="Call duration" />
+          <span style={{ position: "absolute", right: 12, top: 11, color: C.muted, fontSize: 12 }}>min</span>
+        </div>
+      </div>
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+      <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
+    </div>
+    <div style={{ marginBottom: 16 }}>
+      <Label>Report Of Call *</Label>
+      <textarea defaultValue="Report of call" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
+    </div>
+    <StageStatusRow />
+    <FooterBtns onClose={onClose} label="Save" />
+  </ModalShell>
+);
+
+// ── Offline Log ───────────────────────────────────────────────────────────────
+const OfflineLogModal = ({ onClose }) => (
+  <ModalShell icon="ⓘ" title="Offline Log" width={720} onClose={onClose}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+      <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
+    </div>
+    <div style={{ marginBottom: 16 }}>
+      <Label>Note *</Label>
+      <textarea placeholder="Note" style={{ ...fieldStyle, minHeight: 110, resize: "vertical", lineHeight: 1.5 }} />
+    </div>
+    <StageStatusRow />
+    <FooterBtns onClose={onClose} label="Save" />
+  </ModalShell>
+);
 
 // ── Add Note modal ────────────────────────────────────────────────────────────
 const AddNoteModal = ({ onClose, onSave }) => {
@@ -185,20 +239,67 @@ const AddNoteModal = ({ onClose, onSave }) => {
         <Label>Note</Label>
         <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Type something" autoFocus
           style={{ ...fieldStyle, minHeight: 120, resize: "vertical", lineHeight: 1.5, marginBottom: 20 }} />
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-          <button disabled={!text.trim()} onClick={() => { onSave(text.trim()); onClose(); }} style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: text.trim() ? C.primary : C.border, color: text.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: text.trim() ? "pointer" : "default" }}>Save</button>
+        <FooterBtns onClose={onClose} label="Save" disabled={!text.trim()} onAction={() => { onSave(text.trim()); onClose(); }} />
+      </div>
+    </>
+  );
+};
+
+// ── pseudo QR + Scan QR Code modal ────────────────────────────────────────────
+const QRCode = ({ size = 190 }) => {
+  const n = 25, cell = size / n, rects = [];
+  let seed = 7;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const finder = (r, c, R, Cc) => { const rr = r - R, cc = c - Cc; if (rr < 0 || cc < 0 || rr > 6 || cc > 6) return null; const ring = rr === 0 || rr === 6 || cc === 0 || cc === 6; const ctr = rr >= 2 && rr <= 4 && cc >= 2 && cc <= 4; return ring || ctr; };
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const f = finder(r, c, 0, 0) ?? finder(r, c, 0, n - 7) ?? finder(r, c, n - 7, 0);
+    const on = f != null ? f : rnd() > 0.5;
+    if (on) rects.push(<rect key={`${r}-${c}`} x={c * cell} y={r * cell} width={cell} height={cell} fill="#111" />);
+  }
+  return <svg width={size} height={size} shapeRendering="crispEdges">{rects}</svg>;
+};
+
+const ScanQRModal = ({ onClose }) => {
+  const Corner = (pos) => {
+    const base = { position: "absolute", width: 22, height: 22, borderColor: C.border, borderStyle: "solid" };
+    const m = {
+      tl: { top: -6, left: -6, borderWidth: "2px 0 0 2px" },
+      tr: { top: -6, right: -6, borderWidth: "2px 2px 0 0" },
+      bl: { bottom: -6, left: -6, borderWidth: "0 0 2px 2px" },
+      br: { bottom: -6, right: -6, borderWidth: "0 2px 2px 0" },
+    }[pos];
+    return <span style={{ ...base, ...m }} />;
+  };
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 480, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>Scan QR Code</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
+        <div style={{ fontSize: 13, color: C.slate, marginBottom: 22 }}>Scan the QR code to open the secure document upload page.</div>
+        <div style={{ display: "grid", placeItems: "center", marginBottom: 24 }}>
+          <div style={{ position: "relative", padding: 14, borderRadius: 8 }}>
+            {Corner("tl")}{Corner("tr")}{Corner("bl")}{Corner("br")}
+            <QRCode size={190} />
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Close</button>
         </div>
       </div>
     </>
   );
 };
 
-// ── Labels picker (popover) ───────────────────────────────────────────────────
-const LabelsPicker = ({ selected, onToggle, onClose }) => {
+// ── Labels picker (popover) — supports custom labels ──────────────────────────
+const LabelsPicker = ({ selected, options, onToggle, onAddLabel, onClose }) => {
   const [q, setQ] = useState("");
-  const ALL = ["Test 1", "Do Not Call", "Callback Set", "Friend", "Friend1"];
-  const list = ALL.filter(l => l.toLowerCase().includes(q.toLowerCase()));
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const list = options.filter(l => l.toLowerCase().includes(q.toLowerCase()));
+  const commit = () => { if (name.trim()) { onAddLabel(name.trim()); setName(""); setAdding(false); } };
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
@@ -207,7 +308,7 @@ const LabelsPicker = ({ selected, onToggle, onClose }) => {
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search" style={{ ...fieldStyle, padding: "8px 30px 8px 10px" }} />
           <span style={{ position: "absolute", right: 22, top: 8, color: C.muted, fontSize: 13 }}>🔍</span>
         </div>
-        <div style={{ maxHeight: 180, overflowY: "auto" }}>
+        <div style={{ maxHeight: 170, overflowY: "auto" }}>
           {list.map(l => (
             <label key={l} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", cursor: "pointer", fontSize: 13, color: C.text }}
               onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -216,8 +317,15 @@ const LabelsPicker = ({ selected, onToggle, onClose }) => {
             </label>
           ))}
         </div>
-        <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 14px 2px" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.primary, cursor: "pointer" }}>＋ Add Label</span>
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 12px 2px" }}>
+          {adding ? (
+            <div style={{ display: "flex", gap: 6 }}>
+              <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commit(); }} placeholder="New label" autoFocus style={{ ...fieldStyle, padding: "7px 9px" }} />
+              <button onClick={commit} disabled={!name.trim()} style={{ padding: "0 12px", borderRadius: 8, border: "none", background: name.trim() ? C.primary : C.border, color: name.trim() ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>Add</button>
+            </div>
+          ) : (
+            <span onClick={() => setAdding(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.primary, cursor: "pointer" }}>＋ Add Label</span>
+          )}
         </div>
       </div>
     </>
@@ -249,13 +357,15 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const IdentityRail = ({ c, onEmail, onTask }) => {
+const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline }) => {
+  const [gdpr, setGdpr] = useState(true);
   const [labels, setLabels] = useState(["Label 1"]);
+  const [options, setOptions] = useState(["Test 1", "Do Not Call", "Callback Set", "Friend", "Friend1"]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const toggle = (l) => setLabels(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
-  const action = (icon, title, onClick, color = C.primary) => (
-    <span title={title} onClick={onClick} style={{ cursor: "pointer", color }}>{icon}</span>
-  );
+  const addCustom = (l) => { setOptions(prev => prev.includes(l) ? prev : [...prev, l]); setLabels(prev => prev.includes(l) ? prev : [...prev, l]); };
+
   return (
     <Card style={{ padding: "20px 18px", alignSelf: "start" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 14 }}>
@@ -268,17 +378,35 @@ const IdentityRail = ({ c, onEmail, onTask }) => {
         </div>
       </div>
 
+      {/* GDPR is a clickable enable/disable toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <Badge icon="🛡" label="GDPR" color={C.green} />
+        <button onClick={() => setGdpr(g => !g)} title="Click to enable/disable GDPR consent"
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "none", fontFamily: "inherit",
+            color: gdpr ? C.green : C.red, background: (gdpr ? C.green : C.red) + "14", padding: "4px 10px", borderRadius: 14 }}>
+          {gdpr ? "🛡 GDPR" : "⛔ GDPR Off"}
+        </button>
         <Badge icon="✉" label="Subscribed" color={C.blue} />
       </div>
 
       <div style={{ display: "flex", gap: 14, paddingBottom: 14, borderBottom: `1px solid ${C.border}`, marginBottom: 16, fontSize: 17 }}>
-        {action("✉️", "Email", onEmail)}
-        {action("🤝", "Log activity", onTask)}
-        {action("🔔", "Reminder", onTask)}
-        {action("☑️", "Task", onTask)}
-        {action("⋮", "More", () => {}, C.slate)}
+        <span title="Email" onClick={onEmail} style={{ cursor: "pointer", color: C.primary }}>✉️</span>
+        <span title="Log a Call" onClick={onLogCall} style={{ cursor: "pointer", color: C.primary }}>🤝</span>
+        <span title="Reminder" onClick={onTask} style={{ cursor: "pointer", color: C.primary }}>🔔</span>
+        <span title="Task" onClick={onTask} style={{ cursor: "pointer", color: C.primary }}>☑️</span>
+        <span style={{ position: "relative" }}>
+          <span title="More" onClick={() => setMoreOpen(o => !o)} style={{ cursor: "pointer", color: C.slate }}>⋮</span>
+          {moreOpen && (
+            <>
+              <div onClick={() => setMoreOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
+              <div style={{ position: "absolute", top: 24, left: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 150, padding: "5px 0" }}>
+                {[["📞 Log a Call", onLogCall], ["ⓘ Offline Log", onOffline], ["☑️ Add Task", onTask]].map(([label, fn]) => (
+                  <div key={label} onClick={() => { setMoreOpen(false); fn(); }} style={{ padding: "9px 14px", fontSize: 13, color: C.text, cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{label}</div>
+                ))}
+              </div>
+            </>
+          )}
+        </span>
       </div>
 
       <InfoRow icon="✉" label="Email" value={c.email} />
@@ -298,7 +426,7 @@ const IdentityRail = ({ c, onEmail, onTask }) => {
             </span>
           ))}
           <span onClick={() => setPickerOpen(o => !o)} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: C.slate, border: `1px dashed ${C.border}`, padding: "5px 10px", borderRadius: 8, cursor: "pointer" }}>＋ Add</span>
-          {pickerOpen && <LabelsPicker selected={labels} onToggle={toggle} onClose={() => setPickerOpen(false)} />}
+          {pickerOpen && <LabelsPicker selected={labels} options={options} onToggle={toggle} onAddLabel={addCustom} onClose={() => setPickerOpen(false)} />}
         </div>
       </div>
     </Card>
@@ -514,12 +642,12 @@ const DOCS = [
 ];
 
 const DocumentsTab = () => {
-  const [filter, setFilter] = useState(null);   // active category or null
+  const [filter, setFilter] = useState(null);
+  const [qr, setQr] = useState(false);
   const catColor = (cat) => (DOC_CATS.find(x => x.key === cat) || {}).color || C.slate;
   const rows = filter ? DOCS.filter(d => d.cat === filter) : DOCS;
   return (
     <Card style={{ padding: "18px 20px" }}>
-      {/* Filter pills */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         {DOC_CATS.map(cat => {
           const on = filter === cat.key;
@@ -535,7 +663,6 @@ const DocumentsTab = () => {
         })}
       </div>
 
-      {/* Document rows */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 26 }}>
         {rows.map(d => (
           <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", border: `1px solid ${C.border}`, borderRadius: 12 }}>
@@ -551,7 +678,6 @@ const DocumentsTab = () => {
         {rows.length === 0 && <div style={{ padding: "24px", textAlign: "center", color: C.muted, fontSize: 13 }}>No documents in this category.</div>}
       </div>
 
-      {/* Upload + share */}
       <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 16 }}>
         <div style={{ background: C.light, borderRadius: 12, padding: "16px 18px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 12 }}>Upload Document</div>
@@ -567,10 +693,12 @@ const DocumentsTab = () => {
           <div style={{ fontSize: 13, color: C.text, marginBottom: 14 }}>Share this link with the Contact to upload documents.</div>
           <div style={{ display: "flex", gap: 12 }}>
             <button style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 9, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>⧉ Copy link</button>
-            <button style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 9, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>▦ QR Code</button>
+            <button onClick={() => setQr(true)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 9, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>▦ QR Code</button>
           </div>
         </div>
       </div>
+
+      {qr && <ScanQRModal onClose={() => setQr(false)} />}
     </Card>
   );
 };
@@ -578,7 +706,7 @@ const DocumentsTab = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 export const MVPContactDetailPage = ({ lead, navigateTo }) => {
   const [tab, setTab] = useState("Overview");
-  const [modal, setModal] = useState(null);   // "email" | "task" | null
+  const [modal, setModal] = useState(null);   // email | task | logcall | offline
 
   const c = {
     name: lead?.name ? (/^(Ms|Mr|Mrs|Dr)/i.test(lead.name) ? lead.name : `Ms ${lead.name}`) : "Ms Lana Steiner",
@@ -601,7 +729,9 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18, alignItems: "start" }}>
-        <IdentityRail c={c} onEmail={() => setModal("email")} onTask={() => setModal("task")} />
+        <IdentityRail c={c}
+          onEmail={() => setModal("email")} onTask={() => setModal("task")}
+          onLogCall={() => setModal("logcall")} onOffline={() => setModal("offline")} />
 
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -621,8 +751,10 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
         </div>
       </div>
 
-      {modal === "email" && <EmailModal onClose={() => setModal(null)} />}
-      {modal === "task"  && <TaskModal onClose={() => setModal(null)} />}
+      {modal === "email"   && <EmailModal onClose={() => setModal(null)} />}
+      {modal === "task"    && <TaskModal onClose={() => setModal(null)} />}
+      {modal === "logcall" && <LogCallModal onClose={() => setModal(null)} />}
+      {modal === "offline" && <OfflineLogModal onClose={() => setModal(null)} />}
     </div>
   );
 };
