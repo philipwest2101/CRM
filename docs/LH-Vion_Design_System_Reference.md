@@ -94,6 +94,19 @@ The foundation is **Untitled-UI-derived** (the gray ramp, error/warning/success 
 - **Icons:** standard sizes are **24×24px** and **32×32px** only. Use 32×32 for nav/action contexts and 24×24 for inline/secondary contexts. (The file currently also contains stray 16px and 20px icon instances — these should be migrated to 24/32. Decorative dots/stepper markers that aren't true icons are exempt.)
 - **Buttons:** 44px large/primary · 36px medium · 24/20px compact · icon buttons 32/36.
 
+### 1.5 Logo & wordmark — ASSET GAP (must be supplied)
+
+This reference contains **no product logo asset and no wordmark spec.** The only logos in the system are the six *partner* brand logos that live in the icon set (CIMA, Partner Bank, Green Habitat, FFE, Arena, Twowings) — these are **not** the CRM-Hub product mark.
+
+Consequence for any code generator: with nothing concrete to point at, the tool will fabricate a text wordmark (e.g. a plain "vion CRM" in default colors). That is a guess, not the brand.
+
+To close this gap, the team must:
+- Locate the real product logo in Figma — check the Header component cluster (`24003:102141`) and the Library page (`134:98`) — confirm the exact node, and **export it as SVG**.
+- Host it in the front-end repo (e.g. `/assets/logo.svg`) or a raw URL, and reference it by path — never by name alone.
+- Record here, once confirmed: the canonical wordmark text/casing, the lockup (icon + wordmark order/spacing), the color treatment on light vs. dark/colored chrome, and minimum clear-space.
+
+Until that exists, **codegen output for the logo cannot be correct** and should be treated as a placeholder.
+
 ---
 
 ## 2. Component Library
@@ -204,3 +217,86 @@ When requesting new screens, features, or components, I'll:
 - call out consistency/scalability risks (e.g. the dual-primary issue) when they're relevant to what you're building.
 
 *To deepen this reference next: a dedicated pass on the Main prototype page to capture exact triggers/transitions, and extraction of the Popup/Login shadow values and corner-radius tokens.*
+
+---
+
+## 8. Implementation tokens (canonical, machine-readable)
+
+> Sections 1–7 are a **descriptive audit** — they deliberately document conflicts (e.g. the dual primary) rather than resolving them. A code generator cannot arbitrate a conflict; given two primaries it will pick one at random or invent a shade. This section is the **prescriptive** layer: one value per token. Hand *this* to codegen, not §1–7.
+>
+> Values below are taken from the *live variables bound in components* (§1.2), which are the working system. The **one unresolved value is `--color-primary`** — see the decision flag.
+
+```css
+:root {
+  /* ── PRIMARY — DECISION REQUIRED (see §5.1, Inconsistency #1) ───────────
+     Do NOT let codegen choose. Two candidates currently coexist:
+       (A) #FF9000  orange  — bound as Primary/500 in live interactive components
+       (B) #0075FF  blue    — the "Primary" variable + the Style Guide blue ramp
+     Pick ONE, delete the other, then set --color-primary below.
+     Guidance (not yet a rule): orange is used elsewhere as the action / "today"
+     accent — using it ALSO as full header chrome double-loads the colour. If the
+     header is meant to read as neutral chrome, primary should likely be the accent,
+     not the bar background. Confirm against the Figma Header node before locking. */
+  --color-primary:    /* ← SET AFTER DECISION */;
+  --color-primary-50: #FFF4E0;   /* light orange — only valid if primary = orange */
+  --color-primary-25: #FFFAF2;
+
+  /* ── Neutrals (gray ramp — stable) ── */
+  --gray-900: #101828;
+  --gray-800: #1D2939;
+  --gray-700: #344054;
+  --gray-500: #667085;
+  --gray-400: #98A2B3;
+  --gray-300: #D0D5DD;
+  --gray-100: #F2F4F7;
+  --color-text: #222730;
+  --white: #FFFFFF;
+
+  /* ── Semantic ── */
+  --error-500:   #F04438;
+  --warning-400: #FDB022;
+  --success-500: #12B76A;
+
+  /* ── Type ── */
+  --font-family: "Inter", system-ui, sans-serif;
+  --text-xs: 12px; --text-sm: 14px; --text-md: 16px;
+  --text-lg: 18px; --text-xl: 24px; --text-2xl: 30px;
+
+  /* ── Spacing & layout ── */
+  --space-1: 4px; --space-2: 8px; --space-4: 16px; --space-6: 24px; --space-8: 32px;
+  --header-height: 80px;
+  --content-max-width: 1280px;
+}
+```
+
+### 8.1 Top header / nav bar — element → token map *(proposed; confirm against Figma Header `24003:102141`)*
+
+This mapping was **not extracted from the file** — it is a reasonable starting point, flagged as such. The header background in particular depends on the primary decision above.
+
+| Element | Token / value |
+|---|---|
+| Bar height | `--header-height` (80px), content capped at `--content-max-width` |
+| Bar background | **decision-dependent** (see `--color-primary`) — confirm in Figma whether the bar is colored chrome or neutral |
+| Logo | the exported SVG asset from §1.5 — **not** a text node |
+| Nav item (default) | `--text-sm` / Inter Medium 500 |
+| Nav item (active) | weight + a pill/underline in the chosen primary; confirm exact treatment in Figma |
+| Role / "View as" switch | discrete pills; labels must come from a confirmed role list (see note) |
+| Icons (bell, locale, etc.) | 24×24 only (§1.4) |
+
+**Role-label note (glossary discipline):** the roles shown in the generated bar were `SA / VD / GP / PO`. `VD` (Vertriebsdirektor / Sales Director) and `GP` (Geschäftspartner / Business Partner) are defined in the master glossary; `SA` maps to Super admin / Backoffice. **`PO` is not defined in either glossary** — don't ship it as a role until the team confirms what it is and adds a glossary row.
+
+---
+
+## 9. Handing this file to a code generator (how to get a correct result)
+
+The bad output you get when you paste §1–7 into a codegen tool is expected: it's an audit, full of intentional "pick one of these" conflicts and missing the logo asset entirely. Do this instead:
+
+1. **Resolve the open decision first.** Lock `--color-primary` (§8). Until then every tool will guess the colour.
+2. **Give it §8, not §1–7.** The `:root` block is one-value-per-token and unambiguous.
+3. **Supply the logo as a real asset.** Export the SVG (§1.5), host it, and pass the path. A name like "vion CRM logo" produces an invented wordmark every time.
+4. **Pass an explicit element→token map** (§8.1) so the tool knows *which* token goes *where*, instead of inferring.
+5. **Anchor it to the source of truth.** Paste the target screenshot *and* the Figma Header node link (`…?node-id=24003-102141`) and instruct: "match this; do not improvise colours, spacing, or the logo."
+6. **Constrain scope explicitly.** State the exact nav items and the confirmed role list; tell it to omit anything unconfirmed (e.g. `PO`).
+
+**Prompt template:**
+> Build the top nav bar for CRM-Hub. Use ONLY the CSS variables in the attached `:root` block — do not introduce or guess any colour. Use the attached `logo.svg` for the logo; do not render a text wordmark. Follow the element→token map exactly. Match the attached screenshot and Figma node `24003:102141`. Nav items: Dashboard, Leads, Calendar, Email Marketing, Reports, Education, Settings. Roles in the "View as" switch: [confirmed list only]. If a value is missing, stop and ask — do not improvise.
