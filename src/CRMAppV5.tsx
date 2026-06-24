@@ -10,6 +10,7 @@ import { TopNav } from "./components/layout/top-nav";
 import { LeadCapturePage } from "./components/lead-capture/lead-capture-page";
 import { LeadDetailPage } from "./components/leads/lead-detail-page";
 import { LeadsPage } from "./components/leads/leads-page";
+import { MVPContactsPage } from "./components/leads/mvp-contacts-page";
 import { ReportsPage } from "./components/reports/reports-page";
 import { SettingsPage } from "./components/settings/settings-page";
 import { ACTIVITIES_STORE, APPOINTMENTS, EMAIL_TEMPLATES_STORE, WORKFLOW_RULES_STORE } from "./lib/core";
@@ -18,6 +19,7 @@ import { C } from "./theme";
 export default function CRMAppV5() {
   const [page, setPage]               = useState("Dashboard");
   const [role, setRole]               = useState("superadmin");
+  const [version, setVersion]         = useState("mvp");   // global page-version toggle: "mvp" | "full"
   const [currentLead, setCurrentLead] = useState(null);
 
   // ── Shared state ────────────────────────────────────────────────────────────
@@ -182,9 +184,11 @@ export default function CRMAppV5() {
 
   return (
     <div style={{ minHeight:"100vh",background:C.light,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:C.text }}>
-      <TopNav page={page} setPage={setPage} role={role} setRole={setRole} pushRef={pushRef} />
-      {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} appointments={appointments} />}
-      {page==="Leads"           && <LeadsPage            role={role} navigateTo={navigateTo} />}
+      <TopNav page={page} setPage={setPage} role={role} setRole={setRole} version={version} setVersion={setVersion} pushRef={pushRef} />
+      {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} version={version} activities={activities} setActivities={setActivities} appointments={appointments} />}
+      {page==="Leads"           && (version==="mvp"
+                                      ? <MVPContactsPage  role={role} navigateTo={navigateTo} />
+                                      : <LeadsPage        role={role} navigateTo={navigateTo} />)}
       {page==="LeadDetail"      && <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />}
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
       {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}

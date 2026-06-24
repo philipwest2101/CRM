@@ -3,7 +3,7 @@ import { Avatar } from "../ui/avatar";
 import { NOTIFICATIONS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
 import { C } from "../../theme";
 
-export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
+export const TopNav = ({ page, setPage, role, setRole, version, setVersion, pushRef }) => {
   const roles = { superadmin:{label:"Super Admin",abbr:"SA",color:C.navy}, vd:{label:"Sales Director",abbr:"VD",color:C.indigo}, gp:{label:"Consultant (GP)",abbr:"GP",color:C.green}, manager:{label:"Product Owner",abbr:"PO",color:"#0891B2"} };
   const r = roles[role];
   const userName = role==="gp"?"Anna Klein":role==="vd"?"Thomas Müller":role==="manager"?"Julia Bauer":"Super Admin";
@@ -113,6 +113,15 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
         })}
       </div>
       <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:12 }}>
+        {/* Global page-version toggle — MVP vs Full across the whole app */}
+        <span style={{ fontSize:11,color:"rgba(255,255,255,0.8)" }}>Version:</span>
+        <div style={{ display:"flex",gap:3,background:"rgba(255,255,255,0.18)",borderRadius:8,padding:3 }}>
+          {[["mvp","MVP"],["full","Full"]].map(([key,label])=>(
+            <button key={key} onClick={()=>setVersion(key)} title={`Switch to ${label} version`}
+              style={{ padding:"4px 12px",borderRadius:6,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",background:version===key?"#fff":"transparent",color:version===key?C.primaryDark:"rgba(255,255,255,0.85)" }}>{label}</button>
+          ))}
+        </div>
+        <span style={{ width:1,height:20,background:"rgba(255,255,255,0.3)" }} />
         <span style={{ fontSize:11,color:"rgba(255,255,255,0.8)" }}>View as:</span>
         <div style={{ display:"flex",gap:3,background:"rgba(255,255,255,0.18)",borderRadius:8,padding:3 }}>
           {Object.entries(roles).map(([key,v])=>(

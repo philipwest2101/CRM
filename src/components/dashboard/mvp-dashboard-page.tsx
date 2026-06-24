@@ -120,9 +120,9 @@ const TYPE_ICON = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PHASE 1 DASHBOARD — role-filtered, same layout for all roles
+// MVP DASHBOARD — role-filtered, lightweight overview (same layout for all roles)
 // ─────────────────────────────────────────────────────────────────────────────
-export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
+export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
 
   const user      = ROLE_USER[role] || ROLE_USER.superadmin;
   const userName  = user.name;
