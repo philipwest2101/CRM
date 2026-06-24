@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ALL_LEADS, EMAIL_TEMPLATES_STORE } from "../../lib/core";
+import { ALL_LEADS, EMAIL_TEMPLATES_STORE, ACTIVITY_TYPES, TASK_TYPE_KEYS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
 import { C } from "../../theme";
 
 // Task modal — supports three states: create | edit | view
@@ -8,12 +8,13 @@ import { C } from "../../theme";
 const lbl   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em", display:"block", marginBottom:5 };
 const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text };
 
-const TYPE_META = {
-  call:  { icon:"📞", label:"Call"  },
-  email: { icon:"✉️", label:"Email" },
-  note:  { icon:"✅", label:"To Do" },
-};
-const PRIORITIES = [["low","Low",C.slate],["medium","Medium",C.amber],["high","High",C.red],["urgent","Urgent","#B42318"]];
+// Task types come from the shared ACTIVITY_TYPES so the label/icon for each
+// type (call / email / note) is identical here and in the Add-Activity modal.
+const TYPE_META = Object.fromEntries(
+  TASK_TYPE_KEYS.map(k => [k, { icon: ACTIVITY_TYPES[k].icon, label: ACTIVITY_TYPES[k].label }])
+);
+// Priorities come from the shared canonical set (low / normal / high / urgent).
+const PRIORITIES = PRIORITY_KEYS.map(k => [k, PRIORITY_META[k].label, PRIORITY_META[k].color]);
 const REMINDER_OPTS = [["15","15 Minutes Before"],["30","30 Minutes Before"],["60","1 Hour Before"],["custom","Custom Date"]];
 
 const REPEAT_UNITS = ["day","week","month","year"];
@@ -21,7 +22,7 @@ const composeRecur = (every, unit) => `Every ${every} ${unit}${every>1?"s":""}`;
 const legacyUnit = { Daily:"day", Weekly:"week", Monthly:"month", Yearly:"year" };
 
 const blank = (selectedDate) => ({
-  type:"call", title:"", contact:"", priority:"medium",
+  type:"call", title:"", contact:"", priority:"normal",
   date:selectedDate||"", time:"09:00", reminderOn:true, reminder:"30", reminderCustom:"",
   emailTemplate:"", repeatOn:false, repeatEvery:1, repeatUnit:"day", recur:"Once", note:"",
 });
@@ -108,7 +109,7 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
               )}
               <button onClick={()=>onDelete&&onDelete(f)} title="Delete this task permanently"
                 style={{ marginLeft:"auto", background:"none", border:"none", color:C.red, fontSize:12, fontWeight:700, cursor:"pointer", padding:0 }}>🗑 Delete</button>
-              <button onClick={()=>onDone&&onDone(f)} title="Done = remove from the calendar (task is done)"
+              <button onClick={()=>onDone&&onDone(f)} title="Mark this task complete (stays in your calendar as Done)"
                 style={{ padding:"9px 22px", borderRadius:9, border:"none", background:C.green, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ Done</button>
             </div>
           </div>

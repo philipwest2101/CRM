@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
 import { MiniCalendar } from "../ui/mini-calendar";
+import { PRIORITY_META, DONE_STATUSES } from "../../lib/core";
 
 // ── Role → user mapping (matches mock data in CRMAppV5.jsx) ──────────────────
 const ROLE_USER = {
@@ -104,11 +105,11 @@ const StatusPill = ({ status }) => {
   );
 };
 
-const PRIORITY_COLOR = { high: C.red, normal: C.amber, low: C.muted };
+// Priority dot — colours come from the shared PRIORITY_META (low/normal/high/urgent)
 const PriorityDot = ({ priority }) => (
   <span style={{
     width: 7, height: 7, borderRadius: "50%",
-    background: PRIORITY_COLOR[priority] || C.muted,
+    background: (PRIORITY_META[priority] || PRIORITY_META.normal).color,
     display: "inline-block", flexShrink: 0,
   }} />
 );
@@ -116,12 +117,13 @@ const PriorityDot = ({ priority }) => (
 const TYPE_ICON = {
   call: "📞", email: "✉️", video: "📹",
   note: "📝", inperson: "🤝", import: "📥", assign: "🔀",
+  consultation: "💼", recruiting: "🧑‍💼", business: "🤝", other: "📌", event: "🎟️",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PHASE 1 DASHBOARD — role-filtered, same layout for all roles
 // ─────────────────────────────────────────────────────────────────────────────
-export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities = [], appointments = [] }) => {
+export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
 
   const user      = ROLE_USER[role] || ROLE_USER.superadmin;
   const userName  = user.name;
@@ -162,8 +164,8 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
   // ── KPI derivations ──────────────────────────────────────────────────────────
   const totalContacts  = scopedLeads.length;
 
-  // New leads = open status within scope
-  // For VD/SA also surface unassigned leads (no GP assigned yet)
+  // New contacts = open status within scope
+  // For VD/SA also surface unassigned contacts (no GP assigned yet)
   const newLeads = isGP
     ? scopedLeads.filter(l => l.status === "open")
     : isVD
@@ -175,13 +177,18 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
   const todayStr       = "2026-02-24"; // matches mock data; use new Date().toISOString().slice(0,10) in prod
   const todayAppts     = scopedAppts.filter(a => a.date === todayStr && a.status !== "cancelled");
 
-  const openReminders  = scopedActivities.filter(a =>
-    a.entityType === "reminder" && a.status !== "done" && a.status !== "cancelled"
-  );
+  // Tasks & reminders share one list (entityType reminder|task) and one "done" model.
+  const isDone   = (a) => DONE_STATUSES.includes(a.status);
+  const taskItems = scopedActivities
+    .filter(a => a.entityType === "reminder" || a.entityType === "task")
+    .sort((a, b) => Number(isDone(a)) - Number(isDone(b)));   // open first, done sink to bottom
+  const openTasks  = taskItems.filter(a => !isDone(a));
+  const tasksToShow = taskItems.slice(0, 7);
 
-  const recentActivity = [...scopedActivities]
-    .filter(a => a.entityType !== "reminder")
-    .slice(0, 6);
+  // Recent activity excludes the task/reminder items shown in the Tasks panel.
+  const recentActivity = scopedActivities
+    .filter(a => a.entityType !== "reminder" && a.entityType !== "task")
+    .slice(0, 8);
 
   // Days in Feb 2026 that have an appointment → highlighted in the mini calendar
   const calendarHighlights = [...new Set(
@@ -190,34 +197,44 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
       .map(a => Number(a.date.slice(8, 10)))
   )];
 
-  // ── Contacts panel title & sub-label per role ───────────────────────────────────
-  const leadsTitle = isGP ? "My New Contacts" : isVD ? "Team New Contacts" : "New Contacts";
+  // ── Panel titles per role ────────────────────────────────────────────────────
+  const leadsTitle    = isGP ? "My New Contacts" : isVD ? "Team New Contacts" : "New Contacts";
   const contactsLabel = isGP ? "My Contacts" : isVD ? "Team Contacts" : "Total Contacts";
-  const remindersTitle = isGP ? "My Reminders & Tasks" : isVD ? "Team Reminders" : "Reminders & Tasks";
+  const remindersTitle = isGP ? "My Tasks" : isVD ? "Team Tasks" : "Reminders & Tasks";
+  const apptsTitle    = isGP ? "My Appointments Today" : isVD ? "Team Appointments Today" : "Appointments Today";
 
-  // Contacts to show in panel (max 5)
-  const leadsToShow = newLeads.slice(0, 5);
+  // Contacts to show in panel (max 6)
+  const leadsToShow = newLeads.slice(0, 6);
 
-  // ── Reminder checklist state ─────────────────────────────────────────────────
-  const [doneReminders, setDoneReminders] = useState({});
-  const toggleReminder = id => setDoneReminders(prev => ({ ...prev, [id]: !prev[id] }));
+  // ── Done toggle — writes to the shared activities store so the Calendar stays
+  //    in sync. Falls back to local state if no setter is provided. ─────────────
+  const [localDone, setLocalDone] = useState({});
+  const itemDone   = (it) => isDone(it) || !!localDone[it.id];
+  const toggleDone = (it) => {
+    const next = !itemDone(it);
+    if (setActivities) {
+      setActivities(prev => prev.map(x => x.id === it.id ? { ...x, status: next ? "done" : "pending" } : x));
+    } else {
+      setLocalDone(prev => ({ ...prev, [it.id]: next }));
+    }
+  };
 
   return (
     <div style={{ flex: 1, overflowY: "auto", fontFamily: "Inter, system-ui, sans-serif" }}>
-      <div style={{ padding: "0 28px 48px" }}>
+      <div style={{ padding: "0 28px 36px" }}>
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        <div style={{ padding: "22px 0 18px" }}>
+        <div style={{ padding: "20px 0 16px" }}>
           <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.025em", color: C.text, margin: 0 }}>
             {greeting}, {user.firstName}<span style={{ color: C.primary }}>.</span>
           </h1>
-          <div style={{ marginTop: 6, fontSize: 12, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <div style={{ marginTop: 5, fontSize: 12, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             {roleLabel} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </div>
         </div>
 
         {/* ── KPI row ─────────────────────────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
           <KpiCard
             label={contactsLabel}
             value={totalContacts}
@@ -244,15 +261,15 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
             color={C.indigo}
           />
           <KpiCard
-            label="Open Reminders"
-            value={openReminders.length}
-            sub="pending tasks"
-            color={openReminders.length > 0 ? C.amber : C.green}
+            label="Open Tasks"
+            value={openTasks.length}
+            sub="reminders & to-dos"
+            color={openTasks.length > 0 ? C.amber : C.green}
           />
         </div>
 
-        {/* ── Main two-column layout ───────────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16, marginBottom: 16 }}>
+        {/* ── Main three-column layout: Contacts | Tasks | Calendar+Appointments ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
 
           {/* ── New Contacts panel ───────────────────────────────────────────── */}
           <Card>
@@ -283,21 +300,21 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
               ) : leadsToShow.map((lead, i) => (
                 <div key={lead.id} style={{
                   display: "grid",
-                  gridTemplateColumns: "36px 1fr auto auto",
+                  gridTemplateColumns: "32px 1fr auto",
                   alignItems: "center",
-                  gap: 12,
-                  padding: "8px 0",
+                  gap: 10,
+                  padding: "7px 0",
                   borderBottom: i < leadsToShow.length - 1 ? `1px solid ${C.border}` : "none",
                 }}>
-                  <Avatar name={lead.name} size={36} />
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{lead.name}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                      {lead.city} · {lead.source} · {lead.created}
+                  <Avatar name={lead.name} size={32} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name}</div>
+                    <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {lead.city} · {lead.source}
                       {/* VD/SA: show who it's assigned to (or flag as unassigned) */}
                       {!isGP && (
                         <span style={{
-                          marginLeft: 6,
+                          marginLeft: 5,
                           color: lead.assignedGP ? C.muted : C.red,
                           fontWeight: lead.assignedGP ? 400 : 600,
                         }}>
@@ -306,13 +323,12 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
                       )}
                     </div>
                   </div>
-                  <StatusPill status={lead.status} />
                   <button
                     onClick={() => navigateTo("Leads")}
                     style={{
                       padding: "4px 10px", background: C.primary, color: "#fff",
                       border: "none", borderRadius: 6, fontSize: 10, fontFamily: "monospace",
-                      letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer",
+                      letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer",
                       fontWeight: 600,
                     }}
                   >
@@ -323,47 +339,33 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
             </div>
           </Card>
 
-          {/* ── Right column: mini calendar + reminders ───────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* ── Mini calendar ─────────────────────────────────────────────── */}
-          <Card>
-            <CardHeader
-              title="Calendar"
-              action={<LinkBtn label="Open →" onClick={() => navigateTo("Calendar")} />}
-            />
-            <div style={{ padding: "12px 16px 14px" }}>
-              <MiniCalendar highlightDays={calendarHighlights} />
-            </div>
-          </Card>
-
           {/* ── Reminders / Tasks panel ───────────────────────────────────── */}
           <Card>
             <CardHeader
               title={remindersTitle}
               action={<LinkBtn label="All →" onClick={() => navigateTo("Calendar")} />}
             />
-            <div style={{ padding: "2px 16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-              {openReminders.length === 0 ? (
+            <div style={{ padding: "2px 14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+              {tasksToShow.length === 0 ? (
                 <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                  No open reminders.
+                  No open tasks.
                 </div>
-              ) : openReminders.slice(0, 6).map((rem) => {
-                const done = !!doneReminders[rem.id];
+              ) : tasksToShow.map((rem) => {
+                const done = itemDone(rem);
                 return (
                   <div
                     key={rem.id}
-                    onClick={() => toggleReminder(rem.id)}
+                    onClick={() => toggleDone(rem)}
+                    title={done ? "Mark as not done" : "Mark as done"}
                     style={{
-                      display: "flex", alignItems: "flex-start", gap: 10,
-                      padding: "7px 10px", borderRadius: 9, cursor: "pointer",
+                      display: "flex", alignItems: "flex-start", gap: 9,
+                      padding: "7px 9px", borderRadius: 9, cursor: "pointer",
                       border: `1px solid ${done ? C.green + "40" : C.border}`,
-                      background: done ? C.green + "06" : "#F8FAFC",
-                      marginBottom: 4,
+                      background: done ? C.green + "08" : "#F8FAFC",
                     }}
                   >
                     <div style={{
-                      width: 17, height: 17, borderRadius: 4, marginTop: 1,
+                      width: 16, height: 16, borderRadius: 4, marginTop: 1,
                       border: `1.5px solid ${done ? C.green : C.muted}`,
                       background: done ? C.green : "transparent",
                       display: "grid", placeItems: "center",
@@ -373,114 +375,132 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: 13, color: done ? C.muted : C.text,
+                        fontSize: 12.5, color: done ? C.muted : C.text,
                         textDecoration: done ? "line-through" : "none", lineHeight: 1.3,
                       }}>
                         {rem.title}
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted, marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
                         <PriorityDot priority={rem.priority} />
-                        {rem.time} · {rem.date}
+                        {rem.time ? `${rem.time} · ` : ""}{rem.date}
                         {rem.lead && <> · {rem.lead}</>}
-                        {/* VD/SA: show which GP the reminder belongs to */}
+                        {/* VD/SA: show which GP the task belongs to */}
                         {!isGP && rem.gp && <> · <span style={{ color: C.slate }}>{rem.gp}</span></>}
                       </div>
                     </div>
-                    <span style={{ fontSize: 14 }}>{TYPE_ICON[rem.type] || "🔔"}</span>
+                    <span style={{ fontSize: 13 }}>{TYPE_ICON[rem.type] || "🔔"}</span>
                   </div>
                 );
               })}
             </div>
           </Card>
-          </div>
-        </div>
 
-        {/* ── Today's Appointments ─────────────────────────────────────────── */}
-        {todayAppts.length > 0 && (
-          <Card style={{ marginBottom: 16 }}>
-            <CardHeader
-              title={isGP ? "My Appointments Today" : isVD ? "Team Appointments Today" : "Appointments Today"}
-              action={<LinkBtn label="Calendar →" onClick={() => navigateTo("Calendar")} />}
-            />
-            <div style={{ padding: "10px 16px 12px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {todayAppts.map((appt) => {
-                const typeColor = { call: C.green, video: C.indigo, inperson: C.amber, email: C.blue }[appt.type] || C.muted;
-                const statusColor = { upcoming: C.blue, confirmed: C.green, done: C.muted, noshow: C.red }[appt.status] || C.muted;
-                return (
-                  <div key={appt.id} style={{
-                    padding: "12px 14px", borderRadius: 10,
-                    border: `1px solid ${typeColor}30`,
-                    background: typeColor + "06",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontSize: 16 }}>{TYPE_ICON[appt.type] || "📅"}</span>
-                      <div style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 600, color: typeColor }}>
-                        {appt.start}
+          {/* ── Right rail: mini calendar + today's appointments ───────────── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            {/* Mini calendar */}
+            <Card>
+              <CardHeader
+                title="Calendar"
+                action={<LinkBtn label="Open →" onClick={() => navigateTo("Calendar")} />}
+              />
+              <div style={{ padding: "10px 14px 12px" }}>
+                <MiniCalendar highlightDays={calendarHighlights} />
+              </div>
+            </Card>
+
+            {/* Today's appointments — directly under the calendar */}
+            <Card>
+              <CardHeader
+                title={apptsTitle}
+                action={<LinkBtn label="Calendar →" onClick={() => navigateTo("Calendar")} />}
+              />
+              <div style={{ padding: "2px 14px 8px" }}>
+                {todayAppts.length === 0 ? (
+                  <div style={{ padding: "14px 0", textAlign: "center", color: C.muted, fontSize: 12.5 }}>
+                    No appointments today.
+                  </div>
+                ) : todayAppts.map((appt, i) => {
+                  const typeColor = { call: C.green, video: C.indigo, inperson: C.amber, email: C.blue }[appt.type] || C.indigo;
+                  const statusColor = { upcoming: C.blue, confirmed: C.green, done: C.muted, noshow: C.red }[appt.status] || C.muted;
+                  return (
+                    <div key={appt.id} style={{
+                      display: "flex", alignItems: "center", gap: 9,
+                      padding: "8px 0",
+                      borderBottom: i < todayAppts.length - 1 ? `1px solid ${C.border}` : "none",
+                    }}>
+                      <span style={{ fontSize: 15, flexShrink: 0 }}>{TYPE_ICON[appt.type] || "📅"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appt.lead}</div>
+                        <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
+                          <span style={{ fontFamily: "monospace", color: typeColor, fontWeight: 600 }}>{appt.start}</span>
+                          {!isGP && appt.gp && <> · {appt.gp}</>}
+                        </div>
                       </div>
                       <span style={{
-                        marginLeft: "auto", fontSize: 9, fontFamily: "monospace", padding: "2px 6px",
-                        borderRadius: 20, fontWeight: 700, background: statusColor + "18", color: statusColor,
+                        fontSize: 9, fontFamily: "monospace", padding: "2px 6px",
+                        borderRadius: 20, fontWeight: 700, flexShrink: 0,
+                        background: statusColor + "18", color: statusColor,
                       }}>
                         {appt.status}
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{appt.lead}</div>
-                    {/* VD/SA: show which consultant owns the appointment */}
-                    {!isGP && (
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{appt.gp}</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        )}
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+        </div>
 
-        {/* ── Recent Activity ──────────────────────────────────────────────── */}
+        {/* ── Recent Activity — full width, two columns to use the space ───── */}
         <Card>
           <CardHeader
             title={isGP ? "My Recent Activity" : isVD ? "Team Recent Activity" : "Recent Activity"}
             action={<LinkBtn label="All Activity →" onClick={() => navigateTo("Calendar")} />}
           />
-          <div style={{ padding: "2px 16px 10px" }}>
+          <div style={{ padding: "6px 16px 12px" }}>
             {recentActivity.length === 0 ? (
               <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
                 No recent activity.
               </div>
-            ) : recentActivity.map((act, i) => {
-              const iconBg = { call: C.green, video: C.indigo, email: C.amber, inperson: C.blue, note: C.purple }[act.type] || C.muted;
-              return (
-                <div key={act.id} style={{
-                  display: "flex", gap: 12, alignItems: "flex-start",
-                  padding: "6px 0",
-                  borderBottom: i < recentActivity.length - 1 ? `1px solid ${C.border}` : "none",
-                }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: "50%",
-                    background: iconBg + "18", display: "grid", placeItems: "center",
-                    fontSize: 14, flexShrink: 0,
-                  }}>
-                    {TYPE_ICON[act.type] || "📋"}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{act.title}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                      {/* VD/SA: show GP name in activity feed */}
-                      {!isGP && act.gp && <>{act.gp} · </>}
-                      {act.date} {act.time}
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", columnGap: 24, rowGap: 0 }}>
+                {recentActivity.map((act) => {
+                  const iconBg = { call: C.green, video: C.indigo, email: C.amber, inperson: C.blue, note: C.purple }[act.type] || C.muted;
+                  return (
+                    <div key={act.id} style={{
+                      display: "flex", gap: 11, alignItems: "center",
+                      padding: "7px 0",
+                      borderBottom: `1px solid ${C.border}`,
+                    }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: "50%",
+                        background: iconBg + "18", display: "grid", placeItems: "center",
+                        fontSize: 14, flexShrink: 0,
+                      }}>
+                        {TYPE_ICON[act.type] || "📋"}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{act.title}</div>
+                        <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                          {/* VD/SA: show GP name in activity feed */}
+                          {!isGP && act.gp && <>{act.gp} · </>}
+                          {act.date} {act.time}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 9, fontFamily: "monospace", padding: "2px 7px",
+                        borderRadius: 20, flexShrink: 0,
+                        background: C.muted + "18", color: C.muted, fontWeight: 600,
+                        textTransform: "capitalize",
+                      }}>
+                        {act.status}
+                      </span>
                     </div>
-                  </div>
-                  <span style={{
-                    fontSize: 9, fontFamily: "monospace", padding: "2px 7px",
-                    borderRadius: 20, flexShrink: 0, marginTop: 2,
-                    background: C.muted + "18", color: C.muted, fontWeight: 600,
-                    textTransform: "capitalize",
-                  }}>
-                    {act.status}
-                  </span>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Card>
 
@@ -488,4 +508,3 @@ export const MinimalDashboardPage = ({ role, navigateTo, leads = [], activities 
     </div>
   );
 };
-

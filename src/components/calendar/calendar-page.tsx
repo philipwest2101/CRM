@@ -3,7 +3,7 @@ import { NewActivityModal } from "./new-activity-modal";
 import { TaskModal } from "./task-modal";
 import { AppointmentModal } from "../appointments/appointment-modal";
 import { AppointmentOutcomeModal } from "../appointments/appointment-outcome-modal";
-import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS, EVENTS_LIST } from "../../lib/core";
+import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS, EVENTS_LIST, PRIORITY_META, DONE_STATUSES } from "../../lib/core";
 import { C } from "../../theme";
 
 // Tasks are coloured by priority; appointments and events (which have no
@@ -102,7 +102,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     } else {
       setTaskModal({ mode:"view", data:{
         id:a.id, type:TASK_TYPE_KEYS.includes(a.type)?a.type:"note", title:a.title, contact:a.lead,
-        priority:a.priority||"medium", date:a.date, time:a.time, note:a.note, recur:a.recur||"Once",
+        priority:a.priority||"normal", date:a.date, time:a.time, note:a.note, recur:a.recur||"Once",
         reminderOn:true, reminder:"30" }});
     }
   };
@@ -120,7 +120,13 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     }
     setTaskModal(null); focusDate(f.date);
   };
-  const doneTask = (f) => { setActivities(prev=>prev.filter(x=>x.id!==f.id)); setTaskModal(null); };
+  // Done = mark the task complete and keep it (stays in sync with the dashboard),
+  // rather than deleting it. Reversible via the dashboard checkbox.
+  const doneTask = (f) => {
+    setActivities(prev=>prev.map(x=>x.id===f.id ? { ...x, status:"done" } : x));
+    const i = ACTIVITIES_STORE.findIndex(x=>x.id===f.id); if (i>=0) ACTIVITIES_STORE[i] = { ...ACTIVITIES_STORE[i], status:"done" };
+    setTaskModal(null);
+  };
   const deleteTask = (f) => {
     setActivities(prev=>prev.filter(x=>x.id!==f.id));
     const i = ACTIVITIES_STORE.findIndex(x=>x.id===f.id); if (i>=0) ACTIVITIES_STORE.splice(i,1);
@@ -514,26 +520,29 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 </div>
               );
 
-              const isOverdue = (a) => a.status!=="done" && (selectedDate < TODAY || (selectedDate===TODAY && (a.time||"99:99") < NOW_TIME));
+              const done    = (a) => DONE_STATUSES.includes(a.status);
+              const isOverdue = (a) => !done(a) && (selectedDate < TODAY || (selectedDate===TODAY && (a.time||"99:99") < NOW_TIME));
               const sortFn = (a,b) => (a.time||"").localeCompare(b.time||"");
-              const overdue  = dayItems.filter(isOverdue).sort(sortFn);
-              const upcoming = dayItems.filter(a=>!isOverdue(a)).sort(sortFn);
+              const overdue   = dayItems.filter(a=>isOverdue(a)).sort(sortFn);
+              const upcoming  = dayItems.filter(a=>!isOverdue(a)&&!done(a)).sort(sortFn);
+              const doneItems = dayItems.filter(done).sort(sortFn);
 
               const card = (a) => {
                 const at = metaOf(a);
-                const prioCol = a.priority==="high"?C.red:a.priority==="low"?C.slate:C.amber;
+                const isDone = done(a);
+                const prioCol = (PRIORITY_META[a.priority]||PRIORITY_META.normal).color;
                 return (
                   <div key={a.id} onClick={()=>openActivity(a)}
                     style={{ cursor:"pointer",display:"flex",gap:10,padding:"10px 12px",borderRadius:10,
-                      background:"#fff",border:`1px solid ${C.border}`,borderLeft:`4px solid ${at.color}`,minWidth:0 }}>
-                    <div style={{ fontSize:16,flexShrink:0 }}>{at.icon}</div>
+                      background:isDone?"#F8FAFC":"#fff",border:`1px solid ${C.border}`,borderLeft:`4px solid ${isDone?C.green:at.color}`,minWidth:0,opacity:isDone?0.75:1 }}>
+                    <div style={{ fontSize:16,flexShrink:0 }}>{isDone?"✓":at.icon}</div>
                     <div style={{ flex:1,minWidth:0 }}>
                       <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                        <span style={{ fontSize:11,fontWeight:800,color:at.color }}>{a.time||"—"}{a.end?` – ${a.end}`:""}</span>
+                        <span style={{ fontSize:11,fontWeight:800,color:isDone?C.muted:at.color }}>{a.time||"—"}{a.end?` – ${a.end}`:""}</span>
                         <span style={{ width:7,height:7,borderRadius:"50%",background:prioCol,flexShrink:0 }} title={`${a.priority||"normal"} priority`}/>
                         {a.recur&&a.recur!=="Once" && <span style={{ fontSize:9,color:C.muted }}>🔁</span>}
                       </div>
-                      <div style={{ fontSize:12,fontWeight:700,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.title}</div>
+                      <div style={{ fontSize:12,fontWeight:700,color:isDone?C.muted:C.text,textDecoration:isDone?"line-through":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.title}</div>
                       {a.lead && <div style={{ fontSize:10,color:C.muted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>👤 {a.lead}</div>}
                       {a.note && <div style={{ fontSize:10,color:C.slate,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.note}</div>}
                     </div>
@@ -558,6 +567,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 <>
                   {group("Overdue",C.red,overdue)}
                   {group("Upcoming",C.green,upcoming)}
+                  {group("Done",C.muted,doneItems)}
                 </>
               );
             })()}

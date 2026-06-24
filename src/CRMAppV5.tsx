@@ -183,7 +183,7 @@ export default function CRMAppV5() {
   return (
     <div style={{ minHeight:"100vh",background:C.light,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:C.text }}>
       <TopNav page={page} setPage={setPage} role={role} setRole={setRole} pushRef={pushRef} />
-      {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} />}
+      {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} appointments={appointments} />}
       {page==="Leads"           && <LeadsPage            role={role} navigateTo={navigateTo} />}
       {page==="LeadDetail"      && <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />}
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}

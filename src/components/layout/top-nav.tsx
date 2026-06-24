@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Avatar } from "../ui/avatar";
-import { NOTIFICATIONS } from "../../lib/core";
+import { NOTIFICATIONS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
 import { C } from "../../theme";
 
 export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
@@ -50,7 +50,7 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
 
   const saveReminder = () => {
     if (!remTitle.trim()) return;
-    const priorityColors = { high:"#DC2626", normal:"#4338CA", low:"#64748B" };
+    const priorityColors = Object.fromEntries(PRIORITY_KEYS.map(k => [k, PRIORITY_META[k].color]));
     const newNotif = {
       id: Date.now(), type:"reminder", icon:"⏰",
       color: priorityColors[remPriority]||"#7C3AED",
@@ -214,7 +214,7 @@ export const TopNav = ({ page, setPage, role, setRole, pushRef }) => {
             <div>
               <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Priority</label>
               <div style={{ display:"flex",gap:4 }}>
-                {[["low","Low","#64748B"],["normal","Normal","#4338CA"],["high","High","#DC2626"]].map(([k,l,col])=>(
+                {PRIORITY_KEYS.map(k=>[k,PRIORITY_META[k].label,PRIORITY_META[k].color]).map(([k,l,col])=>(
                   <button key={k} onClick={()=>setRemPriority(k)}
                     style={{ flex:1,padding:"8px 4px",borderRadius:7,border:`1.5px solid ${remPriority===k?col:C.border}`,
                       background:remPriority===k?col+"12":"#fff",color:remPriority===k?col:C.muted,

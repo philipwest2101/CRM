@@ -647,6 +647,19 @@ export const ACTIVITY_STATUS_META = {
   completed: { label:"Completed", color:"#64748B" },
 };
 
+// Canonical task/reminder priority set — single source of truth shared by the
+// Task modal, Add-Activity modal, the quick-reminder modal and the dashboard.
+export const PRIORITY_META = {
+  low:    { label:"Low",    color:"#64748B" },
+  normal: { label:"Normal", color:"#FDB022" },
+  high:   { label:"High",   color:"#F04438" },
+  urgent: { label:"Urgent", color:"#B42318" },
+};
+export const PRIORITY_KEYS = ["low","normal","high","urgent"];
+
+// Statuses that mean a task/reminder is finished (no longer "open").
+export const DONE_STATUSES = ["done","completed","cancelled"];
+
 // Unified ACTIVITIES store — merges appointments + reminders
 // Each activity: id, type, title, lead, leadId, date, time, end, gp, vd,
 //                status, priority, note, recur, channels, entityType, category

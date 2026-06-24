@@ -37,6 +37,7 @@ export const DashboardPage = ({
   navigateTo,
   leads = ALL_LEADS,
   activities = ACTIVITIES_STORE,
+  setActivities,
   appointments = APPOINTMENTS,
 }) => {
   const [view, setView] = useState("minimal");
@@ -44,7 +45,7 @@ export const DashboardPage = ({
     <>
       <ViewToggle view={view} setView={setView} />
       {view === "minimal"
-        ? <MinimalDashboardPage role={role} navigateTo={navigateTo} leads={leads} activities={activities} appointments={appointments} />
+        ? <MinimalDashboardPage role={role} navigateTo={navigateTo} leads={leads} activities={activities} setActivities={setActivities} appointments={appointments} />
         : <FullDashboardPage role={role} navigateTo={navigateTo} />}
     </>
   );
