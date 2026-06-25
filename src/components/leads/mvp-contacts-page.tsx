@@ -2,6 +2,30 @@ import React, { useState, useMemo, useRef } from "react";
 import { ALL_LEADS } from "../../lib/core";
 import { C } from "../../theme";
 
+// Hover tooltip — shows on hover next to view name or field label
+const InfoTip = ({ text }) => {
+  const [show, setShow] = React.useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex", marginLeft: 4 }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <span style={{ fontSize: 11, color: C.muted, cursor: "help" }}>ⓘ</span>
+      {show && (
+        <div style={{ position: "absolute", bottom: "calc(100% + 5px)", left: "50%", transform: "translateX(-50%)", background: C.navy, color: "#fff", fontSize: 11, lineHeight: 1.4, padding: "6px 10px", borderRadius: 8, whiteSpace: "nowrap", maxWidth: 240, zIndex: 999, boxShadow: "0 4px 16px rgba(0,0,0,0.2)", pointerEvents: "none" }}>
+          {text}
+        </div>
+      )}
+    </span>
+  );
+};
+
+// Tooltip text per system view id
+const VIEW_TIPS = {
+  my:       "All contacts in your personal network.",
+  pending:  "Leads not yet assigned to any consultant. Requires immediate action.",
+  myleads:  "Contacts currently assigned to you as active leads.",
+  pendingA: "Contacts awaiting assignment to a consultant.",
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACTS PAGE
 // Import-first Contact List (the MVP counterpart to the rich "Full" view):
@@ -59,12 +83,12 @@ const toContact = (l) => {
 // filter: "text" | "lifecycle" | "status" | null   ·   locked columns are always
 // present in every view and cannot be removed in the Edit View dialog.
 const COLUMNS = {
-  firstName:     { label: "First Name",          locked: true,  filter: "text",      group: "Main Information" },
-  lastName:      { label: "Last Name",           locked: true,  filter: "text",      group: "Main Information" },
+  name:          { label: "Name",                locked: true,  filter: "text",      group: "Main Information" },
+  firstName:     { label: "First Name",          locked: false, filter: "text",      group: "Main Information" },
+  lastName:      { label: "Last Name",           locked: false, filter: "text",      group: "Main Information" },
   primaryEmail:  { label: "Primary Email",       locked: false, filter: "text",      group: "Main Information" },
   campaign:      { label: "Campaign",            locked: false, filter: "text",      group: "Main Information" },
   dob:           { label: "Date of Birth",       locked: false, filter: "date",      group: "Main Information" },
-  name:          { label: "Name",                locked: false, filter: "text",      group: "Main Information" },
   email:         { label: "Email",               locked: false, filter: "text",      group: "Main Information" },
   phone:         { label: "Phone Number",        locked: false, filter: "text",      group: "Main Information" },
   website:       { label: "Website",             locked: false, filter: null,        group: "Main Information" },
@@ -77,14 +101,16 @@ const COLUMNS = {
   accountSource: { label: "Account Source",      locked: false, filter: null,        group: "Main Information" },
 };
 const COLUMN_KEYS = Object.keys(COLUMNS);
-const DEFAULT_COLS = ["firstName", "lastName", "primaryEmail", "campaign", "dob"];
-const LINK_COL = "firstName";   // column that links to the contact detail
+const DEFAULT_COLS = ["name", "primaryEmail", "campaign", "dob"];
+const LINK_COL = "name";   // frozen Name column links to contact detail
 
 const VIEW_FILTERS = {
   all:     () => true,
   pending: (c) => !c.assigned,
   custom1: (c) => c.lifecycle === "Lead",
   custom2: (c) => c.lifecycle === "Opportunity",
+  // alias keys used by some system views
+  myleads: (c) => c.lifecycle === "Lead",
 };
 
 const fieldStyle = {
@@ -152,7 +178,7 @@ const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: v.id === activeId ? 700 : 500, color: v.id === activeId ? C.primaryDark : C.text }}
                 onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <span>{v.name}</span>
+                <span style={{ display: "flex", alignItems: "center" }}>{v.name}{v.system && VIEW_TIPS[v.id] && <InfoTip text={VIEW_TIPS[v.id]} />}</span>
                 <span style={{ color: C.muted, fontWeight: 500 }}>({counts[v.id] ?? 0})</span>
               </div>
             ))}
@@ -788,19 +814,28 @@ const SendBulkEmailModal = ({ contacts, onClose }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-const INITIAL_VIEWS = [
-  { id: "my",      name: "My Contacts",         filter: "all",     columns: DEFAULT_COLS },
-  { id: "pending", name: "Pending Assignments", filter: "pending", columns: ["name", "lifecycle", "stageStatus", "assignee", "create"] },
-  { id: "cv1",     name: "Custom View 1",       filter: "custom1", columns: ["name", "email", "phone", "stageStatus"] },
-  { id: "cv2",     name: "Custom View 2",       filter: "custom2", columns: ["name", "lifecycle", "accountSource", "create"] },
+// Build role-specific system views. System views cannot be deleted.
+const getSystemViews = (role) => {
+  const myNetwork    = { id: "my",      name: "My Network",          filter: "all",     columns: DEFAULT_COLS, system: true };
+  const unassigned   = { id: "pending", name: "Unassigned Leads",    filter: "pending", columns: ["name", "lifecycle", "stageStatus", "campaign", "assignee"], system: true };
+  const myLeads      = { id: "myleads", name: "My Leads",            filter: "custom1", columns: ["name", "primaryEmail", "lifecycle", "stageStatus", "campaign"], system: true };
+  const pendingAssign= { id: "pendingA",name: "Pending Assignments", filter: "pending", columns: ["name", "lifecycle", "stageStatus", "assignee", "create"], system: true };
+
+  if (role === "superadmin") return [myNetwork, unassigned];
+  if (role === "vd")         return [myNetwork, myLeads, pendingAssign];
+  // gp
+  return [myNetwork, myLeads];
+};
+
+const CUSTOM_VIEWS = [
+  { id: "cv1", name: "Custom View 1", filter: "custom1", columns: ["name", "email", "phone", "stageStatus"] },
+  { id: "cv2", name: "Custom View 2", filter: "custom2", columns: ["name", "lifecycle", "accountSource", "create"] },
 ];
 
 export const MVPContactsPage = ({ navigateTo, role }) => {
-  // Pending Assignments view is only for Sales Directors / Super Admins (PDF p2).
-  const isAdmin = ["superadmin", "vd", "manager"].includes(role);
   const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
-  const [views, setViews]       = useState(() => INITIAL_VIEWS.filter(v => v.id !== "pending" || isAdmin));
-  const [activeView, setActiveView] = useState("my");
+  const [views, setViews]       = useState(() => [...getSystemViews(role), ...CUSTOM_VIEWS]);
+  const [activeView, setActiveView] = useState(() => getSystemViews(role)[0]?.id || "my");
   const [mode, setMode]         = useState("list");   // list | add
   const [showImport, setShowImport] = useState(false);
   const [showBulk, setShowBulk] = useState(false);    // Send Bulk Email modal
@@ -857,7 +892,8 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
     setEditView(null);
   };
   const deleteView = () => {
-    if (views.length <= 1) return;
+    const current = views.find(v => v.id === activeView);
+    if (!current || current.system || views.length <= 1) return;
     setViews(prev => prev.filter(v => v.id !== activeView));
     setActiveView(views[0].id === activeView ? views[1].id : views[0].id);
   };
@@ -894,6 +930,7 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>Contact List</h1>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setShowImport(true)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>⬇ Import</button>
+          <button onClick={() => setShowBulk(true)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.indigo}`, background: "#fff", color: C.indigo, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>✉ Bulk Email</button>
           <button onClick={() => setMode("add")} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add Contact</button>
         </div>
       </div>

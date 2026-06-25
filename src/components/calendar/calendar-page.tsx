@@ -29,6 +29,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [taskModal,   setTaskModal]   = useState(null);    // { mode, data }
   const [apptModal,   setApptModal]   = useState(null);    // { mode, data }
   const [outcomeAppt, setOutcomeAppt] = useState(null);
+  const [slotMenu,    setSlotMenu]    = useState(null);    // { date, time, x, y }
 
   const myGP = "Anna Klein"; const myVD = "Thomas Müller";
 
@@ -364,7 +365,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                     const ds = fmtDateObj(d);
                     const slotActs = (byDate[ds]||[]).filter(a=>a.time&&parseInt(a.time)===h);
                     return (
-                      <div key={di} onClick={()=>setSelectedDate(ds)}
+                      <div key={di} onClick={(e)=>{ setSelectedDate(ds); if(slotActs.length===0){ const rect=e.currentTarget.getBoundingClientRect(); setSlotMenu({ date:ds, time:`${String(h).padStart(2,"0")}:00`, x:rect.left, y:rect.bottom }); } }}
                         style={{ borderBottom:`1px solid ${C.border}`,borderLeft:`1px solid ${C.border}`,
                           padding:"2px",cursor:"pointer",background:ds===selectedDate?"#EFF6FF20":"#fff",
                           position:"relative",minHeight:52 }}>
@@ -533,7 +534,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 const prioCol = (PRIORITY_META[a.priority]||PRIORITY_META.normal).color;
                 return (
                   <div key={a.id} onClick={()=>openActivity(a)}
-                    style={{ cursor:"pointer",display:"flex",gap:10,padding:"10px 12px",borderRadius:10,
+                    style={{ cursor:"pointer",display:"flex",gap:8,padding:"6px 10px",borderRadius:10,
                       background:isDone?"#F8FAFC":"#fff",border:`1px solid ${C.border}`,borderLeft:`4px solid ${isDone?C.green:at.color}`,minWidth:0,opacity:isDone?0.75:1 }}>
                     <div style={{ fontSize:16,flexShrink:0 }}>{isDone?"✓":at.icon}</div>
                     <div style={{ flex:1,minWidth:0 }}>
@@ -574,6 +575,28 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           </div>
         </div>
       </div>
+
+      {/* ── Slot quick-action menu (click empty time slot) ────────────────── */}
+      {slotMenu && (<>
+        <div onClick={()=>setSlotMenu(null)} style={{ position:"fixed",inset:0,zIndex:300 }}/>
+        <div style={{ position:"fixed",left:slotMenu.x,top:slotMenu.y,zIndex:301,background:"#fff",borderRadius:12,
+          boxShadow:"0 8px 32px rgba(0,0,0,0.16)",border:`1px solid ${C.border}`,minWidth:230,padding:"6px 0" }}>
+          <div style={{ padding:"8px 16px 4px",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",borderBottom:`1px solid ${C.border}`,marginBottom:4 }}>
+            {slotMenu.date} · {slotMenu.time}
+          </div>
+          {[
+            ["✅ Create Task", ()=>{ setSlotMenu(null); setTaskModal({ mode:"create", data:{ date:slotMenu.date, time:slotMenu.time } }); }],
+            ["📅 Schedule Appointment", ()=>{ setSlotMenu(null); setApptModal({ mode:"create", data:{ date:slotMenu.date, time:slotMenu.time } }); }],
+          ].map(([label,fn])=>(
+            <div key={label} onClick={fn}
+              style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",fontSize:13,fontWeight:600,color:C.text }}
+              onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              {label}
+            </div>
+          ))}
+        </div>
+      </>)}
 
       {/* ── Activity detail modal ──────────────────────────────────────────── */}
       {selected && (()=>{

@@ -429,6 +429,101 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </Card>
         </div>
 
+        {/* ── SA: Pending Assignments + Campaign/Lead Source Stats ─────────── */}
+        {isSA && (() => {
+          const unassigned = leads.filter(l => !l.assignedGP && !l.assignedVD);
+          // Campaign stats
+          const campaignMap: Record<string, number> = {};
+          const sourceMap: Record<string, number> = {};
+          leads.forEach(l => {
+            if (l.campaign) campaignMap[l.campaign] = (campaignMap[l.campaign] || 0) + 1;
+            if (l.source)   sourceMap[l.source]     = (sourceMap[l.source]     || 0) + 1;
+          });
+          const campaigns = Object.entries(campaignMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+          const sources   = Object.entries(sourceMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+          const maxCamp   = Math.max(...campaigns.map(([,v]) => v), 1);
+          const maxSrc    = Math.max(...sources.map(([,v]) => v), 1);
+          const BAR_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
+
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
+
+              {/* Pending Assignments */}
+              <Card>
+                <CardHeader
+                  title="Pending Assignments"
+                  action={<LinkBtn label="Assign →" onClick={() => navigateTo("Leads")} />}
+                />
+                <div style={{ padding: "4px 16px 12px" }}>
+                  {unassigned.length === 0 ? (
+                    <div style={{ padding: "16px 0", textAlign: "center", color: C.green, fontSize: 13, fontWeight: 600 }}>
+                      ✓ All contacts are assigned
+                    </div>
+                  ) : unassigned.slice(0, 6).map((lead, i) => (
+                    <div key={lead.id} style={{
+                      display: "grid", gridTemplateColumns: "30px 1fr auto auto",
+                      alignItems: "center", gap: 10, padding: "7px 0",
+                      borderBottom: i < Math.min(unassigned.length, 6) - 1 ? `1px solid ${C.border}` : "none",
+                    }}>
+                      <Avatar name={lead.name} size={30} color={C.indigo} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name}</div>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>{lead.campaign || "—"}</div>
+                      </div>
+                      <span style={{ fontSize: 11, color: C.red, fontWeight: 600, whiteSpace: "nowrap" }}>⚠ Unassigned</span>
+                      <button onClick={() => navigateTo("Leads")} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: C.primary, color: "#fff", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Assign</button>
+                    </div>
+                  ))}
+                  {unassigned.length > 6 && (
+                    <div style={{ paddingTop: 8, fontSize: 12, color: C.muted, textAlign: "center" }}>+{unassigned.length - 6} more</div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Campaign / Lead Source Statistics */}
+              <Card>
+                <CardHeader title="Campaign / Lead Source Statistics" action={<LinkBtn label="Reports →" onClick={() => navigateTo("Reports")} />} />
+                <div style={{ padding: "12px 20px 12px" }}>
+                  {/* Campaigns */}
+                  {campaigns.length > 0 && (<>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>By Campaign</div>
+                    {campaigns.map(([name, count], i) => (
+                      <div key={name} style={{ marginBottom: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                          <span style={{ color: C.text, fontWeight: 500 }}>{name}</span>
+                          <span style={{ color: C.slate, fontWeight: 600 }}>{count}</span>
+                        </div>
+                        <div style={{ height: 6, borderRadius: 4, background: C.border }}>
+                          <div style={{ height: "100%", width: `${(count / maxCamp) * 100}%`, borderRadius: 4, background: BAR_COLORS[i % BAR_COLORS.length] }} />
+                        </div>
+                      </div>
+                    ))}
+                  </>)}
+                  {/* Sources */}
+                  {sources.length > 0 && (<>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "14px 0 8px" }}>By Lead Source</div>
+                    {sources.map(([name, count], i) => (
+                      <div key={name} style={{ marginBottom: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                          <span style={{ color: C.text, fontWeight: 500 }}>{name}</span>
+                          <span style={{ color: C.slate, fontWeight: 600 }}>{count}</span>
+                        </div>
+                        <div style={{ height: 6, borderRadius: 4, background: C.border }}>
+                          <div style={{ height: "100%", width: `${(count / maxSrc) * 100}%`, borderRadius: 4, background: BAR_COLORS[i % BAR_COLORS.length] }} />
+                        </div>
+                      </div>
+                    ))}
+                  </>)}
+                  {campaigns.length === 0 && sources.length === 0 && (
+                    <div style={{ textAlign: "center", color: C.muted, fontSize: 13, padding: "16px 0" }}>No data yet.</div>
+                  )}
+                </div>
+              </Card>
+
+            </div>
+          );
+        })()}
+
         {/* ── Recent Activity — full width below the top row ────────────────── */}
         <Card>
           <CardHeader
