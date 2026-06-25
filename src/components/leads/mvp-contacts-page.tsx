@@ -27,13 +27,23 @@ const LIFECYCLE = {
 const LIFECYCLE_OPTIONS = ["Lead", "Opportunity", "Customer", "N/A"];
 const STATUS_OPTIONS     = ["New", "To Do", "Won", "N/A"];
 
+// deterministic DOB from id so the column has plausible values
+const synthDob = (id) => {
+  let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) & 0xffff;
+  const y = 1960 + (h % 45), m = 1 + (h % 12), d = 1 + (h % 28);
+  return `${y}/${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}`;
+};
+
 const toContact = (l) => {
   const [first, ...rest] = l.name.split(" ");
+  const last = rest.join(" ");
   const lc = LIFECYCLE[l.status] || LIFECYCLE.no_interest;
   return {
-    id: l.id, first, last: rest.join(" "), name: l.name,
+    id: l.id, first, last, firstName: first, lastName: last, name: l.name,
     lifecycle: lc.stage, stageStatus: lc.status, tone: lc.tone,
-    phone: l.phone, email: l.email,
+    phone: l.phone, email: l.email, primaryEmail: l.email,
+    campaign: l.campaign || "—",
+    dob: synthDob(l.id),
     website: l.website || "—",
     assignee: l.assignedGP || "Unassigned",
     create: l.created || "—",
@@ -49,20 +59,26 @@ const toContact = (l) => {
 // filter: "text" | "lifecycle" | "status" | null   ·   locked columns are always
 // present in every view and cannot be removed in the Edit View dialog.
 const COLUMNS = {
-  name:          { label: "Name",                locked: true,  filter: "text",      group: "Main Information" },
+  firstName:     { label: "First Name",          locked: true,  filter: "text",      group: "Main Information" },
+  lastName:      { label: "Last Name",           locked: true,  filter: "text",      group: "Main Information" },
+  primaryEmail:  { label: "Primary Email",       locked: false, filter: "text",      group: "Main Information" },
+  campaign:      { label: "Campaign",            locked: false, filter: "text",      group: "Main Information" },
+  dob:           { label: "Date of Birth",       locked: false, filter: "date",      group: "Main Information" },
+  name:          { label: "Name",                locked: false, filter: "text",      group: "Main Information" },
   email:         { label: "Email",               locked: false, filter: "text",      group: "Main Information" },
-  phone:         { label: "Phone Number",        locked: true,  filter: "text",      group: "Main Information" },
+  phone:         { label: "Phone Number",        locked: false, filter: "text",      group: "Main Information" },
   website:       { label: "Website",             locked: false, filter: null,        group: "Main Information" },
   assignee:      { label: "Assignee",            locked: false, filter: null,        group: "Main Information" },
-  lifecycle:     { label: "Lifecycle Stage",     locked: true,  filter: "lifecycle", group: "Main Information" },
+  lifecycle:     { label: "Lifecycle Stage",     locked: false, filter: "lifecycle", group: "Main Information" },
   stageStatus:   { label: "Stage Status",        locked: false, filter: "status",    group: "Main Information" },
-  create:        { label: "Create Date",         locked: true,  filter: null,        group: "Main Information" },
+  create:        { label: "Create Date",         locked: false, filter: null,        group: "Main Information" },
   registration:  { label: "Registration Number", locked: false, filter: null,        group: "Main Information" },
   linkedin:      { label: "LinkedIn",            locked: false, filter: null,        group: "Main Information" },
   accountSource: { label: "Account Source",      locked: false, filter: null,        group: "Main Information" },
 };
 const COLUMN_KEYS = Object.keys(COLUMNS);
-const DEFAULT_COLS = ["name", "lifecycle", "stageStatus", "phone", "email"];
+const DEFAULT_COLS = ["firstName", "lastName", "primaryEmail", "campaign", "dob"];
+const LINK_COL = "firstName";   // column that links to the contact detail
 
 const VIEW_FILTERS = {
   all:     () => true,
@@ -91,7 +107,7 @@ const StagePill = ({ label, tone }) => {
 };
 
 const renderCell = (key, c) => {
-  if (key === "name")        return <span style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: "underline", textUnderlineOffset: 2 }}>{c.name}</span>;
+  if (key === "name" || key === LINK_COL) return <span style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: "underline", textUnderlineOffset: 2 }}>{c[key]}</span>;
   if (key === "lifecycle")   return <span style={{ fontSize: 13, color: c.lifecycle === "N/A" ? C.muted : C.text }}>{c.lifecycle}</span>;
   if (key === "stageStatus") return <StagePill label={c.stageStatus} tone={c.tone} />;
   return <span style={{ fontSize: 13, color: C.slate }}>{c[key] ?? "—"}</span>;
@@ -444,7 +460,7 @@ const ImportContactsModal = ({ onClose }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // ADD CONTACT (full tabbed page)
 // ─────────────────────────────────────────────────────────────────────────────
-const ADD_TABS = ["Basic", "Personal", "Address", "Business", "Financial", "Reason"];
+const ADD_TABS = ["Basic", "Personal", "Address", "Business", "Financial"];
 
 const Field = ({ label, children }) => (
   <div style={{ marginBottom: 18 }}>
@@ -565,17 +581,6 @@ const AddContactPage = ({ onCancel, onSave }) => {
           </Grid>
         </>)}
 
-        {tab === "Reason" && (<>
-          <Grid>
-            <Field label="Lead Source"><Select value={f.source} onChange={set("source")}><option value="">Select Lead Source</option><option>Meta Ads</option><option>Landing Page</option><option>Referral</option><option>Event</option></Select></Field>
-            <Field label="Campaign"><Select value={f.campaign} onChange={set("campaign")}><option value="">Select Campaign</option><option>General</option><option>Q1 Finanz</option><option>Gold</option></Select></Field>
-          </Grid>
-          <Field label="Product Interest"><TextInput value={f.product} onChange={set("product")} placeholder="Product interest" /></Field>
-          <Field label="Notes">
-            <textarea value={f.notes} onChange={set("notes")} placeholder="Any details about this contact…"
-              style={{ ...fieldStyle, padding: "11px 13px", minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
-          </Field>
-        </>)}
       </div>
 
       {/* Footer */}
@@ -646,12 +651,20 @@ const EmailPreviewModal = ({ onClose }) => (
 );
 
 // Send Bulk Email — composer + recipients sub-view.
+const BULK_STATUS_COLOR = { Sent: C.green, Scheduled: C.blue, Cancelled: C.muted };
 const SendBulkEmailModal = ({ contacts, onClose }) => {
-  const [view, setView]       = useState("main");   // main | recipients
+  const [view, setView]       = useState("main");   // main | recipients | history
   const [recipients, setRecipients] = useState(contacts);
   const [schedule, setSchedule] = useState(true);
   const [tpl, setTpl]         = useState("Email Template #1");
   const [preview, setPreview] = useState(false);
+  const [history, setHistory] = useState([
+    { id: "h1", template: "Welcome Email",   recipients: 50, status: "Sent",      date: "10.06.2026 - 09:00" },
+    { id: "h2", template: "Q1 Finanz Update", recipients: 24, status: "Scheduled", date: "28.06.2026 - 08:00" },
+    { id: "h3", template: "Gold Package",     recipients: 12, status: "Scheduled", date: "30.06.2026 - 10:30" },
+    { id: "h4", template: "Follow-up",        recipients: 18, status: "Sent",      date: "02.06.2026 - 14:20" },
+  ]);
+  const cancelScheduled = (id) => setHistory(prev => prev.map(h => h.id === id ? { ...h, status: "Cancelled" } : h));
   const gdprCount = recipients.filter(r => r.gdpr).length;
   const removeRcpt = (id) => setRecipients(prev => prev.filter(r => r.id !== id));
 
@@ -692,11 +705,42 @@ const SendBulkEmailModal = ({ contacts, onClose }) => {
     );
   }
 
+  if (view === "history") {
+    return (
+      <Shell>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={() => setView("main")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: C.slate }}>←</button>
+            <span style={{ fontSize: 19, fontWeight: 700, color: C.navy }}>Bulk Email History</span>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
+        <div>
+          {history.map(h => (
+            <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 2px", borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{h.template}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{h.recipients} recipients · {h.date}</div>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: BULK_STATUS_COLOR[h.status], background: BULK_STATUS_COLOR[h.status] + "18", padding: "4px 11px", borderRadius: 12 }}>{h.status}</span>
+              {h.status === "Scheduled" && (
+                <button onClick={() => cancelScheduled(h.id)} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.red}40`, background: "#fff", color: C.red, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              )}
+            </div>
+          ))}
+        </div>
+      </Shell>
+    );
+  }
+
   return (
     <Shell>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
         <span style={{ fontSize: 19, fontWeight: 700, color: C.navy }}>Send Bulk Email</span>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <button onClick={() => setView("history")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, color: C.primaryDark }}>History</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
       </div>
 
       {/* selection banner */}
@@ -751,9 +795,11 @@ const INITIAL_VIEWS = [
   { id: "cv2",     name: "Custom View 2",       filter: "custom2", columns: ["name", "lifecycle", "accountSource", "create"] },
 ];
 
-export const MVPContactsPage = ({ navigateTo }) => {
+export const MVPContactsPage = ({ navigateTo, role }) => {
+  // Pending Assignments view is only for Sales Directors / Super Admins (PDF p2).
+  const isAdmin = ["superadmin", "vd", "manager"].includes(role);
   const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
-  const [views, setViews]       = useState(INITIAL_VIEWS);
+  const [views, setViews]       = useState(() => INITIAL_VIEWS.filter(v => v.id !== "pending" || isAdmin));
   const [activeView, setActiveView] = useState("my");
   const [mode, setMode]         = useState("list");   // list | add
   const [showImport, setShowImport] = useState(false);
@@ -761,13 +807,10 @@ export const MVPContactsPage = ({ navigateTo }) => {
   const [editView, setEditView] = useState(null);     // view being edited / added
   const [selected, setSelected] = useState(() => new Set());
 
-  // filters (live)
-  const [fName, setFName] = useState("");
-  const [fLifecycle, setFLifecycle] = useState("");
-  const [fStatus, setFStatus] = useState("");
-  const [fPhone, setFPhone] = useState("");
-  const [fEmail, setFEmail] = useState("");
-  const resetFilters = () => { setFName(""); setFLifecycle(""); setFStatus(""); setFPhone(""); setFEmail(""); };
+  // filters (live) — generic map keyed by column
+  const [filters, setFilters] = useState({});
+  const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
+  const resetFilters = () => setFilters({});
 
   const view = views.find(v => v.id === activeView) || views[0];
   const cols = view.columns;
@@ -778,14 +821,15 @@ export const MVPContactsPage = ({ navigateTo }) => {
 
   const rows = useMemo(() => {
     const base = contacts.filter(VIEW_FILTERS[view.filter] || (() => true));
-    return base.filter(c =>
-      (!fName      || c.name.toLowerCase().includes(fName.toLowerCase())) &&
-      (!fLifecycle || c.lifecycle === fLifecycle) &&
-      (!fStatus    || c.stageStatus === fStatus) &&
-      (!fPhone     || (c.phone || "").replace(/\s/g, "").includes(fPhone.replace(/\s/g, ""))) &&
-      (!fEmail     || (c.email || "").toLowerCase().includes(fEmail.toLowerCase()))
-    );
-  }, [contacts, view, fName, fLifecycle, fStatus, fPhone, fEmail]);
+    return base.filter(c => Object.entries(filters).every(([k, val]) => {
+      if (!val) return true;
+      const ft = COLUMNS[k]?.filter;
+      const cell = (c[k] ?? "").toString();
+      if (ft === "lifecycle" || ft === "status") return c[k] === val;
+      if (ft === "date") return cell.includes(val.replace(/-/g, "/"));
+      return cell.toLowerCase().replace(/\s/g, "").includes(val.toString().toLowerCase().replace(/\s/g, ""));
+    }));
+  }, [contacts, view, filters]);
 
   const allChecked = rows.length > 0 && rows.every(r => selected.has(r.id));
   const toggleAll = () => setSelected(prev => {
@@ -797,12 +841,13 @@ export const MVPContactsPage = ({ navigateTo }) => {
 
   const addContact = (f) => {
     setContacts(prev => [{
-      id: `NEW-${Date.now()}`, first: f.first, last: f.last, name: `${f.first} ${f.last}`.trim(),
+      id: `NEW-${Date.now()}`, first: f.first, last: f.last, firstName: f.first, lastName: f.last, name: `${f.first} ${f.last}`.trim(),
       lifecycle: f.lifecycle, stageStatus: f.stageStatus,
       tone: f.stageStatus === "Won" || f.stageStatus === "New" ? C.green : f.stageStatus === "N/A" ? null : C.slate,
-      phone: f.phone || "—", email: f.email || "—",
+      phone: f.phone || "—", email: f.email || "—", primaryEmail: f.email || "—",
+      campaign: f.campaign || "—", dob: f.dob || "—",
       website: "—", assignee: "Unassigned", create: "Today",
-      registration: "—", linkedin: "—", accountSource: f.source || "—", assigned: false,
+      registration: "—", linkedin: "—", accountSource: f.source || "—", assigned: false, gdpr: false,
     }, ...prev]);
   };
 
@@ -822,21 +867,23 @@ export const MVPContactsPage = ({ navigateTo }) => {
     return <AddContactPage onCancel={() => setMode("list")} onSave={addContact} />;
   }
 
+  const PLACEHOLDER = { firstName: "First name", lastName: "Last name", primaryEmail: "Email", campaign: "Campaign", phone: "Phone number", name: "Contact", email: "Email" };
   const filterCell = (key) => {
     const ft = COLUMNS[key].filter;
-    if (ft === "text" && key === "name")  return <input value={fName} onChange={e => setFName(e.target.value)} placeholder="Contact" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />;
-    if (ft === "text" && key === "phone") return <input value={fPhone} onChange={e => setFPhone(e.target.value)} placeholder="Phone number" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />;
-    if (ft === "text" && key === "email") return <input value={fEmail} onChange={e => setFEmail(e.target.value)} placeholder="Email" style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12 }} />;
+    const val = filters[key] || "";
+    const base = { ...fieldStyle, padding: "7px 10px", fontSize: 12 };
     if (ft === "lifecycle") return (
-      <select value={fLifecycle} onChange={e => setFLifecycle(e.target.value)} style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12, color: fLifecycle ? C.text : C.muted }}>
+      <select value={val} onChange={e => setF(key, e.target.value)} style={{ ...base, color: val ? C.text : C.muted }}>
         <option value="">Select lifecycle...</option>{LIFECYCLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     );
     if (ft === "status") return (
-      <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={{ ...fieldStyle, padding: "7px 10px", fontSize: 12, color: fStatus ? C.text : C.muted }}>
+      <select value={val} onChange={e => setF(key, e.target.value)} style={{ ...base, color: val ? C.text : C.muted }}>
         <option value="">Select status</option>{STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     );
+    if (ft === "date") return <input type="date" value={val} onChange={e => setF(key, e.target.value)} style={{ ...base, color: val ? C.text : C.muted }} />;
+    if (ft === "text") return <input value={val} onChange={e => setF(key, e.target.value)} placeholder={PLACEHOLDER[key] || COLUMNS[key].label} style={base} />;
     return null;
   };
 
@@ -904,12 +951,14 @@ export const MVPContactsPage = ({ navigateTo }) => {
                   <td style={{ padding: "14px 16px" }}>
                     <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />
                   </td>
-                  {cols.map(k => (
-                    <td key={k} style={{ padding: "14px 16px", cursor: k === "name" ? "pointer" : "default" }}
-                      onClick={k === "name" ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }) : undefined}>
+                  {cols.map(k => {
+                    const isLink = k === "name" || k === LINK_COL;
+                    return (
+                    <td key={k} style={{ padding: "14px 16px", cursor: isLink ? "pointer" : "default" }}
+                      onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }) : undefined}>
                       {renderCell(k, c)}
-                    </td>
-                  ))}
+                    </td>);
+                  })}
                 </tr>
               ))}
             </tbody>
