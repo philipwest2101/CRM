@@ -731,15 +731,63 @@ const InfoTip = ({ text }) => {
   );
 };
 
+// Shared input style for edit mode
+const editInputStyle = {
+  width: "100%", padding: "7px 10px", borderRadius: 7,
+  border: `1.5px solid #CBD5E1`, fontSize: 13, fontFamily: "inherit",
+  color: "#1E293B", boxSizing: "border-box" as const, outline: "none", background: "#fff",
+};
+const editSelectStyle = { ...editInputStyle, appearance: "none" as const };
+
+// EditField — shows a plain text value in view mode, an input in edit mode
+const EditField = ({ label, value, onChange, editing, type = "text", children = null }: any) => (
+  <div style={{ marginBottom: 22 }}>
+    <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{label}</div>
+    {editing
+      ? (children || <input type={type} value={value ?? ""} onChange={e => onChange(e.target.value)}
+          style={{ ...editInputStyle, borderColor: "#94A3B8" }} />)
+      : <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{value || "—"}</div>}
+  </div>
+);
+
 const InformationTab = ({ c }) => {
   const t = useT();
   const [subIdx, setSubIdx] = useState(0);
   const SUBS = [t("basicTab"), t("personalTab"), t("addressTab"), t("businessTab"), t("financialTab")];
-  const sub = SUBS[subIdx];
   const [first, ...rest] = c.name.replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ");
+
+  // Editable data — seeded from contact prop
+  const initial = {
+    firstName: first, lastName: rest.join(" ") || "",
+    email: c.email || "", phone: c.phone || "",
+    lifecycle: c.lifecycle || "Lead", stageStatus: c.stageStatus || "New",
+    assignee: c.assignee || "", product: "Product #1", productProvider: "Product Provider #1",
+    source: c.source || "", campaign: c.campaign || "",
+    gdprConsent: true, gdprDate: "01.01.2026", newsletter: false, newsletterDate: "",
+    salutation: "Mr.", dob: c.dob || "", gender: "Male", nationality: "German", language: "German",
+    street: "Musterstraße", houseNo: "12", zip: "10115", city: "Berlin", country: "Germany",
+    company: "Example GmbH", employment: "Employed", position: "Manager",
+    companySize: "51–200", decisionRole: "Decision Maker", industry: "Finance",
+    income: "€ 80,000", netWorth: "€ 250,000", risk: "Balanced", horizon: "Medium (3–7y)",
+  };
+  const [saved, setSaved]   = useState(initial);
+  const [draft, setDraft]   = useState(initial);
+  const [editing, setEditing] = useState(false);
+  const [discardModal, setDiscardModal] = useState(false);
+
+  const set = (k) => (v) => setDraft(p => ({ ...p, [k]: v }));
+
+  const handleEdit   = () => { setDraft(saved); setEditing(true); };
+  const handleUpdate = () => { setSaved(draft); setEditing(false); };
+  const handleCancel = () => setDiscardModal(true);
+  const handleDiscard = () => { setDraft(saved); setEditing(false); setDiscardModal(false); };
+
   const G2 = ({ children }) => <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 60px" }}>{children}</div>;
+
   return (
+    <>
     <Card style={{ padding: "18px 22px" }}>
+      {/* Sub-tab bar + action buttons */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
         <div style={{ display: "flex", gap: 6 }}>
           {SUBS.map((s, i) => (
@@ -750,70 +798,187 @@ const InformationTab = ({ c }) => {
             }}>{s}</button>
           ))}
         </div>
-        <button style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.primaryDark, fontSize: 13, fontWeight: 700 }}>✎ Edit</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {editing ? (<>
+            <button onClick={handleCancel}
+              style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Cancel
+            </button>
+            <button onClick={handleUpdate}
+              style={{ padding: "7px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              Update
+            </button>
+          </>) : (
+            <button onClick={handleEdit}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.primaryDark, fontSize: 13, fontWeight: 700 }}>
+              ✎ Edit
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Basic */}
       {subIdx === 0 && (
         <G2>
-          <InfoField label={t("firstName")} value={first} />
-          <InfoField label={t("lastName")} value={rest.join(" ") || "—"} />
-          <InfoField label={t("email")} value={c.email} />
-          <InfoField label={t("phone")} value={c.phone} />
-          <InfoField label={<>{t("lifecycleStage")} <InfoTip text={t("tooltip_lifecycle")} /></>} value={c.lifecycle || "Lead"} />
-          <InfoField label={<>{t("stageStatus")} <InfoTip text={t("tooltip_status")} /></>} value={c.stageStatus || "New"} />
-          <InfoField label={t("assignee")} value={c.assignee || "—"} />
+          <EditField label={t("firstName")} value={draft.firstName} onChange={set("firstName")} editing={editing} />
+          <EditField label={t("lastName")} value={draft.lastName} onChange={set("lastName")} editing={editing} />
+          <EditField label={t("email")} value={draft.email} onChange={set("email")} editing={editing} type="email" />
+          <EditField label={t("phone")} value={draft.phone} onChange={set("phone")} editing={editing} />
+          <EditField label={<>{t("lifecycleStage")} <InfoTip text={t("tooltip_lifecycle")} /></>} value={draft.lifecycle} editing={editing} onChange={set("lifecycle")}>
+            {editing && <select value={draft.lifecycle} onChange={e => set("lifecycle")(e.target.value)} style={editSelectStyle}>
+              {["Lead","Opportunity","Customer","N/A"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <EditField label={<>{t("stageStatus")} <InfoTip text={t("tooltip_status")} /></>} value={draft.stageStatus} editing={editing} onChange={set("stageStatus")}>
+            {editing && <select value={draft.stageStatus} onChange={e => set("stageStatus")(e.target.value)} style={editSelectStyle}>
+              {["New","To Do","Won","N/A"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <EditField label={t("assignee")} value={draft.assignee} onChange={set("assignee")} editing={editing} />
           <div />
-          <InfoField label={t("product")} value="Product #1" />
-          <InfoField label={t("productProvider")} value="Product Provider #1" />
-          <InfoField label={t("leadSource")} value={c.source || "—"} />
-          <InfoField label={t("campaignAssignment")} value={c.campaign || "—"} />
-          <InfoField label={t("communicationConsent")} node={<div style={{ fontSize: 14, fontWeight: 600, color: C.green }}>✓ 01.01.2026</div>} />
-          <InfoField label={t("newsletterSubscription")} node={<span style={{ fontSize: 12, fontWeight: 600, color: C.slate, background: C.light, padding: "4px 10px", borderRadius: 12 }}>✕ No</span>} />
+          <EditField label={t("product")} value={draft.product} onChange={set("product")} editing={editing} />
+          <EditField label={t("productProvider")} value={draft.productProvider} onChange={set("productProvider")} editing={editing} />
+          <EditField label={t("leadSource")} value={draft.source} onChange={set("source")} editing={editing} />
+          <EditField label={t("campaignAssignment")} value={draft.campaign} onChange={set("campaign")} editing={editing} />
+          {/* GDPR */}
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("communicationConsent")}</div>
+            {editing ? (<>
+              <div style={{ display: "flex", gap: 20, marginBottom: draft.gdprConsent ? 8 : 0 }}>
+                {[["Yes", true], ["No", false]].map(([l, v]) => (
+                  <label key={l} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13 }}>
+                    <input type="radio" checked={draft.gdprConsent === v} onChange={() => setDraft(p => ({ ...p, gdprConsent: v, gdprDate: v ? p.gdprDate : "" }))} style={{ accentColor: C.primary }} /> {l}
+                  </label>
+                ))}
+              </div>
+              {draft.gdprConsent && <input type="date" value={draft.gdprDate} onChange={e => set("gdprDate")(e.target.value)} style={{ ...editInputStyle, borderColor: "#94A3B8" }} />}
+            </>) : (
+              draft.gdprConsent
+                ? <div style={{ fontSize: 14, fontWeight: 600, color: C.green }}>✓ {draft.gdprDate || "—"}</div>
+                : <div style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>✕ No consent</div>
+            )}
+          </div>
+          {/* Newsletter */}
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("newsletterSubscription")}</div>
+            {editing ? (<>
+              <div style={{ display: "flex", gap: 20, marginBottom: draft.newsletter ? 8 : 0 }}>
+                {[["Subscribed", true], ["Not subscribed", false]].map(([l, v]) => (
+                  <label key={l} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13 }}>
+                    <input type="radio" checked={draft.newsletter === v} onChange={() => setDraft(p => ({ ...p, newsletter: v, newsletterDate: v ? p.newsletterDate : "" }))} style={{ accentColor: C.primary }} /> {l}
+                  </label>
+                ))}
+              </div>
+              {draft.newsletter && <input type="date" value={draft.newsletterDate} onChange={e => set("newsletterDate")(e.target.value)} style={{ ...editInputStyle, borderColor: "#94A3B8" }} />}
+            </>) : (
+              draft.newsletter
+                ? <div style={{ fontSize: 14, fontWeight: 600, color: C.green }}>✓ {draft.newsletterDate || "—"}</div>
+                : <span style={{ fontSize: 12, fontWeight: 600, color: C.slate, background: C.light, padding: "4px 10px", borderRadius: 12 }}>✕ No</span>
+            )}
+          </div>
         </G2>
       )}
 
+      {/* Personal */}
       {subIdx === 1 && (
         <G2>
-          <InfoField label="Salutation" value="Mr." />
-          <InfoField label="Date of Birth" value={c.dob || "—"} />
-          <InfoField label="Gender" value="Male" />
-          <InfoField label="Nationality" value="German" />
-          <InfoField label="Preferred Language" value="German" />
+          <EditField label="Salutation" value={draft.salutation} editing={editing} onChange={set("salutation")}>
+            {editing && <select value={draft.salutation} onChange={e => set("salutation")(e.target.value)} style={editSelectStyle}>
+              {["Mr.","Ms.","Mrs.","Dr."].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <EditField label="Date of Birth" value={draft.dob} editing={editing} onChange={set("dob")} type="date" />
+          <EditField label="Gender" value={draft.gender} editing={editing} onChange={set("gender")}>
+            {editing && <select value={draft.gender} onChange={e => set("gender")(e.target.value)} style={editSelectStyle}>
+              {["Male","Female","Diverse","N/A"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <EditField label="Nationality" value={draft.nationality} editing={editing} onChange={set("nationality")} />
+          <EditField label="Preferred Language" value={draft.language} editing={editing} onChange={set("language")}>
+            {editing && <select value={draft.language} onChange={e => set("language")(e.target.value)} style={editSelectStyle}>
+              {["German","English","French","Czech"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
           <div />
         </G2>
       )}
 
+      {/* Address */}
       {subIdx === 2 && (
         <G2>
-          <InfoField label="Street" value="Musterstraße" />
-          <InfoField label="House No." value="12" />
-          <InfoField label="ZIP" value="10115" />
-          <InfoField label="City" value="Berlin" />
-          <InfoField label="Country" value="Germany" />
+          <EditField label="Street" value={draft.street} editing={editing} onChange={set("street")} />
+          <EditField label="House No." value={draft.houseNo} editing={editing} onChange={set("houseNo")} />
+          <EditField label="ZIP" value={draft.zip} editing={editing} onChange={set("zip")} />
+          <EditField label="City" value={draft.city} editing={editing} onChange={set("city")} />
+          <EditField label="Country" value={draft.country} editing={editing} onChange={set("country")} />
           <div />
         </G2>
       )}
 
+      {/* Business */}
       {subIdx === 3 && (
         <G2>
-          <InfoField label="Company" value="Example GmbH" />
-          <InfoField label="Employment Type" value="Employed" />
-          <InfoField label="Position" value="Manager" />
-          <InfoField label="Company Size" value="51–200" />
-          <InfoField label="Decision Making Role" value="Decision Maker" />
-          <InfoField label="Industry" value="Finance" />
+          <EditField label="Company" value={draft.company} editing={editing} onChange={set("company")} />
+          <EditField label="Employment Type" value={draft.employment} editing={editing} onChange={set("employment")}>
+            {editing && <select value={draft.employment} onChange={e => set("employment")(e.target.value)} style={editSelectStyle}>
+              {["Employed","Self-employed","Business Owner","Retired"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <EditField label="Position" value={draft.position} editing={editing} onChange={set("position")} />
+          <EditField label="Company Size" value={draft.companySize} editing={editing} onChange={set("companySize")}>
+            {editing && <select value={draft.companySize} onChange={e => set("companySize")(e.target.value)} style={editSelectStyle}>
+              {["1–10","11–50","51–200","200+"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <EditField label="Decision Making Role" value={draft.decisionRole} editing={editing} onChange={set("decisionRole")}>
+            {editing && <select value={draft.decisionRole} onChange={e => set("decisionRole")(e.target.value)} style={editSelectStyle}>
+              {["None","Decision Maker","Influencer","End User"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <EditField label="Industry" value={draft.industry} editing={editing} onChange={set("industry")} />
         </G2>
       )}
 
+      {/* Financial */}
       {subIdx === 4 && (
         <G2>
-          <InfoField label="Annual Income" value="€ 80,000" />
-          <InfoField label="Net Worth" value="€ 250,000" />
-          <InfoField label="Risk Appetite" value="Balanced" />
-          <InfoField label="Investment Horizon" value="Medium (3–7y)" />
+          <EditField label="Annual Income" value={draft.income} editing={editing} onChange={set("income")} />
+          <EditField label="Net Worth" value={draft.netWorth} editing={editing} onChange={set("netWorth")} />
+          <EditField label="Risk Appetite" value={draft.risk} editing={editing} onChange={set("risk")}>
+            {editing && <select value={draft.risk} onChange={e => set("risk")(e.target.value)} style={editSelectStyle}>
+              {["Conservative","Balanced","Growth","Aggressive"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <EditField label="Investment Horizon" value={draft.horizon} editing={editing} onChange={set("horizon")}>
+            {editing && <select value={draft.horizon} onChange={e => set("horizon")(e.target.value)} style={editSelectStyle}>
+              {["Short (< 3y)","Medium (3–7y)","Long (7y+)"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
         </G2>
       )}
     </Card>
+
+    {/* Discard confirmation modal */}
+    {discardModal && (<>
+      <div onClick={() => setDiscardModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 800 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 400, background: "#fff", borderRadius: 16, zIndex: 900, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "28px 28px 24px", fontFamily: "inherit" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.navy, marginBottom: 10 }}>Discard changes?</div>
+        <div style={{ fontSize: 14, color: C.slate, lineHeight: 1.6, marginBottom: 24 }}>
+          You have unsaved changes. If you cancel now, all edits on this tab will be lost.
+        </div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={() => setDiscardModal(false)}
+            style={{ padding: "9px 20px", borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            Keep editing
+          </button>
+          <button onClick={handleDiscard}
+            style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: C.red, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            Discard changes
+          </button>
+        </div>
+      </div>
+    </>)}
+    </>
   );
 };
 
