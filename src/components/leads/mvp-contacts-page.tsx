@@ -160,6 +160,8 @@ const SortArrows = () => (
 const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
   const [open, setOpen] = useState(false);
   const active = views.find(v => v.id === activeId);
+  const systemViews = views.filter(v => v.system);
+  const customViews = views.filter(v => !v.system);
   return (
     <div style={{ position: "relative" }}>
       <button onClick={() => setOpen(o => !o)} style={{
@@ -174,15 +176,34 @@ const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
           <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 260, background: "#fff", borderRadius: 12, boxShadow: "0 12px 36px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 240, padding: "6px 0" }}>
-            {views.map(v => (
+            {/* System views */}
+            <div style={{ padding: "4px 16px 4px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>System Views</div>
+            {systemViews.map(v => (
               <div key={v.id} onClick={() => { onSelect(v.id); setOpen(false); }}
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: v.id === activeId ? 700 : 500, color: v.id === activeId ? C.primaryDark : C.text }}
                 onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <span style={{ display: "flex", alignItems: "center" }}>{v.name}{v.system && VIEW_TIPS[v.id] && <InfoTip text={VIEW_TIPS[v.id]} />}</span>
+                <span style={{ display: "flex", alignItems: "center" }}>{v.name}{VIEW_TIPS[v.id] && <InfoTip text={VIEW_TIPS[v.id]} />}</span>
                 <span style={{ color: C.muted, fontWeight: 500 }}>({counts[v.id] ?? 0})</span>
               </div>
             ))}
+            {/* Custom views */}
+            {customViews.length > 0 && (
+              <>
+                <div style={{ borderTop: `1px solid ${C.border}`, margin: "4px 0" }} />
+                <div style={{ padding: "4px 16px 4px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Custom Views</div>
+                {customViews.map(v => (
+                  <div key={v.id} onClick={() => { onSelect(v.id); setOpen(false); }}
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: v.id === activeId ? 700 : 500, color: v.id === activeId ? C.primaryDark : C.text }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <span>{v.name}</span>
+                    <span style={{ color: C.muted, fontWeight: 500 }}>({counts[v.id] ?? 0})</span>
+                  </div>
+                ))}
+              </>
+            )}
+            {/* Add view */}
             <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 4 }}>
               <div onClick={() => { onAddView(); setOpen(false); }}
                 style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, color: C.primary }}
@@ -502,16 +523,20 @@ const AddContactPage = ({ onCancel, onSave }) => {
   const [tab, setTab] = useState("Basic");
   const [f, setF] = useState({
     first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
+    assignee: "", product: "", productProvider: "", source: "", campaign: "",
+    gdprConsent: false, newsletter: false,
     salutation: "", dob: "", gender: "", nationality: "", language: "",
     street: "", houseNo: "", zip: "", city: "", country: "",
     company: "", employment: "", position: "", companySize: "", decisionRole: "None", industry: "",
     income: "", netWorth: "", risk: "", horizon: "",
-    source: "", campaign: "", product: "", notes: "",
+    notes: "",
   });
   const set = (k) => (e) => setF(prev => ({ ...prev, [k]: e.target.value }));
   const valid = f.first.trim() && f.last.trim();
 
-  const reset = () => setF(prev => Object.fromEntries(Object.keys(prev).map(k => [k, k === "lifecycle" ? "Lead" : k === "stageStatus" ? "New" : k === "decisionRole" ? "None" : ""])));
+  const reset = () => setF(prev => Object.fromEntries(Object.keys(prev).map(k => [k,
+    k === "lifecycle" ? "Lead" : k === "stageStatus" ? "New" : k === "decisionRole" ? "None" :
+    k === "gdprConsent" || k === "newsletter" ? false : ""])));
 
   const Grid = ({ children, cols = 2 }) => (
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 18 }}>{children}</div>
@@ -544,12 +569,42 @@ const AddContactPage = ({ onCancel, onSave }) => {
             <Field label="Last Name *"><TextInput value={f.last} onChange={set("last")} placeholder="Last name" /></Field>
           </Grid>
           <Grid>
-            <Field label="Email"><TextInput value={f.email} onChange={set("email")} placeholder="name@example.com" /></Field>
-            <Field label="Phone Number"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
+            <Field label="Primary Email"><TextInput value={f.email} onChange={set("email")} placeholder="name@example.com" /></Field>
+            <Field label="Primary Phone"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
           </Grid>
           <Grid>
             <Field label="Lifecycle Stage"><Select value={f.lifecycle} onChange={set("lifecycle")}>{LIFECYCLE_OPTIONS.map(o => <option key={o}>{o}</option>)}</Select></Field>
             <Field label="Stage Status"><Select value={f.stageStatus} onChange={set("stageStatus")}>{STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}</Select></Field>
+          </Grid>
+          <Grid>
+            <Field label="Product"><TextInput value={f.product} onChange={set("product")} placeholder="Product name" /></Field>
+            <Field label="Product Provider"><TextInput value={f.productProvider} onChange={set("productProvider")} placeholder="Provider" /></Field>
+          </Grid>
+          <Grid>
+            <Field label="Lead Source"><TextInput value={f.source} onChange={set("source")} placeholder="e.g. Referral" /></Field>
+            <Field label="Campaign Assignment"><TextInput value={f.campaign} onChange={set("campaign")} placeholder="Campaign" /></Field>
+          </Grid>
+          <Grid>
+            <Field label="Communication Consent (GDPR)">
+              <div style={{ display: "flex", gap: 20, paddingTop: 4 }}>
+                {[["Yes", true], ["No", false]].map(([label, val]) => (
+                  <label key={label} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: C.text }}>
+                    <input type="radio" name="gdpr" checked={f.gdprConsent === val} onChange={() => setF(p => ({ ...p, gdprConsent: val }))} style={{ accentColor: C.primary, width: 15, height: 15 }} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </Field>
+            <Field label="Newsletter Subscription">
+              <div style={{ display: "flex", gap: 20, paddingTop: 4 }}>
+                {[["Subscribed", true], ["Not subscribed", false]].map(([label, val]) => (
+                  <label key={label} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: C.text }}>
+                    <input type="radio" name="newsletter" checked={f.newsletter === val} onChange={() => setF(p => ({ ...p, newsletter: val }))} style={{ accentColor: C.primary, width: 15, height: 15 }} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </Field>
           </Grid>
         </>)}
 
