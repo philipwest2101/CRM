@@ -5,6 +5,7 @@ import { AppointmentModal } from "../appointments/appointment-modal";
 import { AppointmentOutcomeModal } from "../appointments/appointment-outcome-modal";
 import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS, EVENTS_LIST, PRIORITY_META, DONE_STATUSES } from "../../lib/core";
 import { C } from "../../theme";
+import { useT } from "../../lib/i18n";
 
 // Tasks are coloured by priority; appointments and events (which have no
 // priority) each get one fixed colour.
@@ -14,11 +15,11 @@ const EVENT_COLOR       = "#2563EB";   // blue
 const PRIORITY_LEGEND  = [["urgent","Urgent"],["high","High"],["medium","Medium"],["low","Low"]];
 
 export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder }) => {
+  const t = useT();
   const TODAY    = "2026-02-24";
   const MONTHS   = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const [currentDate, setCurrentDate] = useState(new Date(2026,1,24));
   const [calFilter,   setCalFilter]   = useState("mine");   // each role sees only its own calendar
-  const [showEvents,  setShowEvents]  = useState(true);
   const [typeFilter,  setTypeFilter]  = useState("all");
   const [view,        setView]        = useState("month"); // month | week | day
   const [showNew,     setShowNew]     = useState(false);
@@ -29,7 +30,6 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [taskModal,   setTaskModal]   = useState(null);    // { mode, data }
   const [apptModal,   setApptModal]   = useState(null);    // { mode, data }
   const [outcomeAppt, setOutcomeAppt] = useState(null);
-  const [slotMenu,    setSlotMenu]    = useState(null);    // { date, time, x, y }
 
   const myGP = "Anna Klein"; const myVD = "Thomas Müller";
 
@@ -68,7 +68,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     return { ...base, color:col, bg:col+"18" };
   };
 
-  const baseActs = showEvents ? [...activities, ...eventActivities] : activities;
+  const baseActs = [...activities, ...eventActivities];
 
   // Filter activities
   const visible = baseActs.filter(a => {
@@ -195,7 +195,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <div style={{ padding:"12px 20px",borderBottom:`1px solid ${C.border}`,background:"#fff",
         display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",flexShrink:0 }}>
-        <h1 style={{ margin:0,fontSize:18,fontWeight:800,color:C.navy }}>📅 Calendar & Activities</h1>
+        <h1 style={{ margin:0,fontSize:18,fontWeight:800,color:C.navy }}>📅 {t("calendarTitle")}</h1>
 
         {/* Type filter */}
         <div style={{ position:"relative" }}>
@@ -203,18 +203,12 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             style={{ padding:"6px 28px 6px 10px",borderRadius:8,border:`1px solid ${C.border}`,
               background:"#fff",color:C.slate,fontSize:12,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none" }}>
             <option value="all">All types</option>
-            {Object.entries(ACTIVITY_TYPES).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
+            {["call","email","consultation","recruiting","business","other","event"].map(k=>{
+              const v = ACTIVITY_TYPES[k]; if(!v) return null;
+              return <option key={k} value={k}>{v.icon} {v.label}</option>;
+            })}
           </select>
           <div style={{ position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:9,color:C.muted }}>▼</div>
-        </div>
-
-        {/* Show Events toggle */}
-        <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-          <div onClick={()=>setShowEvents(v=>!v)}
-            style={{ width:36,height:20,borderRadius:10,background:showEvents?C.green:"#CBD5E1",cursor:"pointer",position:"relative",transition:"background 0.2s" }}>
-            <div style={{ position:"absolute",top:2,left:showEvents?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
-          </div>
-          <span style={{ fontSize:11,color:C.slate,fontWeight:600 }}>Events</span>
         </div>
 
         <div style={{ marginLeft:"auto",display:"flex",gap:8,alignItems:"center" }}>
@@ -257,7 +251,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
               <div onClick={()=>setShowAddMenu(false)} style={{ position:"fixed",inset:0,zIndex:200 }}/>
               <div style={{ position:"absolute",top:"calc(100% + 4px)",right:0,zIndex:201,background:"#fff",borderRadius:12,
                 boxShadow:"0 8px 32px rgba(0,0,0,0.15)",border:`1px solid ${C.border}`,minWidth:220,padding:"6px 0" }}>
-                {[["✅ Create Task",()=>setTaskModal({mode:"create"})],["📅 Schedule Appointment",()=>setApptModal({mode:"create"})]].map(([label,fn])=>(
+                {[[`✅ ${t("createTask")}`,()=>setTaskModal({mode:"create"})],[`📅 ${t("scheduleAppointment")}`,()=>setApptModal({mode:"create"})]].map(([label,fn])=>(
                   <div key={label} onClick={()=>{ setShowAddMenu(false); fn(); }}
                     style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",fontSize:13,fontWeight:600,color:C.text }}
                     onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
@@ -365,7 +359,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                     const ds = fmtDateObj(d);
                     const slotActs = (byDate[ds]||[]).filter(a=>a.time&&parseInt(a.time)===h);
                     return (
-                      <div key={di} onClick={(e)=>{ setSelectedDate(ds); if(slotActs.length===0){ const rect=e.currentTarget.getBoundingClientRect(); setSlotMenu({ date:ds, time:`${String(h).padStart(2,"0")}:00`, x:rect.left, y:rect.bottom }); } }}
+                      <div key={di} onClick={()=>{ setSelectedDate(ds); if(slotActs.length===0){ setShowAddMenu(true); } }}
                         style={{ borderBottom:`1px solid ${C.border}`,borderLeft:`1px solid ${C.border}`,
                           padding:"2px",cursor:"pointer",background:ds===selectedDate?"#EFF6FF20":"#fff",
                           position:"relative",minHeight:52 }}>
@@ -476,12 +470,10 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
               <div style={{ width:8,height:8,borderRadius:3,background:APPOINTMENT_COLOR }}/>
               <span style={{ fontSize:9,color:C.slate }}>📅 Appointments</span>
             </div>
-            {showEvents && (
-              <div style={{ display:"flex",alignItems:"center",gap:4 }}>
+            <div style={{ display:"flex",alignItems:"center",gap:4 }}>
                 <div style={{ width:8,height:8,borderRadius:3,background:EVENT_COLOR }}/>
                 <span style={{ fontSize:9,color:C.slate }}>🎟️ Events</span>
               </div>
-            )}
             <span style={{ marginLeft:"auto",fontSize:9,color:C.muted }}>{visible.length} activities total</span>
           </div>
         </div>
@@ -576,27 +568,6 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
         </div>
       </div>
 
-      {/* ── Slot quick-action menu (click empty time slot) ────────────────── */}
-      {slotMenu && (<>
-        <div onClick={()=>setSlotMenu(null)} style={{ position:"fixed",inset:0,zIndex:300 }}/>
-        <div style={{ position:"fixed",left:slotMenu.x,top:slotMenu.y,zIndex:301,background:"#fff",borderRadius:12,
-          boxShadow:"0 8px 32px rgba(0,0,0,0.16)",border:`1px solid ${C.border}`,minWidth:230,padding:"6px 0" }}>
-          <div style={{ padding:"8px 16px 4px",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",borderBottom:`1px solid ${C.border}`,marginBottom:4 }}>
-            {slotMenu.date} · {slotMenu.time}
-          </div>
-          {[
-            ["✅ Create Task", ()=>{ setSlotMenu(null); setTaskModal({ mode:"create", data:{ date:slotMenu.date, time:slotMenu.time } }); }],
-            ["📅 Schedule Appointment", ()=>{ setSlotMenu(null); setApptModal({ mode:"create", data:{ date:slotMenu.date, time:slotMenu.time } }); }],
-          ].map(([label,fn])=>(
-            <div key={label} onClick={fn}
-              style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",fontSize:13,fontWeight:600,color:C.text }}
-              onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
-              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-              {label}
-            </div>
-          ))}
-        </div>
-      </>)}
 
       {/* ── Activity detail modal ──────────────────────────────────────────── */}
       {selected && (()=>{

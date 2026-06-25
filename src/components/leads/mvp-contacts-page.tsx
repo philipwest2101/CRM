@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from "react";
 import { ALL_LEADS } from "../../lib/core";
 import { C } from "../../theme";
+import { useT } from "../../lib/i18n";
 
 // Hover tooltip — shows on hover next to view name or field label
 const InfoTip = ({ text }) => {
@@ -833,6 +834,7 @@ const CUSTOM_VIEWS = [
 ];
 
 export const MVPContactsPage = ({ navigateTo, role }) => {
+  const t = useT();
   const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
   const [views, setViews]       = useState(() => [...getSystemViews(role), ...CUSTOM_VIEWS]);
   const [activeView, setActiveView] = useState(() => getSystemViews(role)[0]?.id || "my");
@@ -927,11 +929,10 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
     <div style={{ padding: "24px 28px", fontFamily: "inherit" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>Contact List</h1>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>{t("contactList")}</h1>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => setShowImport(true)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>⬇ Import</button>
-          <button onClick={() => setShowBulk(true)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.indigo}`, background: "#fff", color: C.indigo, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>✉ Bulk Email</button>
-          <button onClick={() => setMode("add")} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add Contact</button>
+          <button onClick={() => setShowImport(true)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>⬇ {t("import")}</button>
+          <button onClick={() => setMode("add")} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{t("addContact")}</button>
         </div>
       </div>
 

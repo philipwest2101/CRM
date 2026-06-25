@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
 import { PRIORITY_META, DONE_STATUSES } from "../../lib/core";
+import { useT } from "../../lib/i18n";
 
 // ── Role → user mapping (matches mock data in CRMAppV5.jsx) ──────────────────
 const ROLE_USER = {
@@ -124,6 +125,7 @@ const TYPE_ICON = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
 
+  const t         = useT();
   const user      = ROLE_USER[role] || ROLE_USER.superadmin;
   const userName  = user.name;
   const isSA      = role === "superadmin" || role === "manager";
@@ -132,10 +134,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
 
   // ── Greeting ────────────────────────────────────────────────────────────────
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 12 ? t("greeting_morning") : hour < 17 ? t("greeting_afternoon") : t("greeting_evening");
 
   const roleLabel = {
-    gp: "Consultant", vd: "Sales Director", superadmin: "Super Admin", manager: "Manager",
+    gp: t("consultant"), vd: t("salesDirector"), superadmin: t("superAdmin"), manager: t("superAdmin"),
   }[role] || role;
 
   // ── Role-scoped data filters ─────────────────────────────────────────────────
@@ -190,10 +192,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     .slice(0, 8);
 
   // ── Panel titles per role ────────────────────────────────────────────────────
-  const leadsTitle    = isGP ? "My New Contacts" : isVD ? "Team New Contacts" : "New Contacts";
-  const contactsLabel = isGP ? "My Contacts" : isVD ? "Team Contacts" : "Total Contacts";
-  const remindersTitle = isGP ? "My Tasks" : isVD ? "Team Tasks" : "Reminders & Tasks";
-  const apptsTitle    = isGP ? "My Appointments Today" : isVD ? "Team Appointments Today" : "Appointments Today";
+  const leadsTitle    = isGP ? t("myNetwork") : isVD ? t("myNetwork") : t("newContacts");
+  const contactsLabel = isGP ? t("totalContacts") : isVD ? t("totalContacts") : t("totalContacts");
+  const remindersTitle = isGP ? t("myTasks") : isVD ? t("teamTasks") : t("remindersAndTasks");
+  const apptsTitle    = isGP ? t("myAppointmentsToday") : isVD ? t("teamAppointmentsToday") : t("appointmentsToday");
 
   // Contacts to show in panel (max 6)
   const leadsToShow = newLeads.slice(0, 6);
@@ -226,30 +228,50 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
 
         {/* ── KPI row ─────────────────────────────────────────────────────── */}
+        {isSA ? (() => {
+          const SA_KPIS = [
+            { label:"Total Contacts", value:"2.904", delta:"+127",   up:true,  sub:"active",            warn:false, good:false },
+            { label:"Unassigned",     value:"47",    delta:"−12",    up:false, sub:"Pending assignment", warn:true,  good:false },
+            { label:"Appointments",   value:"134",   delta:"+23",    up:true,  sub:"Month",              warn:false, good:false },
+            { label:"Closings",       value:"81",    delta:"+11",    up:true,  sub:"MTD",                warn:false, good:true  },
+            { label:"Opt-In Rate",    value:"79,8",  delta:"+2,4pp", up:true,  sub:"% GDPR",            warn:false, good:false },
+            { label:"Conversion",     value:"6,2",   delta:"+0,4pp", up:true,  sub:"% Org MTD",         warn:false, good:true  },
+          ];
+          return (
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:12, marginBottom:14 }}>
+              {SA_KPIS.map(k => (
+                <Card key={k.label}>
+                  <div style={{ padding:"13px 16px" }}>
+                    <div style={{ fontSize:10, color:C.muted, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:6 }}>{k.label}</div>
+                    <div style={{ fontSize:28, fontWeight:400, letterSpacing:"-0.03em", lineHeight:1, color:k.warn?C.red:k.good?C.green:C.navy, marginBottom:4 }}>{k.value}</div>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                      <span style={{ fontSize:10, fontWeight:700, padding:"2px 6px", borderRadius:10, background:k.up?"#DCFCE7":"#FEE2E2", color:k.up?C.green:C.red }}>{k.delta}</span>
+                    </div>
+                    <div style={{ fontSize:10, color:C.muted }}>{k.sub}</div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          );
+        })() : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
           <KpiCard
             label={contactsLabel}
             value={totalContacts}
-            sub={isGP ? "assigned to me" : isVD ? "in my team" : "in CRM"}
+            sub={isGP ? "assigned to me" : "in my team"}
             color={C.navy}
           />
           <KpiCard
             label="New Contacts"
             value={newLeads.length}
-            sub={
-              isGP
-                ? "open & assigned to me"
-                : unassignedCount > 0
-                  ? `${unassignedCount} unassigned`
-                  : "all assigned"
-            }
+            sub={isGP ? "open & assigned to me" : unassignedCount > 0 ? `${unassignedCount} unassigned` : "all assigned"}
             color={C.primary}
             warn={!isGP && unassignedCount > 0}
           />
           <KpiCard
             label="Appointments Today"
             value={todayAppts.length}
-            sub={isGP ? "my schedule" : isVD ? "team schedule" : "org-wide"}
+            sub={isGP ? "my schedule" : "team schedule"}
             color={C.indigo}
           />
           <KpiCard
@@ -259,6 +281,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             color={openTasks.length > 0 ? C.amber : C.green}
           />
         </div>
+        )}
 
         {/* ── Top row: New Contacts | Reminders & Tasks | Appointments Today ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
@@ -267,7 +290,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           <Card>
             <CardHeader
               title={leadsTitle}
-              action={<LinkBtn label="All Contacts →" onClick={() => navigateTo("Leads")} />}
+              action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads")} />}
             />
             <div style={{ padding: "2px 16px 10px" }}>
               {/* VD/SA: unassigned warning banner */}
@@ -340,7 +363,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             <div style={{ padding: "2px 14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
               {tasksToShow.length === 0 ? (
                 <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                  No open tasks.
+                  {t("noOpenTasks")}
                 </div>
               ) : tasksToShow.map((rem) => {
                 const done = itemDone(rem);

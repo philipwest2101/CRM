@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
+import { useT } from "../../lib/i18n";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
@@ -731,45 +732,47 @@ const InfoTip = ({ text }) => {
 };
 
 const InformationTab = ({ c }) => {
-  const [sub, setSub] = useState("Basic");
-  const SUBS = ["Basic", "Personal", "Address", "Business", "Financial"];
+  const t = useT();
+  const [subIdx, setSubIdx] = useState(0);
+  const SUBS = [t("basicTab"), t("personalTab"), t("addressTab"), t("businessTab"), t("financialTab")];
+  const sub = SUBS[subIdx];
   const [first, ...rest] = c.name.replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ");
   const G2 = ({ children }) => <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 60px" }}>{children}</div>;
   return (
     <Card style={{ padding: "18px 22px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
         <div style={{ display: "flex", gap: 6 }}>
-          {SUBS.map(s => (
-            <button key={s} onClick={() => setSub(s)} style={{
+          {SUBS.map((s, i) => (
+            <button key={s} onClick={() => setSubIdx(i)} style={{
               padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
-              fontSize: 13, fontWeight: sub === s ? 700 : 500, color: sub === s ? C.primaryDark : C.slate,
-              background: sub === s ? C.primarySoft : "transparent",
+              fontSize: 13, fontWeight: subIdx === i ? 700 : 500, color: subIdx === i ? C.primaryDark : C.slate,
+              background: subIdx === i ? C.primarySoft : "transparent",
             }}>{s}</button>
           ))}
         </div>
         <button style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.primaryDark, fontSize: 13, fontWeight: 700 }}>✎ Edit</button>
       </div>
 
-      {sub === "Basic" && (
+      {subIdx === 0 && (
         <G2>
-          <InfoField label="First Name" value={first} />
-          <InfoField label="Last Name" value={rest.join(" ") || "—"} />
-          <InfoField label="Email" value={c.email} />
-          <InfoField label="Phone" value={c.phone} />
-          <InfoField label={<>Lifecycle Stage <InfoTip text="Indicates the current stage of the contact in your sales pipeline (Lead → Opportunity → Customer)." /></>} value={c.lifecycle || "Lead"} />
-          <InfoField label={<>Stage Status <InfoTip text="The sub-status within the current lifecycle stage, e.g. New, To Do, Won." /></>} value={c.stageStatus || "New"} />
-          <InfoField label="Assignee" value={c.assignee || "—"} />
+          <InfoField label={t("firstName")} value={first} />
+          <InfoField label={t("lastName")} value={rest.join(" ") || "—"} />
+          <InfoField label={t("email")} value={c.email} />
+          <InfoField label={t("phone")} value={c.phone} />
+          <InfoField label={<>{t("lifecycleStage")} <InfoTip text={t("tooltip_lifecycle")} /></>} value={c.lifecycle || "Lead"} />
+          <InfoField label={<>{t("stageStatus")} <InfoTip text={t("tooltip_status")} /></>} value={c.stageStatus || "New"} />
+          <InfoField label={t("assignee")} value={c.assignee || "—"} />
           <div />
-          <InfoField label="Product" value="Product #1" />
-          <InfoField label="Product Provider" value="Product Provider #1" />
-          <InfoField label="Lead Source" value={c.source || "—"} />
-          <InfoField label="Campaign Assignment" value={c.campaign || "—"} />
-          <InfoField label="Communication Consent (GDPR)" node={<div style={{ fontSize: 14, fontWeight: 600, color: C.green }}>✓ 01.01.2026</div>} />
-          <InfoField label="Newsletter Subscription" node={<span style={{ fontSize: 12, fontWeight: 600, color: C.slate, background: C.light, padding: "4px 10px", borderRadius: 12 }}>✕ No</span>} />
+          <InfoField label={t("product")} value="Product #1" />
+          <InfoField label={t("productProvider")} value="Product Provider #1" />
+          <InfoField label={t("leadSource")} value={c.source || "—"} />
+          <InfoField label={t("campaignAssignment")} value={c.campaign || "—"} />
+          <InfoField label={t("communicationConsent")} node={<div style={{ fontSize: 14, fontWeight: 600, color: C.green }}>✓ 01.01.2026</div>} />
+          <InfoField label={t("newsletterSubscription")} node={<span style={{ fontSize: 12, fontWeight: 600, color: C.slate, background: C.light, padding: "4px 10px", borderRadius: 12 }}>✕ No</span>} />
         </G2>
       )}
 
-      {sub === "Personal" && (
+      {subIdx === 1 && (
         <G2>
           <InfoField label="Salutation" value="Mr." />
           <InfoField label="Date of Birth" value={c.dob || "—"} />
@@ -780,7 +783,7 @@ const InformationTab = ({ c }) => {
         </G2>
       )}
 
-      {sub === "Address" && (
+      {subIdx === 2 && (
         <G2>
           <InfoField label="Street" value="Musterstraße" />
           <InfoField label="House No." value="12" />
@@ -791,7 +794,7 @@ const InformationTab = ({ c }) => {
         </G2>
       )}
 
-      {sub === "Business" && (
+      {subIdx === 3 && (
         <G2>
           <InfoField label="Company" value="Example GmbH" />
           <InfoField label="Employment Type" value="Employed" />
@@ -802,7 +805,7 @@ const InformationTab = ({ c }) => {
         </G2>
       )}
 
-      {sub === "Financial" && (
+      {subIdx === 4 && (
         <G2>
           <InfoField label="Annual Income" value="€ 80,000" />
           <InfoField label="Net Worth" value="€ 250,000" />
@@ -1074,6 +1077,7 @@ const DocumentsTab = () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export const MVPContactDetailPage = ({ lead, navigateTo }) => {
+  const t = useT();
   const [tab, setTab] = useState("Overview");
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
@@ -1105,12 +1109,12 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
 
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {TABS.map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{
-                padding: "9px 18px", borderRadius: 10, border: `1px solid ${tab === t ? C.primary : C.border}`,
-                background: tab === t ? "#fff" : "transparent", cursor: "pointer", fontFamily: "inherit",
-                fontSize: 14, fontWeight: tab === t ? 700 : 500, color: tab === t ? C.primaryDark : C.slate,
-              }}>{t}</button>
+            {TABS.map(tabName => (
+              <button key={tabName} onClick={() => setTab(tabName)} style={{
+                padding: "9px 18px", borderRadius: 10, border: `1px solid ${tab === tabName ? C.primary : C.border}`,
+                background: tab === tabName ? "#fff" : "transparent", cursor: "pointer", fontFamily: "inherit",
+                fontSize: 14, fontWeight: tab === tabName ? 700 : 500, color: tab === tabName ? C.primaryDark : C.slate,
+              }}>{tabName}</button>
             ))}
           </div>
 
