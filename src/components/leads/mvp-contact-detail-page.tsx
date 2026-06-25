@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
 // Left identity rail (shared) + tabbed content: Overview / Information /
-// Activities / Documents. Rail actions open Email / Task / Log-a-Call /
-// Offline-Log composers; Labels open a picker (with custom labels); the GDPR
-// badge is a clickable enable/disable toggle.
+// Activities / Documents.
+// Quick actions: Send an Email · Schedule an Appointment · Create a Task · ⋮More
+//   (More → Log a Call · Log an Email · Log on Appointment · Offline Log)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TABS = ["Overview", "Information", "Activities", "Documents"];
@@ -20,14 +20,17 @@ const fieldStyle = {
 };
 const placeholderSelect = { ...fieldStyle, color: C.muted };
 
-// ── small shared bits ─────────────────────────────────────────────────────────
 const Card = ({ children, style }) => (
   <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, ...style }}>{children}</div>
 );
 
-const Stars = ({ n = 2 }) => (
+// Changeable rating — click a star to set 1–5.
+const Stars = ({ n = 2, onChange }) => (
   <span style={{ display: "inline-flex", gap: 1 }}>
-    {[1, 2, 3, 4, 5].map(i => <span key={i} style={{ color: i <= n ? C.amber : C.border, fontSize: 15 }}>★</span>)}
+    {[1, 2, 3, 4, 5].map(i => (
+      <span key={i} onClick={() => onChange && onChange(i)} title={`${i} star${i > 1 ? "s" : ""}`}
+        style={{ color: i <= n ? C.amber : C.border, fontSize: 16, cursor: onChange ? "pointer" : "default", lineHeight: 1 }}>★</span>
+    ))}
   </span>
 );
 
@@ -65,7 +68,7 @@ const ModalShell = ({ icon, title, width = 520, onClose, children }) => (
     <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width, maxWidth: "94vw", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "20px 24px", fontFamily: "inherit" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 18, color: C.primary }}>{icon}</span>
+          <span style={{ fontSize: 18, color: C.slate }}>{icon}</span>
           <span style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{title}</span>
         </div>
         <div style={{ display: "flex", gap: 14, color: C.muted, fontSize: 18 }}>
@@ -85,17 +88,31 @@ const FooterBtns = ({ onClose, label, disabled, onAction }) => (
   </div>
 );
 
+// ── confirm dialog ────────────────────────────────────────────────────────────
+const ConfirmModal = ({ title, message, confirmLabel = "Delete", onCancel, onConfirm }) => (
+  <>
+    <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
+    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 400, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 22 }}>{message}</div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+        <button onClick={onConfirm} style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: C.red, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{confirmLabel}</button>
+      </div>
+    </div>
+  </>
+);
+
 // ── Email composer ────────────────────────────────────────────────────────────
 const EmailModal = ({ onClose }) => {
   const [schedule, setSchedule] = useState(true);
   const toolBtns = ["B", "I", "U", "⟸", "⟺", "⟹", "≔", "≕", "🖉", "T"];
   return (
-    <ModalShell icon="✉️" title="Email" width={640} onClose={onClose}>
+    <ModalShell icon="✉️" title="Send an Email" width={640} onClose={onClose}>
       <div style={{ marginBottom: 14 }}>
         <Label>From *</Label>
         <select style={fieldStyle} defaultValue="someone@gmail.com"><option>someone@gmail.com</option><option>sales@vionworld.com</option></select>
       </div>
-      {/* To / CC — dropdowns with placeholders */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
         <div><Label>To *</Label>
           <select style={placeholderSelect} defaultValue=""><option value="" disabled>Select recipient</option><option>Account/PC Email</option><option>Example@gmail.com</option><option>lana.steiner@email.com</option></select>
@@ -121,7 +138,6 @@ const EmailModal = ({ onClose }) => {
       <label style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
         <input type="checkbox" checked={schedule} onChange={e => setSchedule(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Schedule send
       </label>
-      {/* Schedule logic is email-only: just date & time (no lifecycle/status) */}
       {schedule && (<>
         <Label>Select Date &amp; Time</Label>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
@@ -155,7 +171,7 @@ const ReminderBlock = () => {
   const [opt, setOpt] = useState("15 Minutes Before");
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "grid", gridTemplateColumns: on ? "1fr 1fr" : "auto 1fr", gap: 16, alignItems: "center" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 16, alignItems: "center" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
           <input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Reminder
         </label>
@@ -198,13 +214,13 @@ const RecurringBlock = () => {
   );
 };
 
-// ── Task composer (Add Task) ──────────────────────────────────────────────────
+// ── Task composer (Create a Task) ─────────────────────────────────────────────
 const TaskModal = ({ onClose }) => {
   const [title, setTitle] = useState("");
   const [type, setType] = useState("call");
   const [priority, setPriority] = useState("medium");
   return (
-    <ModalShell icon="☑️" title="Add Task" width={560} onClose={onClose}>
+    <ModalShell icon="☑️" title="Create a Task" width={560} onClose={onClose}>
       <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 16, marginBottom: 16, alignItems: "end" }}>
         <div><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>Sandra Richter</option><option>Markus Bauer</option></select></div>
@@ -229,13 +245,13 @@ const TaskModal = ({ onClose }) => {
   );
 };
 
-// ── Appointment composer (Add Appointment) ────────────────────────────────────
+// ── Appointment composer (Schedule an Appointment) ────────────────────────────
 const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other"];
 const AppointmentModal = ({ onClose }) => {
   const [title, setTitle] = useState("");
   const [type, setType] = useState("Consultation Appointment");
   return (
-    <ModalShell icon="📅" title="Add Appointment" width={560} onClose={onClose}>
+    <ModalShell icon="📅" title="Schedule an Appointment" width={560} onClose={onClose}>
       <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
       <div style={{ marginBottom: 16 }}><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>Sandra Richter</option><option>Markus Bauer</option></select></div>
       <div style={{ marginBottom: 16 }}><Label>Attendees</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>olivia.ruth@email.com</option><option>john.smith@email.com</option></select></div>
@@ -257,32 +273,6 @@ const AppointmentModal = ({ onClose }) => {
         <textarea style={{ ...fieldStyle, minHeight: 80, resize: "vertical", lineHeight: 1.5 }} placeholder="Description" />
       </div>
       <FooterBtns onClose={onClose} label="Save" disabled={!title.trim()} />
-    </ModalShell>
-  );
-};
-
-// ── Appointment Outcome ───────────────────────────────────────────────────────
-const AppointmentOutcomeModal = ({ onClose }) => {
-  const [status, setStatus] = useState("");
-  const [report, setReport] = useState("");
-  return (
-    <ModalShell icon="📅" title="Appointment Outcome" width={560} onClose={onClose}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 13, color: C.slate }}>🕒 Monday, January 5, 2026 | 11:30 - 12:00</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, fontSize: 13, color: C.text }}>
-        <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.indigo, color: "#fff", display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700 }}>SR</span> Sandra Richter
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <Label>Meeting Status *</Label>
-        <select value={status} onChange={e => setStatus(e.target.value)} style={{ ...fieldStyle, color: status ? C.text : C.muted }}>
-          <option value="">Choose…</option>{["Completed", "No Show", "Rescheduled", "Cancelled"].map(o => <option key={o}>{o}</option>)}
-        </select>
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <Label>Meeting Report *</Label>
-        <textarea value={report} onChange={e => setReport(e.target.value)} style={{ ...fieldStyle, minHeight: 100, resize: "vertical", lineHeight: 1.5 }} />
-      </div>
-      <StageStatusRow />
-      <FooterBtns onClose={onClose} label="Save" disabled={!status || !report.trim()} />
     </ModalShell>
   );
 };
@@ -316,6 +306,42 @@ const LogCallModal = ({ onClose }) => (
       <Label>Report Of Call *</Label>
       <textarea defaultValue="Report of call" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
     </div>
+    <StageStatusRow />
+    <FooterBtns onClose={onClose} label="Save" />
+  </ModalShell>
+);
+
+// ── Log an Email ──────────────────────────────────────────────────────────────
+const LogEmailModal = ({ onClose }) => (
+  <ModalShell icon="✉️" title="Log an Email" width={720} onClose={onClose}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div><Label>Direction *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Direction</option><option>Sent</option><option>Received</option></select></div>
+      <div><Label>Email Address *</Label><input style={fieldStyle} placeholder="name@example.com" /></div>
+    </div>
+    <div style={{ marginBottom: 16 }}><Label>Subject *</Label><input style={fieldStyle} placeholder="Subject" /></div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+      <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
+    </div>
+    <div style={{ marginBottom: 16 }}><Label>Email Report *</Label><textarea placeholder="What was discussed…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} /></div>
+    <StageStatusRow />
+    <FooterBtns onClose={onClose} label="Save" />
+  </ModalShell>
+);
+
+// ── Log on Appointment ────────────────────────────────────────────────────────
+const LogAppointmentModal = ({ onClose }) => (
+  <ModalShell icon="📅" title="Log on Appointment" width={720} onClose={onClose}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div><Label>Meeting Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Type</option>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select></div>
+      <div><Label>Meeting Outcome *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Outcome</option><option>Completed</option><option>No Show</option><option>Rescheduled</option><option>Cancelled</option></select></div>
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
+      <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+      <div><Label>Start *</Label><input type="time" style={placeholderSelect} /></div>
+      <div><Label>End *</Label><input type="time" style={placeholderSelect} /></div>
+    </div>
+    <div style={{ marginBottom: 16 }}><Label>Meeting Report *</Label><textarea placeholder="Meeting report…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} /></div>
     <StageStatusRow />
     <FooterBtns onClose={onClose} label="Save" />
   </ModalShell>
@@ -375,12 +401,7 @@ const QRCode = ({ size = 190 }) => {
 const ScanQRModal = ({ onClose }) => {
   const Corner = (pos) => {
     const base = { position: "absolute", width: 22, height: 22, borderColor: C.border, borderStyle: "solid" };
-    const m = {
-      tl: { top: -6, left: -6, borderWidth: "2px 0 0 2px" },
-      tr: { top: -6, right: -6, borderWidth: "2px 2px 0 0" },
-      bl: { bottom: -6, left: -6, borderWidth: "0 0 2px 2px" },
-      br: { bottom: -6, right: -6, borderWidth: "0 2px 2px 0" },
-    }[pos];
+    const m = { tl: { top: -6, left: -6, borderWidth: "2px 0 0 2px" }, tr: { top: -6, right: -6, borderWidth: "2px 2px 0 0" }, bl: { bottom: -6, left: -6, borderWidth: "0 0 2px 2px" }, br: { bottom: -6, right: -6, borderWidth: "0 2px 2px 0" } }[pos];
     return <span style={{ ...base, ...m }} />;
   };
   return (
@@ -406,53 +427,37 @@ const ScanQRModal = ({ onClose }) => {
   );
 };
 
-// ── Labels picker (popover) — full label functionality (name + colour + desc) ─
-const LABEL_PALETTE = ["#DC2626", "#D97706", "#059669", "#0891B2", "#4338CA", "#7C3AED", "#DB2777", "#64748B"];
-const LabelsPicker = ({ selected, options, colors, onToggle, onAddLabel, onClose }) => {
+// ── Labels picker (popover) — orange only; "Add Label" appears for a new entry ─
+const LabelsPicker = ({ selected, options, onToggle, onAddLabel, onClose }) => {
   const [q, setQ] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState("");
-  const [color, setColor] = useState(LABEL_PALETTE[0]);
-  const [desc, setDesc] = useState("");
-  const list = options.filter(l => l.toLowerCase().includes(q.toLowerCase()));
-  const commit = () => { if (name.trim()) { onAddLabel(name.trim(), color, desc.trim()); setName(""); setDesc(""); setColor(LABEL_PALETTE[0]); setAdding(false); } };
+  const ql = q.trim();
+  const list = options.filter(l => l.toLowerCase().includes(ql.toLowerCase()));
+  const exact = options.some(l => l.toLowerCase() === ql.toLowerCase());
+  const showAdd = ql.length > 0 && !exact;
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
-      <div style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 260, width: 250, background: "#fff", borderRadius: 12, boxShadow: "0 12px 36px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, padding: "10px 0" }}>
+      <div style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 260, width: 230, background: "#fff", borderRadius: 12, boxShadow: "0 12px 36px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, padding: "10px 0" }}>
         <div style={{ position: "relative", padding: "0 12px 8px" }}>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search" style={{ ...fieldStyle, padding: "8px 30px 8px 10px" }} />
           <span style={{ position: "absolute", right: 22, top: 8, color: C.muted, fontSize: 13 }}>🔍</span>
         </div>
-        <div style={{ maxHeight: 170, overflowY: "auto" }}>
+        <div style={{ maxHeight: 180, overflowY: "auto" }}>
           {list.map(l => (
-            <label key={l} title={(colors && colors[l]?.desc) || ""} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", cursor: "pointer", fontSize: 13, color: C.text }}
+            <label key={l} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", cursor: "pointer", fontSize: 13, color: C.text }}
               onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
               <input type="checkbox" checked={selected.includes(l)} onChange={() => onToggle(l)} style={{ width: 15, height: 15, accentColor: C.primary }} />
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: (colors && colors[l]?.color) || C.slate, flexShrink: 0 }} />
               {l}
             </label>
           ))}
+          {list.length === 0 && !showAdd && <div style={{ padding: "10px 14px", fontSize: 12, color: C.muted }}>No labels found.</div>}
         </div>
-        <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 14px 4px" }}>
-          {adding ? (
-            <div>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="Label name" autoFocus style={{ ...fieldStyle, padding: "8px 10px", marginBottom: 8 }} />
-              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                {LABEL_PALETTE.map(col => (
-                  <button key={col} onClick={() => setColor(col)} style={{ width: 20, height: 20, borderRadius: "50%", background: col, cursor: "pointer", border: color === col ? `2px solid ${C.navy}` : "2px solid #fff", boxShadow: `0 0 0 1px ${C.border}` }} />
-                ))}
-              </div>
-              <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description (optional)" style={{ ...fieldStyle, padding: "8px 10px", marginBottom: 8 }} />
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                <button onClick={() => setAdding(false)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "transparent", color: C.slate, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button onClick={commit} disabled={!name.trim()} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: name.trim() ? C.primary : C.border, color: name.trim() ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>Add</button>
-              </div>
-            </div>
-          ) : (
-            <span onClick={() => setAdding(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.primary, cursor: "pointer" }}>＋ Add Label</span>
-          )}
-        </div>
+        {showAdd && (
+          <div onClick={() => { onAddLabel(ql); setQ(""); }} style={{ borderTop: `1px solid ${C.border}`, padding: "11px 14px", display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 700, color: C.primary, cursor: "pointer" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+            ＋ Add Label “{ql}”
+          </div>
+        )}
       </div>
     </>
   );
@@ -475,7 +480,7 @@ const Donut = ({ value = 3, total = 5 }) => {
 // ── identity rail ─────────────────────────────────────────────────────────────
 const InfoRow = ({ icon, label, value }) => (
   <div style={{ display: "flex", gap: 11, alignItems: "flex-start", marginBottom: 14 }}>
-    <span style={{ fontSize: 15, color: C.muted, width: 18, textAlign: "center", flexShrink: 0 }}>{icon}</span>
+    <span style={{ fontSize: 14, color: C.muted, width: 18, textAlign: "center", flexShrink: 0 }}>{icon}</span>
     <div>
       <div style={{ fontSize: 11, color: C.muted }}>{label}</div>
       <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginTop: 1 }}>{value}</div>
@@ -483,24 +488,20 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline, onAppointment, onOutcome }) => {
+const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline }) => {
   const [gdpr, setGdpr] = useState(true);
+  const [rating, setRating] = useState(2);
   const [labels, setLabels] = useState(["Label 1"]);
   const [options, setOptions] = useState(["Test 1", "Do Not Call", "Callback Set", "Friend", "Friend1"]);
-  const [colors, setColors] = useState({
-    "Label 1": { color: C.primary, desc: "" }, "Test 1": { color: "#0891B2", desc: "" },
-    "Do Not Call": { color: "#64748B", desc: "Contact requested no phone contact" },
-    "Callback Set": { color: "#059669", desc: "Follow-up call scheduled" },
-    "Friend": { color: "#7C3AED", desc: "" }, "Friend1": { color: "#DB2777", desc: "" },
-  });
   const [pickerOpen, setPickerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const toggle = (l) => setLabels(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
-  const addCustom = (l, color, desc) => {
-    setOptions(prev => prev.includes(l) ? prev : [...prev, l]);
-    setColors(prev => ({ ...prev, [l]: { color: color || C.slate, desc: desc || "" } }));
-    setLabels(prev => prev.includes(l) ? prev : [...prev, l]);
-  };
+  const addLabel = (l) => { setOptions(prev => prev.includes(l) ? prev : [...prev, l]); setLabels(prev => prev.includes(l) ? prev : [...prev, l]); };
+
+  // Action icons use a single muted tone (kept visually light, per design).
+  const Action = ({ icon, title, onClick }) => (
+    <span title={title} onClick={onClick} style={{ cursor: "pointer", color: C.slate, fontSize: 16 }}>{icon}</span>
+  );
 
   return (
     <Card style={{ padding: "20px 18px", alignSelf: "start" }}>
@@ -510,7 +511,7 @@ const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline, onAppointment,
         </div>
         <div>
           <div style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{c.name}</div>
-          <div style={{ marginTop: 3 }}><Stars n={2} /></div>
+          <div style={{ marginTop: 3 }}><Stars n={rating} onChange={setRating} /></div>
         </div>
       </div>
 
@@ -524,19 +525,18 @@ const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline, onAppointment,
         <Badge icon="✉" label="Subscribed" color={C.blue} />
       </div>
 
-      {/* Actions (bell/notification icon removed) */}
-      <div style={{ display: "flex", gap: 14, paddingBottom: 14, borderBottom: `1px solid ${C.border}`, marginBottom: 16, fontSize: 17 }}>
-        <span title="Email" onClick={onEmail} style={{ cursor: "pointer", color: C.primary }}>✉️</span>
-        <span title="Log a Call" onClick={onLogCall} style={{ cursor: "pointer", color: C.primary }}>🤝</span>
-        <span title="Add Task" onClick={onTask} style={{ cursor: "pointer", color: C.primary }}>☑️</span>
-        <span title="Add Appointment" onClick={onAppointment} style={{ cursor: "pointer", color: C.primary }}>📅</span>
+      {/* Actions: Send an Email · Schedule an Appointment · Create a Task · More */}
+      <div style={{ display: "flex", gap: 16, paddingBottom: 14, borderBottom: `1px solid ${C.border}`, marginBottom: 16, alignItems: "center" }}>
+        <Action icon="✉️" title="Send an Email" onClick={onEmail} />
+        <Action icon="📅" title="Schedule an Appointment" onClick={onAppointment} />
+        <Action icon="☑️" title="Create a Task" onClick={onTask} />
         <span style={{ position: "relative" }}>
-          <span title="More" onClick={() => setMoreOpen(o => !o)} style={{ cursor: "pointer", color: C.slate }}>⋮</span>
+          <span title="More" onClick={() => setMoreOpen(o => !o)} style={{ cursor: "pointer", color: C.slate, fontSize: 16 }}>⋯</span>
           {moreOpen && (
             <>
               <div onClick={() => setMoreOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
               <div style={{ position: "absolute", top: 24, left: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 170, padding: "5px 0" }}>
-                {[["📞 Log a Call", onLogCall], ["ⓘ Offline Log", onOffline], ["📅 Add Appointment", onAppointment], ["✓ Appointment Outcome", onOutcome]].map(([label, fn]) => (
+                {[["Log a Call", onLogCall], ["Log an Email", onLogEmail], ["Log on Appointment", onLogAppt], ["Offline Log", onOffline]].map(([label, fn]) => (
                   <div key={label} onClick={() => { setMoreOpen(false); fn(); }} style={{ padding: "9px 14px", fontSize: 13, color: C.text, cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap" }}
                     onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{label}</div>
                 ))}
@@ -557,17 +557,13 @@ const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline, onAppointment,
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Labels</div>
         <div style={{ position: "relative", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {labels.map(l => {
-            const col = colors[l]?.color || C.primary;
-            return (
-              <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: col, background: col + "14", padding: "5px 10px", borderRadius: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
-                {l} <span onClick={() => toggle(l)} style={{ cursor: "pointer" }}>×</span>
-              </span>
-            );
-          })}
+          {labels.map(l => (
+            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.primaryDark, background: C.primarySoft, padding: "5px 10px", borderRadius: 8 }}>
+              {l} <span onClick={() => toggle(l)} style={{ cursor: "pointer" }}>×</span>
+            </span>
+          ))}
           <span onClick={() => setPickerOpen(o => !o)} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: C.slate, border: `1px dashed ${C.border}`, padding: "5px 10px", borderRadius: 8, cursor: "pointer" }}>＋ Add</span>
-          {pickerOpen && <LabelsPicker selected={labels} options={options} colors={colors} onToggle={toggle} onAddLabel={addCustom} onClose={() => setPickerOpen(false)} />}
+          {pickerOpen && <LabelsPicker selected={labels} options={options} onToggle={toggle} onAddLabel={addLabel} onClose={() => setPickerOpen(false)} />}
         </div>
       </div>
     </Card>
@@ -577,6 +573,7 @@ const IdentityRail = ({ c, onEmail, onTask, onLogCall, onOffline, onAppointment,
 // ── Overview tab ──────────────────────────────────────────────────────────────
 const OverviewTab = () => {
   const [addNote, setAddNote] = useState(false);
+  const [delId, setDelId] = useState(null);
   const [notes, setNotes] = useState([
     { id: "n1", stage: "Prospect",   dur: "3 days",  active: true, date: "04.03.2026 - 10:00" },
     { id: "n2", stage: "In Progress",dur: "18 days", done: true,   date: "04.03.2026 - 10:00" },
@@ -618,7 +615,7 @@ const OverviewTab = () => {
           <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 14 }}>Advisory Documents</div>
           {[["🎯", "Wishes & Goals"], ["💡", "Concept File"], ["📄", "Financing Application"]].map(([icon, label]) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
-              <span style={{ fontSize: 16, color: C.slate }}>{icon}</span>
+              <span style={{ fontSize: 15, color: C.muted }}>{icon}</span>
               <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.text }}>{label}</span>
               <span style={{ color: C.muted }}>→</span>
             </div>
@@ -669,7 +666,7 @@ const OverviewTab = () => {
                       </span>
                       <span style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
                         <span style={{ color: C.slate, cursor: "pointer" }}>✎</span>
-                        <span style={{ color: C.slate, cursor: "pointer" }}>🗑</span>
+                        <span onClick={() => setDelId(n.id)} title="Delete note" style={{ color: C.slate, cursor: "pointer" }}>🗑</span>
                         <span style={{ fontSize: 12, color: C.muted }}>{n.date}</span>
                       </span>
                     </div>
@@ -696,6 +693,10 @@ const OverviewTab = () => {
       </Card>
 
       {addNote && <AddNoteModal onClose={() => setAddNote(false)} onSave={addNoteItem} />}
+      {delId && (
+        <ConfirmModal title="Delete note?" message="This note will be permanently removed. This action cannot be undone."
+          onCancel={() => setDelId(null)} onConfirm={() => { setNotes(prev => prev.filter(x => x.id !== delId)); setDelId(null); }} />
+      )}
     </div>
   );
 };
@@ -750,23 +751,186 @@ const InformationTab = ({ c }) => {
 };
 
 // ── Activities tab ────────────────────────────────────────────────────────────
-const ActivitiesTab = () => (
-  <Card style={{ padding: "18px 22px" }}>
-    <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 14 }}>Recent Activities</div>
-    {[
-      ["📞", "Phone Call — Not Reached", "04.03.2026 - 10:00"],
-      ["✉️", "Email sent — Cupcake offerings", "25.05.2026 - 14:20"],
-      ["📅", "Appointment scheduled", "20.05.2026 - 09:00"],
-      ["📝", "Note added by Anna Muller", "18.05.2026 - 16:45"],
-    ].map(([icon, title, date], i, arr) => (
-      <div key={title} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none" }}>
-        <span style={{ width: 32, height: 32, borderRadius: "50%", background: C.light, display: "grid", placeItems: "center", fontSize: 14 }}>{icon}</span>
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.text }}>{title}</span>
-        <span style={{ fontSize: 12, color: C.muted }}>{date}</span>
-      </div>
-    ))}
-  </Card>
+const ACT_ICON = {
+  meeting: { icon: "🤝", color: C.purple },
+  call:    { icon: "📞", color: C.green },
+  email:   { icon: "✉️", color: C.blue },
+  task:    { icon: "☑️", color: C.amber },
+  update:  { icon: "✎",  color: C.muted },
+};
+
+const ACTIVITIES = [
+  { id: "a1", type: "meeting", title: "Meeting test", day: "Wed 24", month: "June 2026", dt: "24.06.2026 - 10:04" },
+  { id: "a2", type: "update",  title: "Update Assignee", day: "Sun 21", month: "June 2026", dt: "21.06.2026 - 11:14", field: "Assignee", from: "—", to: "Anna Muller" },
+  { id: "a3", type: "meeting", title: "M1", day: "Thu 04", month: "June 2026", dt: "04.06.2026 - 12:30" },
+  { id: "a4", type: "update",  title: "Update Label", day: "Wed 03", month: "June 2026", dt: "03.06.2026 - 15:15", field: "Labels", from: "—", to: "Label 1" },
+  { id: "a5", type: "call",    title: "Call with a2 s2", day: "Mon 18", month: "May 2026", dt: "18.05.2026 - 18:09", direction: "Outbound" },
+  { id: "a6", type: "update",  title: "Update Label", day: "Thu 14", month: "May 2026", dt: "14.05.2026 - 10:38", field: "Labels", from: "Label 1", to: "Label 1, VIP" },
+  { id: "a7", type: "email",   title: "Email to client", day: "Wed 13", month: "May 2026", dt: "13.05.2026 - 09:20" },
+  { id: "a8", type: "task",    title: "Follow-up task", day: "Tue 12", month: "May 2026", dt: "12.05.2026 - 14:00" },
+  { id: "a9", type: "call",    title: "Intro call", day: "Mon 11", month: "May 2026", dt: "11.05.2026 - 16:30", direction: "Inbound" },
+  { id: "a10", type: "meeting", title: "Kickoff", day: "Fri 08", month: "May 2026", dt: "08.05.2026 - 11:00" },
+  { id: "a11", type: "email",  title: "Proposal sent", day: "Thu 07", month: "May 2026", dt: "07.05.2026 - 13:45" },
+  { id: "a12", type: "task",   title: "Prepare docs", day: "Wed 06", month: "May 2026", dt: "06.05.2026 - 10:15" },
+  { id: "a13", type: "update", title: "Update Assignee", day: "Tue 05", month: "May 2026", dt: "05.05.2026 - 09:00", field: "Assignee", from: "Anna Muller", to: "Kai Becker" },
+  { id: "a14", type: "call",   title: "Callback", day: "Mon 04", month: "May 2026", dt: "04.05.2026 - 17:20", direction: "Outbound" },
+];
+
+const ActField = ({ label, value, node }) => (
+  <div style={{ marginBottom: 16 }}>
+    <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>{label}</div>
+    {node || <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{value}</div>}
+  </div>
 );
+
+const ActivityDetail = ({ a }) => {
+  if (a.type === "meeting") return (<>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
+      <ActField label="Hosted By" value="Payman Kooshkbaghi" />
+      <ActField label="Meeting Outcome" node={<span style={{ fontSize: 12, fontWeight: 700, color: C.amber, background: C.amber + "18", padding: "3px 12px", borderRadius: 12 }}>Scheduled</span>} />
+      <ActField label="Meeting Type" value="Video Conference" />
+      <ActField label="Meeting Duration" value="60 min" />
+      <ActField label="Meeting Location" node={<a style={{ fontSize: 13.5, fontWeight: 600, color: C.blue, textDecoration: "none" }}>Microsoft Teams</a>} />
+      <ActField label="Attendees" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>Test Test <span style={{ fontSize: 11, color: C.blue, background: C.blue + "14", padding: "2px 8px", borderRadius: 10 }}>+1</span></span>} />
+      <ActField label="Description" value="-" />
+      <div />
+      <ActField label="Attachments" value="-" />
+    </div>
+    <div style={{ background: C.blue + "0E", borderRadius: 10, padding: "14px 16px", marginTop: 4 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.blue, marginBottom: 4 }}>Meeting Note</div>
+      <div style={{ fontSize: 13, color: C.text }}>-</div>
+    </div>
+  </>);
+  if (a.type === "call") return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
+      <ActField label="Call By" value="Payman Kooshkbaghi" />
+      <ActField label="Call Status" value="-" />
+      <ActField label="Call Direction" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>📞 {a.direction || "Outbound"}</span>} />
+      <ActField label="Call Duration" value="00:00:00" />
+      <ActField label="Call Report" value="-" />
+      <div />
+      <ActField label="Call Recording" value="-" />
+    </div>
+  );
+  if (a.type === "email") return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
+      <ActField label="Sent By" value="Payman Kooshkbaghi" />
+      <ActField label="Direction" value="Sent" />
+      <ActField label="Subject" value={a.title} />
+      <ActField label="Status" value="Delivered" />
+      <ActField label="Email Report" value="-" />
+    </div>
+  );
+  if (a.type === "task") return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
+      <ActField label="Created By" value="Payman Kooshkbaghi" />
+      <ActField label="Task Type" value="Call" />
+      <ActField label="Priority" value="Medium" />
+      <ActField label="Status" value="Open" />
+      <ActField label="Description" value="-" />
+    </div>
+  );
+  // update
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
+      <ActField label="Changed By" value="Payman Kooshkbaghi" />
+      <ActField label="Field" value={a.field || "-"} />
+      <ActField label="From" value={a.from || "-"} />
+      <ActField label="To" value={a.to || "-"} />
+    </div>
+  );
+};
+
+const ActivitiesTab = () => {
+  const [filter, setFilter] = useState("All");
+  const [open, setOpen] = useState({ a1: true });   // a1 expanded by default (per design)
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
+  const FILTERS = ["All", "Call", "Email", "Task", "Meeting"];
+  const filtered = useMemo(() => {
+    if (filter === "All") return ACTIVITIES;
+    return ACTIVITIES.filter(a => a.type === filter.toLowerCase());
+  }, [filter]);
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+
+  // group page items by month, preserving order
+  const groups = [];
+  pageItems.forEach(a => {
+    let g = groups.find(x => x.month === a.month);
+    if (!g) { g = { month: a.month, items: [] }; groups.push(g); }
+    g.items.push(a);
+  });
+
+  return (
+    <Card style={{ padding: "18px 20px" }}>
+      {/* filter tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+        {FILTERS.map(f => {
+          const on = filter === f;
+          return (
+            <button key={f} onClick={() => { setFilter(f); setPage(1); }} style={{
+              padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
+              fontSize: 13, fontWeight: on ? 700 : 500, color: on ? C.blue : C.slate, background: on ? C.blue + "12" : "transparent",
+            }}>{f}</button>
+          );
+        })}
+      </div>
+
+      {groups.map(g => (
+        <div key={g.month} style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.navy, margin: "10px 0 12px" }}>{g.month}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {g.items.map(a => {
+              const meta = ACT_ICON[a.type];
+              const isOpen = !!open[a.id];
+              return (
+                <div key={a.id} style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+                  <div onClick={() => setOpen(prev => ({ ...prev, [a.id]: !prev[a.id] }))}
+                    style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 18px", cursor: "pointer" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.navy, width: 56, flexShrink: 0 }}>{a.day}</span>
+                    <span style={{ width: 1, height: 30, background: C.border, flexShrink: 0 }} />
+                    <span style={{ fontSize: 16, color: meta.color, flexShrink: 0 }}>{meta.icon}</span>
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: C.navy }}>{a.title}</span>
+                    <span style={{ fontSize: 12.5, color: C.muted }}>{a.dt}</span>
+                    <span style={{ fontSize: 12, color: C.muted, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
+                  </div>
+                  {isOpen && (
+                    <div style={{ padding: "4px 18px 18px 90px", borderTop: `1px solid ${C.border}` }}>
+                      <div style={{ paddingTop: 14 }}><ActivityDetail a={a} /></div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {total === 0 && <div style={{ padding: "40px", textAlign: "center", color: C.muted, fontSize: 13 }}>No activities.</div>}
+
+      {/* pagination */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ fontSize: 13, color: C.slate }}>Page <u>{page}</u> of {totalPages}</span>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", cursor: page <= 1 ? "default" : "pointer", color: page <= 1 ? C.muted : C.slate }}>‹</button>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", cursor: page >= totalPages ? "default" : "pointer", color: page >= totalPages ? C.muted : C.slate }}>›</button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} style={{ ...fieldStyle, width: "auto", padding: "6px 10px" }}>
+            {[5, 10, 25].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <span style={{ fontSize: 13, color: C.slate }}>Displaying {from} - {to} of {total} records</span>
+        </div>
+      </div>
+    </Card>
+  );
+};
 
 // ── Documents tab ─────────────────────────────────────────────────────────────
 const DOC_CATS = [
@@ -847,7 +1011,7 @@ const DocumentsTab = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 export const MVPContactDetailPage = ({ lead, navigateTo }) => {
   const [tab, setTab] = useState("Overview");
-  const [modal, setModal] = useState(null);   // email | task | logcall | offline
+  const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
   const c = {
     name: lead?.name ? (/^(Ms|Mr|Mrs|Dr)/i.test(lead.name) ? lead.name : `Ms ${lead.name}`) : "Ms Lana Steiner",
@@ -871,9 +1035,9 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18, alignItems: "start" }}>
         <IdentityRail c={c}
-          onEmail={() => setModal("email")} onTask={() => setModal("task")}
-          onLogCall={() => setModal("logcall")} onOffline={() => setModal("offline")}
-          onAppointment={() => setModal("appointment")} onOutcome={() => setModal("outcome")} />
+          onEmail={() => setModal("email")} onTask={() => setModal("task")} onAppointment={() => setModal("appointment")}
+          onLogCall={() => setModal("logcall")} onLogEmail={() => setModal("logemail")}
+          onLogAppt={() => setModal("logappt")} onOffline={() => setModal("offline")} />
 
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -895,10 +1059,11 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
 
       {modal === "email"       && <EmailModal onClose={() => setModal(null)} />}
       {modal === "task"        && <TaskModal onClose={() => setModal(null)} />}
-      {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} />}
-      {modal === "offline"     && <OfflineLogModal onClose={() => setModal(null)} />}
       {modal === "appointment" && <AppointmentModal onClose={() => setModal(null)} />}
-      {modal === "outcome"     && <AppointmentOutcomeModal onClose={() => setModal(null)} />}
+      {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} />}
+      {modal === "logemail"    && <LogEmailModal onClose={() => setModal(null)} />}
+      {modal === "logappt"     && <LogAppointmentModal onClose={() => setModal(null)} />}
+      {modal === "offline"     && <OfflineLogModal onClose={() => setModal(null)} />}
     </div>
   );
 };
