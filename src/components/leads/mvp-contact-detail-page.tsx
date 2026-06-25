@@ -788,7 +788,7 @@ const ActField = ({ label, value, node }) => (
 const ActivityDetail = ({ a }) => {
   if (a.type === "meeting") return (<>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Hosted By" value="Payman Kooshkbaghi" />
+      <ActField label="Hosted By" value="Philip West" />
       <ActField label="Meeting Outcome" node={<span style={{ fontSize: 12, fontWeight: 700, color: C.amber, background: C.amber + "18", padding: "3px 12px", borderRadius: 12 }}>Scheduled</span>} />
       <ActField label="Meeting Type" value="Video Conference" />
       <ActField label="Meeting Duration" value="60 min" />
@@ -805,7 +805,7 @@ const ActivityDetail = ({ a }) => {
   </>);
   if (a.type === "call") return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Call By" value="Payman Kooshkbaghi" />
+      <ActField label="Call By" value="Philip West" />
       <ActField label="Call Status" value="-" />
       <ActField label="Call Direction" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>📞 {a.direction || "Outbound"}</span>} />
       <ActField label="Call Duration" value="00:00:00" />
@@ -816,7 +816,7 @@ const ActivityDetail = ({ a }) => {
   );
   if (a.type === "email") return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Sent By" value="Payman Kooshkbaghi" />
+      <ActField label="Sent By" value="Philip West" />
       <ActField label="Direction" value="Sent" />
       <ActField label="Subject" value={a.title} />
       <ActField label="Status" value="Delivered" />
@@ -825,7 +825,7 @@ const ActivityDetail = ({ a }) => {
   );
   if (a.type === "task") return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Created By" value="Payman Kooshkbaghi" />
+      <ActField label="Created By" value="Philip West" />
       <ActField label="Task Type" value="Call" />
       <ActField label="Priority" value="Medium" />
       <ActField label="Status" value="Open" />
@@ -835,7 +835,7 @@ const ActivityDetail = ({ a }) => {
   // update
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Changed By" value="Payman Kooshkbaghi" />
+      <ActField label="Changed By" value="Philip West" />
       <ActField label="Field" value={a.field || "-"} />
       <ActField label="From" value={a.from || "-"} />
       <ActField label="To" value={a.to || "-"} />
