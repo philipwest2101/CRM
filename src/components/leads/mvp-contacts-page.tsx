@@ -524,7 +524,7 @@ const AddContactPage = ({ onCancel, onSave }) => {
   const [f, setF] = useState({
     first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
     assignee: "", product: "", productProvider: "", source: "", campaign: "",
-    gdprConsent: false, newsletter: false,
+    gdprConsent: false, gdprDate: "", newsletter: false, newsletterDate: "",
     salutation: "", dob: "", gender: "", nationality: "", language: "",
     street: "", houseNo: "", zip: "", city: "", country: "",
     company: "", employment: "", position: "", companySize: "", decisionRole: "None", industry: "",
@@ -586,24 +586,42 @@ const AddContactPage = ({ onCancel, onSave }) => {
           </Grid>
           <Grid>
             <Field label="Communication Consent (GDPR)">
-              <div style={{ display: "flex", gap: 20, paddingTop: 4 }}>
+              <div style={{ display: "flex", gap: 20, paddingTop: 4, marginBottom: f.gdprConsent ? 8 : 0 }}>
                 {[["Yes", true], ["No", false]].map(([label, val]) => (
                   <label key={label} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: C.text }}>
-                    <input type="radio" name="gdpr" checked={f.gdprConsent === val} onChange={() => setF(p => ({ ...p, gdprConsent: val }))} style={{ accentColor: C.primary, width: 15, height: 15 }} />
+                    <input type="radio" name="gdpr" checked={f.gdprConsent === val}
+                      onChange={() => setF(p => ({ ...p, gdprConsent: val, gdprDate: val ? p.gdprDate : "" }))}
+                      style={{ accentColor: C.primary, width: 15, height: 15 }} />
                     {label}
                   </label>
                 ))}
               </div>
+              {f.gdprConsent && (
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5 }}>Consent Date</label>
+                  <input type="date" value={f.gdprDate} onChange={e => setF(p => ({ ...p, gdprDate: e.target.value }))}
+                    style={{ ...fieldStyle, padding: "9px 12px" }} />
+                </div>
+              )}
             </Field>
             <Field label="Newsletter Subscription">
-              <div style={{ display: "flex", gap: 20, paddingTop: 4 }}>
+              <div style={{ display: "flex", gap: 20, paddingTop: 4, marginBottom: f.newsletter ? 8 : 0 }}>
                 {[["Subscribed", true], ["Not subscribed", false]].map(([label, val]) => (
                   <label key={label} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: C.text }}>
-                    <input type="radio" name="newsletter" checked={f.newsletter === val} onChange={() => setF(p => ({ ...p, newsletter: val }))} style={{ accentColor: C.primary, width: 15, height: 15 }} />
+                    <input type="radio" name="newsletter" checked={f.newsletter === val}
+                      onChange={() => setF(p => ({ ...p, newsletter: val, newsletterDate: val ? p.newsletterDate : "" }))}
+                      style={{ accentColor: C.primary, width: 15, height: 15 }} />
                     {label}
                   </label>
                 ))}
               </div>
+              {f.newsletter && (
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 5 }}>Subscription Date</label>
+                  <input type="date" value={f.newsletterDate} onChange={e => setF(p => ({ ...p, newsletterDate: e.target.value }))}
+                    style={{ ...fieldStyle, padding: "9px 12px" }} />
+                </div>
+              )}
             </Field>
           </Grid>
         </>)}
@@ -891,8 +909,18 @@ const CUSTOM_VIEWS = [
 export const MVPContactsPage = ({ navigateTo, role }) => {
   const t = useT();
   const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
-  const [views, setViews]       = useState(() => [...getSystemViews(role), ...CUSTOM_VIEWS]);
+  // System views are derived from role so they update whenever the role switcher changes.
+  // Custom views live in state so users can add/edit/delete them independently.
+  const systemViews = useMemo(() => getSystemViews(role), [role]);
+  const [customViews, setCustomViews] = useState(CUSTOM_VIEWS);
+  const views = [...systemViews, ...customViews];
   const [activeView, setActiveView] = useState(() => getSystemViews(role)[0]?.id || "my");
+
+  // Keep activeView in a valid system view when role changes
+  React.useEffect(() => {
+    const ids = new Set([...systemViews, ...customViews].map(v => v.id));
+    if (!ids.has(activeView)) setActiveView(systemViews[0]?.id || "my");
+  }, [role]);
   const [mode, setMode]         = useState("list");   // list | add
   const [showImport, setShowImport] = useState(false);
   const [showBulk, setShowBulk] = useState(false);    // Send Bulk Email modal
@@ -944,15 +972,15 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
   };
 
   const applyView = (next) => {
-    if (views.some(v => v.id === next.id)) setViews(prev => prev.map(v => v.id === next.id ? next : v));
-    else { setViews(prev => [...prev, next]); setActiveView(next.id); }
+    if (customViews.some(v => v.id === next.id)) setCustomViews(prev => prev.map(v => v.id === next.id ? next : v));
+    else { setCustomViews(prev => [...prev, next]); setActiveView(next.id); }
     setEditView(null);
   };
   const deleteView = () => {
     const current = views.find(v => v.id === activeView);
-    if (!current || current.system || views.length <= 1) return;
-    setViews(prev => prev.filter(v => v.id !== activeView));
-    setActiveView(views[0].id === activeView ? views[1].id : views[0].id);
+    if (!current || current.system || customViews.length === 0) return;
+    setCustomViews(prev => prev.filter(v => v.id !== activeView));
+    setActiveView(systemViews[0]?.id || "my");
   };
 
   // ── Add Contact full page ───────────────────────────────────────────────────
