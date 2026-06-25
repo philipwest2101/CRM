@@ -145,6 +145,8 @@ const EmailModal = ({ onClose }) => {
           <input type="time" style={placeholderSelect} />
         </div>
       </>)}
+      {/* Lifecycle / Status at the bottom of the modal */}
+      <StageStatusRow />
       <FooterBtns onClose={onClose} label="Send" />
     </ModalShell>
   );
