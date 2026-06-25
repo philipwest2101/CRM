@@ -84,7 +84,7 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
           { label:"Calendar",  page:"Calendar" },
           { label:"Newsletter",page:"Email Marketing", sub:[["Bulk Emails History","Email Marketing"]] },
           { label:"Reports",   page:"Reports",         sub:[["Report 1","Reports"],["Report 2","Reports"],["Report 3","Reports"]] },
-        ].map(item=>{
+        ].filter(item=> version!=="mvp" || !["Newsletter","Reports"].includes(item.label)).map(item=>{
           const active = page===item.page
             || (item.page==="Leads" && (page==="AutoAssign"||page==="LeadCapture"||page==="LeadDetail"))
             || (item.page==="Calendar" && (page==="Appointments"||page==="Reminders"||page==="Activities"));
