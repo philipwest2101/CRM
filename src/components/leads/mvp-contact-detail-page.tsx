@@ -590,7 +590,7 @@ const OverviewTab = () => {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 16, alignItems: "start" }}>
         <Card style={{ padding: "18px 20px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Follow Up</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>Follow Up <InfoTip text="Scheduled reminder to reconnect with this contact. Helps ensure no lead falls through the cracks." /></div>
           <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
             <Donut value={3} total={5} />
             <div style={{ flex: 1 }}>
@@ -711,10 +711,30 @@ const InfoField = ({ label, value, node }) => (
   </div>
 );
 
+// Tooltip icon shown inline next to field labels
+const InfoTip = ({ text }) => {
+  const [show, setShow] = React.useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <span style={{ fontSize: 12, color: C.muted, cursor: "help", marginLeft: 4 }}>ⓘ</span>
+      {show && (
+        <div style={{
+          position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)",
+          background: C.navy, color: "#fff", fontSize: 11, fontWeight: 500, lineHeight: 1.4,
+          padding: "7px 10px", borderRadius: 8, whiteSpace: "nowrap", maxWidth: 260, zIndex: 999,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.2)", pointerEvents: "none",
+        }}>{text}</div>
+      )}
+    </span>
+  );
+};
+
 const InformationTab = ({ c }) => {
   const [sub, setSub] = useState("Basic");
   const SUBS = ["Basic", "Personal", "Address", "Business", "Financial"];
   const [first, ...rest] = c.name.replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ");
+  const G2 = ({ children }) => <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 60px" }}>{children}</div>;
   return (
     <Card style={{ padding: "18px 22px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
@@ -730,23 +750,65 @@ const InformationTab = ({ c }) => {
         <button style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.primaryDark, fontSize: 13, fontWeight: 700 }}>✎ Edit</button>
       </div>
 
-      {sub === "Basic" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 60px" }}>
+      {sub === "Basic" && (
+        <G2>
           <InfoField label="First Name" value={first} />
           <InfoField label="Last Name" value={rest.join(" ") || "—"} />
           <InfoField label="Email" value={c.email} />
           <InfoField label="Phone" value={c.phone} />
-          <InfoField label="Assignee" value={c.assignee} />
+          <InfoField label={<>Lifecycle Stage <InfoTip text="Indicates the current stage of the contact in your sales pipeline (Lead → Opportunity → Customer)." /></>} value={c.lifecycle || "Lead"} />
+          <InfoField label={<>Stage Status <InfoTip text="The sub-status within the current lifecycle stage, e.g. New, To Do, Won." /></>} value={c.stageStatus || "New"} />
+          <InfoField label="Assignee" value={c.assignee || "—"} />
           <div />
           <InfoField label="Product" value="Product #1" />
           <InfoField label="Product Provider" value="Product Provider #1" />
-          <InfoField label="Lead Source" value={c.source} />
-          <InfoField label="Campaign Assignment" value={c.campaign} />
+          <InfoField label="Lead Source" value={c.source || "—"} />
+          <InfoField label="Campaign Assignment" value={c.campaign || "—"} />
           <InfoField label="Communication Consent (GDPR)" node={<div style={{ fontSize: 14, fontWeight: 600, color: C.green }}>✓ 01.01.2026</div>} />
           <InfoField label="Newsletter Subscription" node={<span style={{ fontSize: 12, fontWeight: 600, color: C.slate, background: C.light, padding: "4px 10px", borderRadius: 12 }}>✕ No</span>} />
-        </div>
-      ) : (
-        <div style={{ padding: "40px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>{sub} details</div>
+        </G2>
+      )}
+
+      {sub === "Personal" && (
+        <G2>
+          <InfoField label="Salutation" value="Mr." />
+          <InfoField label="Date of Birth" value={c.dob || "—"} />
+          <InfoField label="Gender" value="Male" />
+          <InfoField label="Nationality" value="German" />
+          <InfoField label="Preferred Language" value="German" />
+          <div />
+        </G2>
+      )}
+
+      {sub === "Address" && (
+        <G2>
+          <InfoField label="Street" value="Musterstraße" />
+          <InfoField label="House No." value="12" />
+          <InfoField label="ZIP" value="10115" />
+          <InfoField label="City" value="Berlin" />
+          <InfoField label="Country" value="Germany" />
+          <div />
+        </G2>
+      )}
+
+      {sub === "Business" && (
+        <G2>
+          <InfoField label="Company" value="Example GmbH" />
+          <InfoField label="Employment Type" value="Employed" />
+          <InfoField label="Position" value="Manager" />
+          <InfoField label="Company Size" value="51–200" />
+          <InfoField label="Decision Making Role" value="Decision Maker" />
+          <InfoField label="Industry" value="Finance" />
+        </G2>
+      )}
+
+      {sub === "Financial" && (
+        <G2>
+          <InfoField label="Annual Income" value="€ 80,000" />
+          <InfoField label="Net Worth" value="€ 250,000" />
+          <InfoField label="Risk Appetite" value="Balanced" />
+          <InfoField label="Investment Horizon" value="Medium (3–7y)" />
+        </G2>
       )}
     </Card>
   );

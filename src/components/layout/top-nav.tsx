@@ -3,14 +3,14 @@ import { Avatar } from "../ui/avatar";
 import { NOTIFICATIONS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
 import { C } from "../../theme";
 
-export const TopNav = ({ page, setPage, role, setRole, version, setVersion, pushRef }) => {
-  const roles = { superadmin:{label:"Super Admin",abbr:"SA",color:C.navy}, vd:{label:"Sales Director",abbr:"VD",color:C.indigo}, gp:{label:"Consultant (GP)",abbr:"GP",color:C.green}, manager:{label:"Product Owner",abbr:"PO",color:"#0891B2"} };
+export const TopNav = ({ page, setPage, role, setRole, version, setVersion, pushRef, lang, setLang }) => {
+  const roles = { superadmin:{label:"Super Admin",abbr:"SA",color:C.navy}, vd:{label:"Sales Director",abbr:"VD",color:C.indigo}, gp:{label:"Consultant (GP)",abbr:"GP",color:C.green} };
   const r = roles[role];
   const userName = role==="gp"?"Anna Klein":role==="vd"?"Thomas Müller":role==="manager"?"Julia Bauer":"Super Admin";
   const [notifOpen,   setNotifOpen]   = useState(false);
   const [notifs,      setNotifs]      = useState(NOTIFICATIONS);
   const [notifFilter, setNotifFilter] = useState("all");
-  const [lang,        setLang]        = useState("EN");
+  const _langState = useState("EN"); // kept for legacy; use prop lang/setLang if provided
   const [menuOpen,    setMenuOpen]    = useState(null);   // which top-menu dropdown is open
   const [profileOpen, setProfileOpen] = useState(false);  // profile dropdown
   const [pushToast,   setPushToast]   = useState(null);   // simulated push notification
@@ -80,13 +80,13 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
       <div style={{ display:"flex",gap:2 }}>
         {[
           { label:"Dashboard", page:"Dashboard" },
-          { label:"Contacts",  page:"Leads",           sub:[["Contacts List","Leads"],["Imports History","LeadCapture"]] },
+          { label:"Contacts",  page:"Leads",           sub:[["Contacts List","Leads"],["Bulk Emails History","BulkEmailHistory"],["Imports History","LeadCapture"]] },
           { label:"Calendar",  page:"Calendar" },
-          { label:"Newsletter",page:"Email Marketing", sub:[["Bulk Emails History","Email Marketing"]] },
+          { label:"Newsletter",page:"Email Marketing" },
           { label:"Reports",   page:"Reports",         sub:[["Report 1","Reports"],["Report 2","Reports"],["Report 3","Reports"]] },
         ].filter(item=> version!=="mvp" || !["Newsletter","Reports"].includes(item.label)).map(item=>{
           const active = page===item.page
-            || (item.page==="Leads" && (page==="AutoAssign"||page==="LeadCapture"||page==="LeadDetail"))
+            || (item.page==="Leads" && (page==="AutoAssign"||page==="LeadCapture"||page==="LeadDetail"||page==="BulkEmailHistory"))
             || (item.page==="Calendar" && (page==="Appointments"||page==="Reminders"||page==="Activities"));
           return (
             <div key={item.label} style={{ position:"relative" }}>
@@ -113,24 +113,17 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
         })}
       </div>
       <div style={{ marginLeft:"auto",display:"flex",alignItems:"center",gap:12 }}>
-        {/* Global page-version toggle — MVP vs Full across the whole app */}
-        <span style={{ fontSize:11,color:"rgba(255,255,255,0.8)" }}>Version:</span>
-        <div style={{ display:"flex",gap:3,background:"rgba(255,255,255,0.18)",borderRadius:8,padding:3 }}>
-          {[["mvp","MVP"],["full","Full"]].map(([key,label])=>(
-            <button key={key} onClick={()=>setVersion(key)} title={`Switch to ${label} version`}
-              style={{ padding:"4px 12px",borderRadius:6,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",background:version===key?"#fff":"transparent",color:version===key?C.primaryDark:"rgba(255,255,255,0.85)" }}>{label}</button>
-          ))}
-        </div>
-        <span style={{ width:1,height:20,background:"rgba(255,255,255,0.3)" }} />
+        {/* Version toggle hidden during MVP review phase — re-enable by restoring this block */}
         <span style={{ fontSize:11,color:"rgba(255,255,255,0.8)" }}>View as:</span>
         <div style={{ display:"flex",gap:3,background:"rgba(255,255,255,0.18)",borderRadius:8,padding:3 }}>
           {Object.entries(roles).map(([key,v])=>(
             <button key={key} onClick={()=>setRole(key)} style={{ padding:"4px 11px",borderRadius:6,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",background:role===key?"#fff":"transparent",color:role===key?v.color:"rgba(255,255,255,0.85)" }}>{v.abbr}</button>
           ))}
         </div>
-        <button onClick={()=>setLang(l=>l==="EN"?"DE":"EN")}
-          style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:7,padding:"4px 10px",cursor:"pointer",color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:4 }}>
-          🌐 {lang}
+        <button onClick={()=>setLang && setLang(lang==="en"?"de":"en")}
+          title={lang==="en"?"Auf Deutsch wechseln":"Switch to English"}
+          style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:7,padding:"4px 10px",cursor:"pointer",color:"#fff",fontSize:14,display:"flex",alignItems:"center",gap:4 }}>
+          🌐<span style={{ fontSize:10,fontWeight:700 }}>{lang==="en"?"EN":"DE"}</span>
         </button>
         {/* ➕ Quick create reminder */}
         <button onClick={()=>{setShowCreate(true);setNotifOpen(false);}} title="Create reminder"

@@ -5,6 +5,7 @@ import { DashboardPage } from "./components/dashboard/dashboard-page";
 import { EducationPage } from "./components/education/education-page";
 import { GPEducationPage } from "./components/education/gp-education-page";
 import { EmailMarketingPage } from "./components/email/email-marketing-page";
+import { BulkEmailHistoryPage } from "./components/email/bulk-email-history-page";
 import { EventsPage } from "./components/events/events-page";
 import { TopNav } from "./components/layout/top-nav";
 import { LeadCapturePage } from "./components/lead-capture/lead-capture-page";
@@ -16,12 +17,14 @@ import { ReportsPage } from "./components/reports/reports-page";
 import { SettingsPage } from "./components/settings/settings-page";
 import { MVPSettingsPage } from "./components/settings/mvp-settings-page";
 import { ACTIVITIES_STORE, APPOINTMENTS, EMAIL_TEMPLATES_STORE, WORKFLOW_RULES_STORE } from "./lib/core";
+import { LangContext, Lang } from "./lib/i18n";
 import { C } from "./theme";
 
 export default function CRMAppV5() {
   const [page, setPage]               = useState("Dashboard");
   const [role, setRole]               = useState("superadmin");
   const [version, setVersion]         = useState("mvp");   // global page-version toggle: "mvp" | "full"
+  const [lang, setLang]               = useState<Lang>("en");
   const [currentLead, setCurrentLead] = useState(null);
 
   // ── Shared state ────────────────────────────────────────────────────────────
@@ -185,8 +188,9 @@ export default function CRMAppV5() {
   };
 
   return (
+    <LangContext.Provider value={{ lang, setLang }}>
     <div style={{ minHeight:"100vh",background:C.light,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:C.text }}>
-      <TopNav page={page} setPage={setPage} role={role} setRole={setRole} version={version} setVersion={setVersion} pushRef={pushRef} />
+      <TopNav page={page} setPage={setPage} role={role} setRole={setRole} version={version} setVersion={setVersion} pushRef={pushRef} lang={lang} setLang={setLang} />
       {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} version={version} activities={activities} setActivities={setActivities} appointments={appointments} />}
       {page==="Leads"           && (version==="mvp"
                                       ? <MVPContactsPage  role={role} navigateTo={navigateTo} />
@@ -202,11 +206,13 @@ export default function CRMAppV5() {
                                       ? <MVPSettingsPage  role={role} navigateTo={navigateTo} />
                                       : <SettingsPage     role={role} navigateTo={navigateTo} />)}
       {page==="Email Marketing"  && <EmailMarketingPage     role={role} navigateTo={navigateTo} />}
+      {page==="BulkEmailHistory" && <BulkEmailHistoryPage navigateTo={navigateTo} />}
       {page==="Education"      && <EducationPage        role={role} navigateTo={navigateTo} />}
       {page==="GPEducation"    && <GPEducationPage      navigateTo={navigateTo} />}
       {page==="Events"         && <EventsPage           role={role} navigateTo={navigateTo} />}
       {page==="Reports"        && <ReportsPage          role={role} navigateTo={navigateTo} />}
     </div>
+    </LangContext.Provider>
   );
 }
 
