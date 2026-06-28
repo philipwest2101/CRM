@@ -998,7 +998,7 @@ const getSystemViews = (role) => {
   const myNetwork     = { id: "my",       name: "My Network",          filter: "all",      columns: DEFAULT_COLS, system: true };
   const unassigned    = { id: "pending",  name: "Unassigned Leads",    filter: "pending",  columns: DEFAULT_COLS, system: true };
   const myLeads       = { id: "myleads",  name: "My Leads",            filter: "myleads",  columns: DEFAULT_COLS, system: true };
-  const assignedLeads = { id: "assigned", name: "Assigned Leads",      filter: "assigned", columns: DEFAULT_COLS, system: true, readOnly: true };
+  const assignedLeads = { id: "assigned", name: "Assigned Leads",      filter: "assigned", columns: DEFAULT_COLS, system: true };
   const pendingAssign = { id: "pendingA", name: "Pending Assignments",  filter: "pending",  columns: DEFAULT_COLS, system: true };
 
   if (role === "superadmin") return [assignedLeads, unassigned];
@@ -1041,7 +1041,8 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
 
   const view = views.find(v => v.id === activeView) || views[0];
   const cols = view.columns;
-  const isReadOnly = !!view.readOnly;
+  // SA cannot navigate to contact detail from any view
+  const canNavigate = role !== "superadmin";
 
   // Bulk assign is available for SA on Assigned+Unassigned, VD on Assigned+Pending
   const bulkAssignViews = role === "superadmin" ? ["assigned","pending"]
@@ -1156,7 +1157,7 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
             <thead>
               <tr style={{ background: C.light, borderBottom: `1px solid ${C.border}` }}>
                 <th style={{ padding: "12px 16px", width: 44 }}>
-                  {!isReadOnly && <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />}
+                  <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />
                 </th>
                 {cols.map(k => (
                   <th key={k} style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate, whiteSpace: "nowrap" }}>
@@ -1187,10 +1188,10 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
               {rows.map(c => (
                 <tr key={c.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                   <td style={{ padding: "14px 16px" }}>
-                    {!isReadOnly && <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />}
+                    <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />
                   </td>
                   {cols.map(k => {
-                    const isLink = !isReadOnly && (k === "name" || k === LINK_COL);
+                    const isLink = canNavigate && (k === "name" || k === LINK_COL);
                     return (
                     <td key={k} style={{ padding: "14px 16px", cursor: isLink ? "pointer" : "default" }}
                       onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }, activeView) : undefined}>

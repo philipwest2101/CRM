@@ -9,10 +9,8 @@ import { C } from "../../theme";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LANGS = [
-  { key: "de", flag: "🇩🇪", label: "German",  def: true  },
-  { key: "en", flag: "🇬🇧", label: "English"            },
-  { key: "fr", flag: "🇫🇷", label: "French"             },
-  { key: "cz", flag: "🇨🇿", label: "Czech"              },
+  { key: "de", flag: "🇩🇪", label: "German", def: true },
+  { key: "en", flag: "🇬🇧", label: "English"           },
 ];
 
 const L = (...keys) => Object.fromEntries(LANGS.map(l => [l.key, keys.includes(l.key)]));
@@ -261,8 +259,12 @@ const Th = ({ children, sort }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-export const MVPSettingsPage = () => {
-  const [active, setActive]   = useState("products");
+const VD_GP_SECTIONS = new Set(["templates", "attachments", "labels"]);
+
+export const MVPSettingsPage = ({ role = "superadmin" }) => {
+  const isSA = role === "superadmin" || role === "manager";
+  const visibleSections = isSA ? SECTIONS : SECTIONS.filter(s => VD_GP_SECTIONS.has(s.key));
+  const [active, setActive]   = useState(() => (isSA ? "products" : "templates"));
   const [data, setData]       = useState(SEED);
   const [search, setSearch]   = useState("");
   const [editing, setEditing] = useState(null);   // { item } | { item:null }
@@ -270,7 +272,7 @@ export const MVPSettingsPage = () => {
   const [page, setPage]       = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const section = SECTIONS.find(s => s.key === active);
+  const section = visibleSections.find(s => s.key === active) || visibleSections[0];
   const items   = data[active] || [];
   const filtered = useMemo(() => items.filter(i => i.name.toLowerCase().includes(search.toLowerCase())), [items, search]);
 
@@ -303,7 +305,7 @@ export const MVPSettingsPage = () => {
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 18, alignItems: "start" }}>
         {/* Left rail */}
         <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: 10 }}>
-          {SECTIONS.map(s => {
+          {visibleSections.map(s => {
             const on = s.key === active;
             return (
               <div key={s.key} onClick={() => switchSection(s.key)}
@@ -341,24 +343,48 @@ export const MVPSettingsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {pageItems.length === 0 && (
-                  <tr><td colSpan={isFiles ? 2 : 3} style={{ padding: "36px", textAlign: "center", color: C.muted, fontSize: 13 }}>No {section.label.toLowerCase()} found.</td></tr>
+                {section.key === "statuses" ? (() => {
+                  // Group statuses by lifecycle stage (parent)
+                  const lifecycleOrder = data.lifecycle.map(l => l.name);
+                  const grouped: Record<string, typeof pageItems> = {};
+                  lifecycleOrder.forEach(n => { grouped[n] = []; });
+                  pageItems.forEach(item => { if (grouped[item.parent]) grouped[item.parent].push(item); else { grouped[item.parent] = grouped[item.parent] || []; grouped[item.parent].push(item); } });
+                  const entries = lifecycleOrder.filter(n => (grouped[n]||[]).length > 0 || !pageItems.length);
+                  if (pageItems.length === 0) return <tr><td colSpan={3} style={{ padding:"36px",textAlign:"center",color:C.muted,fontSize:13 }}>No statuses found.</td></tr>;
+                  return entries.flatMap(stage => [
+                    <tr key={`hdr-${stage}`} style={{ background:C.light }}>
+                      <td colSpan={3} style={{ padding:"10px 16px",fontSize:13,fontWeight:700,color:C.navy }}>{stage}</td>
+                    </tr>,
+                    ...(grouped[stage]||[]).map(item => (
+                      <tr key={item.id} style={{ borderBottom:`1px solid ${C.border}` }}>
+                        <td style={{ padding:"11px 16px 11px 28px",fontSize:13,color:C.text }}>{item.name}</td>
+                        <td style={{ padding:"11px 16px" }}><FlagSet langs={item.langs} /></td>
+                        <td style={{ padding:"11px 16px" }}><RowMenu actions={[["Edit",()=>setEditing({item})],["Delete",()=>remove(item.id)]]} /></td>
+                      </tr>
+                    )),
+                  ]);
+                })() : (
+                  <>
+                  {pageItems.length === 0 && (
+                    <tr><td colSpan={isFiles ? 2 : 3} style={{ padding: "36px", textAlign: "center", color: C.muted, fontSize: 13 }}>No {section.label.toLowerCase()} found.</td></tr>
+                  )}
+                  {pageItems.map(item => (
+                    <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td style={{ padding: "13px 16px", fontSize: 14, color: C.text }}>
+                        {isFiles
+                          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><FileIcon type={item.type} />{item.name}</span>
+                          : item.name}
+                      </td>
+                      {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}
+                      <td style={{ padding: "13px 16px" }}>
+                        {isFiles
+                          ? <RowMenu actions={[["Preview", () => {}], ["Download", () => {}], ["Delete", () => remove(item.id)]]} />
+                          : <RowMenu actions={[["Edit", () => setEditing({ item })], ["Delete", () => remove(item.id)]]} />}
+                      </td>
+                    </tr>
+                  ))}
+                  </>
                 )}
-                {pageItems.map(item => (
-                  <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "13px 16px", fontSize: 14, color: C.text }}>
-                      {isFiles
-                        ? <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><FileIcon type={item.type} />{item.name}</span>
-                        : item.name}
-                    </td>
-                    {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}
-                    <td style={{ padding: "13px 16px" }}>
-                      {isFiles
-                        ? <RowMenu actions={[["Preview", () => {}], ["Download", () => {}], ["Delete", () => remove(item.id)]]} />
-                        : <RowMenu actions={[["Edit", () => setEditing({ item })], ["Delete", () => remove(item.id)]]} />}
-                    </td>
-                  </tr>
-                ))}
               </tbody>
             </table>
 

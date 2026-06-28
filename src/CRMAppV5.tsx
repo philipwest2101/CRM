@@ -205,7 +205,7 @@ export default function CRMAppV5() {
       {page==="AutoAssign"      && <AutoAssignPage        role={role} navigateTo={navigateTo} />}
       {page==="LeadCapture"     && <LeadCapturePage       role={role} navigateTo={navigateTo} />}
       {page==="Settings"        && (version==="mvp"
-                                      ? <MVPSettingsPage  role={role} navigateTo={navigateTo} />
+                                      ? <MVPSettingsPage  role={role} />
                                       : <SettingsPage     role={role} navigateTo={navigateTo} />)}
       {page==="Email Marketing"  && <EmailMarketingPage     role={role} navigateTo={navigateTo} />}
       {page==="BulkEmailHistory" && <BulkEmailHistoryPage navigateTo={navigateTo} />}
