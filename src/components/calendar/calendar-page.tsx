@@ -203,10 +203,9 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             style={{ padding:"6px 28px 6px 10px",borderRadius:8,border:`1px solid ${C.border}`,
               background:"#fff",color:C.slate,fontSize:12,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none" }}>
             <option value="all">All types</option>
-            {["call","email","consultation","recruiting","business","other","event"].map(k=>{
-              const v = ACTIVITY_TYPES[k]; if(!v) return null;
-              return <option key={k} value={k}>{v.icon} {v.label}</option>;
-            })}
+            <option value="task">Tasks</option>
+            <option value="appointment">Appointments</option>
+            <option value="event">Events</option>
           </select>
           <div style={{ position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:9,color:C.muted }}>▼</div>
         </div>
@@ -468,11 +467,11 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             ))}
             <div style={{ display:"flex",alignItems:"center",gap:4,paddingLeft:6,borderLeft:`1px solid ${C.border}` }}>
               <div style={{ width:8,height:8,borderRadius:3,background:APPOINTMENT_COLOR }}/>
-              <span style={{ fontSize:9,color:C.slate }}>📅 Appointments</span>
+              <span style={{ fontSize:9,color:C.slate }}>Appointments</span>
             </div>
             <div style={{ display:"flex",alignItems:"center",gap:4 }}>
                 <div style={{ width:8,height:8,borderRadius:3,background:EVENT_COLOR }}/>
-                <span style={{ fontSize:9,color:C.slate }}>🎟️ Events</span>
+                <span style={{ fontSize:9,color:C.slate }}>Events</span>
               </div>
             <span style={{ marginLeft:"auto",fontSize:9,color:C.muted }}>{visible.length} activities total</span>
           </div>

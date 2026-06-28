@@ -239,15 +239,10 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClo
                   ))}
                 </div>
               )}
-              <select value="" onChange={e=>{ const v=e.target.value; if(!v) return; if(v==="__upload__"){ fileRef.current&&fileRef.current.click(); } else { addAttachment(v.replace(/^sys:/,"")); } e.target.value=""; }} style={input}>
+              <select value="" onChange={e=>{ const v=e.target.value; if(!v) return; addAttachment(v); e.target.value=""; }} style={input}>
                 <option value="">+ Add attachment…</option>
-                <optgroup label="System attachments">
-                  {DOCUMENT_TYPES_STORE.filter(d=>!f.attachments.includes(d.label)).map(d => <option key={d.id} value={`sys:${d.label}`}>{d.icon} {d.label}</option>)}
-                </optgroup>
-                <option value="__upload__">⬆ Upload from computer…</option>
+                {DOCUMENT_TYPES_STORE.filter(d=>!f.attachments.includes(d.label)).map(d => <option key={d.id} value={d.label}>{d.icon} {d.label}</option>)}
               </select>
-              <input ref={fileRef} type="file" multiple style={{ display:"none" }}
-                onChange={e=>{ const files=Array.from(e.target.files||[]); files.forEach(file=>addAttachment(file.name)); e.target.value=""; }}/>
             </div>
 
             {/* Reminder */}
