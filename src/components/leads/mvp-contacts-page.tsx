@@ -1041,8 +1041,12 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
 
   const view = views.find(v => v.id === activeView) || views[0];
   const cols = view.columns;
-  // SA cannot navigate to contact detail from any view
-  const canNavigate = role !== "superadmin";
+  // SA: unassigned ("pending") view is read-only; assigned view is clickable
+  // VD: assigned ("assigned") view is read-only; all other views are clickable
+  const canNavigate = !(
+    (role === "superadmin" && activeView === "pending") ||
+    (role === "vd"         && activeView === "assigned")
+  );
 
   // Bulk assign is available for SA on Assigned+Unassigned, VD on Assigned+Pending
   const bulkAssignViews = role === "superadmin" ? ["assigned","pending"]
