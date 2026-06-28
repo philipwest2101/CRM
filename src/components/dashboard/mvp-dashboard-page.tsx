@@ -1,7 +1,84 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { PRIORITY_META, DONE_STATUSES } from "../../lib/core";
 import { useT } from "../../lib/i18n";
+
+// ── Dashboard assignee list ───────────────────────────────────────────────────
+const DASH_USERS = [
+  { id: "u1", name: "Anna Klein",    role: "Berater" },
+  { id: "u2", name: "Peter Schmidt", role: "Berater" },
+  { id: "u3", name: "Maria Weber",   role: "Berater" },
+  { id: "u4", name: "Kai Fischer",   role: "Berater" },
+  { id: "u5", name: "Sophie Braun",  role: "Berater" },
+];
+
+// ── Simple SVG donut/pie chart ────────────────────────────────────────────────
+const PieChart = ({ slices }) => {
+  const total = slices.reduce((s, sl) => s + sl.value, 0);
+  if (!total) return null;
+  const R = 55, cx = 65, cy = 65, inner = 28;
+  let cum = -Math.PI / 2;
+  const paths = slices.map(sl => {
+    const a = (sl.value / total) * 2 * Math.PI;
+    const x1 = cx + R * Math.cos(cum), y1 = cy + R * Math.sin(cum);
+    cum += a;
+    const x2 = cx + R * Math.cos(cum), y2 = cy + R * Math.sin(cum);
+    return { ...sl, path: `M${cx},${cy} L${x1},${y1} A${R},${R},0,${a > Math.PI ? 1 : 0},1,${x2},${y2} Z` };
+  });
+  return (
+    <svg width={130} height={130} style={{ flexShrink: 0 }}>
+      {paths.map((sl, i) => <path key={i} d={sl.path} fill={sl.color} />)}
+      <circle cx={cx} cy={cy} r={inner} fill="#fff" />
+    </svg>
+  );
+};
+
+// ── Assign modal (dashboard) ──────────────────────────────────────────────────
+const DashAssignModal = ({ lead, onClose }) => {
+  const [assignee, setAssignee] = useState("");
+  const [confirm, setConfirm]   = useState(false);
+  const user = DASH_USERS.find(u => u.id === assignee);
+
+  if (confirm) return (
+    <>
+      <div onClick={() => setConfirm(false)} style={{ position:"fixed",inset:0,background:"rgba(15,23,42,0.45)",zIndex:600 }}/>
+      <div style={{ position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:400,maxWidth:"92vw",background:"#fff",borderRadius:16,zIndex:700,boxShadow:"0 24px 64px rgba(0,0,0,0.22)",padding:"22px 24px",fontFamily:"inherit" }}>
+        <div style={{ fontSize:17,fontWeight:700,color:C.navy,marginBottom:8 }}>Confirm Assignment</div>
+        <div style={{ fontSize:13,color:C.slate,marginBottom:22 }}>Assign <b>{lead?.name}</b> to <b>{user?.name}</b>?</div>
+        <div style={{ display:"flex",justifyContent:"flex-end",gap:12 }}>
+          <button onClick={()=>setConfirm(false)} style={{ padding:"9px 20px",borderRadius:9,border:"none",background:"transparent",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
+          <button onClick={onClose} style={{ padding:"9px 24px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Assign</button>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(15,23,42,0.45)",zIndex:400 }}/>
+      <div style={{ position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:440,maxWidth:"92vw",background:"#fff",borderRadius:16,zIndex:500,boxShadow:"0 24px 64px rgba(0,0,0,0.22)",padding:"22px 24px",fontFamily:"inherit" }}>
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18 }}>
+          <span style={{ fontSize:18,fontWeight:700,color:C.navy }}>Assign Contact</span>
+          <button onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",fontSize:20,color:C.muted }}>×</button>
+        </div>
+        <div style={{ fontSize:13,color:C.slate,marginBottom:14 }}>Contact: <b>{lead?.name}</b></div>
+        <label style={{ fontSize:13,fontWeight:600,color:C.navy,display:"block",marginBottom:6 }}>Assign to *</label>
+        <select value={assignee} onChange={e=>setAssignee(e.target.value)}
+          style={{ width:"100%",padding:"10px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:"inherit",color:assignee?C.text:C.muted,outline:"none",background:"#fff",marginBottom:22 }}>
+          <option value="">Select a user...</option>
+          {DASH_USERS.map(u=><option key={u.id} value={u.id}>{u.name} — {u.role}</option>)}
+        </select>
+        <div style={{ display:"flex",justifyContent:"flex-end",gap:12 }}>
+          <button onClick={onClose} style={{ padding:"9px 20px",borderRadius:9,border:"none",background:"transparent",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
+          <button disabled={!assignee} onClick={()=>setConfirm(true)}
+            style={{ padding:"9px 24px",borderRadius:9,border:"none",background:assignee?C.primary:C.border,color:assignee?"#fff":C.muted,fontSize:13,fontWeight:700,cursor:assignee?"pointer":"default" }}>
+            Assign
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
 
 // ── Role → user mapping (matches mock data in CRMAppV5.jsx) ──────────────────
 const ROLE_USER = {
@@ -226,13 +303,22 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     .slice(0, 8);
 
   // ── Panel titles per role ────────────────────────────────────────────────────
-  const leadsTitle    = isGP ? "My Leads" : isVD ? "Pending Assignment" : "Unassigned Leads";
-  const contactsLabel = isGP ? t("totalContacts") : isVD ? t("totalContacts") : t("totalContacts");
+  const leadsTitle     = isGP ? "My Leads" : isVD ? "Pending Assignment" : "Unassigned Leads";
+  const contactsLabel  = isGP ? "My Network" : isVD ? "My Leads" : t("totalContacts");
+  const newLeadsLabel  = isGP ? "My Leads" : isVD ? "Pending Assignments" : "New Contacts";
   const remindersTitle = isGP ? t("myTasks") : isVD ? t("teamTasks") : t("remindersAndTasks");
-  const apptsTitle    = isGP ? t("myAppointmentsToday") : isVD ? t("teamAppointmentsToday") : t("appointmentsToday");
+  const apptsTitle     = isGP ? t("myAppointmentsToday") : isVD ? "Appointments Today" : t("appointmentsToday");
 
-  // Contacts to show in panel (max 6)
-  const leadsToShow = newLeads.slice(0, 6);
+  // Contacts to show in panel (max 6) — SA: truly unassigned; VD: assigned to VD but no GP
+  const panelLeads = isSA
+    ? allLeads.filter(l => !l.assignedGP)
+    : isVD
+      ? allLeads.filter(l => l.assignedVD === userName && !l.assignedGP)
+      : newLeads;
+  const leadsToShow = panelLeads.slice(0, 6);
+
+  // ── Assign modal ────────────────────────────────────────────────────────────
+  const [assignTarget, setAssignTarget] = useState(null);
 
   // ── Done toggle — writes to the shared activities store so the Calendar stays
   //    in sync. Falls back to local state if no setter is provided. ─────────────
@@ -248,6 +334,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   };
 
   return (
+    <>
     <div style={{ flex: 1, overflowY: "auto", fontFamily: "Inter, system-ui, sans-serif" }}>
       <div style={{ padding: "0 28px 36px" }}>
 
@@ -268,11 +355,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             { label:"Unassigned",     value:"47",    delta:"−12",    up:false, sub:"Pending assignment", warn:true,  good:false },
             { label:"Appointments",   value:"134",   delta:"+23",    up:true,  sub:"Month",              warn:false, good:false },
             { label:"Closings",       value:"81",    delta:"+11",    up:true,  sub:"MTD",                warn:false, good:true  },
-            { label:"Opt-In Rate",    value:"79,8",  delta:"+2,4pp", up:true,  sub:"% GDPR",            warn:false, good:false },
             { label:"Conversion",     value:"6,2",   delta:"+0,4pp", up:true,  sub:"% Org MTD",         warn:false, good:true  },
           ];
           return (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:12, marginBottom:14 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:14 }}>
               {SA_KPIS.map(k => (
                 <Card key={k.label}>
                   <div style={{ padding:"13px 16px" }}>
@@ -296,9 +382,9 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             color={C.navy}
           />
           <KpiCard
-            label="New Contacts"
+            label={newLeadsLabel}
             value={newLeads.length}
-            sub={isGP ? "open & assigned to me" : unassignedCount > 0 ? `${unassignedCount} unassigned` : "all assigned"}
+            sub={isGP ? "open & assigned to me" : unassignedCount > 0 ? `${unassignedCount} pending` : "all assigned"}
             color={C.primary}
             warn={!isGP && unassignedCount > 0}
           />
@@ -327,24 +413,9 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads")} />}
             />
             <div style={{ padding: "2px 16px 10px" }}>
-              {/* VD/SA: unassigned warning banner */}
-              {!isGP && unassignedCount > 0 && (
-                <div style={{
-                  margin: "8px 0 8px",
-                  padding: "7px 12px", borderRadius: 8,
-                  background: C.red + "08", border: `1px solid ${C.red}30`,
-                  display: "flex", alignItems: "center", gap: 8,
-                }}>
-                  <span style={{ fontSize: 13 }}>⚠️</span>
-                  <span style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>
-                    {unassignedCount} contact{unassignedCount > 1 ? "s" : ""} not yet assigned to a consultant
-                  </span>
-                </div>
-              )}
-
               {leadsToShow.length === 0 ? (
                 <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                  {isGP ? "No new contacts assigned to you." : "No new contacts right now."}
+                  {isGP ? "No new contacts assigned to you." : "No pending contacts right now."}
                 </div>
               ) : leadsToShow.map((lead, i) => (
                 <div key={lead.id} style={{
@@ -360,29 +431,20 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name}</div>
                     <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {lead.city} · {lead.source}
-                      {/* VD/SA: show who it's assigned to (or flag as unassigned) */}
-                      {!isGP && (
-                        <span style={{
-                          marginLeft: 5,
-                          color: lead.assignedGP ? C.muted : C.red,
-                          fontWeight: lead.assignedGP ? 400 : 600,
-                        }}>
-                          · {lead.assignedGP ? `→ ${lead.assignedGP}` : "⚠ unassigned"}
-                        </span>
-                      )}
+                      {isVD && lead.assignedVD && <span style={{ marginLeft: 5, color: C.slate }}>· {lead.assignedVD}</span>}
                     </div>
                   </div>
-                  <button
-                    onClick={() => navigateTo("Leads")}
-                    style={{
-                      padding: "4px 10px", background: C.primary, color: "#fff",
-                      border: "none", borderRadius: 6, fontSize: 10, fontFamily: "monospace",
-                      letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Open
-                  </button>
+                  {isGP ? (
+                    <button onClick={() => navigateTo("Leads")}
+                      style={{ padding:"4px 10px",background:C.primary,color:"#fff",border:"none",borderRadius:6,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontWeight:600 }}>
+                      Open
+                    </button>
+                  ) : (
+                    <button onClick={() => setAssignTarget(lead)}
+                      style={{ padding:"4px 10px",background:C.primary,color:"#fff",border:"none",borderRadius:6,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontWeight:600 }}>
+                      Assign
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -486,72 +548,65 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </Card>
         </div>
 
-        {/* ── SA: Campaign/Lead Source Stats ──────────────────────────────── */}
+        {/* ── SA: Campaign (pie) + Recent Activity side by side ────────────── */}
         {isSA && (() => {
-          // Campaign stats
           const campaignMap: Record<string, number> = {};
-          const sourceMap: Record<string, number> = {};
-          allLeads.forEach(l => {
-            if (l.campaign) campaignMap[l.campaign] = (campaignMap[l.campaign] || 0) + 1;
-            if (l.source)   sourceMap[l.source]     = (sourceMap[l.source]     || 0) + 1;
-          });
+          allLeads.forEach(l => { if (l.campaign) campaignMap[l.campaign] = (campaignMap[l.campaign] || 0) + 1; });
           const campaigns = Object.entries(campaignMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
-          const sources   = Object.entries(sourceMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
-          const maxCamp   = Math.max(...campaigns.map(([,v]) => v), 1);
-          const maxSrc    = Math.max(...sources.map(([,v]) => v), 1);
-          const BAR_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
+          const PIE_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
+          const pieSlices = campaigns.map(([name, value], i) => ({ name, value, color: PIE_COLORS[i % PIE_COLORS.length] }));
 
           return (
-            <div style={{ marginBottom: 14 }}>
-
-              {/* Campaign / Lead Source Statistics */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1.4fr", gap:14, marginBottom:14, alignItems:"start" }}>
+              {/* Campaign pie chart */}
               <Card>
-                <CardHeader title="Campaign / Lead Source Statistics" action={<LinkBtn label="Reports →" onClick={() => navigateTo("Reports")} />} />
-                <div style={{ padding: "12px 20px 12px" }}>
-                  {/* Campaigns */}
-                  {campaigns.length > 0 && (<>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>By Campaign</div>
+                <CardHeader title="By Campaign" action={<LinkBtn label="Reports →" onClick={() => navigateTo("Reports")} />} />
+                <div style={{ padding:"16px 20px", display:"flex", gap:18, alignItems:"center" }}>
+                  <PieChart slices={pieSlices} />
+                  <div style={{ flex:1, minWidth:0 }}>
                     {campaigns.map(([name, count], i) => (
-                      <div key={name} style={{ marginBottom: 8 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                          <span style={{ color: C.text, fontWeight: 500 }}>{name}</span>
-                          <span style={{ color: C.slate, fontWeight: 600 }}>{count}</span>
-                        </div>
-                        <div style={{ height: 6, borderRadius: 4, background: C.border }}>
-                          <div style={{ height: "100%", width: `${(count / maxCamp) * 100}%`, borderRadius: 4, background: BAR_COLORS[i % BAR_COLORS.length] }} />
-                        </div>
+                      <div key={name} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                        <span style={{ width:8, height:8, borderRadius:"50%", background:PIE_COLORS[i % PIE_COLORS.length], flexShrink:0 }}/>
+                        <span style={{ flex:1, fontSize:12, color:C.text, fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{name}</span>
+                        <span style={{ fontSize:12, fontWeight:700, color:C.slate }}>{count}</span>
                       </div>
                     ))}
-                  </>)}
-                  {/* Sources */}
-                  {sources.length > 0 && (<>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "14px 0 8px" }}>By Lead Source</div>
-                    {sources.map(([name, count], i) => (
-                      <div key={name} style={{ marginBottom: 8 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                          <span style={{ color: C.text, fontWeight: 500 }}>{name}</span>
-                          <span style={{ color: C.slate, fontWeight: 600 }}>{count}</span>
-                        </div>
-                        <div style={{ height: 6, borderRadius: 4, background: C.border }}>
-                          <div style={{ height: "100%", width: `${(count / maxSrc) * 100}%`, borderRadius: 4, background: BAR_COLORS[i % BAR_COLORS.length] }} />
-                        </div>
-                      </div>
-                    ))}
-                  </>)}
-                  {campaigns.length === 0 && sources.length === 0 && (
-                    <div style={{ textAlign: "center", color: C.muted, fontSize: 13, padding: "16px 0" }}>No data yet.</div>
-                  )}
+                    {campaigns.length === 0 && <div style={{ textAlign:"center",color:C.muted,fontSize:13 }}>No data yet.</div>}
+                  </div>
                 </div>
               </Card>
 
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader title="Recent Activity" action={<LinkBtn label="All →" onClick={() => navigateTo("Calendar")} />} />
+                <div style={{ padding:"6px 16px 12px" }}>
+                  {recentActivity.length === 0
+                    ? <div style={{ padding:"16px 0",textAlign:"center",color:C.muted,fontSize:13 }}>No recent activity.</div>
+                    : recentActivity.map(act => {
+                        const iconBg = { call:C.green,video:C.indigo,email:C.amber,inperson:C.blue,note:C.purple }[act.type] || C.muted;
+                        return (
+                          <div key={act.id} style={{ display:"flex",gap:11,alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${C.border}` }}>
+                            <div style={{ width:30,height:30,borderRadius:"50%",background:iconBg+"18",display:"grid",placeItems:"center",fontSize:14,flexShrink:0 }}>{TYPE_ICON[act.type]||"📋"}</div>
+                            <div style={{ flex:1,minWidth:0 }}>
+                              <div style={{ fontSize:12.5,fontWeight:500,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{act.title}</div>
+                              <div style={{ fontSize:10.5,color:C.muted,marginTop:1 }}>{act.gp && <>{act.gp} · </>}{act.date} {act.time}</div>
+                            </div>
+                            <span style={{ fontSize:9,fontFamily:"monospace",padding:"2px 7px",borderRadius:20,flexShrink:0,background:C.muted+"18",color:C.muted,fontWeight:600,textTransform:"capitalize" }}>{act.status}</span>
+                          </div>
+                        );
+                      })
+                  }
+                </div>
+              </Card>
             </div>
           );
         })()}
 
-        {/* ── Recent Activity — full width below the top row ────────────────── */}
+        {/* ── Recent Activity — VD/GP full width ───────────────────────────── */}
+        {!isSA && (
         <Card>
           <CardHeader
-            title={isGP ? "My Recent Activity" : isVD ? "Team Recent Activity" : "Recent Activity"}
+            title={isGP ? "My Recent Activity" : "Team Recent Activity"}
             action={<LinkBtn label="All Activity →" onClick={() => navigateTo("Calendar")} />}
           />
           <div style={{ padding: "6px 16px 12px" }}>
@@ -564,16 +619,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                 {recentActivity.map((act) => {
                   const iconBg = { call: C.green, video: C.indigo, email: C.amber, inperson: C.blue, note: C.purple }[act.type] || C.muted;
                   return (
-                    <div key={act.id} style={{
-                      display: "flex", gap: 11, alignItems: "center",
-                      padding: "7px 0",
-                      borderBottom: `1px solid ${C.border}`,
-                    }}>
-                      <div style={{
-                        width: 30, height: 30, borderRadius: "50%",
-                        background: iconBg + "18", display: "grid", placeItems: "center",
-                        fontSize: 14, flexShrink: 0,
-                      }}>
+                    <div key={act.id} style={{ display: "flex", gap: 11, alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${C.border}` }}>
+                      <div style={{ width: 30, height: 30, borderRadius: "50%", background: iconBg + "18", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>
                         {TYPE_ICON[act.type] || "📋"}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -583,12 +630,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                           {act.date} {act.time}
                         </div>
                       </div>
-                      <span style={{
-                        fontSize: 9, fontFamily: "monospace", padding: "2px 7px",
-                        borderRadius: 20, flexShrink: 0,
-                        background: C.muted + "18", color: C.muted, fontWeight: 600,
-                        textTransform: "capitalize",
-                      }}>
+                      <span style={{ fontSize: 9, fontFamily: "monospace", padding: "2px 7px", borderRadius: 20, flexShrink: 0, background: C.muted + "18", color: C.muted, fontWeight: 600, textTransform: "capitalize" }}>
                         {act.status}
                       </span>
                     </div>
@@ -598,8 +640,11 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             )}
           </div>
         </Card>
+        )}
 
       </div>
     </div>
+    {assignTarget && <DashAssignModal lead={assignTarget} onClose={() => setAssignTarget(null)} />}
+    </>
   );
 };
