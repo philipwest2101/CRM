@@ -574,7 +574,7 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
 };
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
-const OverviewTab = () => {
+const OverviewTab = ({ showInsights = true }) => {
   const [addNote, setAddNote] = useState(false);
   const [delId, setDelId] = useState(null);
   const [notes, setNotes] = useState([
@@ -626,6 +626,7 @@ const OverviewTab = () => {
         </Card>
       </div>
 
+      {showInsights && (
       <Card style={{ padding: "16px 20px", border: `1px solid ${C.primary}55`, background: "linear-gradient(180deg,#FFFBF5,#fff)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>AI Insight</span><AiTag /></div>
@@ -639,6 +640,7 @@ const OverviewTab = () => {
           <span style={{ cursor: "pointer" }}>👍</span><span style={{ cursor: "pointer" }}>👎</span><span style={{ cursor: "pointer" }}>⧉</span>
         </div>
       </Card>
+      )}
 
       <Card style={{ padding: "18px 20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
@@ -1244,9 +1246,13 @@ const DocumentsTab = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-export const MVPContactDetailPage = ({ lead, navigateTo }) => {
+export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => {
   const t = useT();
-  const [tab, setTab] = useState("Overview");
+  const isMyNetwork = sourceView === "my";
+  const ACTIVE_TABS = isMyNetwork
+    ? ["Activities", "Documents", "Information"]
+    : ["Overview", "Activities", "Documents", "Information"];
+  const [tab, setTab] = useState(() => ACTIVE_TABS[0]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
   const c = {
@@ -1277,7 +1283,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
 
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {TABS.map(tabName => (
+            {ACTIVE_TABS.map(tabName => (
               <button key={tabName} onClick={() => setTab(tabName)} style={{
                 padding: "9px 18px", borderRadius: 10, border: `1px solid ${tab === tabName ? C.primary : C.border}`,
                 background: tab === tabName ? "#fff" : "transparent", cursor: "pointer", fontFamily: "inherit",
@@ -1286,7 +1292,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo }) => {
             ))}
           </div>
 
-          {tab === "Overview"    && <OverviewTab />}
+          {tab === "Overview"    && <OverviewTab showInsights={false} />}
           {tab === "Information" && <InformationTab c={c} />}
           {tab === "Activities"  && <ActivitiesTab />}
           {tab === "Documents"   && <DocumentsTab />}

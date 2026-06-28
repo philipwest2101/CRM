@@ -24,8 +24,9 @@ export default function CRMAppV5() {
   const [page, setPage]               = useState("Dashboard");
   const [role, setRole]               = useState("superadmin");
   const [version, setVersion]         = useState("mvp");   // global page-version toggle: "mvp" | "full"
-  const [lang, setLang]               = useState<Lang>("en");
+  const [lang, setLang]               = useState<Lang>("de");
   const [currentLead, setCurrentLead] = useState(null);
+  const [sourceView, setSourceView]   = useState(null);
 
   // ── Shared state ────────────────────────────────────────────────────────────
   const [appointments, setAppointments] = useState(APPOINTMENTS);
@@ -182,8 +183,9 @@ export default function CRMAppV5() {
     );
   };
 
-  const navigateTo = (dest, lead=null) => {
+  const navigateTo = (dest, lead=null, view=null) => {
     if (lead) setCurrentLead(lead);
+    if (view !== null) setSourceView(view);
     setPage(dest);
   };
 
@@ -196,7 +198,7 @@ export default function CRMAppV5() {
                                       ? <MVPContactsPage  role={role} navigateTo={navigateTo} />
                                       : <LeadsPage        role={role} navigateTo={navigateTo} />)}
       {page==="LeadDetail"      && (version==="mvp"
-                                      ? <MVPContactDetailPage role={role} navigateTo={navigateTo} lead={currentLead} />
+                                      ? <MVPContactDetailPage role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} />
                                       : <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />)}
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
       {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}

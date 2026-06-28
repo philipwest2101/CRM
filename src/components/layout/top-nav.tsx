@@ -73,6 +73,10 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
           style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:7,padding:"4px 10px",cursor:"pointer",color:"#fff",fontSize:14,display:"flex",alignItems:"center",gap:4 }}>
           🌐<span style={{ fontSize:10,fontWeight:700 }}>{lang==="en"?"EN":"DE"}</span>
         </button>
+        <button onClick={()=>setPage("Settings")} title="Settings"
+          style={{ background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:7,padding:"5px 10px",cursor:"pointer",color:"#fff",fontSize:16,display:"flex",alignItems:"center" }}>
+          ⚙️
+        </button>
         {/* 👤 Profile dropdown */}
         <div style={{ position:"relative" }}>
           <button onClick={()=>setProfileOpen(o=>!o)}
@@ -89,7 +93,7 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
                 <div style={{ fontSize:13,fontWeight:800,color:C.navy }}>{userName}</div>
                 <div style={{ fontSize:11,color:C.muted }}>{r.label}</div>
               </div>
-              {[["👤 My Profile",()=>setPage("Settings")],["⚙️ Settings",()=>setPage("Settings")],["↪️ Logout",()=>{}]].filter(([label])=> version!=="mvp" || label!=="👤 My Profile").map(([label,fn])=>(
+              {[["👤 My Profile",()=>setPage("Settings")],["↪️ Logout",()=>{}]].filter(([label])=> version!=="mvp" || label!=="👤 My Profile").map(([label,fn])=>(
                 <div key={label} onClick={()=>{ setProfileOpen(false); fn(); }}
                   style={{ padding:"9px 16px",fontSize:13,color:C.text,cursor:"pointer",fontWeight:500 }}
                   onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}

@@ -59,6 +59,19 @@ const synthDob = (id) => {
   return `${y}/${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}`;
 };
 
+const GENDERS = ["Male", "Female", "Other"];
+const NATIONALITIES = ["German", "Austrian", "Swiss", "French", "Italian", "Spanish", "Polish", "Czech"];
+
+const synthGender = (id) => {
+  let h = 0; for (const ch of String(id)) h = (h * 17 + ch.charCodeAt(0)) & 0xffff;
+  return GENDERS[h % GENDERS.length];
+};
+
+const synthNationality = (id) => {
+  let h = 0; for (const ch of String(id)) h = (h * 23 + ch.charCodeAt(0)) & 0xffff;
+  return NATIONALITIES[h % NATIONALITIES.length];
+};
+
 const toContact = (l) => {
   const [first, ...rest] = l.name.split(" ");
   const last = rest.join(" ");
@@ -69,6 +82,8 @@ const toContact = (l) => {
     phone: l.phone, email: l.email, primaryEmail: l.email,
     campaign: l.campaign || "—",
     dob: synthDob(l.id),
+    gender: synthGender(l.id),
+    nationality: synthNationality(l.id),
     website: l.website || "—",
     assignee: l.assignedGP || "Unassigned",
     create: l.created || "—",
@@ -91,7 +106,9 @@ const COLUMNS = {
   campaign:      { label: "Campaign",            locked: false, filter: "text",      group: "Main Information" },
   dob:           { label: "Date of Birth",       locked: false, filter: "date",      group: "Main Information" },
   email:         { label: "Email",               locked: false, filter: "text",      group: "Main Information" },
-  phone:         { label: "Phone Number",        locked: false, filter: "text",      group: "Main Information" },
+  phone:         { label: "Primary Phone",        locked: false, filter: "text",      group: "Main Information" },
+  gender:        { label: "Gender",              locked: false, filter: "text",      group: "Main Information" },
+  nationality:   { label: "Nationality",         locked: false, filter: "text",      group: "Main Information" },
   website:       { label: "Website",             locked: false, filter: null,        group: "Main Information" },
   assignee:      { label: "Assignee",            locked: false, filter: null,        group: "Main Information" },
   lifecycle:     { label: "Lifecycle Stage",     locked: false, filter: "lifecycle", group: "Main Information" },
@@ -102,16 +119,16 @@ const COLUMNS = {
   accountSource: { label: "Account Source",      locked: false, filter: null,        group: "Main Information" },
 };
 const COLUMN_KEYS = Object.keys(COLUMNS);
-const DEFAULT_COLS = ["name", "primaryEmail", "campaign", "dob"];
+const DEFAULT_COLS = ["name", "primaryEmail", "phone", "dob", "gender", "nationality"];
 const LINK_COL = "name";   // frozen Name column links to contact detail
 
 const VIEW_FILTERS = {
-  all:     () => true,
-  pending: (c) => !c.assigned,
-  custom1: (c) => c.lifecycle === "Lead",
-  custom2: (c) => c.lifecycle === "Opportunity",
-  // alias keys used by some system views
-  myleads: (c) => c.lifecycle === "Lead",
+  all:      () => true,
+  pending:  (c) => !c.assigned,
+  assigned: (c) => c.assigned,
+  custom1:  (c) => c.lifecycle === "Lead",
+  custom2:  (c) => c.lifecycle === "Opportunity",
+  myleads:  (c) => c.lifecycle === "Lead",
 };
 
 const fieldStyle = {
@@ -357,7 +374,7 @@ const EditViewModal = ({ view, onClose, onApply }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // IMPORT WIZARD
 // ─────────────────────────────────────────────────────────────────────────────
-const ImportContactsModal = ({ onClose }) => {
+const ImportContactsModal = ({ onClose, role }) => {
   const [step, setStep]       = useState("source");
   const [progress, setProgress] = useState(0);
   const timerRef = useRef(null);
@@ -407,8 +424,13 @@ const ImportContactsModal = ({ onClose }) => {
         <Header title="Import Contacts" />
         <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Choose a source</div>
         <div style={{ display: "flex", gap: 16 }}>
-          <SourceCard icon="📗" title="CSV or Excel File" sub="Max size: 5 MB" hint="Upload a file to continue" onClick={() => setStep("upload")} />
-          <SourceCard icon="📄" title="Google Sheets" sub="Google authorization needed" hint="Paste a Google Sheets link" onClick={() => setStep("upload")} />
+          <SourceCard icon="📗" title="Excel File" sub="Max size: 5 MB" hint="Upload a file to continue" onClick={() => setStep("upload")} />
+          <div style={{ flex: 1, background: C.light, border: `1px solid ${C.border}`, borderRadius: 12, padding: "26px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, opacity: 0.5, cursor: "not-allowed" }}>
+            <div style={{ fontSize: 34 }}>📄</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>Google Sheets</div>
+            <div style={{ fontSize: 12, color: C.slate }}>Google authorization needed</div>
+            <div style={{ fontSize: 11, color: C.muted }}>Coming soon</div>
+          </div>
         </div>
       </Overlay>
     );
@@ -423,7 +445,7 @@ const ImportContactsModal = ({ onClose }) => {
             <button style={{ background: "none", border: "none", cursor: "pointer", color: C.primaryDark, fontSize: 12, fontWeight: 700 }}>⬇ Download Template</button>
           </div>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: C.slate, lineHeight: 1.7 }}>
-            <li>Supported formats: CSV, XLS, XLSX, and Google Sheets. Max size: 5 MB.</li>
+            <li>Supported formats: XLS, XLSX. Max size: 5 MB.</li>
             <li>Use the provided template and do not modify the original column headers.</li>
             <li>Email addresses must follow a valid format; duplicates won't be checked.</li>
             <li>Dropdown values (e.g., Gender) must match the predefined options.</li>
@@ -431,7 +453,7 @@ const ImportContactsModal = ({ onClose }) => {
             <li>First Name and Last Name are required.</li>
           </ul>
         </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, marginBottom: 8 }}>Upload your CSV or Excel file</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, marginBottom: 8 }}>Upload your Excel file</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 18 }}>
           <span style={{ fontSize: 22 }}>📗</span>
           <div style={{ flex: 1 }}>
@@ -448,7 +470,9 @@ const ImportContactsModal = ({ onClose }) => {
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Contacts View *</label>
-            <select style={fieldStyle} defaultValue=""><option value="" disabled>Select Contacts View</option><option>My Contacts</option><option>All Contacts</option></select>
+            <select style={fieldStyle}>
+              {getSystemViews(role).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+            </select>
           </div>
         </div>
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 22 }}>Columns detected: 5 &nbsp;|&nbsp; Rows detected: 1,000</div>
@@ -787,7 +811,7 @@ const SendBulkEmailModal = ({ contacts, onClose }) => {
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
         </div>
-        <div>
+        <div style={{ maxHeight: 400, overflowY: "auto" }}>
           {recipients.map(r => (
             <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 2px", borderBottom: `1px solid ${C.border}` }}>
               <Avatar name={r.name} />
@@ -820,7 +844,7 @@ const SendBulkEmailModal = ({ contacts, onClose }) => {
             <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 2px", borderBottom: `1px solid ${C.border}` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{h.template}</div>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{h.recipients} recipients · {h.date}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{h.recipients} · {h.date}</div>
               </div>
               <span style={{ fontSize: 12, fontWeight: 700, color: BULK_STATUS_COLOR[h.status], background: BULK_STATUS_COLOR[h.status] + "18", padding: "4px 11px", borderRadius: 12 }}>{h.status}</span>
               {h.status === "Scheduled" && (
@@ -886,17 +910,99 @@ const SendBulkEmailModal = ({ contacts, onClose }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BULK ASSIGN MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+const ASSIGNABLE_USERS = [
+  { id: "u1", name: "Anna Klein",    role: "Berater" },
+  { id: "u2", name: "Peter Schmidt", role: "Berater" },
+  { id: "u3", name: "Maria Weber",   role: "Berater" },
+  { id: "u4", name: "Kai Fischer",   role: "Berater" },
+  { id: "u5", name: "Sophie Braun",  role: "Berater" },
+];
+
+const BulkAssignModal = ({ contacts, onClose, onAssign }) => {
+  const [assignee, setAssignee] = useState("");
+  const [confirm, setConfirm]   = useState(false);
+
+  if (confirm) {
+    const user = ASSIGNABLE_USERS.find(u => u.id === assignee);
+    return (
+      <>
+        <div onClick={() => setConfirm(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
+        <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 420, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Confirm Assignment</div>
+          <div style={{ fontSize: 13, color: C.slate, marginBottom: 22 }}>
+            Assign {contacts.length} contact{contacts.length !== 1 ? "s" : ""} to <b>{user?.name}</b>?
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+            <button onClick={() => setConfirm(false)} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { onAssign(contacts.map(c => c.id), user?.name); onClose(); }}
+              style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Assign</button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 520, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 26px", fontFamily: "inherit" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <span style={{ fontSize: 19, fontWeight: 700, color: C.navy }}>Bulk Assignment</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Assign to *</label>
+          <select value={assignee} onChange={e => setAssignee(e.target.value)} style={{ ...fieldStyle, color: assignee ? C.text : C.muted }}>
+            <option value="">Select a user...</option>
+            {ASSIGNABLE_USERS.map(u => <option key={u.id} value={u.id}>{u.name} — {u.role}</option>)}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, marginBottom: 8 }}>Selected Contacts ({contacts.length})</div>
+          <div style={{ maxHeight: 240, overflowY: "auto", border: `1px solid ${C.border}`, borderRadius: 10 }}>
+            {contacts.map(c => (
+              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                  {c.name.split(" ").slice(0,2).map(w => w[0]).join("").toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: C.muted }}>{c.email}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button disabled={!assignee} onClick={() => setConfirm(true)}
+            style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: assignee ? C.primary : C.border, color: assignee ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: assignee ? "pointer" : "default" }}>
+            Assign
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 // Build role-specific system views. System views cannot be deleted.
 const getSystemViews = (role) => {
-  const myNetwork    = { id: "my",      name: "My Network",          filter: "all",     columns: DEFAULT_COLS, system: true };
-  const unassigned   = { id: "pending", name: "Unassigned Leads",    filter: "pending", columns: ["name", "lifecycle", "stageStatus", "campaign", "assignee"], system: true };
-  const myLeads      = { id: "myleads", name: "My Leads",            filter: "custom1", columns: ["name", "primaryEmail", "lifecycle", "stageStatus", "campaign"], system: true };
-  const pendingAssign= { id: "pendingA",name: "Pending Assignments", filter: "pending", columns: ["name", "lifecycle", "stageStatus", "assignee", "create"], system: true };
+  const myNetwork     = { id: "my",       name: "My Network",          filter: "all",      columns: DEFAULT_COLS, system: true };
+  const unassigned    = { id: "pending",  name: "Unassigned Leads",    filter: "pending",  columns: DEFAULT_COLS, system: true };
+  const myLeads       = { id: "myleads",  name: "My Leads",            filter: "myleads",  columns: DEFAULT_COLS, system: true };
+  const assignedLeads = { id: "assigned", name: "Assigned Leads",      filter: "assigned", columns: DEFAULT_COLS, system: true, readOnly: true };
+  const pendingAssign = { id: "pendingA", name: "Pending Assignments",  filter: "pending",  columns: DEFAULT_COLS, system: true };
 
-  if (role === "superadmin") return [unassigned];
-  if (role === "vd")         return [myNetwork, myLeads, pendingAssign];
+  if (role === "superadmin") return [assignedLeads, unassigned];
+  if (role === "vd")         return [myNetwork, myLeads, assignedLeads, pendingAssign];
   // gp
   return [myNetwork, myLeads];
 };
@@ -923,9 +1029,10 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
   }, [role]);
   const [mode, setMode]         = useState("list");   // list | add
   const [showImport, setShowImport] = useState(false);
-  const [showBulk, setShowBulk] = useState(false);    // Send Bulk Email modal
-  const [editView, setEditView] = useState(null);     // view being edited / added
-  const [selected, setSelected] = useState(() => new Set());
+  const [showBulk, setShowBulk]     = useState(false);   // Send Bulk Email modal
+  const [showAssign, setShowAssign] = useState(false);   // Bulk Assign modal
+  const [editView, setEditView]     = useState(null);    // view being edited / added
+  const [selected, setSelected]     = useState(() => new Set());
 
   // filters (live) — generic map keyed by column
   const [filters, setFilters] = useState({});
@@ -934,6 +1041,12 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
 
   const view = views.find(v => v.id === activeView) || views[0];
   const cols = view.columns;
+  const isReadOnly = !!view.readOnly;
+
+  // Bulk assign is available for SA on Assigned+Unassigned, VD on Assigned+Pending
+  const bulkAssignViews = role === "superadmin" ? ["assigned","pending"]
+    : role === "vd" ? ["assigned","pendingA"] : [];
+  const showBulkAssignBtn = bulkAssignViews.includes(activeView);
 
   const counts = useMemo(() => Object.fromEntries(
     views.map(v => [v.id, contacts.filter(VIEW_FILTERS[v.filter] || (() => true)).length])
@@ -1029,6 +1142,10 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
         <IconBtn title="Export view">⬆</IconBtn>
         <IconBtn title="Send bulk email" active={selected.size > 0}
           onClick={() => { if (selected.size > 0) setShowBulk(true); }}>✉</IconBtn>
+        {showBulkAssignBtn && (
+          <IconBtn title="Bulk assign" active={selected.size > 0}
+            onClick={() => { if (selected.size > 0) setShowAssign(true); }}>👤</IconBtn>
+        )}
         {selected.size > 0 && <span style={{ marginLeft: 8, fontSize: 12, color: C.slate, fontWeight: 600 }}>{selected.size} selected</span>}
       </div>
 
@@ -1039,7 +1156,7 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
             <thead>
               <tr style={{ background: C.light, borderBottom: `1px solid ${C.border}` }}>
                 <th style={{ padding: "12px 16px", width: 44 }}>
-                  <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />
+                  {!isReadOnly && <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />}
                 </th>
                 {cols.map(k => (
                   <th key={k} style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate, whiteSpace: "nowrap" }}>
@@ -1070,13 +1187,13 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
               {rows.map(c => (
                 <tr key={c.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                   <td style={{ padding: "14px 16px" }}>
-                    <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />
+                    {!isReadOnly && <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />}
                   </td>
                   {cols.map(k => {
-                    const isLink = k === "name" || k === LINK_COL;
+                    const isLink = !isReadOnly && (k === "name" || k === LINK_COL);
                     return (
                     <td key={k} style={{ padding: "14px 16px", cursor: isLink ? "pointer" : "default" }}
-                      onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }) : undefined}>
+                      onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }, activeView) : undefined}>
                       {renderCell(k, c)}
                     </td>);
                   })}
@@ -1095,9 +1212,10 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
         </div>
       </div>
 
-      {showImport && <ImportContactsModal onClose={() => setShowImport(false)} />}
+      {showImport && <ImportContactsModal onClose={() => setShowImport(false)} role={role} />}
       {showBulk && <SendBulkEmailModal contacts={contacts.filter(c => selected.has(c.id))} onClose={() => setShowBulk(false)} />}
       {editView && <EditViewModal view={editView} onClose={() => setEditView(null)} onApply={applyView} />}
+      {showAssign && <BulkAssignModal contacts={contacts.filter(c => selected.has(c.id))} onClose={() => setShowAssign(false)} onAssign={() => { setSelected(new Set()); }} />}
     </div>
   );
 };
