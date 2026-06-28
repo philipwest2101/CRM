@@ -27,7 +27,7 @@ export const ImportsHistoryPage = () => {
 
   return (
     <div style={{ flex:1, overflowY:"auto", fontFamily:"Inter, system-ui, sans-serif" }}>
-      <div style={{ padding:"28px 32px 40px", maxWidth:1200 }}>
+      <div style={{ padding:"28px 32px 40px" }}>
 
         {/* Title + Import button */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>

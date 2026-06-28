@@ -447,7 +447,7 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                             {isFiles
                               ? <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><FileIcon type={item.type} />{item.name}</span>
                               : item.name}
-                            {item.system && <SystemBadge />}
+                            {item.system && !isSA && <SystemBadge />}
                           </span>
                         </td>
                         {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}

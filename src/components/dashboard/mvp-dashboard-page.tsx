@@ -202,22 +202,27 @@ const TYPE_ICON = {
 // ─────────────────────────────────────────────────────────────────────────────
 // ── Mock data used when the parent passes no leads ───────────────────────────
 const MOCK_LEADS = [
-  { id:"m1",  name:"Sandra Richter",  status:"open",        assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Berlin",  source:"Referral",    campaign:"Webinar Q1" },
-  { id:"m2",  name:"Markus Bauer",    status:"open",        assignedVD:"Thomas Müller", assignedGP:"",             city:"Hamburg", source:"Landing Page", campaign:"Spring 2026" },
-  { id:"m3",  name:"Julia Weiss",     status:"in_progress", assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Munich",  source:"Event",        campaign:"Webinar Q1" },
-  { id:"m4",  name:"Peter Schmidt",   status:"open",        assignedVD:"",              assignedGP:"",             city:"Cologne", source:"Referral",    campaign:"Spring 2026" },
-  { id:"m5",  name:"Laura Fischer",   status:"open",        assignedVD:"Thomas Müller", assignedGP:"",             city:"Vienna",  source:"Social",       campaign:"Webinar Q1" },
-  { id:"m6",  name:"Hans Müller",     status:"appointment", assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Zurich",  source:"Referral",    campaign:"Gold VIP" },
-  { id:"m7",  name:"Eva Braun",       status:"open",        assignedVD:"",              assignedGP:"",             city:"Berlin",  source:"Landing Page", campaign:"Spring 2026" },
-  { id:"m8",  name:"Klaus Wagner",    status:"open",        assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Munich",  source:"Event",        campaign:"Webinar Q1" },
-  { id:"m9",  name:"Maria Huber",     status:"closed",      assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Vienna",  source:"Referral",    campaign:"Gold VIP" },
-  { id:"m10", name:"Thomas Berger",   status:"open",        assignedVD:"",              assignedGP:"",             city:"Hamburg", source:"Social",       campaign:"Spring 2026" },
-  { id:"ml10", name:"Sandra Richter",   city:"Berlin",      source:"Meta Ads",     campaign:"General",           status:"open", assignedVD:null, assignedGP:null, lang:"de" },
-  { id:"ml11", name:"Klaus Weber",      city:"Hamburg",     source:"Landing Page", campaign:"Gold",              status:"open", assignedVD:null, assignedGP:null, lang:"de" },
-  { id:"ml12", name:"Petra Hoffmann",   city:"München",     source:"Referral",     campaign:"Financing",         status:"open", assignedVD:null, assignedGP:null, lang:"de" },
-  { id:"ml13", name:"Jens Brinkmann",   city:"Frankfurt",   source:"Zapier",       campaign:"Securities",        status:"open", assignedVD:null, assignedGP:null, lang:"de" },
-  { id:"ml14", name:"Maria Schneider",  city:"Düsseldorf",  source:"Meta Ads",     campaign:"Real Estate",       status:"open", assignedVD:null, assignedGP:null, lang:"de" },
-  { id:"ml15", name:"Thomas Bauer",     city:"Stuttgart",   source:"Google Sheets",campaign:"Crypto",            status:"open", assignedVD:null, assignedGP:null, lang:"de" },
+  // GP "Anna Klein" assigned leads (My Leads panel)
+  { id:"m1",  name:"Sandra Richter",   status:"open",        assignedVD:"Thomas Müller", assignedGP:"Anna Klein",  city:"Berlin",    source:"Referral",    campaign:"Webinar Q1"  },
+  { id:"m3",  name:"Julia Weiss",      status:"in_progress", assignedVD:"Thomas Müller", assignedGP:"Anna Klein",  city:"Munich",    source:"Event",        campaign:"Webinar Q1"  },
+  { id:"m6",  name:"Hans Müller",      status:"appointment", assignedVD:"Thomas Müller", assignedGP:"Anna Klein",  city:"Zurich",    source:"Referral",     campaign:"Gold VIP"    },
+  { id:"m8",  name:"Klaus Wagner",     status:"open",        assignedVD:"Thomas Müller", assignedGP:"Anna Klein",  city:"Munich",    source:"Event",        campaign:"Webinar Q1"  },
+  { id:"m9",  name:"Maria Huber",      status:"closed",      assignedVD:"Thomas Müller", assignedGP:"Anna Klein",  city:"Vienna",    source:"Referral",     campaign:"Gold VIP"    },
+  { id:"m20", name:"Lena Brandt",      status:"followup",    assignedVD:"Thomas Müller", assignedGP:"Anna Klein",  city:"Stuttgart", source:"Google Ads",   campaign:"Spring 2026" },
+  // VD "Thomas Müller" pending (no GP yet) — Pending Assignments panel
+  { id:"m2",  name:"Markus Bauer",     status:"open", assignedVD:"Thomas Müller", assignedGP:"", city:"Hamburg",   source:"Landing Page", campaign:"Spring 2026" },
+  { id:"m5",  name:"Laura Fischer",    status:"open", assignedVD:"Thomas Müller", assignedGP:"", city:"Vienna",    source:"Social",       campaign:"Webinar Q1"  },
+  { id:"m16", name:"Robert Keller",    status:"open", assignedVD:"Thomas Müller", assignedGP:"", city:"Dresden",   source:"Referral",     campaign:"Webinar Q1"  },
+  { id:"m17", name:"Christine Wolff",  status:"open", assignedVD:"Thomas Müller", assignedGP:"", city:"Leipzig",   source:"Landing Page", campaign:"Spring 2026" },
+  { id:"m18", name:"Dieter Schulz",    status:"open", assignedVD:"Thomas Müller", assignedGP:"", city:"Bremen",    source:"Social",       campaign:"Gold VIP"    },
+  { id:"m19", name:"Ursula Neumann",   status:"open", assignedVD:"Thomas Müller", assignedGP:"", city:"Nuremberg", source:"Event",        campaign:"Webinar Q1"  },
+  // SA unassigned leads (Unassigned Leads panel — no VD or GP assigned)
+  { id:"ml10", name:"Felix Hartmann",  city:"Berlin",     source:"Meta Ads",      campaign:"General",      status:"open", assignedVD:null, assignedGP:null },
+  { id:"ml11", name:"Katrin Weber",    city:"Hamburg",    source:"Landing Page",  campaign:"Gold",         status:"open", assignedVD:null, assignedGP:null },
+  { id:"ml12", name:"Petra Hoffmann",  city:"München",    source:"Referral",      campaign:"Financing",    status:"open", assignedVD:null, assignedGP:null },
+  { id:"ml13", name:"Jens Brinkmann",  city:"Frankfurt",  source:"Zapier",        campaign:"Securities",   status:"open", assignedVD:null, assignedGP:null },
+  { id:"ml14", name:"Sophia Richter",  city:"Düsseldorf", source:"Meta Ads",      campaign:"Real Estate",  status:"open", assignedVD:null, assignedGP:null },
+  { id:"ml15", name:"Dominik Meier",   city:"Stuttgart",  source:"Google Ads",    campaign:"Crypto",       status:"open", assignedVD:null, assignedGP:null },
 ];
 const MOCK_ACTIVITIES = [
   { id:"act1", entityType:"task",     title:"Follow up Sandra Richter",  status:"pending", priority:"high",   date:"2026-06-28", gp:"Anna Klein",   vd:"Thomas Müller", type:"call" },
@@ -230,9 +235,12 @@ const MOCK_ACTIVITIES = [
   { id:"act8", entityType:"note",     title:"Note added for Maria Huber",status:"done",    priority:"low",    date:"2026-06-23", gp:"Anna Klein",   vd:"Thomas Müller", type:"note" },
 ];
 const MOCK_APPOINTMENTS = [
-  { id:"ap1", lead:"Sandra Richter", date:"2026-06-28", start:"10:00", type:"call",      status:"upcoming",  gp:"Anna Klein",  vd:"Thomas Müller" },
-  { id:"ap2", lead:"Hans Müller",    date:"2026-06-28", start:"14:00", type:"video",     status:"confirmed", gp:"Anna Klein",  vd:"Thomas Müller" },
-  { id:"ap3", lead:"Klaus Wagner",   date:"2026-06-28", start:"16:30", type:"inperson",  status:"upcoming",  gp:"Anna Klein",  vd:"Thomas Müller" },
+  { id:"ap1", lead:"Sandra Richter",  date:"2026-06-28", start:"09:00", type:"call",     status:"upcoming",  gp:"Anna Klein", vd:"Thomas Müller" },
+  { id:"ap2", lead:"Hans Müller",     date:"2026-06-28", start:"10:30", type:"video",    status:"confirmed", gp:"Anna Klein", vd:"Thomas Müller" },
+  { id:"ap3", lead:"Klaus Wagner",    date:"2026-06-28", start:"12:00", type:"inperson", status:"upcoming",  gp:"Anna Klein", vd:"Thomas Müller" },
+  { id:"ap4", lead:"Julia Weiss",     date:"2026-06-28", start:"14:00", type:"call",     status:"confirmed", gp:"Anna Klein", vd:"Thomas Müller" },
+  { id:"ap5", lead:"Markus Bauer",    date:"2026-06-28", start:"15:30", type:"video",    status:"upcoming",  gp:"Anna Klein", vd:"Thomas Müller" },
+  { id:"ap6", lead:"Lena Brandt",     date:"2026-06-28", start:"17:00", type:"inperson", status:"upcoming",  gp:"Anna Klein", vd:"Thomas Müller" },
 ];
 
 export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
