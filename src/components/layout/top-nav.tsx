@@ -38,7 +38,7 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
             || (item.page==="Calendar" && (page==="Appointments"||page==="Reminders"||page==="Activities"));
           return (
             <div key={item.label} style={{ position:"relative" }}>
-              <button onClick={()=>{ setPage(item.page); setMenuOpen(item.sub ? (menuOpen===item.label?null:item.label) : null); }}
+              <button onClick={()=>{ if(item.sub){ setMenuOpen(menuOpen===item.label?null:item.label); } else { setPage(item.page); setMenuOpen(null); } }}
                 style={{ padding:"6px 14px",background:active?"rgba(255,255,255,0.18)":"transparent",border:"none",borderRadius:6,color:"#fff",fontSize:13,fontWeight:active?700:500,cursor:"pointer",fontFamily:"inherit",borderBottom:active?"2px solid #fff":"2px solid transparent",display:"flex",alignItems:"center",gap:5 }}>
                 {item.label}{item.sub && <span style={{ fontSize:9,opacity:0.7 }}>▾</span>}
               </button>

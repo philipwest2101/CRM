@@ -10,7 +10,7 @@ import { C } from "../../theme";
 
 const LANGS = [
   { key: "de", flag: "🇩🇪", label: "German", def: true },
-  { key: "en", flag: "🇬🇧", label: "English"           },
+  { key: "en", flag: "EN", label: "English"           },
 ];
 
 const L = (...keys) => Object.fromEntries(LANGS.map(l => [l.key, keys.includes(l.key)]));
@@ -49,21 +49,22 @@ const SEED = {
     { id: "c9", name: "Gold",                                   langs: L("de", "en", "fr") },
   ],
   templates: [
-    { id: "t1", name: "Welcome Email",        langs: L("de", "en", "fr") },
-    { id: "t2", name: "Appointment Reminder", langs: L("de", "en") },
+    { id: "t1", name: "Welcome Email",        langs: L("de", "en", "fr"), system: true },
+    { id: "t2", name: "Appointment Reminder", langs: L("de", "en"), system: true },
     { id: "t3", name: "Follow-up",            langs: L("de", "en", "fr") },
-    { id: "t4", name: "GDPR Consent",         langs: L("de", "en") },
+    { id: "t4", name: "GDPR Consent",         langs: L("de", "en"), system: true },
     { id: "t5", name: "Birthday Greeting",    langs: L("de", "en", "fr", "cz") },
   ],
   attachments: Array.from({ length: 57 }, (_, i) => ({
     id: `att${i + 1}`, name: `Attachment Name ${i + 1}`, type: i % 6 === 1 ? "img" : "pdf",
+    ...(i < 3 ? { system: true } : {}),
   })),
   labels: [
     { id: "lb1", name: "Hot Contact",  langs: L("de", "en") },
     { id: "lb2", name: "VIP",          langs: L("de", "en", "fr") },
-    { id: "lb3", name: "GDPR Pending", langs: L("de", "en") },
+    { id: "lb3", name: "GDPR Pending", langs: L("de", "en"), system: true },
     { id: "lb4", name: "Campaign Q1",  langs: L("de", "en") },
-    { id: "lb5", name: "Do Not Call",  langs: L("de", "en") },
+    { id: "lb5", name: "Do Not Call",  langs: L("de", "en"), system: true },
   ],
   lifecycle: [
     { id: "ls1", name: "New",         langs: L("de", "en", "fr") },
@@ -86,14 +87,15 @@ const SEED = {
 };
 
 const SECTIONS = [
-  { key: "products",   label: "Products",        singular: "Product",        kind: "lang"  },
-  { key: "sources",    label: "Lead Sources",    singular: "Lead Source",    kind: "lang"  },
-  { key: "campaigns",  label: "Campaigns",       singular: "Campaign",       kind: "lang"  },
-  { key: "templates",  label: "Email Templates", singular: "Email Template", kind: "lang"  },
-  { key: "attachments",label: "Attachements",    singular: "Attachement",    kind: "files" },
-  { key: "labels",     label: "Labels",          singular: "Label",          kind: "lang"  },
-  { key: "lifecycle",  label: "Lifecycle Stages",singular: "Lifecycle Stage",kind: "lang"  },
-  { key: "statuses",   label: "Stage Statuses",  singular: "Stage Status",   kind: "lang", parent: true },
+  { key: "products",     label: "Products",        singular: "Product",        kind: "lang"         },
+  { key: "sources",      label: "Lead Sources",    singular: "Lead Source",    kind: "lang"         },
+  { key: "campaigns",    label: "Campaigns",       singular: "Campaign",       kind: "lang"         },
+  { key: "templates",    label: "Email Templates", singular: "Email Template", kind: "lang"         },
+  { key: "attachments",  label: "Attachements",    singular: "Attachement",    kind: "files"        },
+  { key: "labels",       label: "Labels",          singular: "Label",          kind: "lang"         },
+  { key: "lifecycle",    label: "Lifecycle Stages",singular: "Lifecycle Stage",kind: "lang"         },
+  { key: "statuses",     label: "Stage Statuses",  singular: "Stage Status",   kind: "lang", parent: true },
+  { key: "integrations", label: "Integrations",    singular: "Integration",    kind: "integrations" },
 ];
 
 const fieldStyle = {
@@ -104,12 +106,25 @@ const fieldStyle = {
 
 // ── language flag set ─────────────────────────────────────────────────────────
 const FlagSet = ({ langs }) => (
-  <div style={{ display: "flex", gap: 6 }}>
-    {LANGS.map(l => (
-      <span key={l.key} title={l.label} style={{ fontSize: 17, opacity: langs[l.key] ? 1 : 0.25, filter: langs[l.key] ? "none" : "grayscale(1)" }}>
-        {l.flag}
-      </span>
-    ))}
+  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+    {LANGS.map(l => {
+      const isEmoji = l.flag.length > 2;
+      return (
+        <span key={l.key} title={l.label} style={{
+          fontSize: isEmoji ? 17 : 10,
+          fontWeight: isEmoji ? 400 : 700,
+          padding: isEmoji ? "0" : "2px 6px",
+          borderRadius: isEmoji ? 0 : 5,
+          background: isEmoji ? "transparent" : (langs[l.key] ? "#E0F2FE" : "#F1F5F9"),
+          color: isEmoji ? "inherit" : (langs[l.key] ? "#0284C7" : "#94A3B8"),
+          opacity: isEmoji ? (langs[l.key] ? 1 : 0.25) : 1,
+          filter: isEmoji ? (langs[l.key] ? "none" : "grayscale(1)") : "none",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {l.flag}
+        </span>
+      );
+    })}
   </div>
 );
 
@@ -195,7 +210,7 @@ const ItemModal = ({ section, item, lifecycleNames, onClose, onSave }) => {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
           {LANGS.map(l => (
             <div key={l.key} style={{ position: "relative", display: "flex", alignItems: "center" }}>
-              <span style={{ position: "absolute", left: 12, fontSize: 16 }}>{l.flag}</span>
+              <span style={{ position: "absolute", left: 12, fontSize: l.flag.length > 2 ? 16 : 10, fontWeight: l.flag.length > 2 ? 400 : 700 }}>{l.flag}</span>
               <input value={names[l.key]} onChange={setName(l.key)} placeholder={l.def ? "German (Default)" : l.label}
                 style={{ ...fieldStyle, paddingLeft: 40, paddingRight: l.def ? 86 : 12 }} />
               {l.def && (
@@ -259,7 +274,12 @@ const Th = ({ children, sort }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-const VD_GP_SECTIONS = new Set(["templates", "attachments", "labels"]);
+const VD_GP_SECTIONS = new Set(["templates", "attachments", "labels", "integrations"]);
+
+// ── system badge ──────────────────────────────────────────────────────────────
+const SystemBadge = () => (
+  <span style={{ fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:"#F1F5F9",color:"#64748B",border:"1px solid #CBD5E1",letterSpacing:"0.04em",textTransform:"uppercase" }}>System</span>
+);
 
 export const MVPSettingsPage = ({ role = "superadmin" }) => {
   const isSA = role === "superadmin" || role === "manager";
@@ -323,16 +343,63 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
         <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 22px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{section.label}</div>
-            <button onClick={() => isFiles ? setAddingFile(true) : setEditing({ item: null })} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-              Add {section.singular}
-            </button>
+            {section.kind !== "integrations" && (
+              <button onClick={() => isFiles ? setAddingFile(true) : setEditing({ item: null })} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                Add {section.singular}
+              </button>
+            )}
           </div>
 
-          <div style={{ position: "relative", marginBottom: 14 }}>
-            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 14 }}>🔍</span>
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search" style={{ ...fieldStyle, paddingLeft: 34, maxWidth: 360 }} />
-          </div>
+          {section.kind !== "integrations" && (
+            <div style={{ position: "relative", marginBottom: 14 }}>
+              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 14 }}>🔍</span>
+              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search" style={{ ...fieldStyle, paddingLeft: 34, maxWidth: 360 }} />
+            </div>
+          )}
 
+          {section.kind === "integrations" ? (
+            <div style={{ padding: "4px 0" }}>
+              {/* Google */}
+              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0",borderBottom:`1px solid ${C.border}` }}>
+                <div style={{ display:"flex",alignItems:"center",gap:14 }}>
+                  <div style={{ width:40,height:40,borderRadius:10,background:"#FEF2F2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>G</div>
+                  <div>
+                    <div style={{ fontSize:14,fontWeight:700,color:C.text }}>Google</div>
+                    <div style={{ fontSize:12,color:C.muted }}>Calendar & Email (bidirectional)</div>
+                    <div style={{ fontSize:11,color:C.green,fontWeight:600,marginTop:3 }}>✓ Connected · anna.klein@gmail.com</div>
+                  </div>
+                </div>
+                <div style={{ display:"flex",gap:8 }}>
+                  <span style={{ fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,background:C.green+"18",color:C.green }}>Connected</span>
+                  <button style={{ padding:"6px 14px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>Disconnect</button>
+                </div>
+              </div>
+              {/* Microsoft Calendar */}
+              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0",borderBottom:`1px solid ${C.border}` }}>
+                <div style={{ display:"flex",alignItems:"center",gap:14 }}>
+                  <div style={{ width:40,height:40,borderRadius:10,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>📅</div>
+                  <div>
+                    <div style={{ fontSize:14,fontWeight:700,color:C.text }}>Microsoft Calendar</div>
+                    <div style={{ fontSize:12,color:C.muted }}>Outlook Calendar (bidirectional sync)</div>
+                    <div style={{ fontSize:11,color:C.muted,marginTop:3 }}>Not connected</div>
+                  </div>
+                </div>
+                <button style={{ padding:"7px 18px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Connect Calendar</button>
+              </div>
+              {/* Microsoft Email */}
+              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0" }}>
+                <div style={{ display:"flex",alignItems:"center",gap:14 }}>
+                  <div style={{ width:40,height:40,borderRadius:10,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>✉️</div>
+                  <div>
+                    <div style={{ fontSize:14,fontWeight:700,color:C.text }}>Microsoft Email</div>
+                    <div style={{ fontSize:12,color:C.muted }}>Outlook / Exchange (bidirectional sync)</div>
+                    <div style={{ fontSize:11,color:C.muted,marginTop:3 }}>Not connected</div>
+                  </div>
+                </div>
+                <button style={{ padding:"7px 18px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Connect Email</button>
+              </div>
+            </div>
+          ) : (
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -368,21 +435,27 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                   {pageItems.length === 0 && (
                     <tr><td colSpan={isFiles ? 2 : 3} style={{ padding: "36px", textAlign: "center", color: C.muted, fontSize: 13 }}>No {section.label.toLowerCase()} found.</td></tr>
                   )}
-                  {pageItems.map(item => (
-                    <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td style={{ padding: "13px 16px", fontSize: 14, color: C.text }}>
-                        {isFiles
-                          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><FileIcon type={item.type} />{item.name}</span>
-                          : item.name}
-                      </td>
-                      {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}
-                      <td style={{ padding: "13px 16px" }}>
-                        {isFiles
-                          ? <RowMenu actions={[["Preview", () => {}], ["Download", () => {}], ["Delete", () => remove(item.id)]]} />
-                          : <RowMenu actions={[["Edit", () => setEditing({ item })], ["Delete", () => remove(item.id)]]} />}
-                      </td>
-                    </tr>
-                  ))}
+                  {pageItems.map(item => {
+                    const rowActions = isFiles
+                      ? [["Preview", () => {}], ["Download", () => {}], ...(!item.system || isSA ? [["Delete", () => remove(item.id)]] : [])] as [string, () => void][]
+                      : [["Edit", () => setEditing({ item })], ...(!item.system || isSA ? [["Delete", () => remove(item.id)]] : [])] as [string, () => void][];
+                    return (
+                      <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                        <td style={{ padding: "13px 16px", fontSize: 14, color: C.text }}>
+                          <span style={{ display:"inline-flex", alignItems:"center", gap:8 }}>
+                            {isFiles
+                              ? <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><FileIcon type={item.type} />{item.name}</span>
+                              : item.name}
+                            {item.system && <SystemBadge />}
+                          </span>
+                        </td>
+                        {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}
+                        <td style={{ padding: "13px 16px" }}>
+                          <RowMenu actions={rowActions} />
+                        </td>
+                      </tr>
+                    );
+                  })}
                   </>
                 )}
               </tbody>
@@ -405,6 +478,7 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
