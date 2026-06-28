@@ -1077,7 +1077,7 @@ const ActivityDetail = ({ a }) => {
 
 const ActivitiesTab = () => {
   const [filter, setFilter] = useState("All");
-  const [open, setOpen] = useState({ a1: true });   // a1 expanded by default (per design)
+  const [open, setOpen] = useState<Record<string,boolean>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
@@ -1132,7 +1132,15 @@ const ActivitiesTab = () => {
                     <span style={{ fontSize: 16, color: meta.color, flexShrink: 0 }}>{meta.icon}</span>
                     <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: C.navy }}>{a.title}</span>
                     <span style={{ fontSize: 12.5, color: C.muted }}>{a.dt}</span>
-                    <span style={{ fontSize: 12, color: C.muted, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
+                    <span style={{
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                      background: isOpen ? C.blue + "15" : "#F1F5F9",
+                      border: `1px solid ${isOpen ? C.blue + "40" : C.border}`,
+                      color: isOpen ? C.blue : C.slate, fontSize: 13, fontWeight: 700,
+                      transition: "background .15s, border .15s, transform .15s",
+                      transform: isOpen ? "rotate(180deg)" : "none",
+                    }}>⌄</span>
                   </div>
                   {isOpen && (
                     <div style={{ padding: "4px 18px 18px 90px", borderTop: `1px solid ${C.border}` }}>
