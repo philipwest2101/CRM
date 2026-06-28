@@ -920,38 +920,38 @@ const InformationTab = ({ c }) => {
       {/* Business */}
       {subIdx === 3 && (
         <G2>
-          <EditField label="Company" value={draft.company} editing={editing} onChange={set("company")} />
-          <EditField label="Employment Type" value={draft.employment} editing={editing} onChange={set("employment")}>
+          <EditField label={t("company")} value={draft.company} editing={editing} onChange={set("company")} />
+          <EditField label={t("employmentType")} value={draft.employment} editing={editing} onChange={set("employment")}>
             {editing && <select value={draft.employment} onChange={e => set("employment")(e.target.value)} style={editSelectStyle}>
               {["Employed","Self-employed","Business Owner","Retired"].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
-          <EditField label="Position" value={draft.position} editing={editing} onChange={set("position")} />
-          <EditField label="Company Size" value={draft.companySize} editing={editing} onChange={set("companySize")}>
+          <EditField label={t("position")} value={draft.position} editing={editing} onChange={set("position")} />
+          <EditField label={t("companySize")} value={draft.companySize} editing={editing} onChange={set("companySize")}>
             {editing && <select value={draft.companySize} onChange={e => set("companySize")(e.target.value)} style={editSelectStyle}>
               {["1–10","11–50","51–200","200+"].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
-          <EditField label="Decision Making Role" value={draft.decisionRole} editing={editing} onChange={set("decisionRole")}>
+          <EditField label={t("decisionMakingRole")} value={draft.decisionRole} editing={editing} onChange={set("decisionRole")}>
             {editing && <select value={draft.decisionRole} onChange={e => set("decisionRole")(e.target.value)} style={editSelectStyle}>
               {["None","Decision Maker","Influencer","End User"].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
-          <EditField label="Industry" value={draft.industry} editing={editing} onChange={set("industry")} />
+          <EditField label={t("industry")} value={draft.industry} editing={editing} onChange={set("industry")} />
         </G2>
       )}
 
       {/* Financial */}
       {subIdx === 4 && (
         <G2>
-          <EditField label="Annual Income" value={draft.income} editing={editing} onChange={set("income")} />
-          <EditField label="Net Worth" value={draft.netWorth} editing={editing} onChange={set("netWorth")} />
-          <EditField label="Risk Appetite" value={draft.risk} editing={editing} onChange={set("risk")}>
+          <EditField label={t("annualIncome")} value={draft.income} editing={editing} onChange={set("income")} />
+          <EditField label={t("netWorth")} value={draft.netWorth} editing={editing} onChange={set("netWorth")} />
+          <EditField label={t("riskAppetite")} value={draft.risk} editing={editing} onChange={set("risk")}>
             {editing && <select value={draft.risk} onChange={e => set("risk")(e.target.value)} style={editSelectStyle}>
               {["Conservative","Balanced","Growth","Aggressive"].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
-          <EditField label="Investment Horizon" value={draft.horizon} editing={editing} onChange={set("horizon")}>
+          <EditField label={t("investmentHorizon")} value={draft.horizon} editing={editing} onChange={set("horizon")}>
             {editing && <select value={draft.horizon} onChange={e => set("horizon")(e.target.value)} style={editSelectStyle}>
               {["Short (< 3y)","Medium (3–7y)","Long (7y+)"].map(o => <option key={o}>{o}</option>)}
             </select>}
@@ -1076,15 +1076,22 @@ const ActivityDetail = ({ a }) => {
 };
 
 const ActivitiesTab = () => {
-  const [filter, setFilter] = useState("All");
+  const t = useT();
+  const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState<Record<string,boolean>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const FILTERS = ["All", "Call", "Email", "Task", "Meeting"];
+  const FILTERS: Array<{ key: string; label: string }> = [
+    { key: "all", label: t("all") },
+    { key: "call", label: t("call") },
+    { key: "email", label: t("email") },
+    { key: "task", label: t("task") },
+    { key: "meeting", label: t("meeting") },
+  ];
   const filtered = useMemo(() => {
-    if (filter === "All") return ACTIVITIES;
-    return ACTIVITIES.filter(a => a.type === filter.toLowerCase());
+    if (filter === "all") return ACTIVITIES;
+    return ACTIVITIES.filter(a => a.type === filter);
   }, [filter]);
 
   const total = filtered.length;
@@ -1105,13 +1112,13 @@ const ActivitiesTab = () => {
     <Card style={{ padding: "18px 20px" }}>
       {/* filter tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-        {FILTERS.map(f => {
-          const on = filter === f;
+        {FILTERS.map(({ key, label }) => {
+          const on = filter === key;
           return (
-            <button key={f} onClick={() => { setFilter(f); setPage(1); }} style={{
+            <button key={key} onClick={() => { setFilter(key); setPage(1); }} style={{
               padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
               fontSize: 13, fontWeight: on ? 700 : 500, color: on ? C.blue : C.slate, background: on ? C.blue + "12" : "transparent",
-            }}>{f}</button>
+            }}>{label}</button>
           );
         })}
       </div>
