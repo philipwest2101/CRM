@@ -19,13 +19,7 @@ const InfoTip = ({ text }) => {
   );
 };
 
-// Tooltip text per system view id
-const VIEW_TIPS = {
-  my:       "All contacts in your personal network.",
-  pending:  "Leads not yet assigned to any consultant. Requires immediate action.",
-  myleads:  "Contacts currently assigned to you as active leads.",
-  pendingA: "Contacts awaiting assignment to a consultant.",
-};
+// VIEW_TIPS is computed inside ViewSelector (after useT()) to support i18n.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACTS PAGE
@@ -150,8 +144,8 @@ const StagePill = ({ label, tone }) => {
   );
 };
 
-const renderCell = (key, c) => {
-  if (key === "name" || key === LINK_COL) return <span style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: "underline", textUnderlineOffset: 2 }}>{c[key]}</span>;
+const renderCell = (key, c, isLink?: boolean) => {
+  if (key === "name" || key === LINK_COL) return <span style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: isLink ? "underline" : "none", textUnderlineOffset: 2 }}>{c[key]}</span>;
   if (key === "lifecycle")   return <span style={{ fontSize: 13, color: c.lifecycle === "N/A" ? C.muted : C.text }}>{c.lifecycle}</span>;
   if (key === "stageStatus") return <StagePill label={c.stageStatus} tone={c.tone} />;
   return <span style={{ fontSize: 13, color: C.slate }}>{c[key] ?? "—"}</span>;
@@ -175,6 +169,13 @@ const SortArrows = () => (
 // VIEW SELECTOR (dropdown)
 // ─────────────────────────────────────────────────────────────────────────────
 const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
+  const t = useT();
+  const VIEW_TIPS = {
+    my:       t("tooltip_myNetwork"),
+    pending:  t("tooltip_unassignedLeads"),
+    myleads:  t("tooltip_myLeads"),
+    pendingA: t("tooltip_pendingAssignments"),
+  };
   const [open, setOpen] = useState(false);
   const active = views.find(v => v.id === activeId);
   const systemViews = views.filter(v => v.system);
@@ -194,7 +195,7 @@ const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
           <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 260, background: "#fff", borderRadius: 12, boxShadow: "0 12px 36px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 240, padding: "6px 0" }}>
             {/* System views */}
-            <div style={{ padding: "4px 16px 4px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>System Views</div>
+            <div style={{ padding: "4px 16px 4px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>{t("systemViews")}</div>
             {systemViews.map(v => (
               <div key={v.id} onClick={() => { onSelect(v.id); setOpen(false); }}
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: v.id === activeId ? 700 : 500, color: v.id === activeId ? C.primaryDark : C.text }}
@@ -208,7 +209,7 @@ const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
             {customViews.length > 0 && (
               <>
                 <div style={{ borderTop: `1px solid ${C.border}`, margin: "4px 0" }} />
-                <div style={{ padding: "4px 16px 4px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Custom Views</div>
+                <div style={{ padding: "4px 16px 4px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>{t("customViews")}</div>
                 {customViews.map(v => (
                   <div key={v.id} onClick={() => { onSelect(v.id); setOpen(false); }}
                     style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", cursor: "pointer", fontSize: 14, fontWeight: v.id === activeId ? 700 : 500, color: v.id === activeId ? C.primaryDark : C.text }}
@@ -226,7 +227,7 @@ const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
                 style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, color: C.primary }}
                 onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <span style={{ fontSize: 14 }}>＋</span> Add View
+                {t("addView")}
               </div>
             </div>
           </div>
@@ -994,12 +995,13 @@ const BulkAssignModal = ({ contacts, onClose, onAssign }) => {
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 // Build role-specific system views. System views cannot be deleted.
-const getSystemViews = (role) => {
-  const myNetwork     = { id: "my",       name: "My Network",          filter: "all",      columns: DEFAULT_COLS, system: true };
-  const unassigned    = { id: "pending",  name: "Unassigned Leads",    filter: "pending",  columns: DEFAULT_COLS, system: true };
-  const myLeads       = { id: "myleads",  name: "My Leads",            filter: "myleads",  columns: DEFAULT_COLS, system: true };
-  const assignedLeads = { id: "assigned", name: "Assigned Leads",      filter: "assigned", columns: DEFAULT_COLS, system: true };
-  const pendingAssign = { id: "pendingA", name: "Pending Assignments",  filter: "pending",  columns: DEFAULT_COLS, system: true };
+const getSystemViews = (role, t?: (key: any) => string) => {
+  const n = (key: string, fallback: string) => t ? t(key) : fallback;
+  const myNetwork     = { id: "my",       name: n("myNetwork", "My Network"),                filter: "all",      columns: DEFAULT_COLS, system: true };
+  const unassigned    = { id: "pending",  name: n("unassignedLeads", "Unassigned Leads"),    filter: "pending",  columns: DEFAULT_COLS, system: true };
+  const myLeads       = { id: "myleads",  name: n("myLeads", "My Leads"),                   filter: "myleads",  columns: DEFAULT_COLS, system: true };
+  const assignedLeads = { id: "assigned", name: n("assignedLeads", "Assigned Leads"),        filter: "assigned", columns: DEFAULT_COLS, system: true };
+  const pendingAssign = { id: "pendingA", name: n("pendingAssignmentsView", "Pending Assignments"), filter: "pending", columns: DEFAULT_COLS, system: true };
 
   if (role === "superadmin") return [assignedLeads, unassigned];
   if (role === "vd")         return [myNetwork, myLeads, assignedLeads, pendingAssign];
@@ -1017,7 +1019,7 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
   const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
   // System views are derived from role so they update whenever the role switcher changes.
   // Custom views live in state so users can add/edit/delete them independently.
-  const systemViews = useMemo(() => getSystemViews(role), [role]);
+  const systemViews = useMemo(() => getSystemViews(role, t), [role, t]);
   const [customViews, setCustomViews] = useState(CUSTOM_VIEWS);
   const views = [...systemViews, ...customViews];
   const [activeView, setActiveView] = useState(() => getSystemViews(role)[0]?.id || "my");
@@ -1161,11 +1163,24 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
                 <th style={{ padding: "12px 16px", width: 44 }}>
                   {<input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />}
                 </th>
-                {cols.map(k => (
-                  <th key={k} style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate, whiteSpace: "nowrap" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{COLUMNS[k].label} <SortArrows /></span>
-                  </th>
-                ))}
+                {cols.map(k => {
+                  const COL_KEY_MAP: Record<string, string> = {
+                    name: "name", firstName: "firstName", lastName: "lastName",
+                    primaryEmail: "primaryEmail", campaign: "campaign", dob: "dob",
+                    email: "email", phone: "phone", gender: "gender",
+                    nationality: "nationality", assignee: "assignee",
+                    lifecycle: "lifecycleStage", stageStatus: "stageStatus",
+                    create: "createDate", registration: "registrationNumber",
+                    linkedin: "linkedIn", accountSource: "accountSource",
+                    website: "website",
+                  };
+                  const colLabel = COL_KEY_MAP[k] ? t(COL_KEY_MAP[k] as any) : COLUMNS[k].label;
+                  return (
+                    <th key={k} style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate, whiteSpace: "nowrap" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{colLabel} <SortArrows /></span>
+                    </th>
+                  );
+                })}
               </tr>
               {/* Filter row */}
               <tr style={{ background: "#fff", borderBottom: `1px solid ${C.border}` }}>
@@ -1197,7 +1212,7 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
                     return (
                     <td key={k} style={{ padding: "14px 16px", cursor: isLink ? "pointer" : "default" }}
                       onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }, activeView) : undefined}>
-                      {renderCell(k, c)}
+                      {renderCell(k, c, isLink)}
                     </td>);
                   })}
                 </tr>

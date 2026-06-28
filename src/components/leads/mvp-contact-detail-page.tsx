@@ -884,19 +884,19 @@ const InformationTab = ({ c }) => {
       {/* Personal */}
       {subIdx === 1 && (
         <G2>
-          <EditField label="Salutation" value={draft.salutation} editing={editing} onChange={set("salutation")}>
+          <EditField label={t("salutation")} value={draft.salutation} editing={editing} onChange={set("salutation")}>
             {editing && <select value={draft.salutation} onChange={e => set("salutation")(e.target.value)} style={editSelectStyle}>
               {["Mr.","Ms.","Mrs.","Dr."].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
-          <EditField label="Date of Birth" value={draft.dob} editing={editing} onChange={set("dob")} type="date" />
-          <EditField label="Gender" value={draft.gender} editing={editing} onChange={set("gender")}>
+          <EditField label={t("dob")} value={draft.dob} editing={editing} onChange={set("dob")} type="date" />
+          <EditField label={t("gender")} value={draft.gender} editing={editing} onChange={set("gender")}>
             {editing && <select value={draft.gender} onChange={e => set("gender")(e.target.value)} style={editSelectStyle}>
               {["Male","Female","Diverse","N/A"].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
-          <EditField label="Nationality" value={draft.nationality} editing={editing} onChange={set("nationality")} />
-          <EditField label="Preferred Language" value={draft.language} editing={editing} onChange={set("language")}>
+          <EditField label={t("nationality")} value={draft.nationality} editing={editing} onChange={set("nationality")} />
+          <EditField label={t("preferredLanguage")} value={draft.language} editing={editing} onChange={set("language")}>
             {editing && <select value={draft.language} onChange={e => set("language")(e.target.value)} style={editSelectStyle}>
               {["German","English","French","Czech"].map(o => <option key={o}>{o}</option>)}
             </select>}
@@ -908,11 +908,11 @@ const InformationTab = ({ c }) => {
       {/* Address */}
       {subIdx === 2 && (
         <G2>
-          <EditField label="Street" value={draft.street} editing={editing} onChange={set("street")} />
-          <EditField label="House No." value={draft.houseNo} editing={editing} onChange={set("houseNo")} />
-          <EditField label="ZIP" value={draft.zip} editing={editing} onChange={set("zip")} />
-          <EditField label="City" value={draft.city} editing={editing} onChange={set("city")} />
-          <EditField label="Country" value={draft.country} editing={editing} onChange={set("country")} />
+          <EditField label={t("street")} value={draft.street} editing={editing} onChange={set("street")} />
+          <EditField label={t("houseNo")} value={draft.houseNo} editing={editing} onChange={set("houseNo")} />
+          <EditField label={t("zip")} value={draft.zip} editing={editing} onChange={set("zip")} />
+          <EditField label={t("city")} value={draft.city} editing={editing} onChange={set("city")} />
+          <EditField label={t("country")} value={draft.country} editing={editing} onChange={set("country")} />
           <div />
         </G2>
       )}
@@ -1258,8 +1258,8 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
   const t = useT();
   const isMyNetwork = sourceView === "my";
   const ACTIVE_TABS = isMyNetwork
-    ? ["Activities", "Documents", "Information"]
-    : ["Overview", "Activities", "Documents", "Information"];
+    ? [t("activitiesTab"), t("documentsTab"), t("informationTab")]
+    : [t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
   const [tab, setTab] = useState(() => ACTIVE_TABS[0]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
@@ -1277,9 +1277,9 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
   return (
     <div style={{ padding: "20px 28px 36px", fontFamily: "inherit" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>Contact Detail View</h1>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>{t("contactDetailTitle")}</h1>
         <span style={{ fontSize: 13, color: C.muted }}>
-          <span onClick={() => navigateTo && navigateTo("Leads")} style={{ cursor: "pointer" }}>Contacts</span> . Contact detail view
+          <span onClick={() => navigateTo && navigateTo("Leads")} style={{ cursor: "pointer" }}>{t("contacts")}</span> . {t("contactDetailTitle")}
         </span>
       </div>
 
@@ -1300,10 +1300,10 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
             ))}
           </div>
 
-          {tab === "Overview"    && <OverviewTab showInsights={false} />}
-          {tab === "Information" && <InformationTab c={c} />}
-          {tab === "Activities"  && <ActivitiesTab />}
-          {tab === "Documents"   && <DocumentsTab />}
+          {tab === t("overviewTab")     && <OverviewTab showInsights={false} />}
+          {tab === t("informationTab") && <InformationTab c={c} />}
+          {tab === t("activitiesTab")  && <ActivitiesTab />}
+          {tab === t("documentsTab")   && <DocumentsTab />}
         </div>
       </div>
 
