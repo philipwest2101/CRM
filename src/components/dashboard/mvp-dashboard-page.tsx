@@ -212,6 +212,12 @@ const MOCK_LEADS = [
   { id:"m8",  name:"Klaus Wagner",    status:"open",        assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Munich",  source:"Event",        campaign:"Webinar Q1" },
   { id:"m9",  name:"Maria Huber",     status:"closed",      assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Vienna",  source:"Referral",    campaign:"Gold VIP" },
   { id:"m10", name:"Thomas Berger",   status:"open",        assignedVD:"",              assignedGP:"",             city:"Hamburg", source:"Social",       campaign:"Spring 2026" },
+  { id:"ml10", name:"Sandra Richter",   city:"Berlin",      source:"Meta Ads",     campaign:"General",           status:"open", assignedVD:null, assignedGP:null, lang:"de" },
+  { id:"ml11", name:"Klaus Weber",      city:"Hamburg",     source:"Landing Page", campaign:"Gold",              status:"open", assignedVD:null, assignedGP:null, lang:"de" },
+  { id:"ml12", name:"Petra Hoffmann",   city:"München",     source:"Referral",     campaign:"Financing",         status:"open", assignedVD:null, assignedGP:null, lang:"de" },
+  { id:"ml13", name:"Jens Brinkmann",   city:"Frankfurt",   source:"Zapier",       campaign:"Securities",        status:"open", assignedVD:null, assignedGP:null, lang:"de" },
+  { id:"ml14", name:"Maria Schneider",  city:"Düsseldorf",  source:"Meta Ads",     campaign:"Real Estate",       status:"open", assignedVD:null, assignedGP:null, lang:"de" },
+  { id:"ml15", name:"Thomas Bauer",     city:"Stuttgart",   source:"Google Sheets",campaign:"Crypto",            status:"open", assignedVD:null, assignedGP:null, lang:"de" },
 ];
 const MOCK_ACTIVITIES = [
   { id:"act1", entityType:"task",     title:"Follow up Sandra Richter",  status:"pending", priority:"high",   date:"2026-06-28", gp:"Anna Klein",   vd:"Thomas Müller", type:"call" },
@@ -412,7 +418,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               title={leadsTitle}
               action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads")} />}
             />
-            <div style={{ padding: "2px 16px 10px" }}>
+            <div style={{ padding: "2px 16px 10px", maxHeight: 280, overflowY: "auto" }}>
               {leadsToShow.length === 0 ? (
                 <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
                   {isGP ? "No new contacts assigned to you." : "No pending contacts right now."}
