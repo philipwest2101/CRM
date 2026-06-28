@@ -302,14 +302,14 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                       </div>
                       {dayActs.slice(0,2).map(a=>{ const at=metaOf(a); return (
                         <div key={a.id} title={a.title}
-                          style={{ fontSize:8,fontWeight:600,color:at.color,background:at.bg,
-                            borderLeft:`2px solid ${at.color}`,padding:"1px 3px",
-                            borderRadius:"0 3px 3px 0",marginBottom:2,
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                          style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
+                            borderLeft:`2px solid ${at.color}`,padding:"2px 5px",
+                            borderRadius:"0 4px 4px 0",marginBottom:2,
+                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",lineHeight:1.4 }}>
                           {at.icon} {a.time&&a.time.slice(0,5)} {a.title}
                         </div>
                       );})}
-                      {dayActs.length>2&&<div style={{ fontSize:8,color:C.muted,textAlign:"center" }}>+{dayActs.length-2} more</div>}
+                      {dayActs.length>2&&<div style={{ fontSize:9,fontWeight:700,color:C.slate,background:C.muted+"18",border:`1px solid ${C.muted}30`,borderRadius:10,padding:"1px 7px",display:"inline-block",marginTop:1 }}>+{dayActs.length-2} more</div>}
                       {dayActs.length>0&&(
                         <div style={{ display:"flex",justifyContent:"center",gap:3,marginTop:2 }}>
                           {typeColors.map((c,i)=><div key={i} style={{ width:5,height:5,borderRadius:"50%",background:c }}/>)}
@@ -365,9 +365,9 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                         {slotActs.length===0 ? null :
                          slotActs.length===1 ? (()=>{ const a=slotActs[0]; const at=metaOf(a); return (
                            <div title={`${a.title} ${a.time||""}`}
-                             style={{ fontSize:9,fontWeight:600,color:at.color,background:at.bg,
-                               borderLeft:`2px solid ${at.color}`,padding:"2px 4px",borderRadius:"0 4px 4px 0",
-                               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",margin:1 }}>
+                             style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
+                               borderLeft:`2px solid ${at.color}`,padding:"2px 5px",borderRadius:"0 4px 4px 0",
+                               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",margin:1,lineHeight:1.4 }}>
                              {at.icon} {a.time&&a.time.slice(0,5)} {a.title}
                            </div>
                          );})() :
@@ -376,16 +376,16 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                            <div style={{ position:"relative" }}>
                              {slotActs.slice(0,2).map((a,ai)=>{ const at=metaOf(a); return (
                                <div key={a.id} title={`${a.title} ${a.time||""}`}
-                                 style={{ fontSize:8,fontWeight:600,color:at.color,background:at.bg,
-                                   borderLeft:`2px solid ${at.color}`,padding:"1px 3px",
-                                   borderRadius:"0 3px 3px 0",overflow:"hidden",
+                                 style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
+                                   borderLeft:`2px solid ${at.color}`,padding:"2px 5px",
+                                   borderRadius:"0 4px 4px 0",overflow:"hidden",
                                    textOverflow:"ellipsis",whiteSpace:"nowrap",margin:"1px",
-                                   opacity:1-ai*0.15 }}>
+                                   lineHeight:1.4,opacity:1-ai*0.15 }}>
                                  {at.icon} {a.title.slice(0,10)}{a.title.length>10?"…":""}
                                </div>
                              );})}
                              {slotActs.length>2&&(
-                               <div style={{ fontSize:8,color:C.muted,padding:"0 3px",fontWeight:600 }}>
+                               <div style={{ fontSize:9,fontWeight:700,color:C.slate,background:C.muted+"18",border:`1px solid ${C.muted}30`,borderRadius:10,padding:"1px 6px",display:"inline-block",margin:"1px 2px" }}>
                                  +{slotActs.length-2} more
                                </div>
                              )}
@@ -525,30 +525,25 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 const prioCol = (PRIORITY_META[a.priority]||PRIORITY_META.normal).color;
                 return (
                   <div key={a.id} onClick={()=>openActivity(a)}
-                    style={{ cursor:"pointer",display:"flex",gap:6,padding:"5px 8px",borderRadius:8,
-                      background:isDone?"#F8FAFC":"#fff",border:`1px solid ${C.border}`,borderLeft:`3px solid ${isDone?C.green:at.color}`,minWidth:0,opacity:isDone?0.75:1,alignItems:"flex-start" }}>
-                    <div style={{ fontSize:14,flexShrink:0,marginTop:1 }}>{isDone?"✓":at.icon}</div>
-                    <div style={{ flex:1,minWidth:0 }}>
-                      <div style={{ display:"flex",alignItems:"center",gap:4,marginBottom:1 }}>
-                        <span style={{ fontSize:10,fontWeight:800,color:isDone?C.muted:at.color }}>{a.time||"—"}{a.end?` – ${a.end}`:""}</span>
-                        <span style={{ width:5,height:5,borderRadius:"50%",background:prioCol,flexShrink:0 }}/>
-                        {a.recur&&a.recur!=="Once" && <span style={{ fontSize:9,color:C.muted }}>🔁</span>}
-                      </div>
-                      <div style={{ fontSize:11,fontWeight:700,color:isDone?C.muted:C.text,textDecoration:isDone?"line-through":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.title}</div>
-                      {a.lead && <div style={{ fontSize:10,color:C.muted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>👤 {a.lead}</div>}
-                    </div>
+                    style={{ cursor:"pointer",display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:7,
+                      background:isDone?"#F8FAFC":"#fff",border:`1px solid ${C.border}`,borderLeft:`3px solid ${isDone?C.green:at.color}`,minWidth:0,opacity:isDone?0.75:1 }}>
+                    <span style={{ fontSize:12,flexShrink:0,lineHeight:1 }}>{isDone?"✓":at.icon}</span>
+                    {a.time && <span style={{ fontSize:10,fontWeight:700,color:isDone?C.muted:at.color,flexShrink:0,whiteSpace:"nowrap" }}>{a.time.slice(0,5)}</span>}
+                    <span style={{ width:5,height:5,borderRadius:"50%",background:prioCol,flexShrink:0 }}/>
+                    <span style={{ fontSize:11,fontWeight:600,color:isDone?C.muted:C.text,textDecoration:isDone?"line-through":"none",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{a.title}</span>
+                    {a.recur&&a.recur!=="Once" && <span style={{ fontSize:9,color:C.muted,flexShrink:0 }}>🔁</span>}
                     <button onClick={(e)=>{ e.stopPropagation(); openActivity(a); }}
-                      style={{ alignSelf:"flex-start",border:"none",background:"none",color:C.muted,fontSize:14,cursor:"pointer",lineHeight:1,padding:"0 1px",flexShrink:0 }}>⋯</button>
+                      style={{ border:"none",background:"none",color:C.muted,fontSize:14,cursor:"pointer",lineHeight:1,padding:"0 1px",flexShrink:0 }}>⋯</button>
                   </div>
                 );
               };
 
               const group = (title,col,items) => items.length===0 ? null : (
-                <div style={{ marginBottom:12 }}>
-                  <div style={{ fontSize:10,fontWeight:800,color:col,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6 }}>
+                <div style={{ marginBottom:10 }}>
+                  <div style={{ fontSize:9,fontWeight:800,color:col,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5 }}>
                     {title} <span style={{ color:C.muted }}>({items.length})</span>
                   </div>
-                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,alignItems:"start" }}>
+                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,alignItems:"start" }}>
                     {items.map(card)}
                   </div>
                 </div>
