@@ -123,6 +123,35 @@ const TYPE_ICON = {
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP DASHBOARD — role-filtered, lightweight overview (same layout for all roles)
 // ─────────────────────────────────────────────────────────────────────────────
+// ── Mock data used when the parent passes no leads ───────────────────────────
+const MOCK_LEADS = [
+  { id:"m1",  name:"Sandra Richter",  status:"open",        assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Berlin",  source:"Referral",    campaign:"Webinar Q1" },
+  { id:"m2",  name:"Markus Bauer",    status:"open",        assignedVD:"Thomas Müller", assignedGP:"",             city:"Hamburg", source:"Landing Page", campaign:"Spring 2026" },
+  { id:"m3",  name:"Julia Weiss",     status:"in_progress", assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Munich",  source:"Event",        campaign:"Webinar Q1" },
+  { id:"m4",  name:"Peter Schmidt",   status:"open",        assignedVD:"",              assignedGP:"",             city:"Cologne", source:"Referral",    campaign:"Spring 2026" },
+  { id:"m5",  name:"Laura Fischer",   status:"open",        assignedVD:"Thomas Müller", assignedGP:"",             city:"Vienna",  source:"Social",       campaign:"Webinar Q1" },
+  { id:"m6",  name:"Hans Müller",     status:"appointment", assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Zurich",  source:"Referral",    campaign:"Gold VIP" },
+  { id:"m7",  name:"Eva Braun",       status:"open",        assignedVD:"",              assignedGP:"",             city:"Berlin",  source:"Landing Page", campaign:"Spring 2026" },
+  { id:"m8",  name:"Klaus Wagner",    status:"open",        assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Munich",  source:"Event",        campaign:"Webinar Q1" },
+  { id:"m9",  name:"Maria Huber",     status:"closed",      assignedVD:"Thomas Müller", assignedGP:"Anna Klein",   city:"Vienna",  source:"Referral",    campaign:"Gold VIP" },
+  { id:"m10", name:"Thomas Berger",   status:"open",        assignedVD:"",              assignedGP:"",             city:"Hamburg", source:"Social",       campaign:"Spring 2026" },
+];
+const MOCK_ACTIVITIES = [
+  { id:"act1", entityType:"task",     title:"Follow up Sandra Richter",  status:"pending", priority:"high",   date:"2026-06-28", gp:"Anna Klein",   vd:"Thomas Müller", type:"call" },
+  { id:"act2", entityType:"reminder", title:"Send proposal to Markus",   status:"pending", priority:"normal", date:"2026-06-29", gp:"Anna Klein",   vd:"Thomas Müller", type:"email" },
+  { id:"act3", entityType:"task",     title:"Call Klaus Wagner",         status:"done",    priority:"low",    date:"2026-06-27", gp:"Anna Klein",   vd:"Thomas Müller", type:"call" },
+  { id:"act4", entityType:"call",     title:"Intro call — Laura Fischer",status:"done",    priority:"normal", date:"2026-06-25", gp:"Anna Klein",   vd:"Thomas Müller", type:"call",  time:"10:00" },
+  { id:"act5", entityType:"email",    title:"Welcome email sent",        status:"done",    priority:"low",    date:"2026-06-24", gp:"Anna Klein",   vd:"Thomas Müller", type:"email", time:"09:15" },
+  { id:"act6", entityType:"task",     title:"Prepare documents for Hans",status:"pending", priority:"urgent", date:"2026-06-29", gp:"Anna Klein",   vd:"Thomas Müller", type:"todo" },
+  { id:"act7", entityType:"call",     title:"Strategy call — Eva Braun", status:"pending", priority:"high",   date:"2026-06-28", gp:"Anna Klein",   vd:"Thomas Müller", type:"call",  time:"14:30" },
+  { id:"act8", entityType:"note",     title:"Note added for Maria Huber",status:"done",    priority:"low",    date:"2026-06-23", gp:"Anna Klein",   vd:"Thomas Müller", type:"note" },
+];
+const MOCK_APPOINTMENTS = [
+  { id:"ap1", lead:"Sandra Richter", date:"2026-06-28", start:"10:00", type:"call",      status:"upcoming",  gp:"Anna Klein",  vd:"Thomas Müller" },
+  { id:"ap2", lead:"Hans Müller",    date:"2026-06-28", start:"14:00", type:"video",     status:"confirmed", gp:"Anna Klein",  vd:"Thomas Müller" },
+  { id:"ap3", lead:"Klaus Wagner",   date:"2026-06-28", start:"16:30", type:"inperson",  status:"upcoming",  gp:"Anna Klein",  vd:"Thomas Müller" },
+];
+
 export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
 
   const t         = useT();
@@ -140,27 +169,32 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     gp: t("consultant"), vd: t("salesDirector"), superadmin: t("superAdmin"), manager: t("superAdmin"),
   }[role] || role;
 
+  // ── Use mock data when parent provides nothing ───────────────────────────────
+  const allLeads       = leads.length       > 0 ? leads       : MOCK_LEADS;
+  const allActivities  = activities.length  > 0 ? activities  : MOCK_ACTIVITIES;
+  const allAppointments= appointments.length> 0 ? appointments: MOCK_APPOINTMENTS;
+
   // ── Role-scoped data filters ─────────────────────────────────────────────────
   // GP  → only their own leads / appointments / activities
   // VD  → their entire team (everyone where assignedVD === their name)
   // SA  → everything
   const scopedLeads = isGP
-    ? leads.filter(l => l.assignedGP === userName)
+    ? allLeads.filter(l => l.assignedGP === userName)
     : isVD
-      ? leads.filter(l => l.assignedVD === userName)
-      : leads;
+      ? allLeads.filter(l => l.assignedVD === userName)
+      : allLeads;
 
   const scopedAppts = isGP
-    ? appointments.filter(a => a.gp === userName)
+    ? allAppointments.filter(a => a.gp === userName)
     : isVD
-      ? appointments.filter(a => a.vd === userName)
-      : appointments;
+      ? allAppointments.filter(a => a.vd === userName)
+      : allAppointments;
 
   const scopedActivities = isGP
-    ? activities.filter(a => a.gp === userName)
+    ? allActivities.filter(a => a.gp === userName)
     : isVD
-      ? activities.filter(a => a.vd === userName)
-      : activities;
+      ? allActivities.filter(a => a.vd === userName)
+      : allActivities;
 
   // ── KPI derivations ──────────────────────────────────────────────────────────
   const totalContacts  = scopedLeads.length;
@@ -170,12 +204,12 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const newLeads = isGP
     ? scopedLeads.filter(l => l.status === "open")
     : isVD
-      ? leads.filter(l => l.status === "open" && (l.assignedVD === userName || !l.assignedVD))
-      : leads.filter(l => l.status === "open");
+      ? allLeads.filter(l => l.status === "open" && (l.assignedVD === userName || !l.assignedVD))
+      : allLeads.filter(l => l.status === "open");
 
   const unassignedCount = newLeads.filter(l => !l.assignedGP && !l.assignedVD).length;
 
-  const todayStr       = "2026-02-24"; // matches mock data; use new Date().toISOString().slice(0,10) in prod
+  const todayStr       = new Date().toISOString().slice(0, 10);
   const todayAppts     = scopedAppts.filter(a => a.date === todayStr && a.status !== "cancelled");
 
   // Tasks & reminders share one list (entityType reminder|task) and one "done" model.
@@ -192,7 +226,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     .slice(0, 8);
 
   // ── Panel titles per role ────────────────────────────────────────────────────
-  const leadsTitle    = isGP ? t("myNetwork") : isVD ? t("myNetwork") : t("newContacts");
+  const leadsTitle    = isGP ? "My Leads" : isVD ? "Pending Assignment" : "Unassigned Leads";
   const contactsLabel = isGP ? t("totalContacts") : isVD ? t("totalContacts") : t("totalContacts");
   const remindersTitle = isGP ? t("myTasks") : isVD ? t("teamTasks") : t("remindersAndTasks");
   const apptsTitle    = isGP ? t("myAppointmentsToday") : isVD ? t("teamAppointmentsToday") : t("appointmentsToday");
@@ -452,13 +486,12 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </Card>
         </div>
 
-        {/* ── SA: Pending Assignments + Campaign/Lead Source Stats ─────────── */}
+        {/* ── SA: Campaign/Lead Source Stats ──────────────────────────────── */}
         {isSA && (() => {
-          const unassigned = leads.filter(l => !l.assignedGP && !l.assignedVD);
           // Campaign stats
           const campaignMap: Record<string, number> = {};
           const sourceMap: Record<string, number> = {};
-          leads.forEach(l => {
+          allLeads.forEach(l => {
             if (l.campaign) campaignMap[l.campaign] = (campaignMap[l.campaign] || 0) + 1;
             if (l.source)   sourceMap[l.source]     = (sourceMap[l.source]     || 0) + 1;
           });
@@ -469,39 +502,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           const BAR_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
 
           return (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
-
-              {/* Pending Assignments */}
-              <Card>
-                <CardHeader
-                  title="Pending Assignments"
-                  action={<LinkBtn label="Assign →" onClick={() => navigateTo("Leads")} />}
-                />
-                <div style={{ padding: "4px 16px 12px" }}>
-                  {unassigned.length === 0 ? (
-                    <div style={{ padding: "16px 0", textAlign: "center", color: C.green, fontSize: 13, fontWeight: 600 }}>
-                      ✓ All contacts are assigned
-                    </div>
-                  ) : unassigned.slice(0, 6).map((lead, i) => (
-                    <div key={lead.id} style={{
-                      display: "grid", gridTemplateColumns: "30px 1fr auto auto",
-                      alignItems: "center", gap: 10, padding: "7px 0",
-                      borderBottom: i < Math.min(unassigned.length, 6) - 1 ? `1px solid ${C.border}` : "none",
-                    }}>
-                      <Avatar name={lead.name} size={30} color={C.indigo} />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name}</div>
-                        <div style={{ fontSize: 10.5, color: C.muted }}>{lead.campaign || "—"}</div>
-                      </div>
-                      <span style={{ fontSize: 11, color: C.red, fontWeight: 600, whiteSpace: "nowrap" }}>⚠ Unassigned</span>
-                      <button onClick={() => navigateTo("Leads")} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: C.primary, color: "#fff", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Assign</button>
-                    </div>
-                  ))}
-                  {unassigned.length > 6 && (
-                    <div style={{ paddingTop: 8, fontSize: 12, color: C.muted, textAlign: "center" }}>+{unassigned.length - 6} more</div>
-                  )}
-                </div>
-              </Card>
+            <div style={{ marginBottom: 14 }}>
 
               {/* Campaign / Lead Source Statistics */}
               <Card>

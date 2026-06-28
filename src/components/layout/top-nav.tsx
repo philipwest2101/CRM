@@ -89,7 +89,7 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
                 <div style={{ fontSize:13,fontWeight:800,color:C.navy }}>{userName}</div>
                 <div style={{ fontSize:11,color:C.muted }}>{r.label}</div>
               </div>
-              {[["👤 My Profile",()=>setPage("Settings")],["⚙️ Settings",()=>setPage("Settings")],["↪️ Logout",()=>{}]].map(([label,fn])=>(
+              {[["👤 My Profile",()=>setPage("Settings")],["⚙️ Settings",()=>setPage("Settings")],["↪️ Logout",()=>{}]].filter(([label])=> version!=="mvp" || label!=="👤 My Profile").map(([label,fn])=>(
                 <div key={label} onClick={()=>{ setProfileOpen(false); fn(); }}
                   style={{ padding:"9px 16px",fontSize:13,color:C.text,cursor:"pointer",fontWeight:500 }}
                   onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}

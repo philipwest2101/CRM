@@ -895,7 +895,7 @@ const getSystemViews = (role) => {
   const myLeads      = { id: "myleads", name: "My Leads",            filter: "custom1", columns: ["name", "primaryEmail", "lifecycle", "stageStatus", "campaign"], system: true };
   const pendingAssign= { id: "pendingA",name: "Pending Assignments", filter: "pending", columns: ["name", "lifecycle", "stageStatus", "assignee", "create"], system: true };
 
-  if (role === "superadmin") return [myNetwork, unassigned];
+  if (role === "superadmin") return [unassigned];
   if (role === "vd")         return [myNetwork, myLeads, pendingAssign];
   // gp
   return [myNetwork, myLeads];

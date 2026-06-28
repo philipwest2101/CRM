@@ -834,7 +834,7 @@ const InformationTab = ({ c }) => {
               {["New","To Do","Won","N/A"].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
-          <EditField label={t("assignee")} value={draft.assignee} onChange={set("assignee")} editing={editing} />
+          <EditField label={t("assignee")} value={draft.assignee} onChange={set("assignee")} editing={false} />
           <div />
           <EditField label={t("product")} value={draft.product} onChange={set("product")} editing={editing} />
           <EditField label={t("productProvider")} value={draft.productProvider} onChange={set("productProvider")} editing={editing} />
@@ -1179,17 +1179,20 @@ const DOCS = [
 ];
 
 const DocumentsTab = () => {
-  const [filter, setFilter] = useState(null);
+  const [filters, setFilters] = useState(() => new Set<string>());
   const [qr, setQr] = useState(false);
   const catColor = (cat) => (DOC_CATS.find(x => x.key === cat) || {}).color || C.slate;
-  const rows = filter ? DOCS.filter(d => d.cat === filter) : DOCS;
+  const rows = filters.size > 0 ? DOCS.filter(d => filters.has(d.cat)) : DOCS;
+  const toggleFilter = (key: string) => setFilters(prev => {
+    const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n;
+  });
   return (
     <Card style={{ padding: "18px 20px" }}>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         {DOC_CATS.map(cat => {
-          const on = filter === cat.key;
+          const on = filters.has(cat.key);
           return (
-            <button key={cat.key} onClick={() => setFilter(on ? null : cat.key)} style={{
+            <button key={cat.key} onClick={() => toggleFilter(cat.key)} style={{
               display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit",
               border: `1px solid ${on ? cat.color : C.border}`, background: on ? cat.color + "12" : "#fff",
               fontSize: 13, fontWeight: 600, color: on ? cat.color : C.slate,
