@@ -525,31 +525,30 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 const prioCol = (PRIORITY_META[a.priority]||PRIORITY_META.normal).color;
                 return (
                   <div key={a.id} onClick={()=>openActivity(a)}
-                    style={{ cursor:"pointer",display:"flex",gap:8,padding:"4px 8px",borderRadius:10,
-                      background:isDone?"#F8FAFC":"#fff",border:`1px solid ${C.border}`,borderLeft:`4px solid ${isDone?C.green:at.color}`,minWidth:0,opacity:isDone?0.75:1 }}>
-                    <div style={{ fontSize:16,flexShrink:0 }}>{isDone?"✓":at.icon}</div>
+                    style={{ cursor:"pointer",display:"flex",gap:6,padding:"5px 8px",borderRadius:8,
+                      background:isDone?"#F8FAFC":"#fff",border:`1px solid ${C.border}`,borderLeft:`3px solid ${isDone?C.green:at.color}`,minWidth:0,opacity:isDone?0.75:1,alignItems:"flex-start" }}>
+                    <div style={{ fontSize:14,flexShrink:0,marginTop:1 }}>{isDone?"✓":at.icon}</div>
                     <div style={{ flex:1,minWidth:0 }}>
-                      <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                        <span style={{ fontSize:11,fontWeight:800,color:isDone?C.muted:at.color }}>{a.time||"—"}{a.end?` – ${a.end}`:""}</span>
-                        <span style={{ width:7,height:7,borderRadius:"50%",background:prioCol,flexShrink:0 }} title={`${a.priority||"normal"} priority`}/>
+                      <div style={{ display:"flex",alignItems:"center",gap:4,marginBottom:1 }}>
+                        <span style={{ fontSize:10,fontWeight:800,color:isDone?C.muted:at.color }}>{a.time||"—"}{a.end?` – ${a.end}`:""}</span>
+                        <span style={{ width:5,height:5,borderRadius:"50%",background:prioCol,flexShrink:0 }}/>
                         {a.recur&&a.recur!=="Once" && <span style={{ fontSize:9,color:C.muted }}>🔁</span>}
                       </div>
-                      <div style={{ fontSize:12,fontWeight:700,color:isDone?C.muted:C.text,textDecoration:isDone?"line-through":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.title}</div>
+                      <div style={{ fontSize:11,fontWeight:700,color:isDone?C.muted:C.text,textDecoration:isDone?"line-through":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.title}</div>
                       {a.lead && <div style={{ fontSize:10,color:C.muted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>👤 {a.lead}</div>}
-                      {a.note && <div style={{ fontSize:10,color:C.slate,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{a.note}</div>}
                     </div>
                     <button onClick={(e)=>{ e.stopPropagation(); openActivity(a); }}
-                      style={{ alignSelf:"flex-start",border:"none",background:"none",color:C.muted,fontSize:16,cursor:"pointer",lineHeight:1,padding:"0 2px",flexShrink:0 }}>⋯</button>
+                      style={{ alignSelf:"flex-start",border:"none",background:"none",color:C.muted,fontSize:14,cursor:"pointer",lineHeight:1,padding:"0 1px",flexShrink:0 }}>⋯</button>
                   </div>
                 );
               };
 
               const group = (title,col,items) => items.length===0 ? null : (
-                <div style={{ marginBottom:18 }}>
-                  <div style={{ fontSize:11,fontWeight:800,color:col,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8 }}>
+                <div style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:10,fontWeight:800,color:col,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6 }}>
                     {title} <span style={{ color:C.muted }}>({items.length})</span>
                   </div>
-                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,alignItems:"start" }}>
                     {items.map(card)}
                   </div>
                 </div>

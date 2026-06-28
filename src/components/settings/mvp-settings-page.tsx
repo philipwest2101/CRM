@@ -9,7 +9,7 @@ import { C } from "../../theme";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LANGS = [
-  { key: "de", flag: "🇩🇪", label: "German", def: true },
+  { key: "de", flag: "DE", label: "German", def: true },
   { key: "en", flag: "EN", label: "English"           },
 ];
 
@@ -104,27 +104,19 @@ const fieldStyle = {
   color: C.text, boxSizing: "border-box", outline: "none", background: "#fff",
 };
 
-// ── language flag set ─────────────────────────────────────────────────────────
+// ── language flag set — shows only active languages as uniform pill badges ────
 const FlagSet = ({ langs }) => (
-  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-    {LANGS.map(l => {
-      const isEmoji = l.flag.length > 2;
-      return (
-        <span key={l.key} title={l.label} style={{
-          fontSize: isEmoji ? 17 : 10,
-          fontWeight: isEmoji ? 400 : 700,
-          padding: isEmoji ? "0" : "2px 6px",
-          borderRadius: isEmoji ? 0 : 5,
-          background: isEmoji ? "transparent" : (langs[l.key] ? "#E0F2FE" : "#F1F5F9"),
-          color: isEmoji ? "inherit" : (langs[l.key] ? "#0284C7" : "#94A3B8"),
-          opacity: isEmoji ? (langs[l.key] ? 1 : 0.25) : 1,
-          filter: isEmoji ? (langs[l.key] ? "none" : "grayscale(1)") : "none",
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-        }}>
-          {l.flag}
-        </span>
-      );
-    })}
+  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+    {LANGS.filter(l => langs[l.key]).map(l => (
+      <span key={l.key} title={l.label} style={{
+        fontSize: 10, fontWeight: 700,
+        padding: "2px 7px", borderRadius: 5,
+        background: "#DBEAFE", color: "#1D4ED8",
+        display: "inline-flex", alignItems: "center", letterSpacing: "0.03em",
+      }}>
+        {l.flag}
+      </span>
+    ))}
   </div>
 );
 
@@ -210,7 +202,7 @@ const ItemModal = ({ section, item, lifecycleNames, onClose, onSave }) => {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
           {LANGS.map(l => (
             <div key={l.key} style={{ position: "relative", display: "flex", alignItems: "center" }}>
-              <span style={{ position: "absolute", left: 12, fontSize: l.flag.length > 2 ? 16 : 10, fontWeight: l.flag.length > 2 ? 400 : 700 }}>{l.flag}</span>
+              <span style={{ position: "absolute", left: 12, fontSize: 10, fontWeight: 700, color: "#1D4ED8", background: "#DBEAFE", padding: "2px 5px", borderRadius: 4, letterSpacing: "0.03em" }}>{l.flag}</span>
               <input value={names[l.key]} onChange={setName(l.key)} placeholder={l.def ? "German (Default)" : l.label}
                 style={{ ...fieldStyle, paddingLeft: 40, paddingRight: l.def ? 86 : 12 }} />
               {l.def && (
@@ -358,46 +350,55 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
           )}
 
           {section.kind === "integrations" ? (
-            <div style={{ padding: "4px 0" }}>
-              {/* Google */}
-              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0",borderBottom:`1px solid ${C.border}` }}>
-                <div style={{ display:"flex",alignItems:"center",gap:14 }}>
-                  <div style={{ width:40,height:40,borderRadius:10,background:"#FEF2F2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>G</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, padding:"4px 0" }}>
+              {[
+                { provider:"Google", service:"Calendar", icon:"📅", bg:"#FEF9C3", iconBg:"#FEF08A", color:"#854D0E",
+                  connected:true, account:"anna.klein@gmail.com", desc:"Google Calendar — bidirectional sync" },
+                { provider:"Google", service:"Email", icon:"✉️", bg:"#DCFCE7", iconBg:"#BBF7D0", color:"#166534",
+                  connected:true, account:"anna.klein@gmail.com", desc:"Gmail — bidirectional sync" },
+                { provider:"Microsoft", service:"Calendar", icon:"📅", bg:"#EFF6FF", iconBg:"#BFDBFE", color:"#1E40AF",
+                  connected:false, account:"", desc:"Outlook Calendar — bidirectional sync" },
+                { provider:"Microsoft", service:"Email", icon:"✉️", bg:"#F5F3FF", iconBg:"#DDD6FE", color:"#5B21B6",
+                  connected:false, account:"", desc:"Outlook / Exchange — bidirectional sync" },
+              ].map(card => (
+                <div key={`${card.provider}-${card.service}`} style={{
+                  borderRadius:14, border:`1px solid ${C.border}`, padding:"20px",
+                  background:card.connected ? card.bg+"80" : "#fff",
+                  display:"flex", flexDirection:"column", gap:14,
+                }}>
+                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                      <div style={{ width:44, height:44, borderRadius:12, background:card.iconBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>
+                        {card.icon}
+                      </div>
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:700, color:C.slate, letterSpacing:"0.04em", textTransform:"uppercase", fontSize:10 }}>{card.provider}</div>
+                        <div style={{ fontSize:16, fontWeight:800, color:C.navy }}>{card.service}</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize:10, fontWeight:700, padding:"3px 10px", borderRadius:20,
+                      background:card.connected ? C.green+"20" : "#F1F5F9",
+                      color:card.connected ? C.green : C.muted }}>
+                      {card.connected ? "● Connected" : "○ Not connected"}
+                    </span>
+                  </div>
                   <div>
-                    <div style={{ fontSize:14,fontWeight:700,color:C.text }}>Google</div>
-                    <div style={{ fontSize:12,color:C.muted }}>Calendar & Email (bidirectional)</div>
-                    <div style={{ fontSize:11,color:C.green,fontWeight:600,marginTop:3 }}>✓ Connected · anna.klein@gmail.com</div>
+                    <div style={{ fontSize:12, color:C.slate }}>{card.desc}</div>
+                    {card.connected && <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>↳ {card.account}</div>}
+                  </div>
+                  <div style={{ marginTop:"auto" }}>
+                    {card.connected ? (
+                      <button style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                        Disconnect
+                      </button>
+                    ) : (
+                      <button style={{ padding:"7px 18px", borderRadius:8, border:"none", background:C.primary, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+                        Connect {card.service}
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div style={{ display:"flex",gap:8 }}>
-                  <span style={{ fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,background:C.green+"18",color:C.green }}>Connected</span>
-                  <button style={{ padding:"6px 14px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>Disconnect</button>
-                </div>
-              </div>
-              {/* Microsoft Calendar */}
-              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0",borderBottom:`1px solid ${C.border}` }}>
-                <div style={{ display:"flex",alignItems:"center",gap:14 }}>
-                  <div style={{ width:40,height:40,borderRadius:10,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>📅</div>
-                  <div>
-                    <div style={{ fontSize:14,fontWeight:700,color:C.text }}>Microsoft Calendar</div>
-                    <div style={{ fontSize:12,color:C.muted }}>Outlook Calendar (bidirectional sync)</div>
-                    <div style={{ fontSize:11,color:C.muted,marginTop:3 }}>Not connected</div>
-                  </div>
-                </div>
-                <button style={{ padding:"7px 18px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Connect Calendar</button>
-              </div>
-              {/* Microsoft Email */}
-              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0" }}>
-                <div style={{ display:"flex",alignItems:"center",gap:14 }}>
-                  <div style={{ width:40,height:40,borderRadius:10,background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>✉️</div>
-                  <div>
-                    <div style={{ fontSize:14,fontWeight:700,color:C.text }}>Microsoft Email</div>
-                    <div style={{ fontSize:12,color:C.muted }}>Outlook / Exchange (bidirectional sync)</div>
-                    <div style={{ fontSize:11,color:C.muted,marginTop:3 }}>Not connected</div>
-                  </div>
-                </div>
-                <button style={{ padding:"7px 18px",borderRadius:7,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Connect Email</button>
-              </div>
+              ))}
             </div>
           ) : (
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
@@ -437,8 +438,8 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                   )}
                   {pageItems.map(item => {
                     const rowActions = isFiles
-                      ? [["Preview", () => {}], ["Download", () => {}], ...(!item.system || isSA ? [["Delete", () => remove(item.id)]] : [])] as [string, () => void][]
-                      : [["Edit", () => setEditing({ item })], ...(!item.system || isSA ? [["Delete", () => remove(item.id)]] : [])] as [string, () => void][];
+                      ? [["Preview", () => {}], ["Download", () => {}], ["Delete", () => remove(item.id)]] as [string, () => void][]
+                      : [["Edit", () => setEditing({ item })], ["Delete", () => remove(item.id)]] as [string, () => void][];
                     return (
                       <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                         <td style={{ padding: "13px 16px", fontSize: 14, color: C.text }}>
@@ -451,7 +452,7 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                         </td>
                         {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}
                         <td style={{ padding: "13px 16px" }}>
-                          <RowMenu actions={rowActions} />
+                          {item.system ? null : <RowMenu actions={rowActions} />}
                         </td>
                       </tr>
                     );

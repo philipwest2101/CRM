@@ -148,75 +148,117 @@ export const LeadCapturePage = ({ role, navigateTo }) => {
           )}
 
           {/* Import History tab */}
-          {activeTab==="Import History" && (
+          {activeTab==="Import History" && (()=>{
+            const IMP_ROWS = [
+              { id:"IMP-0091", name:"Q1_Campaign.xlsx",    type:"CSV / Excel",   total:1234, count:1234, date:"2026-02-03 · 14:22", resp:"John Smith",  status:"success" },
+              { id:"IMP-0090", name:"Partner Companies",   type:"Google Sheets", total:150,  count:145,  date:"2026-02-02 · 09:15", resp:"Anna Müller",  status:"partial" },
+              { id:"IMP-0089", name:"Partners",            type:"Google Sheets", total:67,   count:0,    date:"2026-02-01 · 16:40", resp:"John Smith",  status:"error"   },
+              { id:"IMP-0088", name:"Other_2025.xlsx",     type:"CSV / Excel",   total:25,   count:25,   date:"2025-01-02 · 10:01", resp:"Anna Müller",  status:"success" },
+              { id:"IMP-0087", name:"Q2 Subs 2025.xlsx",  type:"CSV / Excel",   total:4321, count:4321, date:"2026-02-03 · 14:22", resp:"John Smith",  status:"success" },
+              { id:"IMP-0086", name:"Sales Deals Q2",      type:"Google Sheets", total:150,  count:90,   date:"2026-02-02 · 09:15", resp:"Anna Müller",  status:"partial" },
+              { id:"IMP-0085", name:"Q1 Leads",            type:"Google Sheets", total:79,   count:0,    date:"2026-02-01 · 16:40", resp:"John Smith",  status:"error"   },
+            ];
+            const statusMeta = { success:{label:"Imported",color:C.green}, partial:{label:"Partial",color:C.amber}, error:{label:"Failed",color:C.red} };
+            return (
             <div>
+              {/* Header row with title + Import button */}
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
-                <div style={{ display:"flex",gap:8 }}>
-                  <input placeholder="Search imports…" style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",fontSize:12,fontFamily:"inherit",width:200 }}/>
-                  <select style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",fontSize:12,fontFamily:"inherit",color:C.slate }}>
-                    <option>All Sources</option>{LC_SOURCES.map(s=><option key={s.id}>{s.label}</option>)}
-                  </select>
-                  <select style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",fontSize:12,fontFamily:"inherit",color:C.slate }}>
-                    <option>All Statuses</option>
-                    <option>Success</option>
-                    <option>With Errors</option>
-                    <option>Failed</option>
-                  </select>
-                </div>
-                <label style={{ padding:"8px 18px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"inline-flex",gap:6,alignItems:"center" }}>
-                  <input type="file" accept=".csv" style={{ display:"none" }} onChange={e=>{if(e.target.files[0]) alert("Import started: "+e.target.files[0].name);e.target.value="";}}/>
-                  ⬆ Import
+                <div style={{ fontSize:17,fontWeight:800,color:C.navy }}>Imports History</div>
+                <label style={{ padding:"8px 20px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",display:"inline-flex",gap:6,alignItems:"center" }}>
+                  <input type="file" accept=".csv,.xlsx" style={{ display:"none" }} onChange={e=>{if(e.target.files[0]) alert("Import started: "+e.target.files[0].name);e.target.value="";}}/>
+                  Import
                 </label>
               </div>
+
+              {/* Table */}
               <div style={{ border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
+                <table style={{ width:"100%",borderCollapse:"collapse" }}>
                   <thead>
-                    <tr style={{ background:"#F8FAFC",borderBottom:`2px solid ${C.border}` }}>
-                      {["Date / Time","Source","Campaign","Imported","Errors","Status",""].map(h=>(
-                        <th key={h} style={{ padding:"10px 14px",textAlign:"left",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap" }}>{h}</th>
+                    {/* Column headers */}
+                    <tr style={{ background:"#F8FAFC",borderBottom:`1px solid ${C.border}` }}>
+                      {[["Name","2fr"],["Type","1fr"],["Imported / Total","1fr"],["Date & Time","1fr"],["Responsible","1fr"],["Status","auto"],["","56px"]].map(([h])=>(
+                        <th key={h} style={{ padding:"10px 14px",textAlign:"left",fontSize:12,fontWeight:700,color:C.navy,whiteSpace:"nowrap",userSelect:"none",cursor:h?"pointer":"default" }}>
+                          {h}{h && <span style={{ marginLeft:4,fontSize:10,color:C.muted }}>⇅</span>}
+                        </th>
                       ))}
+                    </tr>
+                    {/* Filter row */}
+                    <tr style={{ background:"#F8FAFC",borderBottom:`2px solid ${C.border}` }}>
+                      <td style={{ padding:"6px 10px" }}>
+                        <div style={{ position:"relative" }}>
+                          <span style={{ position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",color:C.muted,fontSize:12 }}>🔍</span>
+                          <input placeholder="Search name…" style={{ width:"100%",border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 8px 5px 26px",fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box" }}/>
+                        </div>
+                      </td>
+                      <td style={{ padding:"6px 10px" }}>
+                        <select style={{ width:"100%",border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 8px",fontSize:12,fontFamily:"inherit",color:C.slate,outline:"none" }}>
+                          <option value="">All Types</option>
+                          <option>CSV / Excel</option>
+                          <option>Google Sheets</option>
+                        </select>
+                      </td>
+                      <td style={{ padding:"6px 10px" }}>
+                        <input placeholder="e.g. 100" style={{ width:"100%",border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 8px",fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box" }}/>
+                      </td>
+                      <td style={{ padding:"6px 10px" }}>
+                        <input type="text" placeholder="YYYY-MM-DD" style={{ width:"100%",border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 8px",fontSize:12,fontFamily:"inherit",outline:"none",boxSizing:"border-box" }}/>
+                      </td>
+                      <td style={{ padding:"6px 10px" }}>
+                        <select style={{ width:"100%",border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 8px",fontSize:12,fontFamily:"inherit",color:C.slate,outline:"none" }}>
+                          <option value="">All</option>
+                          <option>John Smith</option>
+                          <option>Anna Müller</option>
+                        </select>
+                      </td>
+                      <td style={{ padding:"6px 10px" }}>
+                        <select style={{ width:"100%",border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 8px",fontSize:12,fontFamily:"inherit",color:C.slate,outline:"none" }}>
+                          <option value="">All</option>
+                          <option>Imported</option>
+                          <option>Partial</option>
+                          <option>Failed</option>
+                        </select>
+                      </td>
+                      <td style={{ padding:"6px 10px",textAlign:"right" }}>
+                        <div style={{ display:"inline-flex",gap:4 }}>
+                          <button title="Apply" style={{ width:26,height:26,borderRadius:6,border:"none",background:C.primary,color:"#fff",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center" }}>✓</button>
+                          <button title="Reset" style={{ width:26,height:26,borderRadius:6,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center" }}>↺</button>
+                        </div>
+                      </td>
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { id:"IMP-0091", source:"Meta Ads",       campaign:"General",              count:124, errors:0,  status:"success", time:"Today 09:14" },
-                      { id:"IMP-0090", source:"CSV Import",     campaign:"Financing",            count:58,  errors:3,  status:"partial", time:"Today 07:32" },
-                      { id:"IMP-0089", source:"Landing Page",   campaign:"Gold",                 count:201, errors:0,  status:"success", time:"Yesterday 18:05" },
-                      { id:"IMP-0088", source:"Zapier",         campaign:"Securities",           count:0,   errors:12, status:"error",   time:"Yesterday 11:20" },
-                      { id:"IMP-0087", source:"Google Sheets",  campaign:"Real Estate",          count:76,  errors:0,  status:"success", time:"26 Jun 15:44" },
-                      { id:"IMP-0086", source:"CSV Import",     campaign:"Crypto",               count:33,  errors:1,  status:"partial", time:"26 Jun 10:12" },
-                      { id:"IMP-0085", source:"Meta Ads",       campaign:"Fee-based Consulting", count:95,  errors:0,  status:"success", time:"25 Jun 16:30" },
-                      { id:"IMP-0084", source:"Referral",       campaign:"General",              count:12,  errors:0,  status:"success", time:"25 Jun 09:05" },
-                    ].map((row,i)=>{
-                      const statusColor = row.status==="success"?C.green:row.status==="partial"?C.amber:C.red;
-                      const statusLabel = row.status==="success"?"Success":row.status==="partial"?"Partial":"Failed";
-                      const hasErrors = row.errors > 0 || row.status==="error";
+                    {IMP_ROWS.map((row,i)=>{
+                      const sm = statusMeta[row.status];
+                      const needsDownload = row.status==="partial" || row.status==="error";
                       return (
-                        <tr key={row.id} style={{ borderBottom:`1px solid ${C.border}`,background:i%2===0?"#fff":"#FAFAFA" }}>
-                          <td style={{ padding:"11px 14px" }}>
-                            <div style={{ fontSize:12,fontWeight:600,color:C.text }}>{row.time}</div>
-                            <div style={{ fontSize:10,color:C.muted,fontFamily:"monospace" }}>{row.id}</div>
+                        <tr key={row.id} style={{ borderBottom:`1px solid ${C.border}`,background:"#fff" }}
+                          onMouseEnter={e=>(e.currentTarget.style.background="#F8FAFC")}
+                          onMouseLeave={e=>(e.currentTarget.style.background="#fff")}>
+                          <td style={{ padding:"11px 14px",fontSize:13,fontWeight:600,color:C.text }}>{row.name}</td>
+                          <td style={{ padding:"11px 14px",fontSize:12,color:C.slate }}>{row.type}</td>
+                          <td style={{ padding:"11px 14px",fontSize:13,fontWeight:600,color:C.text }}>
+                            <span style={{ color:row.count===row.total?C.green:row.count===0?C.red:C.amber }}>
+                              {row.count.toLocaleString()}
+                            </span>
+                            <span style={{ color:C.muted,fontWeight:400 }}> of {row.total.toLocaleString()}</span>
                           </td>
-                          <td style={{ padding:"11px 14px",color:C.text }}>{LC_SOURCES.find(s=>s.label===row.source)?.icon} {row.source}</td>
-                          <td style={{ padding:"11px 14px",color:C.slate }}>{row.campaign}</td>
-                          <td style={{ padding:"11px 14px",fontWeight:700,color:row.count>0?C.green:C.muted }}>{row.count>0?`+${row.count}`:"—"}</td>
+                          <td style={{ padding:"11px 14px",fontSize:12,color:C.slate,whiteSpace:"nowrap" }}>{row.date}</td>
+                          <td style={{ padding:"11px 14px",fontSize:12,color:C.text }}>{row.resp}</td>
                           <td style={{ padding:"11px 14px" }}>
-                            {row.errors>0
-                              ? <span style={{ fontSize:11,fontWeight:700,color:C.red }}>⚠ {row.errors}</span>
-                              : <span style={{ color:C.muted }}>—</span>}
+                            <span style={{ display:"inline-flex",alignItems:"center",gap:5,fontSize:12,fontWeight:600,
+                              padding:"4px 10px",borderRadius:20,
+                              background:sm.color+"15",color:sm.color,
+                              border:`1px solid ${sm.color}40` }}>
+                              {row.status==="success"?"✓":row.status==="partial"?"ℹ":"✗"} {sm.label}
+                            </span>
                           </td>
-                          <td style={{ padding:"11px 14px" }}>
-                            <span style={{ fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:20,background:statusColor+"18",color:statusColor }}>{statusLabel}</span>
-                          </td>
-                          <td style={{ padding:"11px 14px" }}>
-                            <div style={{ display:"flex",gap:6,justifyContent:"flex-end" }}>
-                              {hasErrors && (
-                                <button title="Download error file" style={{ padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}30`,background:"#fff",color:C.red,fontSize:11,fontWeight:600,cursor:"pointer",display:"inline-flex",gap:4,alignItems:"center" }}>
-                                  ⬇ Errors
-                                </button>
-                              )}
-                              <button style={{ padding:"5px 10px",borderRadius:6,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:11,fontWeight:500,cursor:"pointer" }}>View</button>
-                            </div>
+                          <td style={{ padding:"11px 14px",textAlign:"center" }}>
+                            {needsDownload && (
+                              <button title="Download the error file"
+                                style={{ width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:14,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center" }}>
+                                ↓
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -224,16 +266,24 @@ export const LeadCapturePage = ({ role, navigateTo }) => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Footer */}
               <div style={{ marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-                <span style={{ fontSize:12,color:C.muted }}>Showing 8 of 91 imports</span>
-                <div style={{ display:"flex",gap:6 }}>
-                  {["← Prev","1","2","3","Next →"].map(p=>(
-                    <button key={p} style={{ padding:"5px 10px",borderRadius:5,border:p==="1"?"none":`1px solid ${C.border}`,background:p==="1"?C.primary:"#fff",color:p==="1"?"#fff":C.slate,fontSize:12,cursor:"pointer" }}>{p}</button>
-                  ))}
+                <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                  <span style={{ fontSize:12,color:C.text,fontWeight:500 }}>Page <span style={{ color:C.primary,textDecoration:"underline",cursor:"pointer" }}>1</span> of 1</span>
+                  <button style={{ width:26,height:26,borderRadius:6,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>‹</button>
+                  <button style={{ width:26,height:26,borderRadius:6,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>›</button>
+                </div>
+                <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                  <select style={{ border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 8px",fontSize:12,fontFamily:"inherit",color:C.slate }}>
+                    <option>10</option><option>25</option><option>50</option>
+                  </select>
+                  <span style={{ fontSize:12,color:C.slate }}>Displaying 1–7 of 7 records</span>
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Duplicates tab (LDM-03) */}
           {activeTab==="Duplicates" && (

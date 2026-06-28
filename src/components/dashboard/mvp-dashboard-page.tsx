@@ -409,16 +409,16 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Top row: New Contacts | Reminders & Tasks | Appointments Today ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
+        {/* ── Main content row: Leads wide | right column (Appointments + Tasks) ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
 
-          {/* ── New Contacts panel ───────────────────────────────────────────── */}
+          {/* ── Leads panel ─────────────────────────────────────────────────── */}
           <Card>
             <CardHeader
               title={leadsTitle}
               action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads")} />}
             />
-            <div style={{ padding: "2px 16px 10px", maxHeight: 280, overflowY: "auto" }}>
+            <div style={{ padding: "2px 16px 10px", maxHeight: 320, overflowY: "auto" }}>
               {leadsToShow.length === 0 ? (
                 <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
                   {isGP ? "No new contacts assigned to you." : "No pending contacts right now."}
@@ -429,7 +429,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                   gridTemplateColumns: "32px 1fr auto",
                   alignItems: "center",
                   gap: 10,
-                  padding: "7px 0",
+                  padding: "8px 0",
                   borderBottom: i < leadsToShow.length - 1 ? `1px solid ${C.border}` : "none",
                 }}>
                   <Avatar name={lead.name} size={32} />
@@ -456,69 +456,16 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </div>
           </Card>
 
-          {/* ── Reminders / Tasks panel ───────────────────────────────────── */}
-          <Card>
-            <CardHeader
-              title={remindersTitle}
-              action={<LinkBtn label="All →" onClick={() => navigateTo("Calendar")} />}
-            />
-            <div style={{ padding: "2px 14px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-              {tasksToShow.length === 0 ? (
-                <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                  {t("noOpenTasks")}
-                </div>
-              ) : tasksToShow.map((rem) => {
-                const done = itemDone(rem);
-                return (
-                  <div
-                    key={rem.id}
-                    onClick={() => toggleDone(rem)}
-                    title={done ? "Mark as not done" : "Mark as done"}
-                    style={{
-                      display: "flex", alignItems: "flex-start", gap: 9,
-                      padding: "7px 9px", borderRadius: 9, cursor: "pointer",
-                      border: `1px solid ${done ? C.green + "40" : C.border}`,
-                      background: done ? C.green + "08" : "#F8FAFC",
-                    }}
-                  >
-                    <div style={{
-                      width: 16, height: 16, borderRadius: 4, marginTop: 1,
-                      border: `1.5px solid ${done ? C.green : C.muted}`,
-                      background: done ? C.green : "transparent",
-                      display: "grid", placeItems: "center",
-                      fontSize: 9, color: "#fff", flexShrink: 0,
-                    }}>
-                      {done ? "✓" : ""}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: 12.5, color: done ? C.muted : C.text,
-                        textDecoration: done ? "line-through" : "none", lineHeight: 1.3,
-                      }}>
-                        {rem.title}
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
-                        <PriorityDot priority={rem.priority} />
-                        {rem.time ? `${rem.time} · ` : ""}{rem.date}
-                        {rem.lead && <> · {rem.lead}</>}
-                        {/* VD/SA: show which GP the task belongs to */}
-                        {!isGP && rem.gp && <> · <span style={{ color: C.slate }}>{rem.gp}</span></>}
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 13 }}>{TYPE_ICON[rem.type] || "🔔"}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+          {/* ── Right column: Appointments Today + Tasks stacked ─────────────── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-          {/* ── Appointments Today — third column ────────────────────────────── */}
-          <Card>
-            <CardHeader
-              title={apptsTitle}
-              action={<LinkBtn label="Calendar →" onClick={() => navigateTo("Calendar")} />}
-            />
-            <div style={{ padding: "2px 14px 8px" }}>
+            {/* Appointments Today */}
+            <Card>
+              <CardHeader
+                title={apptsTitle}
+                action={<LinkBtn label="Calendar →" onClick={() => navigateTo("Calendar")} />}
+              />
+              <div style={{ padding: "2px 14px 8px", maxHeight: 200, overflowY: "auto" }}>
                 {todayAppts.length === 0 ? (
                   <div style={{ padding: "14px 0", textAlign: "center", color: C.muted, fontSize: 12.5 }}>
                     No appointments today.
@@ -532,7 +479,9 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                       padding: "8px 0",
                       borderBottom: i < todayAppts.length - 1 ? `1px solid ${C.border}` : "none",
                     }}>
-                      <span style={{ fontSize: 15, flexShrink: 0 }}>{TYPE_ICON[appt.type] || "📅"}</span>
+                      <div style={{ width:32, height:32, borderRadius:8, background:typeColor+"18", display:"grid", placeItems:"center", fontSize:15, flexShrink:0 }}>
+                        {TYPE_ICON[appt.type] || "📅"}
+                      </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appt.lead}</div>
                         <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
@@ -552,6 +501,63 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                 })}
               </div>
             </Card>
+
+            {/* Reminders / Tasks */}
+            <Card>
+              <CardHeader
+                title={remindersTitle}
+                action={<LinkBtn label="All →" onClick={() => navigateTo("Calendar")} />}
+              />
+              <div style={{ padding: "2px 14px 12px", maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                {tasksToShow.length === 0 ? (
+                  <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
+                    {t("noOpenTasks")}
+                  </div>
+                ) : tasksToShow.map((rem) => {
+                  const done = itemDone(rem);
+                  return (
+                    <div
+                      key={rem.id}
+                      onClick={() => toggleDone(rem)}
+                      title={done ? "Mark as not done" : "Mark as done"}
+                      style={{
+                        display: "flex", alignItems: "flex-start", gap: 9,
+                        padding: "7px 9px", borderRadius: 9, cursor: "pointer",
+                        border: `1px solid ${done ? C.green + "40" : C.border}`,
+                        background: done ? C.green + "08" : "#F8FAFC",
+                      }}
+                    >
+                      <div style={{
+                        width: 16, height: 16, borderRadius: 4, marginTop: 1,
+                        border: `1.5px solid ${done ? C.green : C.muted}`,
+                        background: done ? C.green : "transparent",
+                        display: "grid", placeItems: "center",
+                        fontSize: 9, color: "#fff", flexShrink: 0,
+                      }}>
+                        {done ? "✓" : ""}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 12.5, color: done ? C.muted : C.text,
+                          textDecoration: done ? "line-through" : "none", lineHeight: 1.3,
+                        }}>
+                          {rem.title}
+                        </div>
+                        <div style={{ fontSize: 10, color: C.muted, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+                          <PriorityDot priority={rem.priority} />
+                          {rem.time ? `${rem.time} · ` : ""}{rem.date}
+                          {rem.lead && <> · {rem.lead}</>}
+                          {!isGP && rem.gp && <> · <span style={{ color: C.slate }}>{rem.gp}</span></>}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 13 }}>{TYPE_ICON[rem.type] || "🔔"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+          </div>{/* end right column */}
         </div>
 
         {/* ── SA: Campaign (pie) + Recent Activity side by side ────────────── */}
