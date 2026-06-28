@@ -178,7 +178,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     const at = metaOf(a);
     return (
       <div onClick={e=>{e.stopPropagation();setSelected(a);}}
-        style={{ display:"flex",alignItems:"center",gap:4,padding:compact?"2px 5px":"4px 7px",
+        style={{ display:"flex",alignItems:"center",gap:4,padding:compact?"2px 5px":"2px 6px",
           borderRadius:5,background:at.bg,border:`1px solid ${at.color}30`,
           cursor:"pointer",overflow:"hidden",marginBottom:2,
           fontSize:compact?9:11,color:at.color,fontWeight:600 }}>
@@ -302,14 +302,14 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                       </div>
                       {dayActs.slice(0,2).map(a=>{ const at=metaOf(a); return (
                         <div key={a.id} title={a.title}
-                          style={{ fontSize:9,fontWeight:600,color:at.color,background:at.bg,
-                            borderLeft:`2px solid ${at.color}`,padding:"1px 4px",
+                          style={{ fontSize:8,fontWeight:600,color:at.color,background:at.bg,
+                            borderLeft:`2px solid ${at.color}`,padding:"1px 3px",
                             borderRadius:"0 3px 3px 0",marginBottom:2,
                             overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
                           {at.icon} {a.time&&a.time.slice(0,5)} {a.title}
                         </div>
                       );})}
-                      {dayActs.length>2&&<div style={{ fontSize:9,color:C.muted,textAlign:"center" }}>+{dayActs.length-2} more</div>}
+                      {dayActs.length>2&&<div style={{ fontSize:8,color:C.muted,textAlign:"center" }}>+{dayActs.length-2} more</div>}
                       {dayActs.length>0&&(
                         <div style={{ display:"flex",justifyContent:"center",gap:3,marginTop:2 }}>
                           {typeColors.map((c,i)=><div key={i} style={{ width:5,height:5,borderRadius:"50%",background:c }}/>)}
@@ -525,7 +525,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 const prioCol = (PRIORITY_META[a.priority]||PRIORITY_META.normal).color;
                 return (
                   <div key={a.id} onClick={()=>openActivity(a)}
-                    style={{ cursor:"pointer",display:"flex",gap:8,padding:"6px 10px",borderRadius:10,
+                    style={{ cursor:"pointer",display:"flex",gap:8,padding:"4px 8px",borderRadius:10,
                       background:isDone?"#F8FAFC":"#fff",border:`1px solid ${C.border}`,borderLeft:`4px solid ${isDone?C.green:at.color}`,minWidth:0,opacity:isDone?0.75:1 }}>
                     <div style={{ fontSize:16,flexShrink:0 }}>{isDone?"✓":at.icon}</div>
                     <div style={{ flex:1,minWidth:0 }}>
@@ -549,7 +549,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                   <div style={{ fontSize:11,fontWeight:800,color:col,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8 }}>
                     {title} <span style={{ color:C.muted }}>({items.length})</span>
                   </div>
-                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
                     {items.map(card)}
                   </div>
                 </div>

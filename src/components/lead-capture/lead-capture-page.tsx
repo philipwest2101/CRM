@@ -150,38 +150,82 @@ export const LeadCapturePage = ({ role, navigateTo }) => {
           {/* Import History tab */}
           {activeTab==="Import History" && (
             <div>
-              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14 }}>
+              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
                 <div style={{ display:"flex",gap:8 }}>
                   <input placeholder="Search imports…" style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",fontSize:12,fontFamily:"inherit",width:200 }}/>
                   <select style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",fontSize:12,fontFamily:"inherit",color:C.slate }}>
                     <option>All Sources</option>{LC_SOURCES.map(s=><option key={s.id}>{s.label}</option>)}
                   </select>
+                  <select style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",fontSize:12,fontFamily:"inherit",color:C.slate }}>
+                    <option>All Statuses</option>
+                    <option>Success</option>
+                    <option>With Errors</option>
+                    <option>Failed</option>
+                  </select>
                 </div>
-                <button style={{ padding:"7px 14px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,cursor:"pointer" }}>⬇ Export Log</button>
+                <label style={{ padding:"8px 18px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"inline-flex",gap:6,alignItems:"center" }}>
+                  <input type="file" accept=".csv" style={{ display:"none" }} onChange={e=>{if(e.target.files[0]) alert("Import started: "+e.target.files[0].name);e.target.value="";}}/>
+                  ⬆ Import
+                </label>
               </div>
-              <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
-                <thead>
-                  <tr style={{ background:"#F8FAFC",borderBottom:`2px solid ${C.border}` }}>
-                    {["Import ID","Source","Campaign","Leads","Status","Time"].map(h=>(
-                      <th key={h} style={{ padding:"9px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {LC_IMPORTS.map((row,i)=>(
-                    <tr key={row.id} style={{ borderBottom:`1px solid ${C.border}`,background:i%2?"#FAFAFA":"#fff" }}>
-                      <td style={{ padding:"10px 12px",fontFamily:"monospace",color:C.indigo }}>{row.id}</td>
-                      <td style={{ padding:"10px 12px",color:C.text }}>{LC_SOURCES.find(s=>s.label===row.source)?.icon} {row.source}</td>
-                      <td style={{ padding:"10px 12px",color:C.slate }}>{row.campaign}</td>
-                      <td style={{ padding:"10px 12px",fontWeight:700,color:C.text }}>{row.count>0?`+${row.count}`:"—"}</td>
-                      <td style={{ padding:"10px 12px" }}>{row.status==="success"?<Bdg c={C.green}>✓ Success</Bdg>:<Bdg c={C.red}>✗ Error</Bdg>}</td>
-                      <td style={{ padding:"10px 12px",color:C.muted }}>{row.time}</td>
+              <div style={{ border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden" }}>
+                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
+                  <thead>
+                    <tr style={{ background:"#F8FAFC",borderBottom:`2px solid ${C.border}` }}>
+                      {["Date / Time","Source","Campaign","Imported","Errors","Status",""].map(h=>(
+                        <th key={h} style={{ padding:"10px 14px",textAlign:"left",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",whiteSpace:"nowrap" }}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {[
+                      { id:"IMP-0091", source:"Meta Ads",       campaign:"General",              count:124, errors:0,  status:"success", time:"Today 09:14" },
+                      { id:"IMP-0090", source:"CSV Import",     campaign:"Financing",            count:58,  errors:3,  status:"partial", time:"Today 07:32" },
+                      { id:"IMP-0089", source:"Landing Page",   campaign:"Gold",                 count:201, errors:0,  status:"success", time:"Yesterday 18:05" },
+                      { id:"IMP-0088", source:"Zapier",         campaign:"Securities",           count:0,   errors:12, status:"error",   time:"Yesterday 11:20" },
+                      { id:"IMP-0087", source:"Google Sheets",  campaign:"Real Estate",          count:76,  errors:0,  status:"success", time:"26 Jun 15:44" },
+                      { id:"IMP-0086", source:"CSV Import",     campaign:"Crypto",               count:33,  errors:1,  status:"partial", time:"26 Jun 10:12" },
+                      { id:"IMP-0085", source:"Meta Ads",       campaign:"Fee-based Consulting", count:95,  errors:0,  status:"success", time:"25 Jun 16:30" },
+                      { id:"IMP-0084", source:"Referral",       campaign:"General",              count:12,  errors:0,  status:"success", time:"25 Jun 09:05" },
+                    ].map((row,i)=>{
+                      const statusColor = row.status==="success"?C.green:row.status==="partial"?C.amber:C.red;
+                      const statusLabel = row.status==="success"?"Success":row.status==="partial"?"Partial":"Failed";
+                      const hasErrors = row.errors > 0 || row.status==="error";
+                      return (
+                        <tr key={row.id} style={{ borderBottom:`1px solid ${C.border}`,background:i%2===0?"#fff":"#FAFAFA" }}>
+                          <td style={{ padding:"11px 14px" }}>
+                            <div style={{ fontSize:12,fontWeight:600,color:C.text }}>{row.time}</div>
+                            <div style={{ fontSize:10,color:C.muted,fontFamily:"monospace" }}>{row.id}</div>
+                          </td>
+                          <td style={{ padding:"11px 14px",color:C.text }}>{LC_SOURCES.find(s=>s.label===row.source)?.icon} {row.source}</td>
+                          <td style={{ padding:"11px 14px",color:C.slate }}>{row.campaign}</td>
+                          <td style={{ padding:"11px 14px",fontWeight:700,color:row.count>0?C.green:C.muted }}>{row.count>0?`+${row.count}`:"—"}</td>
+                          <td style={{ padding:"11px 14px" }}>
+                            {row.errors>0
+                              ? <span style={{ fontSize:11,fontWeight:700,color:C.red }}>⚠ {row.errors}</span>
+                              : <span style={{ color:C.muted }}>—</span>}
+                          </td>
+                          <td style={{ padding:"11px 14px" }}>
+                            <span style={{ fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:20,background:statusColor+"18",color:statusColor }}>{statusLabel}</span>
+                          </td>
+                          <td style={{ padding:"11px 14px" }}>
+                            <div style={{ display:"flex",gap:6,justifyContent:"flex-end" }}>
+                              {hasErrors && (
+                                <button title="Download error file" style={{ padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}30`,background:"#fff",color:C.red,fontSize:11,fontWeight:600,cursor:"pointer",display:"inline-flex",gap:4,alignItems:"center" }}>
+                                  ⬇ Errors
+                                </button>
+                              )}
+                              <button style={{ padding:"5px 10px",borderRadius:6,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:11,fontWeight:500,cursor:"pointer" }}>View</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
               <div style={{ marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-                <span style={{ fontSize:12,color:C.muted }}>Showing 5 of 91 imports</span>
+                <span style={{ fontSize:12,color:C.muted }}>Showing 8 of 91 imports</span>
                 <div style={{ display:"flex",gap:6 }}>
                   {["← Prev","1","2","3","Next →"].map(p=>(
                     <button key={p} style={{ padding:"5px 10px",borderRadius:5,border:p==="1"?"none":`1px solid ${C.border}`,background:p==="1"?C.primary:"#fff",color:p==="1"?"#fff":C.slate,fontSize:12,cursor:"pointer" }}>{p}</button>
