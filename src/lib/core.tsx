@@ -770,6 +770,15 @@ export const APPOINTMENTS = [
   { id:"A-205", date:"2026-06-28", start:"15:30", end:"16:30", type:"video",    lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Follow-up after proposal sent" },
   { id:"A-206", date:"2026-06-28", start:"16:00", end:"17:00", type:"inperson", lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",    vd:"Lisa Weber",    status:"upcoming",  notes:"Qualification meeting" },
   { id:"A-207", date:"2026-06-28", start:"17:30", end:"18:00", type:"call",     lead:"Dirk Schumacher", leadId:"L-1052", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — check in call" },
+  // ── Today 2026-06-29 — GP Anna Klein ───────────────────────────────────────
+  { id:"A-301", date:"2026-06-29", start:"09:00", end:"09:45", type:"call",     lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Follow-up after proposal — Q1 Finanz" },
+  { id:"A-302", date:"2026-06-29", start:"11:30", end:"12:30", type:"video",    lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Full consultation — pre-close" },
+  { id:"A-303", date:"2026-06-29", start:"14:00", end:"15:00", type:"inperson", lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"2nd appointment — needs proposal" },
+  { id:"A-304", date:"2026-06-29", start:"16:30", end:"17:00", type:"call",     lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Quick check-in — contract status" },
+  // ── Today 2026-06-29 — VD Thomas Müller (direct / self-close) ──────────────
+  { id:"A-305", date:"2026-06-29", start:"09:30", end:"10:15", type:"call",     lead:"Eva Gruber",      leadId:"L-2013", gp:"Thomas Müller", vd:"Thomas Müller", status:"confirmed", notes:"VD direct — partner referral, first appointment" },
+  { id:"A-306", date:"2026-06-29", start:"11:00", end:"12:00", type:"video",    lead:"Klaus Richter",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — strategic partnership discussion" },
+  { id:"A-307", date:"2026-06-29", start:"14:30", end:"15:30", type:"inperson", lead:"Stefan Wolf",     leadId:"L-2015", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Q2 planning & cross-sell" },
 ];
 
 
@@ -790,6 +799,14 @@ export let ACTIVITIES_STORE = [
   { id:"act-r3", type:"call",  title:"Appointment prep — Petra Müller",    lead:"Petra Müller",    leadId:"L-1005", date:"2026-02-27", time:"13:00", end:"13:30", gp:"Anna Klein", vd:"Thomas Müller", status:"pending",   priority:"normal", note:"", recur:"Once",   channels:["push","inapp"], entityType:"reminder", category:"reminder" },
   { id:"act-r4", type:"email", title:"GDPR renewal — Thomas Wagner",       lead:"Thomas Wagner",   leadId:"L-1008", date:"2026-03-01", time:"09:00", end:"09:30", gp:"Anna Klein", vd:"Thomas Müller", status:"active",    priority:"high",   note:"", recur:"Once",   channels:["push","inapp"], entityType:"reminder", category:"reminder" },
   { id:"act-r5", type:"note",  title:"Weekly team check-in",               lead:null,              leadId:null,     date:"2026-02-24", time:"08:30", end:"09:00", gp:"Anna Klein", vd:"Thomas Müller", status:"active",    priority:"low",    note:"", recur:"Weekly", channels:["push"],         entityType:"reminder", category:"reminder" },
+  // ── Today 2026-06-29 — GP Anna Klein ─────────────────────────────────────
+  { id:"act-r6", type:"call",  title:"Follow-up call — Sandra Richter",    lead:"Sandra Richter",  leadId:"L-1040", date:"2026-06-29", time:"09:00", end:"09:30", gp:"Anna Klein",    vd:"Thomas Müller", status:"pending",   priority:"high",   note:"", recur:"Once",   channels:["push","inapp"], entityType:"task",     category:"task" },
+  { id:"act-r7", type:"email", title:"Send proposal to Markus Bauer",      lead:"Markus Bauer",    leadId:"L-2002", date:"2026-06-29", time:"10:00", end:"10:30", gp:"Anna Klein",    vd:"Thomas Müller", status:"pending",   priority:"normal", note:"", recur:"Once",   channels:["push","inapp"], entityType:"reminder", category:"reminder" },
+  { id:"act-r8", type:"note",  title:"Prepare documents for Hans Müller",  lead:"Hans Müller",     leadId:"L-2008", date:"2026-06-29", time:"13:00", end:"13:30", gp:"Anna Klein",    vd:"Thomas Müller", status:"pending",   priority:"urgent", note:"", recur:"Once",   channels:["push","inapp"], entityType:"task",     category:"task" },
+  // ── Today 2026-06-29 — VD Thomas Müller (own tasks, gp === vd) ───────────
+  { id:"act-r9",  type:"note",  title:"Q2 team targets review",            lead:null,              leadId:null,     date:"2026-06-29", time:"08:30", end:"09:00", gp:"Thomas Müller", vd:"Thomas Müller", status:"pending",   priority:"high",   note:"", recur:"Once",   channels:["push","inapp"], entityType:"task",     category:"task" },
+  { id:"act-r10", type:"call",  title:"Call Eva Gruber — contract prep",   lead:"Eva Gruber",      leadId:"L-2013", date:"2026-06-29", time:"09:30", end:"10:00", gp:"Thomas Müller", vd:"Thomas Müller", status:"pending",   priority:"urgent", note:"", recur:"Once",   channels:["push","inapp"], entityType:"reminder", category:"reminder" },
+  { id:"act-r11", type:"note",  title:"Approve Marc Otto's proposals",     lead:null,              leadId:null,     date:"2026-06-28", time:"17:00", end:"17:30", gp:"Thomas Müller", vd:"Thomas Müller", status:"done",      priority:"normal", note:"", recur:"Once",   channels:["push","inapp"], entityType:"task",     category:"task" },
 ];
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────

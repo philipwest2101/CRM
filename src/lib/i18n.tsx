@@ -99,7 +99,7 @@ export const TRANSLATIONS = {
     netWorth: "Net Worth",
     riskAppetite: "Risk Appetite",
     overviewTab: "Overview",
-    informationTab: "Information",
+    informationTab: "Contact Information",
     activitiesTab: "Activities",
     documentsTab: "Documents",
 
@@ -142,12 +142,12 @@ export const TRANSLATIONS = {
 
     // Add Contact / Information tab
     addContactTitle: "Add Contact",
-    contactDetailTitle: "Contact Detail View",
-    basicTab: "Basic",
-    personalTab: "Personal",
-    addressTab: "Address",
-    businessTab: "Business",
-    financialTab: "Financial",
+    contactDetailTitle: "Contact Details",
+    basicTab: "Basic Information",
+    personalTab: "Personal Details",
+    addressTab: "Address Details",
+    businessTab: "Business Details",
+    financialTab: "Financial Profile",
 
     // Basic fields
     primaryPhone: "Primary Phone",
@@ -164,10 +164,10 @@ export const TRANSLATIONS = {
     salutation_mr: "Mr.",
     salutation_mrs: "Mrs.",
     addressForm: "Address Form",
-    addressForm_formal: "Formal",
-    addressForm_informal: "Informal",
+    addressForm_formal: "Formal (Sie)",
+    addressForm_informal: "Informal (Du)",
     title: "Title",
-    postTitle: "Post Title",
+    postTitle: "Post-nominal Title",
     gender: "Gender",
     gender_na: "N/A",
     gender_male: "Male",
@@ -195,8 +195,8 @@ export const TRANSLATIONS = {
     otherSocialMedia: "Other Social Media",
 
     // Business fields
-    company: "Company",
-    employmentType: "Employment Type",
+    company: "Employer / Company",
+    employmentType: "Type of Employment",
     position: "Position",
     companySize: "Company Size",
     decisionMakingRole: "Decision Making Role",
@@ -204,7 +204,7 @@ export const TRANSLATIONS = {
     dmr_none: "None",
     dmr_decisionMaker: "Decision Maker",
     dmr_influencer: "Influencer",
-    dmr_endUser: "End User",
+    dmr_endUser: "User",
 
     // Financial fields
     maximumBudget: "Maximum Budget",
@@ -266,8 +266,8 @@ export const TRANSLATIONS = {
     // Overview tab
     followUp: "Follow Up",
     lastAction: "Last Action",
-    nextBestAction: "Next Best Action",
-    aiInsight: "AI Insight",
+    nextBestAction: "Best Next Action",
+    aiInsight: "AI Insights",
     journeyPipeline: "Journey Pipeline",
     advisoryDocuments: "Advisory Documents",
     addNote: "+ Add Note",
@@ -387,7 +387,7 @@ export const TRANSLATIONS = {
     netWorth: "Nettovermögen",
     riskAppetite: "Risikobereitschaft",
     overviewTab: "Übersicht",
-    informationTab: "Informationen",
+    informationTab: "Kontaktdaten",
     activitiesTab: "Aktivitäten",
     documentsTab: "Dokumente",
 
@@ -419,7 +419,7 @@ export const TRANSLATIONS = {
     website: "Webseite",
     assignee: "Zuständig",
     lifecycleStage: "Lebenszyklusphase",
-    stageStatus: "Phasenstatus",
+    stageStatus: "Stufen-Status",
     createDate: "Erstellungsdatum",
     registrationNumber: "Registrierungsnummer",
     linkedIn: "LinkedIn",
@@ -430,12 +430,12 @@ export const TRANSLATIONS = {
 
     // Add Contact / Information tab
     addContactTitle: "Kontakt hinzufügen",
-    contactDetailTitle: "Kontaktdetailansicht",
-    basicTab: "Basis",
-    personalTab: "Persönlich",
-    addressTab: "Adresse",
-    businessTab: "Geschäftlich",
-    financialTab: "Finanziell",
+    contactDetailTitle: "Kontaktdetails",
+    basicTab: "Grunddaten",
+    personalTab: "Persönliche Daten",
+    addressTab: "Adressdaten",
+    businessTab: "Geschäftliche Daten",
+    financialTab: "Finanzprofil",
 
     // Basic fields
     primaryPhone: "Primäre Telefonnummer",
@@ -443,7 +443,7 @@ export const TRANSLATIONS = {
     productProvider: "Produktanbieter",
     leadSource: "Lead-Quelle",
     campaignAssignment: "Kampagnenzuweisung",
-    communicationConsent: "Kommunikationseinwilligung (DSGVO)",
+    communicationConsent: "Kommunikationszustimmung (DSGVO)",
     newsletterSubscription: "Newsletter-Abonnement",
 
     // Personal fields
@@ -451,11 +451,11 @@ export const TRANSLATIONS = {
     salutation_none: "Keine",
     salutation_mr: "Herr",
     salutation_mrs: "Frau",
-    addressForm: "Anredeform",
-    addressForm_formal: "Formal",
-    addressForm_informal: "Informell",
+    addressForm: "Ansprache",
+    addressForm_formal: "Formal (Sie)",
+    addressForm_informal: "Informal (Du)",
     title: "Titel",
-    postTitle: "Nachtitel",
+    postTitle: "Nachgestellter Titel",
     gender: "Geschlecht",
     gender_na: "Keine Angabe",
     gender_male: "Männlich",
@@ -483,16 +483,16 @@ export const TRANSLATIONS = {
     otherSocialMedia: "Andere soziale Medien",
 
     // Business fields
-    company: "Unternehmen",
-    employmentType: "Beschäftigungsart",
+    company: "Arbeitgeber / Firma",
+    employmentType: "Art der Erwerbstätigkeit",
     position: "Position",
     companySize: "Unternehmensgröße",
     decisionMakingRole: "Entscheidungsrolle",
     industry: "Branche",
     dmr_none: "Keine",
-    dmr_decisionMaker: "Entscheidungsträger",
-    dmr_influencer: "Einflussträger",
-    dmr_endUser: "Endbenutzer",
+    dmr_decisionMaker: "Entscheider",
+    dmr_influencer: "Influencer",
+    dmr_endUser: "Nutzer",
 
     // Financial fields
     maximumBudget: "Maximales Budget",
@@ -517,7 +517,7 @@ export const TRANSLATIONS = {
     status: "Status",
     previewTemplate: "E-Mail-Vorlage vorschau",
     listOfRecipients: "Empfängerliste",
-    cancelScheduled: "Geplante E-Mail abbrechen",
+    cancelScheduled: "Geplante E-Mail stornieren",
     sent: "Gesendet",
     scheduled: "Geplant",
     failed: "Fehlgeschlagen",
@@ -554,13 +554,13 @@ export const TRANSLATIONS = {
     // Overview tab
     followUp: "Nachverfolgung",
     lastAction: "Letzte Aktion",
-    nextBestAction: "Nächste beste Aktion",
-    aiInsight: "KI-Einblick",
+    nextBestAction: "Beste nächste Aktion",
+    aiInsight: "KI-Erkenntnisse",
     journeyPipeline: "Journey-Pipeline",
-    advisoryDocuments: "Beratungsdokumente",
+    advisoryDocuments: "Beratungsunterlagen",
     addNote: "+ Notiz hinzufügen",
     addLabel: "+ Hinzufügen",
-    labels: "Etiketten",
+    labels: "Labels",
 
     // Activities tab
     all: "Alle",

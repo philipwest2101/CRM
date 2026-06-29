@@ -225,22 +225,32 @@ const MOCK_LEADS = [
   { id:"ml15", name:"Dominik Meier",   city:"Stuttgart",  source:"Google Ads",    campaign:"Crypto",       status:"open", assignedVD:null, assignedGP:null },
 ];
 const MOCK_ACTIVITIES = [
-  { id:"act1", entityType:"task",     title:"Follow up Sandra Richter",  status:"pending", priority:"high",   date:"2026-06-28", gp:"Anna Klein",   vd:"Thomas Müller", type:"call" },
-  { id:"act2", entityType:"reminder", title:"Send proposal to Markus",   status:"pending", priority:"normal", date:"2026-06-29", gp:"Anna Klein",   vd:"Thomas Müller", type:"email" },
-  { id:"act3", entityType:"task",     title:"Call Klaus Wagner",         status:"done",    priority:"low",    date:"2026-06-27", gp:"Anna Klein",   vd:"Thomas Müller", type:"call" },
-  { id:"act4", entityType:"call",     title:"Intro call — Laura Fischer",status:"done",    priority:"normal", date:"2026-06-25", gp:"Anna Klein",   vd:"Thomas Müller", type:"call",  time:"10:00" },
-  { id:"act5", entityType:"email",    title:"Welcome email sent",        status:"done",    priority:"low",    date:"2026-06-24", gp:"Anna Klein",   vd:"Thomas Müller", type:"email", time:"09:15" },
-  { id:"act6", entityType:"task",     title:"Prepare documents for Hans",status:"pending", priority:"urgent", date:"2026-06-29", gp:"Anna Klein",   vd:"Thomas Müller", type:"todo" },
-  { id:"act7", entityType:"call",     title:"Strategy call — Eva Braun", status:"pending", priority:"high",   date:"2026-06-28", gp:"Anna Klein",   vd:"Thomas Müller", type:"call",  time:"14:30" },
-  { id:"act8", entityType:"note",     title:"Note added for Maria Huber",status:"done",    priority:"low",    date:"2026-06-23", gp:"Anna Klein",   vd:"Thomas Müller", type:"note" },
+  // GP Anna Klein — tasks & recent activity
+  { id:"act1", entityType:"task",     title:"Follow up Sandra Richter",        status:"pending", priority:"high",   date:"2026-06-29", gp:"Anna Klein",    vd:"Thomas Müller", type:"call" },
+  { id:"act2", entityType:"reminder", title:"Send proposal to Markus Bauer",   status:"pending", priority:"normal", date:"2026-06-29", gp:"Anna Klein",    vd:"Thomas Müller", type:"email" },
+  { id:"act3", entityType:"task",     title:"Prepare documents for Hans Müller",status:"pending",priority:"urgent", date:"2026-06-29", gp:"Anna Klein",    vd:"Thomas Müller", type:"note" },
+  { id:"act4", entityType:"task",     title:"Call Klaus Wagner (3rd attempt)",  status:"done",    priority:"low",    date:"2026-06-28", gp:"Anna Klein",    vd:"Thomas Müller", type:"call" },
+  { id:"act5", entityType:"call",     title:"Intro call — Laura Fischer",       status:"done",    priority:"normal", date:"2026-06-27", gp:"Anna Klein",    vd:"Thomas Müller", type:"call",  time:"10:00" },
+  { id:"act6", entityType:"email",    title:"Welcome email — Lena Brandt",      status:"done",    priority:"low",    date:"2026-06-26", gp:"Anna Klein",    vd:"Thomas Müller", type:"email", time:"09:15" },
+  { id:"act7", entityType:"note",     title:"Note added for Maria Huber",       status:"done",    priority:"low",    date:"2026-06-25", gp:"Anna Klein",    vd:"Thomas Müller", type:"note" },
+  // VD Thomas Müller — own tasks & recent activity (gp === vd)
+  { id:"act8", entityType:"task",     title:"Q2 team targets review",           status:"pending", priority:"high",   date:"2026-06-29", gp:"Thomas Müller", vd:"Thomas Müller", type:"note" },
+  { id:"act9", entityType:"reminder", title:"Call Eva Gruber — contract prep",  status:"pending", priority:"urgent", date:"2026-06-29", gp:"Thomas Müller", vd:"Thomas Müller", type:"call" },
+  { id:"act10",entityType:"task",     title:"Approve Marc Otto's proposals",    status:"done",    priority:"normal", date:"2026-06-28", gp:"Thomas Müller", vd:"Thomas Müller", type:"note" },
+  { id:"act11",entityType:"call",     title:"Strategy call with Anna Klein",    status:"done",    priority:"normal", date:"2026-06-28", gp:"Thomas Müller", vd:"Thomas Müller", type:"call",  time:"11:00" },
+  { id:"act12",entityType:"email",    title:"Weekly digest sent to team",       status:"done",    priority:"low",    date:"2026-06-27", gp:"Thomas Müller", vd:"Thomas Müller", type:"email" },
+  { id:"act13",entityType:"note",     title:"Performance note — Marc Otto",     status:"done",    priority:"normal", date:"2026-06-26", gp:"Thomas Müller", vd:"Thomas Müller", type:"note" },
 ];
 const MOCK_APPOINTMENTS = [
-  { id:"ap1", lead:"Sandra Richter",  date:"2026-06-28", start:"09:00", type:"call",     status:"upcoming",  gp:"Anna Klein", vd:"Thomas Müller" },
-  { id:"ap2", lead:"Hans Müller",     date:"2026-06-28", start:"10:30", type:"video",    status:"confirmed", gp:"Anna Klein", vd:"Thomas Müller" },
-  { id:"ap3", lead:"Klaus Wagner",    date:"2026-06-28", start:"12:00", type:"inperson", status:"upcoming",  gp:"Anna Klein", vd:"Thomas Müller" },
-  { id:"ap4", lead:"Julia Weiss",     date:"2026-06-28", start:"14:00", type:"call",     status:"confirmed", gp:"Anna Klein", vd:"Thomas Müller" },
-  { id:"ap5", lead:"Markus Bauer",    date:"2026-06-28", start:"15:30", type:"video",    status:"upcoming",  gp:"Anna Klein", vd:"Thomas Müller" },
-  { id:"ap6", lead:"Lena Brandt",     date:"2026-06-28", start:"17:00", type:"inperson", status:"upcoming",  gp:"Anna Klein", vd:"Thomas Müller" },
+  // GP Anna Klein — today
+  { id:"ap1", lead:"Sandra Richter",  date:"2026-06-29", start:"09:00", type:"call",     status:"upcoming",  gp:"Anna Klein",    vd:"Thomas Müller" },
+  { id:"ap2", lead:"Hans Müller",     date:"2026-06-29", start:"10:30", type:"video",    status:"confirmed", gp:"Anna Klein",    vd:"Thomas Müller" },
+  { id:"ap3", lead:"Klaus Wagner",    date:"2026-06-29", start:"12:00", type:"inperson", status:"upcoming",  gp:"Anna Klein",    vd:"Thomas Müller" },
+  { id:"ap4", lead:"Julia Weiss",     date:"2026-06-29", start:"14:00", type:"call",     status:"confirmed", gp:"Anna Klein",    vd:"Thomas Müller" },
+  // VD Thomas Müller — own appointments (gp === vd = Thomas Müller)
+  { id:"ap5", lead:"Eva Gruber",      date:"2026-06-29", start:"09:30", type:"call",     status:"confirmed", gp:"Thomas Müller", vd:"Thomas Müller" },
+  { id:"ap6", lead:"Klaus Richter",   date:"2026-06-29", start:"11:00", type:"video",    status:"upcoming",  gp:"Thomas Müller", vd:"Thomas Müller" },
+  { id:"ap7", lead:"Stefan Wolf",     date:"2026-06-29", start:"14:30", type:"inperson", status:"upcoming",  gp:"Thomas Müller", vd:"Thomas Müller" },
 ];
 
 export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
@@ -278,13 +288,13 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const scopedAppts = isGP
     ? allAppointments.filter(a => a.gp === userName)
     : isVD
-      ? allAppointments.filter(a => a.vd === userName)
+      ? allAppointments.filter(a => a.vd === userName && a.gp === userName)
       : allAppointments;
 
   const scopedActivities = isGP
     ? allActivities.filter(a => a.gp === userName)
     : isVD
-      ? allActivities.filter(a => a.vd === userName)
+      ? allActivities.filter(a => a.vd === userName && a.gp === userName)
       : allActivities;
 
   // ── KPI derivations ──────────────────────────────────────────────────────────
@@ -320,8 +330,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const leadsTitle     = isGP ? t("myLeads") : isVD ? t("pendingAssignment") : t("unassignedLeads");
   const contactsLabel  = isGP ? t("myNetwork") : isVD ? t("myLeads") : t("totalContacts");
   const newLeadsLabel  = isGP ? t("myLeads") : isVD ? t("pendingAssignments") : t("newContacts");
-  const remindersTitle = isGP ? t("myTasks") : isVD ? t("teamTasks") : t("remindersAndTasks");
-  const apptsTitle     = isGP ? t("myAppointmentsToday") : isVD ? t("appointmentsToday") : t("appointmentsToday");
+  const remindersTitle = t("remindersAndTasks");
+  const apptsTitle     = t("appointmentsToday");
 
   // Contacts to show in panel (max 6) — SA: truly unassigned; VD: assigned to VD but no GP
   const panelLeads = isSA
@@ -405,7 +415,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           <KpiCard
             label={t("appointmentsToday")}
             value={todayAppts.length}
-            sub={isGP ? t("mySchedule") : t("teamSchedule")}
+            sub={t("mySchedule")}
             color={C.indigo}
           />
           <KpiCard
@@ -626,7 +636,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {!isSA && (
         <Card>
           <CardHeader
-            title={isGP ? t("myRecentActivity") : t("teamRecentActivity")}
+            title={t("recentActivity")}
             action={<LinkBtn label={t("allActivityLink")} onClick={() => navigateTo("Calendar")} />}
           />
           <div style={{ padding: "6px 16px 12px" }}>
