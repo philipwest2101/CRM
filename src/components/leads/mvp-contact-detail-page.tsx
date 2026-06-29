@@ -766,11 +766,16 @@ const InformationTab = ({ c }) => {
     assignee: c.assignee || "", product: "Product #1", productProvider: "Product Provider #1",
     source: c.source || "", campaign: c.campaign || "",
     gdprConsent: true, gdprDate: "01.01.2026", newsletter: false, newsletterDate: "",
-    salutation: "Mr.", dob: c.dob || "", gender: "Male", nationality: "German", language: "German",
-    street: "Musterstraße", houseNo: "12", zip: "10115", city: "Berlin", country: "Germany",
-    company: "Example GmbH", employment: "Employed", position: "Manager",
-    companySize: "51–200", decisionRole: "Decision Maker", industry: "Finance",
-    income: "€ 80,000", netWorth: "€ 250,000", risk: "Balanced", horizon: "Medium (3–7y)",
+    salutation: "Mr.", addressForm: "Formal", title: "", postTitle: "",
+    dob: c.dob || "", gender: "Male", maritalStatus: "Married", numberOfChildren: "1",
+    estimatedIncome: "€60,000 – €100,000", estimatedHouseholdIncome: "€100,000 – €200,000",
+    expectedPersonalChanges: "", potential: 3, interestsHobbies: "Golf, Travelling",
+    street: "Musterstraße 12", zip: "10115", city: "Berlin", country: "Germany",
+    secondaryEmail: "", secondaryPhone: "", facebook: "", linkedin: "", instagram: "", tiktok: "", otherSocialMedia: "",
+    company: "Example GmbH", employment: "Employed", position: "Senior Management",
+    companySize: "SME", decisionRole: "Decision Maker", industry: "Finance",
+    maximumBudget: "€ 250,000", existingContracts: "Life Insurance, Pension Plan", risk: "Balanced", horizon: "Medium",
+    financialGoals: "Retirement savings, property purchase", financialDescription: "",
   };
   const [saved, setSaved]   = useState(initial);
   const [draft, setDraft]   = useState(initial);
@@ -884,24 +889,101 @@ const InformationTab = ({ c }) => {
       {/* Personal */}
       {subIdx === 1 && (
         <G2>
-          <EditField label={t("salutation")} value={draft.salutation} editing={editing} onChange={set("salutation")}>
-            {editing && <select value={draft.salutation} onChange={e => set("salutation")(e.target.value)} style={editSelectStyle}>
-              {["Mr.","Ms.","Mrs.","Dr."].map(o => <option key={o}>{o}</option>)}
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("salutation")}</div>
+            {editing ? (
+              <div style={{ display: "flex", gap: 20, paddingTop: 2 }}>
+                {[["None", t("salutation_none")], ["Mr.", t("salutation_mr")], ["Mrs.", t("salutation_mrs")]].map(([val, lbl]) => (
+                  <label key={val} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13 }}>
+                    <input type="radio" checked={draft.salutation === val} onChange={() => setDraft(p => ({ ...p, salutation: val }))} style={{ accentColor: C.primary }} /> {lbl}
+                  </label>
+                ))}
+              </div>
+            ) : <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{draft.salutation || "—"}</div>}
+          </div>
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("addressForm")}</div>
+            {editing ? (
+              <div style={{ display: "flex", gap: 20, paddingTop: 2 }}>
+                {[["Formal", t("addressForm_formal")], ["Informal", t("addressForm_informal")]].map(([val, lbl]) => (
+                  <label key={val} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13 }}>
+                    <input type="radio" checked={draft.addressForm === val} onChange={() => setDraft(p => ({ ...p, addressForm: val }))} style={{ accentColor: C.primary }} /> {lbl}
+                  </label>
+                ))}
+              </div>
+            ) : <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{draft.addressForm || "—"}</div>}
+          </div>
+          <EditField label={t("title")} value={draft.title} editing={editing} onChange={set("title")}>
+            {editing && <select value={draft.title} onChange={e => set("title")(e.target.value)} style={editSelectStyle}>
+              <option value="">—</option>
+              {["Dr.","Prof.","Prof. Dr.","Mag.","Ing.","DI"].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
+          <EditField label={t("postTitle")} value={draft.postTitle} editing={editing} onChange={set("postTitle")}>
+            {editing && <select value={draft.postTitle} onChange={e => set("postTitle")(e.target.value)} style={editSelectStyle}>
+              <option value="">—</option>
+              {["MBA","MSc","BSc","BA","MA"].map(o => <option key={o}>{o}</option>)}
+            </select>}
+          </EditField>
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("gender")}</div>
+            {editing ? (
+              <div style={{ display: "flex", gap: 20, paddingTop: 2 }}>
+                {[["N/A", t("gender_na")], ["Male", t("gender_male")], ["Female", t("gender_female")], ["Diverse", t("gender_diverse")]].map(([val, lbl]) => (
+                  <label key={val} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13 }}>
+                    <input type="radio" checked={draft.gender === val} onChange={() => setDraft(p => ({ ...p, gender: val }))} style={{ accentColor: C.primary }} /> {lbl}
+                  </label>
+                ))}
+              </div>
+            ) : <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{draft.gender || "—"}</div>}
+          </div>
           <EditField label={t("dob")} value={draft.dob} editing={editing} onChange={set("dob")} type="date" />
-          <EditField label={t("gender")} value={draft.gender} editing={editing} onChange={set("gender")}>
-            {editing && <select value={draft.gender} onChange={e => set("gender")(e.target.value)} style={editSelectStyle}>
-              {["Male","Female","Diverse","N/A"].map(o => <option key={o}>{o}</option>)}
+          <EditField label={t("maritalStatus")} value={draft.maritalStatus} editing={editing} onChange={set("maritalStatus")}>
+            {editing && <select value={draft.maritalStatus} onChange={e => set("maritalStatus")(e.target.value)} style={editSelectStyle}>
+              <option value="">—</option>
+              <option value="Married">{t("marital_married")}</option>
+              <option value="Registered Partnership">{t("marital_registeredPartnership")}</option>
+              <option value="In a Relationship">{t("marital_inRelationship")}</option>
+              <option value="Widowed">{t("marital_widowed")}</option>
+              <option value="Single">{t("marital_single")}</option>
+              <option value="Single Parent">{t("marital_singleParent")}</option>
+              <option value="DINK">{t("marital_dink")}</option>
+              <option value="Other">{t("marital_other")}</option>
             </select>}
           </EditField>
-          <EditField label={t("nationality")} value={draft.nationality} editing={editing} onChange={set("nationality")} />
-          <EditField label={t("preferredLanguage")} value={draft.language} editing={editing} onChange={set("language")}>
-            {editing && <select value={draft.language} onChange={e => set("language")(e.target.value)} style={editSelectStyle}>
-              {["German","English","French","Czech"].map(o => <option key={o}>{o}</option>)}
+          <EditField label={t("numberOfChildren")} value={draft.numberOfChildren} editing={editing} onChange={set("numberOfChildren")} type="number" />
+          <EditField label={t("estimatedIncome")} value={draft.estimatedIncome} editing={editing} onChange={set("estimatedIncome")}>
+            {editing && <select value={draft.estimatedIncome} onChange={e => set("estimatedIncome")(e.target.value)} style={editSelectStyle}>
+              <option value="">—</option>
+              <option>{"< €20,000"}</option><option>€20,000 – €40,000</option><option>€40,000 – €60,000</option>
+              <option>€60,000 – €100,000</option><option>€100,000 – €150,000</option><option>{"> €150,000"}</option>
             </select>}
           </EditField>
-          <div />
+          <EditField label={t("estimatedHouseholdIncome")} value={draft.estimatedHouseholdIncome} editing={editing} onChange={set("estimatedHouseholdIncome")}>
+            {editing && <select value={draft.estimatedHouseholdIncome} onChange={e => set("estimatedHouseholdIncome")(e.target.value)} style={editSelectStyle}>
+              <option value="">—</option>
+              <option>{"< €30,000"}</option><option>€30,000 – €60,000</option><option>€60,000 – €100,000</option>
+              <option>€100,000 – €200,000</option><option>€200,000 – €300,000</option><option>{"> €300,000"}</option>
+            </select>}
+          </EditField>
+          <EditField label={t("expectedPersonalChanges")} value={draft.expectedPersonalChanges} editing={editing} onChange={set("expectedPersonalChanges")} />
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("potential")}</div>
+            {editing ? (
+              <div style={{ display: "inline-flex", gap: 3 }}>
+                {[1,2,3,4,5].map(i => (
+                  <span key={i} onClick={() => setDraft(p => ({ ...p, potential: i }))}
+                    style={{ fontSize: 20, cursor: "pointer", color: i <= draft.potential ? C.amber : C.border, lineHeight: 1 }}>★</span>
+                ))}
+              </div>
+            ) : <div style={{ display: "inline-flex", gap: 2 }}>{[1,2,3,4,5].map(i => <span key={i} style={{ fontSize: 16, color: i <= draft.potential ? C.amber : C.border }}>★</span>)}</div>}
+          </div>
+          <div style={{ marginBottom: 22, gridColumn: "span 2" }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("interestsHobbies")}</div>
+            {editing
+              ? <textarea value={draft.interestsHobbies} onChange={e => set("interestsHobbies")(e.target.value)} rows={3} style={{ ...editInputStyle, borderColor: "#94A3B8", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
+              : <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{draft.interestsHobbies || "—"}</div>}
+          </div>
         </G2>
       )}
 
@@ -909,10 +991,16 @@ const InformationTab = ({ c }) => {
       {subIdx === 2 && (
         <G2>
           <EditField label={t("street")} value={draft.street} editing={editing} onChange={set("street")} />
-          <EditField label={t("houseNo")} value={draft.houseNo} editing={editing} onChange={set("houseNo")} />
-          <EditField label={t("zip")} value={draft.zip} editing={editing} onChange={set("zip")} />
+          <EditField label={t("postalCode")} value={draft.zip} editing={editing} onChange={set("zip")} />
           <EditField label={t("city")} value={draft.city} editing={editing} onChange={set("city")} />
           <EditField label={t("country")} value={draft.country} editing={editing} onChange={set("country")} />
+          <EditField label={t("secondaryEmail")} value={draft.secondaryEmail} editing={editing} onChange={set("secondaryEmail")} type="email" />
+          <EditField label={t("secondaryPhone")} value={draft.secondaryPhone} editing={editing} onChange={set("secondaryPhone")} />
+          <EditField label={t("facebook")} value={draft.facebook} editing={editing} onChange={set("facebook")} />
+          <EditField label={t("linkedIn")} value={draft.linkedin} editing={editing} onChange={set("linkedin")} />
+          <EditField label={t("instagram")} value={draft.instagram} editing={editing} onChange={set("instagram")} />
+          <EditField label={t("tiktok")} value={draft.tiktok} editing={editing} onChange={set("tiktok")} />
+          <EditField label={t("otherSocialMedia")} value={draft.otherSocialMedia} editing={editing} onChange={set("otherSocialMedia")} />
           <div />
         </G2>
       )}
@@ -967,10 +1055,11 @@ const InformationTab = ({ c }) => {
       {/* Financial */}
       {subIdx === 4 && (
         <G2>
-          <EditField label={t("annualIncome")} value={draft.income} editing={editing} onChange={set("income")} />
-          <EditField label={t("netWorth")} value={draft.netWorth} editing={editing} onChange={set("netWorth")} />
-          <EditField label={t("riskAppetite")} value={draft.risk} editing={editing} onChange={set("risk")}>
+          <EditField label={t("maximumBudget")} value={draft.maximumBudget} editing={editing} onChange={set("maximumBudget")} />
+          <EditField label={t("existingContracts")} value={draft.existingContracts} editing={editing} onChange={set("existingContracts")} />
+          <EditField label={t("riskProfile")} value={draft.risk} editing={editing} onChange={set("risk")}>
             {editing && <select value={draft.risk} onChange={e => set("risk")(e.target.value)} style={editSelectStyle}>
+              <option value="">—</option>
               <option value="Security Oriented">{t("risk_security")}</option>
               <option value="Balanced">{t("risk_balanced")}</option>
               <option value="Opportunity Oriented">{t("risk_opportunity")}</option>
@@ -978,11 +1067,20 @@ const InformationTab = ({ c }) => {
           </EditField>
           <EditField label={t("investmentHorizon")} value={draft.horizon} editing={editing} onChange={set("horizon")}>
             {editing && <select value={draft.horizon} onChange={e => set("horizon")(e.target.value)} style={editSelectStyle}>
+              <option value="">—</option>
               <option value="Short">{t("horizon_short")}</option>
               <option value="Medium">{t("horizon_medium")}</option>
               <option value="Long">{t("horizon_long")}</option>
             </select>}
           </EditField>
+          <EditField label={t("financialGoals")} value={draft.financialGoals} editing={editing} onChange={set("financialGoals")} />
+          <div />
+          <div style={{ marginBottom: 22, gridColumn: "span 2" }}>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("description")}</div>
+            {editing
+              ? <textarea value={draft.financialDescription} onChange={e => set("financialDescription")(e.target.value)} rows={5} maxLength={5000} style={{ ...editInputStyle, borderColor: "#94A3B8", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
+              : <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{draft.financialDescription || "—"}</div>}
+          </div>
         </G2>
       )}
     </Card>

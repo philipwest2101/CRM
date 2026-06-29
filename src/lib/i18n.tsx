@@ -99,7 +99,7 @@ export const TRANSLATIONS = {
     netWorth: "Net Worth",
     riskAppetite: "Risk Appetite",
     overviewTab: "Overview",
-    informationTab: "Contact Information",
+    informationTab: "Information",
     activitiesTab: "Activities",
     documentsTab: "Documents",
 
@@ -143,11 +143,11 @@ export const TRANSLATIONS = {
     // Add Contact / Information tab
     addContactTitle: "Add Contact",
     contactDetailTitle: "Contact Details",
-    basicTab: "Basic Information",
-    personalTab: "Personal Details",
-    addressTab: "Address Details",
-    businessTab: "Business Details",
-    financialTab: "Financial Profile",
+    basicTab: "Basic",
+    personalTab: "Personal",
+    addressTab: "Address",
+    businessTab: "Business",
+    financialTab: "Financial",
 
     // Basic fields
     primaryPhone: "Primary Phone",
@@ -414,7 +414,7 @@ export const TRANSLATIONS = {
     netWorth: "Nettovermögen",
     riskAppetite: "Risikobereitschaft",
     overviewTab: "Übersicht",
-    informationTab: "Kontaktdaten",
+    informationTab: "Informationen",
     activitiesTab: "Aktivitäten",
     documentsTab: "Dokumente",
 
@@ -459,10 +459,10 @@ export const TRANSLATIONS = {
     addContactTitle: "Kontakt hinzufügen",
     contactDetailTitle: "Kontaktdetails",
     basicTab: "Grunddaten",
-    personalTab: "Persönliche Daten",
-    addressTab: "Adressdaten",
-    businessTab: "Geschäftliche Daten",
-    financialTab: "Finanzprofil",
+    personalTab: "Persönlich",
+    addressTab: "Adresse",
+    businessTab: "Geschäftlich",
+    financialTab: "Finanziell",
 
     // Basic fields
     primaryPhone: "Primäre Telefonnummer",

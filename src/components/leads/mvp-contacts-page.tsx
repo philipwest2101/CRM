@@ -551,10 +551,14 @@ const AddContactPage = ({ onCancel, onSave }) => {
     first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
     assignee: "", product: "", productProvider: "", source: "", campaign: "",
     gdprConsent: false, gdprDate: "", newsletter: false, newsletterDate: "",
-    salutation: "", dob: "", gender: "", nationality: "", language: "",
-    street: "", houseNo: "", zip: "", city: "", country: "",
+    salutation: "None", addressForm: "Formal", title: "", postTitle: "",
+    dob: "", gender: "N/A", maritalStatus: "", numberOfChildren: "",
+    estimatedIncome: "", estimatedHouseholdIncome: "", expectedPersonalChanges: "",
+    potential: 0, interestsHobbies: "",
+    street: "", zip: "", city: "", country: "",
+    secondaryEmail: "", secondaryPhone: "", facebook: "", linkedin: "", instagram: "", tiktok: "", otherSocialMedia: "",
     company: "", employment: "", position: "", companySize: "", decisionRole: "None", industry: "",
-    income: "", netWorth: "", risk: "", horizon: "",
+    maximumBudget: "", existingContracts: "", risk: "", horizon: "", financialGoals: "", financialDescription: "",
     notes: "",
   });
   const set = (k) => (e) => setF(prev => ({ ...prev, [k]: e.target.value }));
@@ -562,7 +566,9 @@ const AddContactPage = ({ onCancel, onSave }) => {
 
   const reset = () => setF(prev => Object.fromEntries(Object.keys(prev).map(k => [k,
     k === "lifecycle" ? "Lead" : k === "stageStatus" ? "New" : k === "decisionRole" ? "None" :
-    k === "gdprConsent" || k === "newsletter" ? false : ""])));
+    k === "gdprConsent" || k === "newsletter" ? false :
+    k === "salutation" ? "None" : k === "addressForm" ? "Formal" : k === "gender" ? "N/A" :
+    k === "decisionRole" ? "None" : k === "potential" ? 0 : ""])));
 
   const Grid = ({ children, cols = 2 }) => (
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 18 }}>{children}</div>
@@ -654,26 +660,104 @@ const AddContactPage = ({ onCancel, onSave }) => {
 
         {tab === "Personal" && (<>
           <Grid>
-            <Field label={t("salutation")}><Select value={f.salutation} onChange={set("salutation")}><option value="">{t("salutation")}</option><option value="Mr.">{t("salutation_mr")}</option><option value="Mrs.">{t("salutation_mrs")}</option><option value="None">{t("salutation_none")}</option></Select></Field>
-            <Field label="Date of Birth"><TextInput type="date" value={f.dob} onChange={set("dob")} /></Field>
+            <Field label={t("salutation")}>
+              <div style={{ display: "flex", gap: 20, paddingTop: 4 }}>
+                {[["None", t("salutation_none")], ["Mr.", t("salutation_mr")], ["Mrs.", t("salutation_mrs")]].map(([val, lbl]) => (
+                  <label key={val} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: C.text }}>
+                    <input type="radio" name="salutation" checked={f.salutation === val} onChange={() => setF(p => ({ ...p, salutation: val }))} style={{ accentColor: C.primary, width: 15, height: 15 }} />
+                    {lbl}
+                  </label>
+                ))}
+              </div>
+            </Field>
+            <Field label={t("addressForm")}>
+              <div style={{ display: "flex", gap: 20, paddingTop: 4 }}>
+                {[["Formal", t("addressForm_formal")], ["Informal", t("addressForm_informal")]].map(([val, lbl]) => (
+                  <label key={val} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: C.text }}>
+                    <input type="radio" name="addressForm" checked={f.addressForm === val} onChange={() => setF(p => ({ ...p, addressForm: val }))} style={{ accentColor: C.primary, width: 15, height: 15 }} />
+                    {lbl}
+                  </label>
+                ))}
+              </div>
+            </Field>
           </Grid>
           <Grid>
-            <Field label={t("gender")}><Select value={f.gender} onChange={set("gender")}><option value="">{t("gender")}</option><option value="Male">{t("gender_male")}</option><option value="Female">{t("gender_female")}</option><option value="Diverse">{t("gender_diverse")}</option></Select></Field>
-            <Field label="Nationality"><TextInput value={f.nationality} onChange={set("nationality")} placeholder="Nationality" /></Field>
+            <Field label={t("title")}><Select value={f.title} onChange={set("title")}><option value="">—</option><option>Dr.</option><option>Prof.</option><option>Prof. Dr.</option><option>Mag.</option><option>Ing.</option><option>DI</option></Select></Field>
+            <Field label={t("postTitle")}><Select value={f.postTitle} onChange={set("postTitle")}><option value="">—</option><option>MBA</option><option>MSc</option><option>BSc</option><option>BA</option><option>MA</option></Select></Field>
           </Grid>
-          <Field label="Preferred Language"><Select value={f.language} onChange={set("language")}><option value="">Select Language</option><option>German</option><option>English</option><option>French</option><option>Czech</option></Select></Field>
+          <Grid>
+            <Field label={t("gender")}>
+              <div style={{ display: "flex", gap: 20, paddingTop: 4 }}>
+                {[["N/A", t("gender_na")], ["Male", t("gender_male")], ["Female", t("gender_female")], ["Diverse", t("gender_diverse")]].map(([val, lbl]) => (
+                  <label key={val} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: C.text }}>
+                    <input type="radio" name="gender" checked={f.gender === val} onChange={() => setF(p => ({ ...p, gender: val }))} style={{ accentColor: C.primary, width: 15, height: 15 }} />
+                    {lbl}
+                  </label>
+                ))}
+              </div>
+            </Field>
+            <Field label={t("dob")}><TextInput type="date" value={f.dob} onChange={set("dob")} /></Field>
+          </Grid>
+          <Grid>
+            <Field label={t("maritalStatus")}><Select value={f.maritalStatus} onChange={set("maritalStatus")}>
+              <option value="">—</option>
+              <option value="Married">{t("marital_married")}</option>
+              <option value="Registered Partnership">{t("marital_registeredPartnership")}</option>
+              <option value="In a Relationship">{t("marital_inRelationship")}</option>
+              <option value="Widowed">{t("marital_widowed")}</option>
+              <option value="Single">{t("marital_single")}</option>
+              <option value="Single Parent">{t("marital_singleParent")}</option>
+              <option value="DINK">{t("marital_dink")}</option>
+              <option value="Other">{t("marital_other")}</option>
+            </Select></Field>
+            <Field label={t("numberOfChildren")}><TextInput type="number" min={0} value={f.numberOfChildren} onChange={set("numberOfChildren")} placeholder="0" /></Field>
+          </Grid>
+          <Grid>
+            <Field label={t("estimatedIncome")}><Select value={f.estimatedIncome} onChange={set("estimatedIncome")}>
+              <option value="">—</option>
+              <option>{"< €20,000"}</option><option>€20,000 – €40,000</option><option>€40,000 – €60,000</option>
+              <option>€60,000 – €100,000</option><option>€100,000 – €150,000</option><option>{"> €150,000"}</option>
+            </Select></Field>
+            <Field label={t("estimatedHouseholdIncome")}><Select value={f.estimatedHouseholdIncome} onChange={set("estimatedHouseholdIncome")}>
+              <option value="">—</option>
+              <option>{"< €30,000"}</option><option>€30,000 – €60,000</option><option>€60,000 – €100,000</option>
+              <option>€100,000 – €200,000</option><option>€200,000 – €300,000</option><option>{"> €300,000"}</option>
+            </Select></Field>
+          </Grid>
+          <Field label={t("expectedPersonalChanges")}><TextInput value={f.expectedPersonalChanges} onChange={set("expectedPersonalChanges")} placeholder="e.g. Retirement, house purchase…" /></Field>
+          <Field label={t("potential")}>
+            <div style={{ display: "inline-flex", gap: 4, paddingTop: 2 }}>
+              {[1,2,3,4,5].map(i => (
+                <span key={i} onClick={() => setF(p => ({ ...p, potential: i }))}
+                  style={{ fontSize: 22, cursor: "pointer", color: i <= f.potential ? C.amber : C.border, lineHeight: 1 }}>★</span>
+              ))}
+            </div>
+          </Field>
+          <Field label={t("interestsHobbies")}><textarea value={f.interestsHobbies} onChange={set("interestsHobbies")} placeholder="e.g. Golf, Travelling…" rows={3} style={{ ...fieldStyle, padding: "11px 13px", resize: "vertical" }} /></Field>
         </>)}
 
         {tab === "Address" && (<>
-          <Grid cols={3}>
-            <div style={{ gridColumn: "span 2" }}><Field label="Street"><TextInput value={f.street} onChange={set("street")} placeholder="Street" /></Field></div>
-            <Field label="House No."><TextInput value={f.houseNo} onChange={set("houseNo")} placeholder="No." /></Field>
+          <Grid>
+            <Field label={t("street")}><TextInput value={f.street} onChange={set("street")} placeholder="Street" /></Field>
+            <Field label={t("postalCode")}><TextInput value={f.zip} onChange={set("zip")} placeholder="ZIP" /></Field>
           </Grid>
-          <Grid cols={3}>
-            <Field label="ZIP"><TextInput value={f.zip} onChange={set("zip")} placeholder="ZIP" /></Field>
-            <Field label="City"><TextInput value={f.city} onChange={set("city")} placeholder="City" /></Field>
-            <Field label="Country"><TextInput value={f.country} onChange={set("country")} placeholder="Country" /></Field>
+          <Grid>
+            <Field label={t("city")}><TextInput value={f.city} onChange={set("city")} placeholder="City" /></Field>
+            <Field label={t("country")}><TextInput value={f.country} onChange={set("country")} placeholder="Country" /></Field>
           </Grid>
+          <Grid>
+            <Field label={t("secondaryEmail")}><TextInput type="email" value={f.secondaryEmail} onChange={set("secondaryEmail")} placeholder="secondary@example.com" /></Field>
+            <Field label={t("secondaryPhone")}><TextInput value={f.secondaryPhone} onChange={set("secondaryPhone")} placeholder="+41 …" /></Field>
+          </Grid>
+          <Grid>
+            <Field label={t("facebook")}><TextInput value={f.facebook} onChange={set("facebook")} placeholder="Facebook URL or username" /></Field>
+            <Field label={t("linkedIn")}><TextInput value={f.linkedin} onChange={set("linkedin")} placeholder="LinkedIn URL or username" /></Field>
+          </Grid>
+          <Grid>
+            <Field label={t("instagram")}><TextInput value={f.instagram} onChange={set("instagram")} placeholder="Instagram handle" /></Field>
+            <Field label={t("tiktok")}><TextInput value={f.tiktok} onChange={set("tiktok")} placeholder="TikTok handle" /></Field>
+          </Grid>
+          <Field label={t("otherSocialMedia")}><TextInput value={f.otherSocialMedia} onChange={set("otherSocialMedia")} placeholder="Other social media link" /></Field>
         </>)}
 
         {tab === "Business" && (<>
@@ -723,13 +807,25 @@ const AddContactPage = ({ onCancel, onSave }) => {
 
         {tab === "Financial" && (<>
           <Grid>
-            <Field label="Annual Income"><TextInput value={f.income} onChange={set("income")} placeholder="€ —" /></Field>
-            <Field label="Net Worth"><TextInput value={f.netWorth} onChange={set("netWorth")} placeholder="€ —" /></Field>
+            <Field label={t("maximumBudget")}><TextInput value={f.maximumBudget} onChange={set("maximumBudget")} placeholder="€ —" /></Field>
+            <Field label={t("existingContracts")}><TextInput value={f.existingContracts} onChange={set("existingContracts")} placeholder="—" /></Field>
           </Grid>
           <Grid>
-            <Field label="Risk Appetite"><Select value={f.risk} onChange={set("risk")}><option value="">Select Risk Appetite</option><option>Conservative</option><option>Balanced</option><option>Growth</option><option>Aggressive</option></Select></Field>
-            <Field label="Investment Horizon"><Select value={f.horizon} onChange={set("horizon")}><option value="">Select Horizon</option><option>Short (&lt; 3y)</option><option>Medium (3–7y)</option><option>Long (7y+)</option></Select></Field>
+            <Field label={t("riskProfile")}><Select value={f.risk} onChange={set("risk")}>
+              <option value="">—</option>
+              <option value="Security Oriented">{t("risk_security")}</option>
+              <option value="Balanced">{t("risk_balanced")}</option>
+              <option value="Opportunity Oriented">{t("risk_opportunity")}</option>
+            </Select></Field>
+            <Field label={t("investmentHorizon")}><Select value={f.horizon} onChange={set("horizon")}>
+              <option value="">—</option>
+              <option value="Short">{t("horizon_short")}</option>
+              <option value="Medium">{t("horizon_medium")}</option>
+              <option value="Long">{t("horizon_long")}</option>
+            </Select></Field>
           </Grid>
+          <Field label={t("financialGoals")}><TextInput value={f.financialGoals} onChange={set("financialGoals")} placeholder="e.g. Retirement savings, property purchase…" /></Field>
+          <Field label={t("description")}><textarea value={f.financialDescription} onChange={set("financialDescription")} placeholder="Additional notes…" maxLength={5000} rows={5} style={{ ...fieldStyle, padding: "11px 13px", resize: "vertical" }} /></Field>
         </>)}
 
       </div>
