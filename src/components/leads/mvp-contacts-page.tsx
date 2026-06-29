@@ -545,6 +545,7 @@ const TextInput = (p) => <input {...p} style={{ ...fieldStyle, padding: "11px 13
 const Select = ({ children, ...p }) => <select {...p} style={{ ...fieldStyle, padding: "11px 13px", color: p.value ? C.text : C.muted }}>{children}</select>;
 
 const AddContactPage = ({ onCancel, onSave }) => {
+  const t = useT();
   const [tab, setTab] = useState("Basic");
   const [f, setF] = useState({
     first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
@@ -653,11 +654,11 @@ const AddContactPage = ({ onCancel, onSave }) => {
 
         {tab === "Personal" && (<>
           <Grid>
-            <Field label="Salutation"><Select value={f.salutation} onChange={set("salutation")}><option value="">Select Salutation</option><option>Mr.</option><option>Ms.</option><option>Dr.</option></Select></Field>
+            <Field label={t("salutation")}><Select value={f.salutation} onChange={set("salutation")}><option value="">{t("salutation")}</option><option value="Mr.">{t("salutation_mr")}</option><option value="Mrs.">{t("salutation_mrs")}</option><option value="None">{t("salutation_none")}</option></Select></Field>
             <Field label="Date of Birth"><TextInput type="date" value={f.dob} onChange={set("dob")} /></Field>
           </Grid>
           <Grid>
-            <Field label="Gender"><Select value={f.gender} onChange={set("gender")}><option value="">Select Gender</option><option>Male</option><option>Female</option><option>Other</option></Select></Field>
+            <Field label={t("gender")}><Select value={f.gender} onChange={set("gender")}><option value="">{t("gender")}</option><option value="Male">{t("gender_male")}</option><option value="Female">{t("gender_female")}</option><option value="Diverse">{t("gender_diverse")}</option></Select></Field>
             <Field label="Nationality"><TextInput value={f.nationality} onChange={set("nationality")} placeholder="Nationality" /></Field>
           </Grid>
           <Field label="Preferred Language"><Select value={f.language} onChange={set("language")}><option value="">Select Language</option><option>German</option><option>English</option><option>French</option><option>Czech</option></Select></Field>
@@ -678,16 +679,41 @@ const AddContactPage = ({ onCancel, onSave }) => {
         {tab === "Business" && (<>
           <Field label="Company"><TextInput value={f.company} onChange={set("company")} placeholder="Company" /></Field>
           <Grid>
-            <Field label="Employment Type"><Select value={f.employment} onChange={set("employment")}><option value="">Select Employment Type</option><option>Employed</option><option>Self-employed</option><option>Business Owner</option><option>Retired</option></Select></Field>
-            <Field label="Position"><Select value={f.position} onChange={set("position")}><option value="">Select Position</option><option>Manager</option><option>Director</option><option>C-Level</option><option>Staff</option></Select></Field>
+            <Field label={t("employmentType")}><Select value={f.employment} onChange={set("employment")}>
+              <option value="">{t("employmentType")}</option>
+              <option value="Employed">{t("empl_employed")}</option>
+              <option value="Self-employed">{t("empl_selfEmployed")}</option>
+              <option value="Unemployed">{t("empl_unemployed")}</option>
+              <option value="In Training">{t("empl_inTraining")}</option>
+              <option value="Student">{t("empl_student")}</option>
+              <option value="Retired">{t("empl_retired")}</option>
+              <option value="Other">{t("empl_other")}</option>
+            </Select></Field>
+            <Field label={t("position")}><Select value={f.position} onChange={set("position")}>
+              <option value="">{t("position")}</option>
+              <option value="Senior Management">{t("pos_seniorMgmt")}</option>
+              <option value="Executive">{t("pos_executive")}</option>
+              <option value="Middle Management">{t("pos_middleMgmt")}</option>
+              <option value="Employee">{t("pos_employee")}</option>
+              <option value="Assistant">{t("pos_assistant")}</option>
+              <option value="Other">{t("pos_other")}</option>
+            </Select></Field>
           </Grid>
-          <Field label="Company Size"><Select value={f.companySize} onChange={set("companySize")}><option value="">Select Company Size</option><option>1–10</option><option>11–50</option><option>51–200</option><option>200+</option></Select></Field>
-          <Field label="Decision Making Role">
+          <Field label={t("companySize")}><Select value={f.companySize} onChange={set("companySize")}>
+            <option value="">{t("companySize")}</option>
+            <option value="Corporation">{t("companySize_corporation")}</option>
+            <option value="Large">{t("companySize_large")}</option>
+            <option value="SME">{t("companySize_sme")}</option>
+            <option value="Small">{t("companySize_small")}</option>
+            <option value="EPU">{t("companySize_epu")}</option>
+            <option value="Other">{t("companySize_other")}</option>
+          </Select></Field>
+          <Field label={t("decisionMakingRole")}>
             <div style={{ display: "flex", gap: 40, paddingTop: 4 }}>
-              {["None", "Decision Maker", "Influencer", "End User"].map(r => (
-                <label key={r} style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, color: C.text }}>
-                  <input type="radio" name="decisionRole" checked={f.decisionRole === r} onChange={() => setF(prev => ({ ...prev, decisionRole: r }))} style={{ accentColor: C.primary, width: 16, height: 16 }} />
-                  {r}
+              {[["None", t("dmr_none")], ["Decision Maker", t("dmr_decisionMaker")], ["Influencer", t("dmr_influencer")], ["User", t("dmr_endUser")]].map(([val, label]) => (
+                <label key={val} style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, color: C.text }}>
+                  <input type="radio" name="decisionRole" checked={f.decisionRole === val} onChange={() => setF(prev => ({ ...prev, decisionRole: val }))} style={{ accentColor: C.primary, width: 16, height: 16 }} />
+                  {label}
                 </label>
               ))}
             </div>

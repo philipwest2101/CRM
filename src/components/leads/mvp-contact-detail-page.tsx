@@ -923,18 +923,41 @@ const InformationTab = ({ c }) => {
           <EditField label={t("company")} value={draft.company} editing={editing} onChange={set("company")} />
           <EditField label={t("employmentType")} value={draft.employment} editing={editing} onChange={set("employment")}>
             {editing && <select value={draft.employment} onChange={e => set("employment")(e.target.value)} style={editSelectStyle}>
-              {["Employed","Self-employed","Business Owner","Retired"].map(o => <option key={o}>{o}</option>)}
+              <option value="Employed">{t("empl_employed")}</option>
+              <option value="Self-employed">{t("empl_selfEmployed")}</option>
+              <option value="Unemployed">{t("empl_unemployed")}</option>
+              <option value="In Training">{t("empl_inTraining")}</option>
+              <option value="Student">{t("empl_student")}</option>
+              <option value="Retired">{t("empl_retired")}</option>
+              <option value="Other">{t("empl_other")}</option>
             </select>}
           </EditField>
-          <EditField label={t("position")} value={draft.position} editing={editing} onChange={set("position")} />
+          <EditField label={t("position")} value={draft.position} editing={editing} onChange={set("position")}>
+            {editing && <select value={draft.position} onChange={e => set("position")(e.target.value)} style={editSelectStyle}>
+              <option value="Senior Management">{t("pos_seniorMgmt")}</option>
+              <option value="Executive">{t("pos_executive")}</option>
+              <option value="Middle Management">{t("pos_middleMgmt")}</option>
+              <option value="Employee">{t("pos_employee")}</option>
+              <option value="Assistant">{t("pos_assistant")}</option>
+              <option value="Other">{t("pos_other")}</option>
+            </select>}
+          </EditField>
           <EditField label={t("companySize")} value={draft.companySize} editing={editing} onChange={set("companySize")}>
             {editing && <select value={draft.companySize} onChange={e => set("companySize")(e.target.value)} style={editSelectStyle}>
-              {["1–10","11–50","51–200","200+"].map(o => <option key={o}>{o}</option>)}
+              <option value="Corporation">{t("companySize_corporation")}</option>
+              <option value="Large">{t("companySize_large")}</option>
+              <option value="SME">{t("companySize_sme")}</option>
+              <option value="Small">{t("companySize_small")}</option>
+              <option value="EPU">{t("companySize_epu")}</option>
+              <option value="Other">{t("companySize_other")}</option>
             </select>}
           </EditField>
           <EditField label={t("decisionMakingRole")} value={draft.decisionRole} editing={editing} onChange={set("decisionRole")}>
             {editing && <select value={draft.decisionRole} onChange={e => set("decisionRole")(e.target.value)} style={editSelectStyle}>
-              {["None","Decision Maker","Influencer","End User"].map(o => <option key={o}>{o}</option>)}
+              <option value="None">{t("dmr_none")}</option>
+              <option value="Decision Maker">{t("dmr_decisionMaker")}</option>
+              <option value="Influencer">{t("dmr_influencer")}</option>
+              <option value="User">{t("dmr_endUser")}</option>
             </select>}
           </EditField>
           <EditField label={t("industry")} value={draft.industry} editing={editing} onChange={set("industry")} />
@@ -948,12 +971,16 @@ const InformationTab = ({ c }) => {
           <EditField label={t("netWorth")} value={draft.netWorth} editing={editing} onChange={set("netWorth")} />
           <EditField label={t("riskAppetite")} value={draft.risk} editing={editing} onChange={set("risk")}>
             {editing && <select value={draft.risk} onChange={e => set("risk")(e.target.value)} style={editSelectStyle}>
-              {["Conservative","Balanced","Growth","Aggressive"].map(o => <option key={o}>{o}</option>)}
+              <option value="Security Oriented">{t("risk_security")}</option>
+              <option value="Balanced">{t("risk_balanced")}</option>
+              <option value="Opportunity Oriented">{t("risk_opportunity")}</option>
             </select>}
           </EditField>
           <EditField label={t("investmentHorizon")} value={draft.horizon} editing={editing} onChange={set("horizon")}>
             {editing && <select value={draft.horizon} onChange={e => set("horizon")(e.target.value)} style={editSelectStyle}>
-              {["Short (< 3y)","Medium (3–7y)","Long (7y+)"].map(o => <option key={o}>{o}</option>)}
+              <option value="Short">{t("horizon_short")}</option>
+              <option value="Medium">{t("horizon_medium")}</option>
+              <option value="Long">{t("horizon_long")}</option>
             </select>}
           </EditField>
         </G2>
