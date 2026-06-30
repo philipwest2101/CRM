@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
+import { ImportContactsModal } from "../leads/mvp-contacts-page";
+import { useT } from "../../lib/i18n";
 
 const IMP_ROWS = [
   { name:"Q1_Campaign.xlsx",   type:"CSV / Excel",   total:1234, count:1234, date:"2026-02-03 - 14:22", resp:"John Smith",  status:"success" },
@@ -17,7 +19,9 @@ const SM = {
   error:   { label:"Failed",   color:C.red,   icon:"⊗" },
 };
 
-export const ImportsHistoryPage = () => {
+export const ImportsHistoryPage = ({ role }: { role?: string }) => {
+  const t = useT();
+  const [showImport, setShowImport] = useState(false);
   const inputStyle: React.CSSProperties = {
     width:"100%", border:`1px solid ${C.border}`, borderRadius:6,
     padding:"5px 8px", fontSize:12, fontFamily:"inherit",
@@ -27,27 +31,22 @@ export const ImportsHistoryPage = () => {
 
   return (
     <div style={{ flex:1, overflowY:"auto", fontFamily:"Inter, system-ui, sans-serif" }}>
-      <div style={{ padding:"28px 32px 40px" }}>
+      <div style={{ padding:"24px 28px" }}>
 
-        {/* Title + Import button */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-          <h1 style={{ margin:0, fontSize:26, fontWeight:800, color:C.navy, letterSpacing:"-0.02em" }}>
+        {/* Title + Import button — matches Contact List header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
+          <h1 style={{ margin:0, fontSize:22, fontWeight:700, color:C.navy, letterSpacing:"-0.02em" }}>
             Imports History
           </h1>
-          <label style={{
-            padding:"10px 36px", borderRadius:9, border:"none",
-            background:"#93C5FD", color:"#1E3A5F",
-            fontSize:14, fontWeight:700, cursor:"pointer",
-            display:"inline-flex", alignItems:"center", gap:6, letterSpacing:"0.01em",
-          }}>
-            <input type="file" accept=".csv,.xlsx" style={{ display:"none" }}
-              onChange={e => { if (e.target.files?.[0]) alert("Import started: " + e.target.files[0].name); (e.target as HTMLInputElement).value = ""; }}/>
-            Import
-          </label>
+          <button onClick={() => setShowImport(true)} style={{
+            padding:"9px 16px", borderRadius:8, border:`1px solid ${C.primary}`,
+            background:"#fff", color:C.primaryDark, fontSize:13, fontWeight:600,
+            cursor:"pointer", display:"flex", alignItems:"center", gap:6,
+          }}>⬇ {t("import")}</button>
         </div>
 
         {/* Table */}
-        <div style={{ border:`1px solid ${C.border}`, borderRadius:10, overflow:"hidden" }}>
+        <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
           <table style={{ width:"100%", borderCollapse:"collapse", tableLayout:"fixed" }}>
             <colgroup>
               <col style={{ width:"22%" }}/>
@@ -60,7 +59,7 @@ export const ImportsHistoryPage = () => {
             </colgroup>
             <thead>
               {/* Column headers */}
-              <tr style={{ background:"#F8FAFC", borderBottom:`1px solid ${C.border}` }}>
+              <tr style={{ background:C.light, borderBottom:`1px solid ${C.border}` }}>
                 {["Name","Type","Imported / Total","Date & Time","Responsible","Status",""].map(h => (
                   <th key={h} style={{
                     padding:"11px 14px", textAlign:"left", fontSize:12,
@@ -72,7 +71,7 @@ export const ImportsHistoryPage = () => {
                 ))}
               </tr>
               {/* Filter row */}
-              <tr style={{ background:"#F8FAFC", borderBottom:`2px solid ${C.border}` }}>
+              <tr style={{ background:C.light, borderBottom:`2px solid ${C.border}` }}>
                 <td style={{ padding:"5px 8px" }}>
                   <div style={{ position:"relative" }}>
                     <span style={{ position:"absolute", left:7, top:"50%", transform:"translateY(-50%)", color:C.muted, fontSize:11, pointerEvents:"none" }}>Q</span>
@@ -181,6 +180,7 @@ export const ImportsHistoryPage = () => {
         </div>
 
       </div>
+      {showImport && <ImportContactsModal role={role} onClose={() => setShowImport(false)} />}
     </div>
   );
 };

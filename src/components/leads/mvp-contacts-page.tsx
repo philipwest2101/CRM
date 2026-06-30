@@ -375,7 +375,7 @@ const EditViewModal = ({ view, onClose, onApply }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // IMPORT WIZARD
 // ─────────────────────────────────────────────────────────────────────────────
-const ImportContactsModal = ({ onClose, role }) => {
+export const ImportContactsModal = ({ onClose, role }) => {
   const [step, setStep]       = useState("source");
   const [progress, setProgress] = useState(0);
   const timerRef = useRef(null);
@@ -472,7 +472,7 @@ const ImportContactsModal = ({ onClose, role }) => {
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Contacts View *</label>
             <select style={fieldStyle}>
-              {getSystemViews(role).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+              {getSystemViews(role).filter(v => v.id !== "assigned" && v.id !== "myleads").map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
             </select>
           </div>
         </div>

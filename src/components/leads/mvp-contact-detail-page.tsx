@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
+import { LIFECYCLE_STORE, GPS_BY_VD } from "../../lib/core";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
@@ -11,8 +12,6 @@ import { useT } from "../../lib/i18n";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TABS = ["Overview", "Information", "Activities", "Documents"];
-const LIFECYCLE_OPTS = ["Lead", "Opportunity", "Customer", "N/A"];
-const STATUS_OPTS = ["New", "To Do", "Won", "N/A"];
 
 const fieldStyle = {
   width: "100%", padding: "10px 12px", borderRadius: 8,
@@ -55,12 +54,30 @@ const Label = ({ children }) => (
   <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>{children}</label>
 );
 
-const StageStatusRow = () => (
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
-    <div><Label>Lifecycle Stage</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Lifecycle Stage</option>{LIFECYCLE_OPTS.map(o => <option key={o}>{o}</option>)}</select></div>
-    <div><Label>Stage status</Label><select style={placeholderSelect} defaultValue=""><option value="">Select status</option>{STATUS_OPTS.map(o => <option key={o}>{o}</option>)}</select></div>
-  </div>
-);
+// Lifecycle/Status options are sourced from Settings → Statuses (LIFECYCLE_STORE) so
+// every log modal stays in sync with whatever the Super Admin has configured there.
+const StageStatusRow = () => {
+  const [stageId, setStageId] = useState("");
+  const stage = LIFECYCLE_STORE.find(s => s.id === stageId);
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
+      <div>
+        <Label>Lifecycle Stage</Label>
+        <select style={stageId ? fieldStyle : placeholderSelect} value={stageId} onChange={e => setStageId(e.target.value)}>
+          <option value="">Select Lifecycle Stage</option>
+          {LIFECYCLE_STORE.map(s => <option key={s.id} value={s.id}>{s.nameEn}</option>)}
+        </select>
+      </div>
+      <div>
+        <Label>Stage status</Label>
+        <select style={placeholderSelect} defaultValue="" disabled={!stage}>
+          <option value="">Select status</option>
+          {(stage?.statuses || []).map(st => <option key={st.id} value={st.id}>{st.nameEn}</option>)}
+        </select>
+      </div>
+    </div>
+  );
+};
 
 // ── generic modal shell ───────────────────────────────────────────────────────
 const ModalShell = ({ icon, title, width = 520, onClose, children }) => (
@@ -217,8 +234,68 @@ const RecurringBlock = () => {
   );
 };
 
+// ── Superior-email lookup (used to seed the Attendees field) ──────────────────
+const nameToEmail = (name) => name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z\s]/g, "").trim().split(/\s+/).join(".") + "@firma.de";
+
+// No explicit manager/superior field exists on user records, so the hierarchy is
+// derived from the same role→name mapping used in top-nav.tsx plus GPS_BY_VD.
+const getSuperiorEmails = (role) => {
+  if (role === "gp") {
+    const vd = Object.keys(GPS_BY_VD).find(v => GPS_BY_VD[v].includes("Anna Klein")) || "Thomas Müller";
+    return [nameToEmail(vd)];
+  }
+  if (role === "vd") return [nameToEmail("Julia Bauer")];
+  if (role === "manager") return [nameToEmail("Super Admin")];
+  return [];
+};
+
+// ── Attendees tag input — select from leads or type any email, renders as tags ─
+const ATTENDEE_LEADS = ["Sandra Richter", "Markus Bauer", "Dirk Schumacher", "Klaus Weber"];
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+const AttendeesField = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const add = (v) => { const val = v.trim(); if (val && !value.includes(val)) onChange([...value, val]); setQ(""); };
+  const remove = (v) => onChange(value.filter(x => x !== v));
+  return (
+    <div style={{ position: "relative" }}>
+      <div onClick={() => setOpen(o => !o)} style={{ ...fieldStyle, minHeight: 42, height: "auto", display: "flex", flexWrap: "wrap", gap: 6, cursor: "text", alignItems: "center" }}>
+        {value.map(v => (
+          <span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.primarySoft || "#EEF2FF", color: C.primaryDark, fontSize: 12, fontWeight: 600, padding: "3px 8px", borderRadius: 6 }}>
+            {v}
+            <span onClick={e => { e.stopPropagation(); remove(v); }} style={{ cursor: "pointer", fontSize: 12, lineHeight: 1 }}>×</span>
+          </span>
+        ))}
+        <input value={q} onChange={e => { setQ(e.target.value); setOpen(true); }}
+          onKeyDown={e => { if (e.key === "Enter" && isEmail(q)) { e.preventDefault(); add(q); } }}
+          onFocus={() => setOpen(true)} placeholder={value.length ? "" : "Add attendee email…"}
+          style={{ border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", flex: 1, minWidth: 120 }} />
+      </div>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
+          <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 12px 36px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, padding: "6px 0", maxHeight: 220, overflowY: "auto" }}>
+            {isEmail(q) && !value.includes(q.trim()) && (
+              <div onClick={() => add(q)} style={{ padding: "9px 14px", fontSize: 13, fontWeight: 700, color: C.primary, cursor: "pointer" }}>＋ Add "{q.trim()}"</div>
+            )}
+            {ATTENDEE_LEADS.filter(n => n.toLowerCase().includes(q.toLowerCase())).map(n => {
+              const email = nameToEmail(n);
+              return (
+                <label key={n} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", cursor: "pointer", fontSize: 13, color: C.text }}>
+                  <input type="checkbox" checked={value.includes(email)} onChange={() => value.includes(email) ? remove(email) : add(email)} style={{ width: 15, height: 15, accentColor: C.primary }} />
+                  {n} <span style={{ color: C.muted, fontSize: 11 }}>({email})</span>
+                </label>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 // ── Task composer (Create a Task) ─────────────────────────────────────────────
-const TaskModal = ({ onClose }) => {
+const TaskModal = ({ onClose, contactName }) => {
   const [title, setTitle] = useState("");
   const [type, setType] = useState("call");
   const [priority, setPriority] = useState("medium");
@@ -226,7 +303,7 @@ const TaskModal = ({ onClose }) => {
     <ModalShell icon="☑️" title="Create a Task" width={560} onClose={onClose}>
       <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 16, marginBottom: 16, alignItems: "end" }}>
-        <div><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>Sandra Richter</option><option>Markus Bauer</option></select></div>
+        <div><Label>Contact *</Label><input value={contactName} disabled style={{ ...fieldStyle, background: C.light, color: C.text, cursor: "not-allowed" }} /></div>
         <div><Label>Type *</Label><Segmented value={type} onChange={setType} options={[["call", "Call", "📞"], ["email", "Email", "✉"], ["todo", "To Do", "☑"]]} /></div>
       </div>
       <div style={{ marginBottom: 16 }}>
@@ -250,14 +327,15 @@ const TaskModal = ({ onClose }) => {
 
 // ── Appointment composer (Schedule an Appointment) ────────────────────────────
 const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other"];
-const AppointmentModal = ({ onClose }) => {
+const AppointmentModal = ({ onClose, contactName, role }) => {
   const [title, setTitle] = useState("");
   const [type, setType] = useState("Consultation Appointment");
+  const [attendees, setAttendees] = useState(() => getSuperiorEmails(role));
   return (
     <ModalShell icon="📅" title="Schedule an Appointment" width={560} onClose={onClose}>
       <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
-      <div style={{ marginBottom: 16 }}><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>Sandra Richter</option><option>Markus Bauer</option></select></div>
-      <div style={{ marginBottom: 16 }}><Label>Attendees</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>olivia.ruth@email.com</option><option>john.smith@email.com</option></select></div>
+      <div style={{ marginBottom: 16 }}><Label>Contact *</Label><input value={contactName} disabled style={{ ...fieldStyle, background: C.light, color: C.text, cursor: "not-allowed" }} /></div>
+      <div style={{ marginBottom: 16 }}><Label>Attendees</Label><AttendeesField value={attendees} onChange={setAttendees} /></div>
       <div style={{ marginBottom: 16 }}>
         <Label>Type *</Label>
         <select value={type} onChange={e => setType(e.target.value)} style={fieldStyle}>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select>
@@ -486,7 +564,7 @@ const InfoRow = ({ icon, label, value }) => (
     <span style={{ fontSize: 14, color: C.muted, width: 18, textAlign: "center", flexShrink: 0 }}>{icon}</span>
     <div>
       <div style={{ fontSize: 11, color: C.muted }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginTop: 1 }}>{value}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginTop: 1 }}>{value || "-"}</div>
     </div>
   </div>
 );
@@ -1395,11 +1473,18 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
   const [tab, setTab] = useState(() => ACTIVE_TABS[0]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
+  const currentUserName = role === "gp" ? "Anna Klein" : role === "vd" ? "Thomas Müller" : role === "manager" ? "Julia Bauer" : "Super Admin";
+  // SA opening from Unassigned Leads → no assignee yet. VD opening from Pending Assignments → defaults to himself.
+  const assigneeOverride =
+    role === "superadmin" && sourceView === "pending" ? null :
+    role === "vd" && sourceView === "pendingA" ? currentUserName :
+    undefined;
+
   const c = {
     name: lead?.name ? (/^(Ms|Mr|Mrs|Dr)/i.test(lead.name) ? lead.name : `Ms ${lead.name}`) : "Ms Lana Steiner",
     email: lead?.email || "lana.steiner@email.com",
     phone: lead?.phone || "+43 1111 11 11",
-    assignee: lead?.assignedGP || "Anna Muller",
+    assignee: assigneeOverride !== undefined ? assigneeOverride : (lead?.assignedGP || "Anna Muller"),
     lifecycle: "Lifecycle Stage 1",
     stageStatus: "Status 1",
     source: lead?.source || "Landing Page",
@@ -1440,8 +1525,8 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
       </div>
 
       {modal === "email"       && <EmailModal onClose={() => setModal(null)} />}
-      {modal === "task"        && <TaskModal onClose={() => setModal(null)} />}
-      {modal === "appointment" && <AppointmentModal onClose={() => setModal(null)} />}
+      {modal === "task"        && <TaskModal onClose={() => setModal(null)} contactName={c.name} />}
+      {modal === "appointment" && <AppointmentModal onClose={() => setModal(null)} contactName={c.name} role={role} />}
       {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} />}
       {modal === "logemail"    && <LogEmailModal onClose={() => setModal(null)} />}
       {modal === "logappt"     && <LogAppointmentModal onClose={() => setModal(null)} />}

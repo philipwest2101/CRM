@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { ALL_LEADS, DOCUMENT_TYPES_STORE } from "../../lib/core";
+import { ALL_LEADS, DOCUMENT_TYPES_STORE, GPS_BY_VD } from "../../lib/core";
 import { C } from "../../theme";
 
 // Appointment modal — create | edit | view
@@ -27,8 +27,21 @@ const asEmail     = (entry) => extractEmail(entry) || ((leadByName(entry)||{}).e
 const toArr = (v) => Array.isArray(v) ? v.filter(Boolean)
   : (typeof v === "string" && v ? v.split(",").map(s=>s.trim()).filter(Boolean) : []);
 
-const blank = (selectedDate) => ({
-  title:"", contact:"", attendees:[], apptType:"Consultation Appointment", apptTypeOther:"",
+// No explicit manager/superior field exists on user records, so the hierarchy is
+// derived from the same role→name mapping used in top-nav.tsx plus GPS_BY_VD.
+const nameToEmail = (name) => name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z\s]/g, "").trim().split(/\s+/).join(".") + "@firma.de";
+export const getSuperiorEmails = (role) => {
+  if (role === "gp") {
+    const vd = Object.keys(GPS_BY_VD).find(v => GPS_BY_VD[v].includes("Anna Klein")) || "Thomas Müller";
+    return [nameToEmail(vd)];
+  }
+  if (role === "vd") return [nameToEmail("Julia Bauer")];
+  if (role === "manager") return [nameToEmail("Super Admin")];
+  return [];
+};
+
+const blank = (selectedDate, role) => ({
+  title:"", contact:"", attendees:getSuperiorEmails(role), apptType:"Consultation Appointment", apptTypeOther:"",
   date:selectedDate||"", time:"09:00", end:"",
   location:"",
   attachments:[],
@@ -36,10 +49,10 @@ const blank = (selectedDate) => ({
   note:"",
 });
 
-export const AppointmentModal = ({ mode="create", appt=null, selectedDate, onClose, onSubmit, onCancelAppt, onSetOutcome }) => {
+export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role, onClose, onSubmit, onCancelAppt, onSetOutcome }) => {
   const [m, setM] = useState(mode);
   const [f, setF] = useState(() => {
-    const init = appt ? { ...blank(selectedDate), ...appt } : blank(selectedDate);
+    const init = appt ? { ...blank(selectedDate, role), ...appt } : blank(selectedDate, role);
     if (!init.time) init.time = "09:00";                       // Time mandatory — default 9 AM
     // Unified attendees → array of emails (migrate legacy single Contact + string list)
     const emails = toArr(init.attendees).map(asEmail);

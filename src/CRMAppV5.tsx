@@ -203,7 +203,7 @@ export default function CRMAppV5() {
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
       {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
       {page==="AutoAssign"      && <AutoAssignPage        role={role} navigateTo={navigateTo} />}
-      {page==="LeadCapture"     && <ImportsHistoryPage />}
+      {page==="LeadCapture"     && <ImportsHistoryPage role={role} />}
       {page==="Settings"        && (version==="mvp"
                                       ? <MVPSettingsPage  role={role} />
                                       : <SettingsPage     role={role} navigateTo={navigateTo} />)}

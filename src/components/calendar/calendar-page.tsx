@@ -681,6 +681,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
         mode={apptModal.mode}
         appt={apptModal.data}
         selectedDate={selectedDate}
+        role={role}
         onClose={()=>setApptModal(null)}
         onSubmit={submitAppt}
         onCancelAppt={cancelAppt}
