@@ -415,6 +415,7 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
   const [active, setActive]   = useState(() => (isSA ? "products" : "templates"));
   const [data, setData]       = useState(SEED);
   const [search, setSearch]   = useState("");
+  const [visFilter, setVisFilter] = useState("all"); // templates only: all | visible | hidden
   const [editing, setEditing] = useState(null);   // { item } | { item:null }
   const [addingFile, setAddingFile] = useState(false);
   const [page, setPage]       = useState(1);
@@ -422,9 +423,18 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
 
   const section = visibleSections.find(s => s.key === active) || visibleSections[0];
   const items   = data[active] || [];
-  const filtered = useMemo(() => items.filter(i => i.name.toLowerCase().includes(search.toLowerCase())), [items, search]);
+  const isTemplates = section.key === "templates";
+  const filtered = useMemo(() => items
+    .filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(i => !isTemplates || visFilter === "all" || (visFilter === "visible" ? i.visible !== false : i.visible === false)),
+    [items, search, isTemplates, visFilter]);
 
-  const switchSection = (key) => { setActive(key); setSearch(""); setPage(1); };
+  const switchSection = (key) => { setActive(key); setSearch(""); setVisFilter("all"); setPage(1); };
+
+  const toggleVisible = (item) => setData(prev => ({
+    ...prev,
+    templates: prev.templates.map(t => t.id === item.id ? { ...t, visible: t.visible === false } : t),
+  }));
 
   const upsert = (item) => {
     setData(prev => {
@@ -479,9 +489,18 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
           </div>
 
           {section.kind !== "integrations" && (
-            <div style={{ position: "relative", marginBottom: 14 }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 14 }}>🔍</span>
-              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search" style={{ ...fieldStyle, paddingLeft: 34, maxWidth: 360 }} />
+            <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+              <div style={{ position: "relative", flex: 1, maxWidth: 360 }}>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 14 }}>🔍</span>
+                <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search" style={{ ...fieldStyle, paddingLeft: 34 }} />
+              </div>
+              {isTemplates && (
+                <select value={visFilter} onChange={e => { setVisFilter(e.target.value); setPage(1); }} style={{ ...fieldStyle, width: "auto" }}>
+                  <option value="all">All</option>
+                  <option value="visible">Visible</option>
+                  <option value="hidden">Hidden</option>
+                </select>
+              )}
             </div>
           )}
 
@@ -543,6 +562,7 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                 <tr style={{ background: C.light, borderBottom: `1px solid ${C.border}` }}>
                   <Th sort>Name</Th>
                   {!isFiles && <Th>Language</Th>}
+                  {isTemplates && <th style={{ width: 90, padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate }}>Visible</th>}
                   <th style={{ width: 56 }} />
                 </tr>
               </thead>
@@ -570,7 +590,7 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                 })() : (
                   <>
                   {pageItems.length === 0 && (
-                    <tr><td colSpan={isFiles ? 2 : 3} style={{ padding: "36px", textAlign: "center", color: C.muted, fontSize: 13 }}>No {section.label.toLowerCase()} found.</td></tr>
+                    <tr><td colSpan={isFiles ? 2 : isTemplates ? 4 : 3} style={{ padding: "36px", textAlign: "center", color: C.muted, fontSize: 13 }}>No {section.label.toLowerCase()} found.</td></tr>
                   )}
                   {pageItems.map(item => {
                     const rowActions = isFiles
@@ -587,6 +607,18 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                           </span>
                         </td>
                         {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}
+                        {isTemplates && (
+                          <td style={{ padding: "13px 16px" }}>
+                            <button type="button" onClick={() => toggleVisible(item)}
+                              disabled={item.system && !isSA}
+                              title={item.visible === false ? "Hidden" : "Visible"}
+                              style={{ width: 34, height: 20, borderRadius: 10, border: "none", padding: 0, position: "relative",
+                                background: item.visible === false ? C.border : C.primary,
+                                cursor: item.system && !isSA ? "default" : "pointer", opacity: item.system && !isSA ? 0.6 : 1 }}>
+                              <span style={{ position: "absolute", top: 2, left: item.visible === false ? 2 : 16, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
+                            </button>
+                          </td>
+                        )}
                         <td style={{ padding: "13px 16px" }}>
                           {item.system && !isSA ? null : <RowMenu actions={rowActions} />}
                         </td>
