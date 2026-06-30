@@ -4,7 +4,7 @@ on:
   # Run on every push to the branch you develop on.
   push:
     branches:
-      - claude/happy-fermi-6em3hf
+      - claude/pensive-brown-kep5xj
       - main
   # Allow manual runs from the Actions tab.
   workflow_dispatch:
