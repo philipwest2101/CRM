@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { C } from "../../theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,11 +49,11 @@ const SEED = {
     { id: "c9", name: "Gold",                                   langs: L("de", "en", "fr") },
   ],
   templates: [
-    { id: "t1", name: "Welcome Email",        langs: L("de", "en", "fr"), system: true },
-    { id: "t2", name: "Appointment Reminder", langs: L("de", "en"), system: true },
-    { id: "t3", name: "Follow-up",            langs: L("de", "en", "fr") },
-    { id: "t4", name: "GDPR Consent",         langs: L("de", "en"), system: true },
-    { id: "t5", name: "Birthday Greeting",    langs: L("de", "en", "fr", "cz") },
+    { id: "t1", name: "Welcome Email",        langs: L("de", "en", "fr"), system: true, subject: "", attachments: [], body: "", description: "", visible: true },
+    { id: "t2", name: "Appointment Reminder", langs: L("de", "en"), system: true, subject: "", attachments: [], body: "", description: "", visible: true },
+    { id: "t3", name: "Follow-up",            langs: L("de", "en", "fr"), subject: "", attachments: [], body: "", description: "", visible: true },
+    { id: "t4", name: "GDPR Consent",         langs: L("de", "en"), system: true, subject: "", attachments: [], body: "", description: "", visible: true },
+    { id: "t5", name: "Birthday Greeting",    langs: L("de", "en", "fr", "cz"), subject: "", attachments: [], body: "", description: "", visible: true },
   ],
   attachments: Array.from({ length: 57 }, (_, i) => ({
     id: `att${i + 1}`, name: `Attachment Name ${i + 1}`, type: i % 6 === 1 ? "img" : "pdf",
@@ -225,7 +225,6 @@ const ItemModal = ({ section, item, lifecycleNames, onClose, onSave }) => {
 // ── add attachment modal ──────────────────────────────────────────────────────
 const AttachmentModal = ({ onClose, onSave }) => {
   const [name, setName] = useState("");
-  const [type, setType] = useState("pdf");
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
@@ -238,20 +237,157 @@ const AttachmentModal = ({ onClose, onSave }) => {
           <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Name *</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Attachment name" style={fieldStyle} autoFocus />
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>File Type</label>
-          <select value={type} onChange={e => setType(e.target.value)} style={fieldStyle}>
-            <option value="pdf">PDF Document</option>
-            <option value="img">Image</option>
-          </select>
-        </div>
         <div style={{ border: `1.5px dashed ${C.border}`, borderRadius: 10, padding: "22px", textAlign: "center", color: C.muted, fontSize: 13, marginBottom: 20 }}>
           ⬆ Drag &amp; drop a file here, or click to browse
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
           <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-          <button disabled={!name.trim()} onClick={() => onSave({ id: `att-${Date.now()}`, name: name.trim(), type })}
+          <button disabled={!name.trim()} onClick={() => onSave({ id: `att-${Date.now()}`, name: name.trim(), type: "pdf" })}
             style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: name.trim() ? C.primary : C.border, color: name.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: name.trim() ? "pointer" : "default" }}>Save</button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── attachments multi-select dropdown ──────────────────────────────────────────
+const AttachmentsMultiSelect = ({ options, value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const toggle = (id) => onChange(value.includes(id) ? value.filter(v => v !== id) : [...value, id]);
+  const label = value.length === 0 ? "Select attachments" : `${value.length} attachment${value.length > 1 ? "s" : ""} selected`;
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen(o => !o)} style={{ ...fieldStyle, display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left", cursor: "pointer", color: value.length ? C.text : C.muted }}>
+        {label}
+        <span style={{ color: C.muted, fontSize: 11, marginLeft: 8 }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 350 }} />
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 360, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "0 12px 32px rgba(0,0,0,0.16)", maxHeight: 220, overflowY: "auto", padding: 6 }}>
+            {options.length === 0 && (
+              <div style={{ padding: "10px 12px", fontSize: 12, color: C.muted, fontStyle: "italic" }}>No attachments available.</div>
+            )}
+            {options.map(o => (
+              <label key={o.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 7, cursor: "pointer", fontSize: 13, color: C.text }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <input type="checkbox" checked={value.includes(o.id)} onChange={() => toggle(o.id)} />
+                {o.name}
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ── rich-text body toolbar button ───────────────────────────────────────────────
+const ToolbarBtn = ({ children, onClick, active = false, title }) => (
+  <button type="button" title={title}
+    onMouseDown={e => e.preventDefault()}
+    onClick={onClick}
+    style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: active ? C.primary : "transparent", color: active ? "#fff" : C.slate, fontSize: 13, cursor: "pointer", display: "grid", placeItems: "center" }}>
+    {children}
+  </button>
+);
+
+// ── add / edit email template modal ─────────────────────────────────────────────
+const EmailTemplateModal = ({ item, attachmentOptions, onClose, onSave }) => {
+  const [name, setName] = useState(item?.name || "");
+  const [subject, setSubject] = useState(item?.subject || "");
+  const [attachments, setAttachments] = useState(item?.attachments || []);
+  const [description, setDescription] = useState(item?.description || "");
+  const [visible, setVisible] = useState(item?.visible !== false);
+  const [bodyText, setBodyText] = useState(item?.body || "");
+  const bodyRef = useRef(null);
+
+  useEffect(() => { if (bodyRef.current) bodyRef.current.innerHTML = item?.body || ""; }, []);
+
+  const exec = (cmd, val = undefined) => { document.execCommand(cmd, false, val); bodyRef.current?.focus(); setBodyText(bodyRef.current?.innerHTML || ""); };
+
+  const valid = name.trim() && subject.trim() && bodyRef.current?.textContent?.trim();
+
+  const save = () => {
+    onSave({
+      ...item,
+      id: item?.id || `new-${Date.now()}`,
+      name: name.trim(),
+      subject: subject.trim(),
+      attachments,
+      body: bodyRef.current?.innerHTML || "",
+      description,
+      visible,
+      langs: item?.langs || L("de"),
+    });
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 640, maxWidth: "94vw", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{item ? "Edit" : "Add"} Email Template</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Name *</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Enter name" style={fieldStyle} autoFocus />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Subject *</label>
+            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Enter subject" style={fieldStyle} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Attachments</label>
+          <AttachmentsMultiSelect options={attachmentOptions} value={attachments} onChange={setAttachments} />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Body *</label>
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "6px 8px", borderBottom: `1px solid ${C.border}`, background: C.light, flexWrap: "wrap" }}>
+              <ToolbarBtn title="Bold" onClick={() => exec("bold")}><b>B</b></ToolbarBtn>
+              <ToolbarBtn title="Italic" onClick={() => exec("italic")}><i>I</i></ToolbarBtn>
+              <ToolbarBtn title="Underline" onClick={() => exec("underline")}><u>U</u></ToolbarBtn>
+              <ToolbarBtn title="Strikethrough" onClick={() => exec("strikeThrough")}><s>S</s></ToolbarBtn>
+              <ToolbarBtn title="Quote" onClick={() => exec("formatBlock", "blockquote")}>"</ToolbarBtn>
+              <ToolbarBtn title="Bullet list" onClick={() => exec("insertUnorderedList")}>•≡</ToolbarBtn>
+              <ToolbarBtn title="Numbered list" onClick={() => exec("insertOrderedList")}>1≡</ToolbarBtn>
+              <ToolbarBtn title="Align left" onClick={() => exec("justifyLeft")}>≡</ToolbarBtn>
+              <ToolbarBtn title="Align center" onClick={() => exec("justifyCenter")}>≡</ToolbarBtn>
+              <ToolbarBtn title="Align right" onClick={() => exec("justifyRight")}>≡</ToolbarBtn>
+              <ToolbarBtn title="Link" onClick={() => { const url = window.prompt("Link URL:"); if (url) exec("createLink", url); }}>🔗</ToolbarBtn>
+            </div>
+            <div ref={bodyRef} contentEditable suppressContentEditableWarning
+              data-placeholder="Enter body"
+              onInput={() => setBodyText(bodyRef.current?.innerHTML || "")}
+              style={{ minHeight: 160, padding: "10px 12px", fontSize: 13, color: C.text, outline: "none" }} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Description</label>
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Enter description"
+            style={{ ...fieldStyle, minHeight: 110, resize: "vertical" }} />
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22 }}>
+          <button type="button" onClick={() => setVisible(v => !v)} style={{ width: 38, height: 22, borderRadius: 11, border: "none", background: visible ? C.primary : C.border, position: "relative", cursor: "pointer", padding: 0 }}>
+            <span style={{ position: "absolute", top: 2, left: visible ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
+          </button>
+          <span style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>Visible</span>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button disabled={!valid} onClick={save}
+            style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: valid ? C.primary : C.border, color: valid ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Save</button>
         </div>
       </div>
     </>
@@ -452,7 +588,7 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                         </td>
                         {!isFiles && <td style={{ padding: "13px 16px" }}><FlagSet langs={item.langs} /></td>}
                         <td style={{ padding: "13px 16px" }}>
-                          {item.system ? null : <RowMenu actions={rowActions} />}
+                          {item.system && !isSA ? null : <RowMenu actions={rowActions} />}
                         </td>
                       </tr>
                     );
@@ -483,7 +619,11 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
         </div>
       </div>
 
-      {editing && (
+      {editing && section.key === "templates" && (
+        <EmailTemplateModal item={editing.item} attachmentOptions={data.attachments}
+          onClose={() => setEditing(null)} onSave={upsert} />
+      )}
+      {editing && section.key !== "templates" && (
         <ItemModal section={section} item={editing.item}
           lifecycleNames={data.lifecycle.map(l => l.name)}
           onClose={() => setEditing(null)} onSave={upsert} />
