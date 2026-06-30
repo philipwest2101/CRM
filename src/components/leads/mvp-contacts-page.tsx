@@ -11,7 +11,7 @@ const InfoTip = ({ text }) => {
       onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
       <span style={{ fontSize: 11, color: C.muted, cursor: "help" }}>ⓘ</span>
       {show && (
-        <div style={{ position: "absolute", bottom: "calc(100% + 5px)", left: "50%", transform: "translateX(-50%)", background: C.navy, color: "#fff", fontSize: 11, lineHeight: 1.4, padding: "6px 10px", borderRadius: 8, whiteSpace: "nowrap", maxWidth: 240, zIndex: 999, boxShadow: "0 4px 16px rgba(0,0,0,0.2)", pointerEvents: "none" }}>
+        <div style={{ position: "absolute", bottom: "calc(100% + 5px)", left: "50%", transform: "translateX(-50%)", background: C.navy, color: "#fff", fontSize: 11, lineHeight: 1.4, padding: "8px 12px", borderRadius: 8, whiteSpace: "normal", wordBreak: "normal", width: 220, zIndex: 999, boxShadow: "0 4px 16px rgba(0,0,0,0.2)", pointerEvents: "none" }}>
           {text}
         </div>
       )}
@@ -151,13 +151,24 @@ const renderCell = (key, c, isLink?: boolean) => {
   return <span style={{ fontSize: 13, color: C.slate }}>{c[key] ?? "—"}</span>;
 };
 
-const IconBtn = ({ title, onClick, active, children }) => (
-  <button title={title} onClick={onClick} style={{
-    width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`,
-    background: active ? C.primarySoft : "#fff", color: active ? C.primaryDark : C.slate,
-    cursor: "pointer", display: "grid", placeItems: "center", fontSize: 15,
-  }}>{children}</button>
-);
+const IconBtn = ({ title, onClick, active, children }) => {
+  const [show, setShow] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <button title={title} onClick={onClick} style={{
+        width: 34, height: 34, borderRadius: 8, border: `1px solid ${C.border}`,
+        background: active ? C.primarySoft : "#fff", color: active ? C.primaryDark : C.slate,
+        cursor: "pointer", display: "grid", placeItems: "center", fontSize: 15,
+      }}>{children}</button>
+      {show && title && (
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", background: C.navy, color: "#fff", fontSize: 11, lineHeight: 1.4, padding: "6px 10px", borderRadius: 8, whiteSpace: "nowrap", zIndex: 999, boxShadow: "0 4px 16px rgba(0,0,0,0.2)", pointerEvents: "none" }}>
+          {title}
+        </div>
+      )}
+    </span>
+  );
+};
 
 const SortArrows = () => (
   <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 0.6, fontSize: 9, color: C.muted }}>
@@ -1312,8 +1323,8 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
                     {i === cols.length - 1 ? (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                         {filterCell(k)}
-                        <button title="Apply filters" style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.green, cursor: "pointer" }}>✓</button>
-                        <button title="Reset filters" onClick={resetFilters} style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, cursor: "pointer" }}>↺</button>
+                        <IconBtn title="Apply filters">✓</IconBtn>
+                        <IconBtn title="Reset filters" onClick={resetFilters}>↺</IconBtn>
                       </div>
                     ) : filterCell(k)}
                   </td>
