@@ -1345,7 +1345,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
 
       {modal === "email"       && <EmailModal onClose={() => setModal(null)} />}
       {modal === "task"        && <CalendarTaskModal onClose={() => setModal(null)} task={{ contact: c.name }} lockContact onSubmit={() => setModal(null)} />}
-      {modal === "appointment" && <CalendarAppointmentModal onClose={() => setModal(null)} appt={{ contact: c.name, attendees: [c.name, ...getSuperiorEmails(role)] }} role={role} lockContact onSubmit={() => setModal(null)} />}
+      {modal === "appointment" && <CalendarAppointmentModal onClose={() => setModal(null)} appt={{ contact: c.name, attendees: getSuperiorEmails(role) }} role={role} lockContact onSubmit={() => setModal(null)} />}
       {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} />}
       {modal === "logemail"    && <LogEmailModal onClose={() => setModal(null)} />}
       {modal === "logappt"     && <LogAppointmentModal onClose={() => setModal(null)} />}

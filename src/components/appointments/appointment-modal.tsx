@@ -54,11 +54,8 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
   const [f, setF] = useState(() => {
     const init = appt ? { ...blank(selectedDate, role), ...appt } : blank(selectedDate, role);
     if (!init.time) init.time = "09:00";                       // Time mandatory — default 9 AM
-    // Unified attendees → array of emails (migrate legacy single Contact + string list)
-    const emails = toArr(init.attendees).map(asEmail);
-    if (init.contact) { const e = asEmail(init.contact); if (e && !emails.includes(e)) emails.unshift(e); }
-    init.attendees = emails;
-    init.contact = emails[0] || "";
+    // Contact and Attendees are independent fields — Attendees → array of emails only.
+    init.attendees = toArr(init.attendees).map(asEmail);
     // Attachments → array (migrate legacy single attachment string)
     init.attachments = toArr(init.attachments).length ? toArr(init.attachments) : toArr(init.attachment);
     // Single reminder (migrate legacy reminders array if present)
@@ -73,7 +70,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
 
   // ── Attendees: single searchable multiselect (contacts + free emails) ──────
   const attendeeArr = f.attendees;
-  const writeAttendees = (arr) => setF(prev => ({ ...prev, attendees:arr, contact:arr[0]||"" }));
+  const writeAttendees = (arr) => setF(prev => ({ ...prev, attendees:arr }));
   const toggleAttendee = (email) => writeAttendees(
     attendeeArr.includes(email) ? attendeeArr.filter(e=>e!==email) : [...attendeeArr, email]
   );
@@ -93,7 +90,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
 
   // "Other" appointment type requires a custom label
   const apptTypeOk = f.apptType !== "Other" || f.apptTypeOther.trim();
-  const canSave = f.title.trim() && f.date && f.time && apptTypeOk;   // Time + valid type required
+  const canSave = f.title.trim() && f.contact && f.date && f.time && apptTypeOk;   // Time + valid type required
 
   const titleText = m==="create" ? "Schedule Appointment"
     : m==="edit" ? `Edit Appointment — ${f.title||"Untitled"}`
@@ -135,6 +132,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
           /* ── VIEW ─────────────────────────────────────────────── */
           <div>
             {rowR("📅 Date & Time", `${f.date}${f.time?` · ${f.time}`:""}${f.end?` – ${f.end}`:""}`)}
+            {rowR("👤 Contact", f.contact)}
             {rowR("🏷 Type", f.apptType==="Other" ? (f.apptTypeOther||"Other") : f.apptType)}
             {rowR("👥 Attendees", attendeeArr.map(attLabelOf).join(", "))}
             {rowR("📍 Meeting Location", f.location)}
@@ -157,6 +155,15 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
           <div>
             {field("Title *", <input value={f.title} onChange={e=>set("title",e.target.value)} placeholder="e.g. Consultation — Sandra Richter" style={input}/>)}
 
+            {field("Contact *", lockContact ? (
+              <input value={f.contact} disabled style={{ ...input, background:C.light, color:C.text, cursor:"not-allowed" }}/>
+            ) : (
+              <select value={f.contact} onChange={e=>set("contact",e.target.value)} style={input}>
+                <option value="">Choose…</option>
+                {ALL_LEADS.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+              </select>
+            ))}
+
             {/* Attendees — one searchable multiselect (contacts + any email) */}
             <div style={{ marginBottom:12 }}>
               <label style={lbl}>Attendees *</label>
@@ -164,16 +171,13 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
                 <div onClick={()=>setAttOpen(o=>!o)}
                   style={{ ...input, minHeight:38, display:"flex", alignItems:"center", flexWrap:"wrap", gap:6, cursor:"pointer", padding:attendeeArr.length?"6px 30px 6px 8px":"9px 30px 9px 12px" }}>
                   {attendeeArr.length===0 && <span style={{ color:C.muted }}>Select attendees</span>}
-                  {attendeeArr.map((email,i)=>{
-                    const locked = lockContact && email===f.contact;
-                    return (
-                      <span key={email} style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 8px", borderRadius:20,
-                        background:"#F1F5F9", border:`1px solid ${C.border}`, fontSize:11.5, fontWeight:600, color:C.text }}>
-                        {displayName(email) || email}
-                        {!locked && <span onClick={e=>{ e.stopPropagation(); toggleAttendee(email); }} style={{ color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</span>}
-                      </span>
-                    );
-                  })}
+                  {attendeeArr.map((email,i)=>(
+                    <span key={email} style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 8px", borderRadius:20,
+                      background:"#F1F5F9", border:`1px solid ${C.border}`, fontSize:11.5, fontWeight:600, color:C.text }}>
+                      {displayName(email) || email}
+                      <span onClick={e=>{ e.stopPropagation(); toggleAttendee(email); }} style={{ color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</span>
+                    </span>
+                  ))}
                   <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", color:C.muted, fontSize:11, pointerEvents:"none" }}>{attOpen?"▲":"▼"}</span>
                 </div>
 
@@ -202,11 +206,11 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
                             <span style={{ color:C.text }}>{email}</span>
                           </label>
                         ))}
-                        {leadOptions.map(l=>{ const checked = attendeeArr.includes(l.email); const locked = lockContact && l.email===f.contact; return (
-                          <label key={l.id} onClick={e=>{ e.preventDefault(); if(!locked) toggleAttendee(l.email); }}
-                            style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 12px", cursor:locked?"default":"pointer", fontSize:12.5,
+                        {leadOptions.map(l=>{ const checked = attendeeArr.includes(l.email); return (
+                          <label key={l.id} onClick={e=>{ e.preventDefault(); toggleAttendee(l.email); }}
+                            style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 12px", cursor:"pointer", fontSize:12.5,
                               background:checked?C.primary+"08":"transparent" }}>
-                            <input type="checkbox" checked={checked} disabled={locked} readOnly style={{ accentColor:C.primary, width:14, height:14 }}/>
+                            <input type="checkbox" checked={checked} readOnly style={{ accentColor:C.primary, width:14, height:14 }}/>
                             <span style={{ color:C.text }}>{l.email}</span>
                             <span style={{ color:C.muted }}>({l.name})</span>
                           </label>
@@ -286,7 +290,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
               <button onClick={()=>canSave && onSubmit && onSubmit({
                   ...f,
                   apptType: f.apptType==="Other" ? f.apptTypeOther.trim() : f.apptType,
-                  contact: attendeeArr.length ? (displayName(attendeeArr[0])||attendeeArr[0]) : "",
                   attendees: attendeeArr.map(attLabelOf).join(", "),
                   attachment: f.attachments.join(", "),
                   kind:"appointment",
