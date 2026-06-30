@@ -41,7 +41,7 @@ export const getSuperiorEmails = (role) => {
 };
 
 const blank = (selectedDate, role) => ({
-  title:"", contact:"", attendees:getSuperiorEmails(role), apptType:"Consultation Appointment", apptTypeOther:"",
+  title:"", contact:"", attendees:[], apptType:"Consultation Appointment", apptTypeOther:"",
   date:selectedDate||"", time:"09:00", end:"",
   location:"",
   attachments:[],
@@ -77,9 +77,10 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
   const [attOpen, setAttOpen] = useState(false);
   const [attQuery, setAttQuery] = useState("");
   const q = attQuery.trim().toLowerCase();
-  const leadOptions = ALL_LEADS.filter(l =>
-    !q || l.email.toLowerCase().includes(q) || l.name.toLowerCase().includes(q));
-  const extraSelected = attendeeArr.filter(e => !leadByEmail(e));   // typed emails not in leads
+  // Attendee options are limited to the user's superiors (no picking arbitrary contacts) + free-text emails.
+  const superiorOptions = getSuperiorEmails(role).filter(email =>
+    !q || email.toLowerCase().includes(q) || displayName(email).toLowerCase().includes(q));
+  const extraSelected = attendeeArr.filter(e => !getSuperiorEmails(role).includes(e));   // free-typed emails
   const canAddTyped = isEmail(attQuery.trim()) && !attendeeArr.includes(attQuery.trim());
 
   // ── Attachments: multiselect (system docs + uploads) ──────────────────────
@@ -189,7 +190,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
                       <div style={{ padding:8, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:6 }}>
                         <input autoFocus value={attQuery} onChange={e=>setAttQuery(e.target.value)}
                           onKeyDown={e=>{ if(e.key==="Enter" && canAddTyped){ e.preventDefault(); toggleAttendee(attQuery.trim()); setAttQuery(""); } }}
-                          placeholder="Search name or type an email…"
+                          placeholder="Search superiors or type an email…"
                           style={{ ...input, border:"none", padding:"4px 6px", fontSize:12.5 }}/>
                         <span style={{ color:C.muted, fontSize:13 }}>🔍</span>
                       </div>
@@ -206,16 +207,16 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
                             <span style={{ color:C.text }}>{email}</span>
                           </label>
                         ))}
-                        {leadOptions.map(l=>{ const checked = attendeeArr.includes(l.email); return (
-                          <label key={l.id} onClick={e=>{ e.preventDefault(); toggleAttendee(l.email); }}
+                        {superiorOptions.map(email=>{ const checked = attendeeArr.includes(email); const name = displayName(email); return (
+                          <label key={email} onClick={e=>{ e.preventDefault(); toggleAttendee(email); }}
                             style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 12px", cursor:"pointer", fontSize:12.5,
                               background:checked?C.primary+"08":"transparent" }}>
                             <input type="checkbox" checked={checked} readOnly style={{ accentColor:C.primary, width:14, height:14 }}/>
-                            <span style={{ color:C.text }}>{l.email}</span>
-                            <span style={{ color:C.muted }}>({l.name})</span>
+                            <span style={{ color:C.text }}>{email}</span>
+                            {name && <span style={{ color:C.muted }}>({name})</span>}
                           </label>
                         );})}
-                        {leadOptions.length===0 && !canAddTyped && (
+                        {superiorOptions.length===0 && !canAddTyped && (
                           <div style={{ padding:"10px 12px", fontSize:12, color:C.muted }}>No matches</div>
                         )}
                       </div>
