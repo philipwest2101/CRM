@@ -394,6 +394,60 @@ const EmailTemplateModal = ({ item, attachmentOptions, onClose, onSave }) => {
   );
 };
 
+// ── seed integrations data ─────────────────────────────────────────────────────
+const INTEGRATIONS_SEED = [
+  { id: "google-calendar", provider: "Google", service: "Calendar", icon: "📅", bg: "#FEF9C3", iconBg: "#FEF08A", color: "#854D0E",
+    connected: true, account: "anna.klein@gmail.com", desc: "Google Calendar — bidirectional sync" },
+  { id: "google-email", provider: "Google", service: "Email", icon: "✉️", bg: "#DCFCE7", iconBg: "#BBF7D0", color: "#166534",
+    connected: true, account: "anna.klein@gmail.com", desc: "Gmail — bidirectional sync" },
+  { id: "microsoft-calendar", provider: "Microsoft", service: "Calendar", icon: "📅", bg: "#EFF6FF", iconBg: "#BFDBFE", color: "#1E40AF",
+    connected: false, account: "", desc: "Outlook Calendar — bidirectional sync" },
+  { id: "microsoft-email", provider: "Microsoft", service: "Email", icon: "✉️", bg: "#F5F3FF", iconBg: "#DDD6FE", color: "#5B21B6",
+    connected: false, account: "", desc: "Outlook / Exchange — bidirectional sync" },
+];
+
+// ── connect-account modal (simulated OAuth — asks which account to link) ───────
+const ConnectModal = ({ card, onClose, onConnect }) => {
+  const [account, setAccount] = useState("");
+  const valid = /\S+@\S+\.\S+/.test(account);
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 420, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>Connect {card.provider} {card.service}</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+        </div>
+        <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>Sign in with your {card.provider} account to enable {card.desc.toLowerCase()}.</div>
+        <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Account email *</label>
+        <input value={account} onChange={e => setAccount(e.target.value)} placeholder="name@example.com" style={fieldStyle} autoFocus />
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 22 }}>
+          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button disabled={!valid} onClick={() => onConnect(account.trim())}
+            style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: valid ? C.primary : C.border, color: valid ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Connect</button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── disconnect confirmation modal ───────────────────────────────────────────────
+const DisconnectModal = ({ card, onClose, onConfirm }) => (
+  <>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 400, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, marginBottom: 10 }}>Disconnect {card.provider} {card.service}?</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 22 }}>
+        {card.account} will be unlinked and sync will stop. You can reconnect at any time.
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+        <button onClick={onConfirm} style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: C.red, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Disconnect</button>
+      </div>
+    </div>
+  </>
+);
+
 // ── table header cell ─────────────────────────────────────────────────────────
 const Th = ({ children, sort }) => (
   <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 13, fontWeight: 600, color: C.slate }}>
@@ -420,6 +474,27 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
   const [addingFile, setAddingFile] = useState(false);
   const [page, setPage]       = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [integrations, setIntegrations] = useState(INTEGRATIONS_SEED);
+  const [connecting, setConnecting] = useState(null);   // card being connected
+  const [disconnecting, setDisconnecting] = useState(null); // card being disconnected
+  const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const confirmConnect = (account) => {
+    setIntegrations(prev => prev.map(c => c.id === connecting.id ? { ...c, connected: true, account } : c));
+    setToast(`✅ ${connecting.provider} ${connecting.service} connected`);
+    setConnecting(null);
+  };
+  const confirmDisconnect = () => {
+    setIntegrations(prev => prev.map(c => c.id === disconnecting.id ? { ...c, connected: false, account: "" } : c));
+    setToast(`${disconnecting.provider} ${disconnecting.service} disconnected`);
+    setDisconnecting(null);
+  };
 
   const section = visibleSections.find(s => s.key === active) || visibleSections[0];
   const items   = data[active] || [];
@@ -506,17 +581,8 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
 
           {section.kind === "integrations" ? (
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, padding:"4px 0" }}>
-              {[
-                { provider:"Google", service:"Calendar", icon:"📅", bg:"#FEF9C3", iconBg:"#FEF08A", color:"#854D0E",
-                  connected:true, account:"anna.klein@gmail.com", desc:"Google Calendar — bidirectional sync" },
-                { provider:"Google", service:"Email", icon:"✉️", bg:"#DCFCE7", iconBg:"#BBF7D0", color:"#166534",
-                  connected:true, account:"anna.klein@gmail.com", desc:"Gmail — bidirectional sync" },
-                { provider:"Microsoft", service:"Calendar", icon:"📅", bg:"#EFF6FF", iconBg:"#BFDBFE", color:"#1E40AF",
-                  connected:false, account:"", desc:"Outlook Calendar — bidirectional sync" },
-                { provider:"Microsoft", service:"Email", icon:"✉️", bg:"#F5F3FF", iconBg:"#DDD6FE", color:"#5B21B6",
-                  connected:false, account:"", desc:"Outlook / Exchange — bidirectional sync" },
-              ].map(card => (
-                <div key={`${card.provider}-${card.service}`} style={{
+              {integrations.map(card => (
+                <div key={card.id} style={{
                   borderRadius:14, border:`1px solid ${C.border}`, padding:"20px",
                   background:card.connected ? card.bg+"80" : "#fff",
                   display:"flex", flexDirection:"column", gap:14,
@@ -527,7 +593,7 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                         {card.icon}
                       </div>
                       <div>
-                        <div style={{ fontSize:13, fontWeight:700, color:C.slate, letterSpacing:"0.04em", textTransform:"uppercase", fontSize:10 }}>{card.provider}</div>
+                        <div style={{ fontSize:10, fontWeight:700, color:C.slate, letterSpacing:"0.04em", textTransform:"uppercase" }}>{card.provider}</div>
                         <div style={{ fontSize:16, fontWeight:800, color:C.navy }}>{card.service}</div>
                       </div>
                     </div>
@@ -543,11 +609,11 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
                   </div>
                   <div style={{ marginTop:"auto" }}>
                     {card.connected ? (
-                      <button style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                      <button onClick={() => setDisconnecting(card)} style={{ padding:"7px 16px", borderRadius:8, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:12, fontWeight:600, cursor:"pointer" }}>
                         Disconnect
                       </button>
                     ) : (
-                      <button style={{ padding:"7px 18px", borderRadius:8, border:"none", background:C.primary, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+                      <button onClick={() => setConnecting(card)} style={{ padding:"7px 18px", borderRadius:8, border:"none", background:C.primary, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>
                         Connect {card.service}
                       </button>
                     )}
@@ -661,6 +727,13 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
           onClose={() => setEditing(null)} onSave={upsert} />
       )}
       {addingFile && <AttachmentModal onClose={() => setAddingFile(false)} onSave={addFile} />}
+      {connecting && <ConnectModal card={connecting} onClose={() => setConnecting(null)} onConnect={confirmConnect} />}
+      {disconnecting && <DisconnectModal card={disconnecting} onClose={() => setDisconnecting(null)} onConfirm={confirmDisconnect} />}
+      {toast && (
+        <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: C.navy, color: "#fff", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 600, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
+          {toast}
+        </div>
+      )}
     </div>
   );
 };
