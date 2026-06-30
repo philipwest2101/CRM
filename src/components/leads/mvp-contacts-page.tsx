@@ -179,12 +179,13 @@ const SortArrows = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 // VIEW SELECTOR (dropdown)
 // ─────────────────────────────────────────────────────────────────────────────
-const ViewSelector = ({ views, activeId, counts, onSelect, onAddView }) => {
+const ViewSelector = ({ views, activeId, counts, onSelect, onAddView, role }) => {
   const t = useT();
   const VIEW_TIPS = {
     my:       t("tooltip_myNetwork"),
     pending:  t("tooltip_unassignedLeads"),
     myleads:  t("tooltip_myLeads"),
+    assigned: role === "vd" ? t("tooltip_assignedLeadsVD") : t("tooltip_assignedLeadsSA"),
     pendingA: t("tooltip_pendingAssignments"),
   };
   const [open, setOpen] = useState(false);
@@ -1272,7 +1273,7 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
 
       {/* View selector row */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <ViewSelector views={views} activeId={activeView} counts={counts}
+        <ViewSelector views={views} activeId={activeView} counts={counts} role={role}
           onSelect={setActiveView}
           onAddView={() => setEditView({ id: `v-${Date.now()}`, name: "", filter: "all", columns: DEFAULT_COLS })} />
         <IconBtn title="Edit view" onClick={() => setEditView(view)}>✎</IconBtn>

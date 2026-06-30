@@ -107,10 +107,12 @@ export const TRANSLATIONS = {
     tooltip_lifecycle: "Shows where this contact stands in the sales journey: from initial Lead through active Opportunity to a closed Customer.",
     tooltip_status: "The specific step within the current lifecycle stage — e.g. Open, In Progress, Appointment, or Not Interested.",
     tooltip_followup: "Number of contact attempts made and a record of follow-up actions. Use this to track outreach history and plan your next step.",
-    tooltip_myNetwork: "All contacts you have access to based on your role — your own leads as well as contacts shared within your scope.",
-    tooltip_myLeads: "Contacts assigned directly to you. Only you and your Sales Director can see and manage these.",
-    tooltip_unassignedLeads: "New contacts not yet assigned to any consultant. Assign them to start the sales process.",
-    tooltip_pendingAssignments: "Contacts awaiting assignment to a consultant. Review and assign to ensure no lead goes unattended.",
+    tooltip_myNetwork: "Your private contacts. Hidden from others.",
+    tooltip_myLeads: "Leads assigned to you. Fully editable and reportable.",
+    tooltip_unassignedLeads: "Org leads awaiting assignment to your team.",
+    tooltip_pendingAssignments: "Leads awaiting assignment to you or your team.",
+    tooltip_assignedLeadsSA: "Org-assigned leads. Read-only and reportable.",
+    tooltip_assignedLeadsVD: "Leads you delegated to your team. Read-only and reportable.",
 
     // Contact List
     contactList: "Contact List",
@@ -422,10 +424,12 @@ export const TRANSLATIONS = {
     tooltip_lifecycle: "Zeigt, wo sich der Kontakt in der Vertriebsreise befindet: vom ersten Lead über eine aktive Chance bis zum abgeschlossenen Kunden.",
     tooltip_status: "Der konkrete Schritt innerhalb der aktuellen Lebenszyklusphase – z. B. Offen, In Bearbeitung, Termin oder Kein Interesse.",
     tooltip_followup: "Anzahl der bisherigen Kontaktversuche und Nachverfolgungsaktionen. Hilft, die Kontakthistorie nachzuvollziehen und den nächsten Schritt zu planen.",
-    tooltip_myNetwork: "Alle Kontakte, auf die Sie aufgrund Ihrer Rolle Zugriff haben – eigene Leads sowie Kontakte im Rahmen Ihres Zuständigkeitsbereichs.",
-    tooltip_myLeads: "Kontakte, die direkt Ihnen zugewiesen sind. Nur Sie und Ihr Vertriebsleiter können diese einsehen und bearbeiten.",
-    tooltip_unassignedLeads: "Neue Kontakte, die noch keinem Berater zugewiesen wurden. Bitte zuweisen, um den Vertriebsprozess zu starten.",
-    tooltip_pendingAssignments: "Kontakte, die auf eine Zuweisung warten. Überprüfen und zuweisen, damit kein Lead unbeaufsichtigt bleibt.",
+    tooltip_myNetwork: "Ihre privaten Kontakte. Für andere nicht sichtbar.",
+    tooltip_myLeads: "Ihnen zugewiesene Leads. Vollständig bearbeitbar und auswertbar.",
+    tooltip_unassignedLeads: "Org-Leads, die auf eine Zuweisung an Ihr Team warten.",
+    tooltip_pendingAssignments: "Leads, die auf eine Zuweisung an Sie oder Ihr Team warten.",
+    tooltip_assignedLeadsSA: "Org-zugewiesene Leads. Nur lesbar und auswertbar.",
+    tooltip_assignedLeadsVD: "Leads, die Sie an Ihr Team delegiert haben. Nur lesbar und auswertbar.",
 
     // Contact List
     contactList: "Kontaktliste",
