@@ -29,7 +29,7 @@ const blank = (selectedDate) => ({
   emailTemplate:"", repeatOn:false, repeatEvery:1, repeatUnit:"day", recur:"Once", note:"",
 });
 
-export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onSubmit, onDone, onDelete, onLogCall, onMakeCall }) => {
+export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=false, onClose, onSubmit, onDone, onDelete, onLogCall, onMakeCall }) => {
   const [m, setM]   = useState(mode);                       // active mode (view can switch to edit)
   const [f, setF]   = useState(() => {
     const init = task ? { ...blank(selectedDate), ...task } : blank(selectedDate);
@@ -123,10 +123,14 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, onClose, onS
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
               <div>
                 <label style={lbl}>Contact *</label>
-                <select value={f.contact} onChange={e=>set("contact",e.target.value)} style={input}>
-                  <option value="">Choose…</option>
-                  {ALL_LEADS.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
-                </select>
+                {lockContact ? (
+                  <input value={f.contact} disabled style={{ ...input, background:C.light, color:C.text, cursor:"not-allowed" }}/>
+                ) : (
+                  <select value={f.contact} onChange={e=>set("contact",e.target.value)} style={input}>
+                    <option value="">Choose…</option>
+                    {ALL_LEADS.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+                  </select>
+                )}
               </div>
               <div>
                 <label style={lbl}>Type *</label>

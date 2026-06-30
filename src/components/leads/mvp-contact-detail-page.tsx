@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { LIFECYCLE_STORE, GPS_BY_VD } from "../../lib/core";
+import { LIFECYCLE_STORE } from "../../lib/core";
+import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
+import { AppointmentModal as CalendarAppointmentModal, getSuperiorEmails } from "../appointments/appointment-modal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
@@ -170,193 +172,10 @@ const EmailModal = ({ onClose }) => {
   );
 };
 
-// ── shared form controls (Task / Appointment) ────────────────────────────────
-const Segmented = ({ options, value, onChange }) => (
-  <div style={{ display: "flex", gap: 8 }}>
-    {options.map(([key, label, icon]) => {
-      const on = value === key;
-      return (
-        <button key={key} onClick={() => onChange(key)} style={{
-          flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          padding: "9px 8px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: on ? 700 : 500,
-          border: `1.5px solid ${on ? C.primary : C.border}`, background: on ? C.primarySoft : "#fff", color: on ? C.primaryDark : C.slate,
-        }}>{icon && <span>{icon}</span>}{label}</button>
-      );
-    })}
-  </div>
-);
-
-const ReminderBlock = () => {
-  const [on, setOn] = useState(false);
-  const [opt, setOpt] = useState("15 Minutes Before");
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 16, alignItems: "center" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
-          <input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Reminder
-        </label>
-        <select value={opt} onChange={e => setOpt(e.target.value)} style={fieldStyle}>
-          {["15 Minutes Before", "30 Minutes Before", "1 Hour Before", "1 Day Before", "Custom"].map(o => <option key={o}>{o}</option>)}
-        </select>
-      </div>
-      {opt === "Custom" && on && (
-        <div style={{ marginTop: 12 }}>
-          <Label>Remind me on</Label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <input type="date" style={placeholderSelect} /><input type="time" style={placeholderSelect} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const RecurringBlock = () => {
-  const [on, setOn] = useState(false);
-  const [n, setN] = useState(1);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
-      <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
-        <input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Recurring
-      </label>
-      {on && (<>
-        <span style={{ fontSize: 13, color: C.slate }}>Every</span>
-        <div style={{ display: "flex", alignItems: "center", border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
-          <input value={n} onChange={e => setN(Number(e.target.value) || 1)} style={{ width: 46, border: "none", outline: "none", padding: "9px 10px", fontSize: 13, fontFamily: "inherit" }} />
-          <div style={{ display: "flex", flexDirection: "column", borderLeft: `1px solid ${C.border}` }}>
-            <button onClick={() => setN(v => v + 1)} style={{ border: "none", background: "#fff", cursor: "pointer", fontSize: 9, padding: "1px 7px", color: C.slate }}>▲</button>
-            <button onClick={() => setN(v => Math.max(1, v - 1))} style={{ border: "none", borderTop: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", fontSize: 9, padding: "1px 7px", color: C.slate }}>▼</button>
-          </div>
-        </div>
-        <select style={{ ...fieldStyle, width: 130 }} defaultValue="Day"><option>Day</option><option>Week</option><option>Month</option></select>
-      </>)}
-    </div>
-  );
-};
-
-// ── Superior-email lookup (used to seed the Attendees field) ──────────────────
-const nameToEmail = (name) => name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z\s]/g, "").trim().split(/\s+/).join(".") + "@firma.de";
-
-// No explicit manager/superior field exists on user records, so the hierarchy is
-// derived from the same role→name mapping used in top-nav.tsx plus GPS_BY_VD.
-const getSuperiorEmails = (role) => {
-  if (role === "gp") {
-    const vd = Object.keys(GPS_BY_VD).find(v => GPS_BY_VD[v].includes("Anna Klein")) || "Thomas Müller";
-    return [nameToEmail(vd)];
-  }
-  if (role === "vd") return [nameToEmail("Julia Bauer")];
-  if (role === "manager") return [nameToEmail("Super Admin")];
-  return [];
-};
-
-// ── Attendees tag input — select from leads or type any email, renders as tags ─
-const ATTENDEE_LEADS = ["Sandra Richter", "Markus Bauer", "Dirk Schumacher", "Klaus Weber"];
-const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-const AttendeesField = ({ value, onChange }) => {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState("");
-  const add = (v) => { const val = v.trim(); if (val && !value.includes(val)) onChange([...value, val]); setQ(""); };
-  const remove = (v) => onChange(value.filter(x => x !== v));
-  return (
-    <div style={{ position: "relative" }}>
-      <div onClick={() => setOpen(o => !o)} style={{ ...fieldStyle, minHeight: 42, height: "auto", display: "flex", flexWrap: "wrap", gap: 6, cursor: "text", alignItems: "center" }}>
-        {value.map(v => (
-          <span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.primarySoft || "#EEF2FF", color: C.primaryDark, fontSize: 12, fontWeight: 600, padding: "3px 8px", borderRadius: 6 }}>
-            {v}
-            <span onClick={e => { e.stopPropagation(); remove(v); }} style={{ cursor: "pointer", fontSize: 12, lineHeight: 1 }}>×</span>
-          </span>
-        ))}
-        <input value={q} onChange={e => { setQ(e.target.value); setOpen(true); }}
-          onKeyDown={e => { if (e.key === "Enter" && isEmail(q)) { e.preventDefault(); add(q); } }}
-          onFocus={() => setOpen(true)} placeholder={value.length ? "" : "Add attendee email…"}
-          style={{ border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", flex: 1, minWidth: 120 }} />
-      </div>
-      {open && (
-        <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
-          <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 12px 36px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, padding: "6px 0", maxHeight: 220, overflowY: "auto" }}>
-            {isEmail(q) && !value.includes(q.trim()) && (
-              <div onClick={() => add(q)} style={{ padding: "9px 14px", fontSize: 13, fontWeight: 700, color: C.primary, cursor: "pointer" }}>＋ Add "{q.trim()}"</div>
-            )}
-            {ATTENDEE_LEADS.filter(n => n.toLowerCase().includes(q.toLowerCase())).map(n => {
-              const email = nameToEmail(n);
-              return (
-                <label key={n} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", cursor: "pointer", fontSize: 13, color: C.text }}>
-                  <input type="checkbox" checked={value.includes(email)} onChange={() => value.includes(email) ? remove(email) : add(email)} style={{ width: 15, height: 15, accentColor: C.primary }} />
-                  {n} <span style={{ color: C.muted, fontSize: 11 }}>({email})</span>
-                </label>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-// ── Task composer (Create a Task) ─────────────────────────────────────────────
-const TaskModal = ({ onClose, contactName }) => {
-  const [title, setTitle] = useState("");
-  const [type, setType] = useState("call");
-  const [priority, setPriority] = useState("medium");
-  return (
-    <ModalShell icon="☑️" title="Create a Task" width={560} onClose={onClose}>
-      <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 16, marginBottom: 16, alignItems: "end" }}>
-        <div><Label>Contact *</Label><input value={contactName} disabled style={{ ...fieldStyle, background: C.light, color: C.text, cursor: "not-allowed" }} /></div>
-        <div><Label>Type *</Label><Segmented value={type} onChange={setType} options={[["call", "Call", "📞"], ["email", "Email", "✉"], ["todo", "To Do", "☑"]]} /></div>
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <Label>Priority *</Label>
-        <Segmented value={priority} onChange={setPriority} options={[["low", "Low"], ["medium", "Medium"], ["high", "High"], ["urgent", "Urgent"]]} />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
-        <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
-      </div>
-      <ReminderBlock />
-      <RecurringBlock />
-      <div style={{ marginBottom: 20 }}>
-        <Label>Description</Label>
-        <textarea style={{ ...fieldStyle, minHeight: 80, resize: "vertical", lineHeight: 1.5 }} placeholder="Description" />
-      </div>
-      <FooterBtns onClose={onClose} label="Save" disabled={!title.trim()} />
-    </ModalShell>
-  );
-};
-
-// ── Appointment composer (Schedule an Appointment) ────────────────────────────
+// Task / Appointment composers reuse the calendar's modals (better-designed) via
+// CalendarTaskModal / CalendarAppointmentModal below, with their Contact field
+// locked to the current contact (see lockContact prop on each).
 const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other"];
-const AppointmentModal = ({ onClose, contactName, role }) => {
-  const [title, setTitle] = useState("");
-  const [type, setType] = useState("Consultation Appointment");
-  const [attendees, setAttendees] = useState(() => getSuperiorEmails(role));
-  return (
-    <ModalShell icon="📅" title="Schedule an Appointment" width={560} onClose={onClose}>
-      <div style={{ marginBottom: 16 }}><Label>Title *</Label><input value={title} onChange={e => setTitle(e.target.value)} style={fieldStyle} placeholder="Title" /></div>
-      <div style={{ marginBottom: 16 }}><Label>Contact *</Label><input value={contactName} disabled style={{ ...fieldStyle, background: C.light, color: C.text, cursor: "not-allowed" }} /></div>
-      <div style={{ marginBottom: 16 }}><Label>Attendees</Label><AttendeesField value={attendees} onChange={setAttendees} /></div>
-      <div style={{ marginBottom: 16 }}>
-        <Label>Type *</Label>
-        <select value={type} onChange={e => setType(e.target.value)} style={fieldStyle}>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select>
-        {type === "Other" && <input style={{ ...fieldStyle, marginTop: 10 }} placeholder="Enter Appointment Type" />}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
-        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
-        <div><Label>Start *</Label><input type="time" style={placeholderSelect} /></div>
-        <div><Label>End *</Label><input type="time" style={placeholderSelect} /></div>
-      </div>
-      <div style={{ marginBottom: 16 }}><Label>Meeting Location / Link</Label><input style={fieldStyle} placeholder="Location or video link" /></div>
-      <div style={{ marginBottom: 16 }}><Label>Attachment</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option><option>sample.pdf</option></select></div>
-      <ReminderBlock />
-      <div style={{ marginBottom: 20 }}>
-        <Label>Description</Label>
-        <textarea style={{ ...fieldStyle, minHeight: 80, resize: "vertical", lineHeight: 1.5 }} placeholder="Description" />
-      </div>
-      <FooterBtns onClose={onClose} label="Save" disabled={!title.trim()} />
-    </ModalShell>
-  );
-};
 
 // ── Log a Call ────────────────────────────────────────────────────────────────
 const LogCallModal = ({ onClose }) => (
@@ -1525,8 +1344,8 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
       </div>
 
       {modal === "email"       && <EmailModal onClose={() => setModal(null)} />}
-      {modal === "task"        && <TaskModal onClose={() => setModal(null)} contactName={c.name} />}
-      {modal === "appointment" && <AppointmentModal onClose={() => setModal(null)} contactName={c.name} role={role} />}
+      {modal === "task"        && <CalendarTaskModal onClose={() => setModal(null)} task={{ contact: c.name }} lockContact onSubmit={() => setModal(null)} />}
+      {modal === "appointment" && <CalendarAppointmentModal onClose={() => setModal(null)} appt={{ contact: c.name, attendees: [c.name, ...getSuperiorEmails(role)] }} role={role} lockContact onSubmit={() => setModal(null)} />}
       {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} />}
       {modal === "logemail"    && <LogEmailModal onClose={() => setModal(null)} />}
       {modal === "logappt"     && <LogAppointmentModal onClose={() => setModal(null)} />}
