@@ -399,15 +399,22 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     .sort((a, b) => (b.attempts || 0) - (a.attempts || 0))
     .slice(0, 6);
 
-  // SA "Call Attempts" distribution — one column per attempt level (5/5 … 1/5),
-  // each holding the number of org leads currently at that attempt count.
-  const callAttemptBuckets = useMemo(() =>
-    [5, 4, 3, 2, 1].map(n => ({
-      label: `${n}/5`,
-      count: scopedLeads.filter(l => (l.attempts || 0) === n).length,
-      color: n >= 4 ? C.red : n === 3 ? C.amber : C.navy,
-    })),
-  [scopedLeads]);
+  // SA "Call Attempts" cross-tab — one row per Sales Director, one column per
+  // attempt level (5/5 … 1/5) holding the count of that VD's leads at that level.
+  const ATTEMPT_LEVELS = [5, 4, 3, 2, 1];
+  const callAttemptsByVD = useMemo(() => {
+    if (!isSA) return [];
+    const byVD: Record<string, { name: string; total: number; counts: Record<number, number> }> = {};
+    allLeads.forEach(l => {
+      if (!l.assignedVD) return;
+      const n = l.attempts || 0;
+      if (n < 1) return;   // only leads with at least one attempt
+      if (!byVD[l.assignedVD]) byVD[l.assignedVD] = { name: l.assignedVD, total: 0, counts: { 1:0, 2:0, 3:0, 4:0, 5:0 } };
+      byVD[l.assignedVD].counts[n] = (byVD[l.assignedVD].counts[n] || 0) + 1;
+      byVD[l.assignedVD].total += 1;
+    });
+    return Object.values(byVD).sort((a, b) => b.total - a.total);
+  }, [isSA, allLeads]);
 
   // ── SA: Team Performance — org leads/appointments grouped by Sales Director ──
   const teamPerformance = useMemo(() => {
@@ -683,27 +690,36 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           </Card>
         )}
 
-        {/* ── SA: Call Attempts — attempt-level distribution, 5/5 … 1/5 columns ── */}
+        {/* ── SA: Call Attempts — per-director cross-tab, 5/5 … 1/5 columns ── */}
         {isSA && (
           <Card style={{ marginBottom: 14 }}>
             <CardHeader
               title={t("kpiCallAttemptsNotReached")}
               action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />}
             />
-            <div style={{ padding: "0 16px 16px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", padding: "10px 0", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-                {callAttemptBuckets.map(b => (
-                  <div key={b.label} style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "center" }}>{b.label}</div>
+            <div style={{ padding: "0 16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(5, 1fr)", padding: "8px 0", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+                {["Director", ...ATTEMPT_LEVELS.map(n => `${n}/5`)].map((h, i) => (
+                  <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
                 ))}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", padding: "16px 0 6px", gap: 8 }}>
-                {callAttemptBuckets.map(b => (
-                  <div key={b.label} style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 30, fontWeight: 400, letterSpacing: "-0.03em", lineHeight: 1, color: b.count === 0 ? C.muted : b.color }}>{b.count}</div>
-                    <div style={{ marginTop: 5, fontSize: 10, color: C.muted }}>{b.count === 1 ? "lead" : "leads"}</div>
+              {callAttemptsByVD.length === 0 ? (
+                <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noDataYet")}</div>
+              ) : callAttemptsByVD.map((vd, i) => (
+                <div key={vd.name} style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(5, 1fr)", padding: "9px 0", borderBottom: i < callAttemptsByVD.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Avatar name={vd.name} size={26} />
+                    <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{vd.name}</span>
                   </div>
-                ))}
-              </div>
+                  {ATTEMPT_LEVELS.map(n => {
+                    const count = vd.counts[n] || 0;
+                    const color = n >= 4 ? C.red : n === 3 ? C.amber : C.navy;
+                    return (
+                      <div key={n} style={{ textAlign: "center", fontFamily: "monospace", fontSize: 13, fontWeight: count > 0 ? 700 : 400, color: count === 0 ? C.muted : color }}>{count}</div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </Card>
         )}
