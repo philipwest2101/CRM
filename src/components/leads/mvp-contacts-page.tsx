@@ -1148,7 +1148,7 @@ const CUSTOM_VIEWS = [
   { id: "cv2", name: "Custom View 2", filter: "custom2", columns: ["name", "lifecycle", "accountSource", "create"] },
 ];
 
-export const MVPContactsPage = ({ navigateTo, role }) => {
+export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialView }) => {
   const t = useT();
   const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
   // System views are derived from role so they update whenever the role switcher changes.
@@ -1156,7 +1156,13 @@ export const MVPContactsPage = ({ navigateTo, role }) => {
   const systemViews = useMemo(() => getSystemViews(role, t), [role, t]);
   const [customViews, setCustomViews] = useState(CUSTOM_VIEWS);
   const views = [...systemViews, ...customViews];
-  const [activeView, setActiveView] = useState(() => getSystemViews(role)[0]?.id || "my");
+  const [activeView, setActiveView] = useState(() => initialView || getSystemViews(role)[0]?.id || "my");
+
+  // Consume a one-shot initial view requested by the caller (e.g. a dashboard "All" link),
+  // then clear it upstream so a later plain navigation to this page doesn't reuse it.
+  React.useEffect(() => {
+    if (initialView) clearInitialView && clearInitialView();
+  }, []);
 
   // Keep activeView in a valid system view when role changes
   React.useEffect(() => {

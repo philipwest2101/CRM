@@ -779,6 +779,13 @@ export const APPOINTMENTS = [
   { id:"A-305", date:"2026-06-29", start:"09:30", end:"10:15", type:"call",     lead:"Eva Gruber",      leadId:"L-2013", gp:"Thomas Müller", vd:"Thomas Müller", status:"confirmed", notes:"VD direct — partner referral, first appointment" },
   { id:"A-306", date:"2026-06-29", start:"11:00", end:"12:00", type:"video",    lead:"Klaus Richter",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — strategic partnership discussion" },
   { id:"A-307", date:"2026-06-29", start:"14:30", end:"15:30", type:"inperson", lead:"Stefan Wolf",     leadId:"L-2015", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Q2 planning & cross-sell" },
+  // ── Today 2026-07-01 — GP Anna Klein ────────────────────────────────────────
+  { id:"A-401", date:"2026-07-01", start:"09:00", end:"09:45", type:"call",     lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"3rd contact — nearing appointment decision" },
+  { id:"A-402", date:"2026-07-01", start:"10:30", end:"11:15", type:"video",    lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Product walkthrough — Q1 Finanz" },
+  { id:"A-403", date:"2026-07-01", start:"12:00", end:"13:00", type:"inperson", lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"First in-person meeting — Partner Ref" },
+  { id:"A-404", date:"2026-07-01", start:"14:00", end:"14:30", type:"call",     lead:"Anna Bergmann",   leadId:"L-2013", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Follow-up after webinar interest" },
+  // ── Today 2026-07-01 — VD Thomas Müller (direct / self-close) ──────────────
+  { id:"A-405", date:"2026-07-01", start:"11:00", end:"11:30", type:"call",     lead:"Michael Stein",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Messe FFM contact" },
 ];
 
 

@@ -90,7 +90,7 @@ const ROLE_USER = {
 
 // ── Shared micro-components ───────────────────────────────────────────────────
 
-const Avatar = ({ name, size = 32, color }) => {
+const Avatar = ({ name, size = 32, color = null }) => {
   const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const palette  = [C.blue, C.indigo, C.green, C.amber, "#EC4899", C.purple];
   const bg       = color || palette[name.charCodeAt(0) % palette.length];
@@ -114,7 +114,7 @@ const Card = ({ children, style = {} }) => (
   </div>
 );
 
-const CardHeader = ({ title, action }) => (
+const CardHeader = ({ title, action = null }) => (
   <div style={{
     padding: "11px 16px 9px",
     borderBottom: `1px solid ${C.border}`,
@@ -125,14 +125,38 @@ const CardHeader = ({ title, action }) => (
   </div>
 );
 
-const KpiCard = ({ label, value, sub, color = C.text, warn = false }) => (
+// Hover tooltip for KPI card info icons.
+const InfoTip = ({ text }) => {
+  const [show, setShow] = useState(false);
+  if (!text) return null;
+  return (
+    <span style={{ position: "relative", display: "inline-flex", marginLeft: 5 }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <span style={{ fontSize: 11, color: C.muted, cursor: "help" }}>ⓘ</span>
+      {show && (
+        <div style={{
+          position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)",
+          background: C.navy, color: "#fff", fontSize: 11, lineHeight: 1.4, padding: "8px 12px",
+          borderRadius: 8, whiteSpace: "normal", width: 200, zIndex: 30,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.2)", pointerEvents: "none", textTransform: "none", letterSpacing: "normal",
+        }}>
+          {text}
+        </div>
+      )}
+    </span>
+  );
+};
+
+const KpiCard = ({ label, value, sub = null, info = null, color = C.text, warn = false }) => (
   <Card>
     <div style={{ padding: "13px 16px" }}>
       <div style={{
+        display: "flex", alignItems: "center",
         fontSize: 10, color: C.muted, fontWeight: 700,
         letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6,
       }}>
         {label}
+        <InfoTip text={info} />
       </div>
       <div style={{
         fontSize: 30, fontWeight: 400, letterSpacing: "-0.03em",
@@ -146,6 +170,22 @@ const KpiCard = ({ label, value, sub, color = C.text, warn = false }) => (
     </div>
   </Card>
 );
+
+// Mini circular indicator — same visual language as the Follow-up donut on the
+// contact detail Overview tab (attempts / max-attempts).
+const MiniDonut = ({ value = 0, total = 5, danger = false }) => {
+  const r = 30, circ = 2 * Math.PI * r, pct = total ? Math.min(value / total, 1) : 0;
+  const color = danger ? C.red : C.primary;
+  return (
+    <svg width={76} height={76} viewBox="0 0 76 76" style={{ flexShrink: 0 }}>
+      <circle cx={38} cy={38} r={r} fill="none" stroke={C.border} strokeWidth={8} />
+      <circle cx={38} cy={38} r={r} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round"
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} transform="rotate(-90 38 38)" />
+      <text x={38} y={35} textAnchor="middle" fontSize={15} fontWeight={700} fill={C.navy}>{value}/{total}</text>
+      <text x={38} y={49} textAnchor="middle" fontSize={7} fill={C.muted}>calls</text>
+    </svg>
+  );
+};
 
 const LinkBtn = ({ label, onClick }) => (
   <button onClick={onClick} style={{
@@ -288,13 +328,13 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const scopedAppts = isGP
     ? allAppointments.filter(a => a.gp === userName)
     : isVD
-      ? allAppointments.filter(a => a.vd === userName && a.gp === userName)
+      ? allAppointments.filter(a => a.vd === userName)
       : allAppointments;
 
   const scopedActivities = isGP
     ? allActivities.filter(a => a.gp === userName)
     : isVD
-      ? allActivities.filter(a => a.vd === userName && a.gp === userName)
+      ? allActivities.filter(a => a.vd === userName)
       : allActivities;
 
   // ── KPI derivations ──────────────────────────────────────────────────────────
@@ -333,6 +373,11 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const remindersTitle = t("remindersAndTasks");
   const apptsTitle     = t("appointmentsToday");
 
+  // System view id the Leads page should open on when the "All" link is clicked —
+  // keeps the dashboard's "My Leads / Pending Assignment / Unassigned Leads" panels
+  // in sync with the matching Contacts view.
+  const leadsViewId = isGP ? "myleads" : isVD ? "pendingA" : "pending";
+
   // Contacts to show in panel (max 6) — SA: truly unassigned; VD: assigned to VD but no GP
   const panelLeads = isSA
     ? allLeads.filter(l => !l.assignedGP)
@@ -340,6 +385,37 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
       ? allLeads.filter(l => l.assignedVD === userName && !l.assignedGP)
       : newLeads;
   const leadsToShow = panelLeads.slice(0, 6);
+
+  // ── VD / SA KPI derivations ───────────────────────────────────────────────────
+  const totalLeadsActive     = scopedLeads.filter(l => l.status !== "closed").length;
+  const totalAppointmentsAll = scopedAppts.length;
+  const callAttemptsNotReached = scopedLeads.filter(l => l.status === "not_reached").length;
+  const closingsCount        = scopedLeads.filter(l => l.status === "closed").length;
+  const conversionRate       = totalContacts > 0 ? ((closingsCount / totalContacts) * 100).toFixed(1) + "%" : "0%";
+
+  // Leads nearing/at the call-attempts threshold — feeds the "Call Attempts" section.
+  const callAttemptLeads = scopedLeads
+    .filter(l => (l.attempts || 0) >= 2)
+    .sort((a, b) => (b.attempts || 0) - (a.attempts || 0))
+    .slice(0, 6);
+
+  // ── SA: Team Performance — org leads/appointments grouped by Sales Director ──
+  const teamPerformance = useMemo(() => {
+    if (!isSA) return [];
+    const byVD: Record<string, { name: string; leads: number; closed: number; appts: number }> = {};
+    allLeads.forEach(l => {
+      if (!l.assignedVD) return;
+      if (!byVD[l.assignedVD]) byVD[l.assignedVD] = { name: l.assignedVD, leads: 0, closed: 0, appts: 0 };
+      byVD[l.assignedVD].leads += 1;
+      if (l.status === "closed") byVD[l.assignedVD].closed += 1;
+    });
+    allAppointments.forEach(a => {
+      if (a.vd && byVD[a.vd]) byVD[a.vd].appts += 1;
+    });
+    return Object.values(byVD)
+      .map(v => ({ ...v, rate: v.leads > 0 ? ((v.closed / v.leads) * 100).toFixed(1) + "%" : "0%" }))
+      .sort((a, b) => b.leads - a.leads);
+  }, [isSA, allLeads, allAppointments]);
 
   // ── Assign modal ────────────────────────────────────────────────────────────
   const [assignTarget, setAssignTarget] = useState(null);
@@ -372,33 +448,27 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           </div>
         </div>
 
-        {/* ── KPI row ─────────────────────────────────────────────────────── */}
-        {isSA ? (() => {
-          const SA_KPIS = [
-            { label:t("kpiTotalContacts"), value:"2.904", delta:"+127",   up:true,  sub:t("kpiActive"),            warn:false, good:false },
-            { label:t("kpiUnassigned"),    value:"47",    delta:"−12",    up:false, sub:t("kpiPendingAssignment"), warn:true,  good:false },
-            { label:t("kpiAppointments"),  value:"134",   delta:"+23",    up:true,  sub:t("kpiMonth"),             warn:false, good:false },
-            { label:t("kpiClosings"),      value:"81",    delta:"+11",    up:true,  sub:t("kpiMTD"),               warn:false, good:true  },
-            { label:t("kpiConversion"),    value:"6,2",   delta:"+0,4pp", up:true,  sub:t("kpiOrgMTD"),           warn:false, good:true  },
-          ];
-          return (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:14 }}>
-              {SA_KPIS.map(k => (
-                <Card key={k.label}>
-                  <div style={{ padding:"13px 16px" }}>
-                    <div style={{ fontSize:10, color:C.muted, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:6 }}>{k.label}</div>
-                    <div style={{ fontSize:28, fontWeight:400, letterSpacing:"-0.03em", lineHeight:1, color:k.warn?C.red:k.good?C.green:C.navy, marginBottom:4 }}>{k.value}</div>
-                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
-                      <span style={{ fontSize:10, fontWeight:700, padding:"2px 6px", borderRadius:10, background:k.up?"#DCFCE7":"#FEE2E2", color:k.up?C.green:C.red }}>{k.delta}</span>
-                    </div>
-                    <div style={{ fontSize:10, color:C.muted }}>{k.sub}</div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          );
-        })() : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
+        {/* ── KPI row — same KpiCard everywhere so all three roles line up ─── */}
+        {isSA ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
+            <KpiCard label={t("kpiTotalLeads")}    value={totalLeadsActive}       info={t("tooltip_kpiTotalLeads")}       color={C.navy} />
+            <KpiCard label={t("kpiTotalContacts")} value={totalContacts}          info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
+            <KpiCard label={t("unassignedLeads")}  value={panelLeads.length}      info={t("tooltip_kpiUnassignedLeads")}  color={C.primary} warn={panelLeads.length > 0} />
+            <KpiCard label={t("kpiTotalAppointments")} value={totalAppointmentsAll} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
+            <KpiCard label={t("kpiCallAttemptsNotReached")} value={callAttemptsNotReached} info={t("tooltip_kpiCallAttempts")} color={C.red} />
+            <KpiCard label={t("kpiClosings")}      value={closingsCount}          info={t("tooltip_kpiClosings")}         color={C.green} />
+            <KpiCard label={t("kpiConversionRate")} value={conversionRate}        info={t("tooltip_kpiConversionRate")}   color={C.green} />
+          </div>
+        ) : isVD ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
+            <KpiCard label={t("kpiTotalLeads")}    value={totalLeadsActive}       info={t("tooltip_kpiTotalLeads")}       color={C.navy} />
+            <KpiCard label={t("kpiTotalContacts")} value={totalContacts}          info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
+            <KpiCard label={t("pendingAssignments")} value={panelLeads.length}    info={t("tooltip_kpiPendingAssignments")} color={C.primary} warn={panelLeads.length > 0} />
+            <KpiCard label={t("kpiTotalAppointments")} value={totalAppointmentsAll} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
+            <KpiCard label={t("kpiCallAttemptsNotReached")} value={callAttemptsNotReached} info={t("tooltip_kpiCallAttempts")} color={C.red} />
+          </div>
+        ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
           <KpiCard
             label={contactsLabel}
             value={totalContacts}
@@ -434,7 +504,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           <Card>
             <CardHeader
               title={leadsTitle}
-              action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads")} />}
+              action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, leadsViewId)} />}
             />
             <div style={{ padding: "2px 16px 10px", maxHeight: 320, overflowY: "auto" }}>
               {leadsToShow.length === 0 ? (
@@ -520,7 +590,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               </div>
             </Card>
 
-            {/* Reminders / Tasks */}
+            {/* Reminders / Tasks — GP only; VD/SA get the Call Attempts section instead */}
+            {isGP && (
             <Card>
               <CardHeader
                 title={remindersTitle}
@@ -574,11 +645,35 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                 })}
               </div>
             </Card>
+            )}
 
           </div>{/* end right column */}
         </div>
 
-        {/* ── SA: Campaign (pie) + Recent Activity side by side ────────────── */}
+        {/* ── VD / SA: Call Attempts — mirrors the contact detail Overview donut ── */}
+        {(isVD || isSA) && (
+          <Card style={{ marginBottom: 14 }}>
+            <CardHeader
+              title={t("kpiCallAttemptsNotReached")}
+              action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />}
+            />
+            <div style={{ padding: "14px 16px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14 }}>
+              {callAttemptLeads.length === 0 ? (
+                <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13, gridColumn: "1 / -1" }}>
+                  {t("noDataYet")}
+                </div>
+              ) : callAttemptLeads.map(lead => (
+                <div key={lead.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                  <MiniDonut value={lead.attempts || 0} total={5} danger={lead.status === "not_reached"} />
+                  <div style={{ fontSize: 12, fontWeight: 500, color: C.text, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{lead.name}</div>
+                  <StatusPill status={lead.status} />
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* ── SA: Campaign (pie) + Team Performance side by side ────────────── */}
         {isSA && (() => {
           const campaignMap: Record<string, number> = {};
           allLeads.forEach(l => { if (l.campaign) campaignMap[l.campaign] = (campaignMap[l.campaign] || 0) + 1; });
@@ -590,7 +685,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1.4fr", gap:14, marginBottom:14, alignItems:"start" }}>
               {/* Campaign pie chart */}
               <Card>
-                <CardHeader title={t("byCampaign")} action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
+                <CardHeader title={t("byCampaign")} />
                 <div style={{ padding:"16px 20px", display:"flex", gap:18, alignItems:"center" }}>
                   <PieChart slices={pieSlices} />
                   <div style={{ flex:1, minWidth:0 }}>
@@ -606,38 +701,40 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                 </div>
               </Card>
 
-              {/* Recent Activity */}
+              {/* Team Performance */}
               <Card>
-                <CardHeader title={t("recentActivity")} action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Calendar")} />} />
-                <div style={{ padding:"6px 16px 12px" }}>
-                  {recentActivity.length === 0
-                    ? <div style={{ padding:"16px 0",textAlign:"center",color:C.muted,fontSize:13 }}>{t("noRecentActivity")}</div>
-                    : recentActivity.map(act => {
-                        const iconBg = { call:C.green,video:C.indigo,email:C.amber,inperson:C.blue,note:C.purple }[act.type] || C.muted;
-                        return (
-                          <div key={act.id} style={{ display:"flex",gap:11,alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${C.border}` }}>
-                            <div style={{ width:30,height:30,borderRadius:"50%",background:iconBg+"18",display:"grid",placeItems:"center",fontSize:14,flexShrink:0 }}>{TYPE_ICON[act.type]||"📋"}</div>
-                            <div style={{ flex:1,minWidth:0 }}>
-                              <div style={{ fontSize:12.5,fontWeight:500,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{act.title}</div>
-                              <div style={{ fontSize:10.5,color:C.muted,marginTop:1 }}>{act.gp && <>{act.gp} · </>}{act.date} {act.time}</div>
-                            </div>
-                            <span style={{ fontSize:9,fontFamily:"monospace",padding:"2px 7px",borderRadius:20,flexShrink:0,background:C.muted+"18",color:C.muted,fontWeight:600,textTransform:"capitalize" }}>{act.status}</span>
-                          </div>
-                        );
-                      })
-                  }
+                <CardHeader title={t("teamPerformance")} />
+                <div style={{ padding:"0 16px" }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1.4fr 0.8fr 0.8fr 0.8fr 0.8fr", padding:"8px 0", borderBottom:`1px solid ${C.border}`, gap:8 }}>
+                    {["Director","Leads","Appts","Closed","Rate"].map(h => (
+                      <div key={h} style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.06em", textAlign:h==="Director"?"left":"center" }}>{h}</div>
+                    ))}
+                  </div>
+                  {teamPerformance.length === 0 ? (
+                    <div style={{ padding:"16px 0",textAlign:"center",color:C.muted,fontSize:13 }}>{t("noDataYet")}</div>
+                  ) : teamPerformance.map((v, i) => (
+                    <div key={v.name} style={{ display:"grid", gridTemplateColumns:"1.4fr 0.8fr 0.8fr 0.8fr 0.8fr", padding:"9px 0", borderBottom:i<teamPerformance.length-1?`1px solid ${C.border}`:"none", gap:8, alignItems:"center" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <Avatar name={v.name} size={26} />
+                        <span style={{ fontSize:12.5, fontWeight:500, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{v.name}</span>
+                      </div>
+                      <div style={{ textAlign:"center", fontFamily:"monospace", fontSize:12.5, color:C.text }}>{v.leads}</div>
+                      <div style={{ textAlign:"center", fontFamily:"monospace", fontSize:12.5, color:C.text }}>{v.appts}</div>
+                      <div style={{ textAlign:"center", fontFamily:"monospace", fontSize:12.5, color:C.text }}>{v.closed}</div>
+                      <div style={{ textAlign:"center", fontFamily:"monospace", fontSize:12.5, fontWeight:700, color:parseFloat(v.rate)>=8?C.green:parseFloat(v.rate)>=5?C.amber:C.red }}>{v.rate}</div>
+                    </div>
+                  ))}
                 </div>
               </Card>
             </div>
           );
         })()}
 
-        {/* ── Recent Activity — VD/GP full width ───────────────────────────── */}
-        {!isSA && (
+        {/* ── Recent Activity — GP only; VD/SA get the Call Attempts section instead ── */}
+        {isGP && (
         <Card>
           <CardHeader
             title={t("recentActivity")}
-            action={<LinkBtn label={t("allActivityLink")} onClick={() => navigateTo("Calendar")} />}
           />
           <div style={{ padding: "6px 16px 12px" }}>
             {recentActivity.length === 0 ? (
