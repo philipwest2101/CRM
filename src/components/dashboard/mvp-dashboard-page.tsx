@@ -393,11 +393,21 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const closingsCount        = scopedLeads.filter(l => l.status === "closed").length;
   const conversionRate       = totalContacts > 0 ? ((closingsCount / totalContacts) * 100).toFixed(1) + "%" : "0%";
 
-  // Leads nearing/at the call-attempts threshold — feeds the "Call Attempts" section.
+  // Leads nearing/at the call-attempts threshold — feeds the VD "Call Attempts" section (donuts).
   const callAttemptLeads = scopedLeads
     .filter(l => (l.attempts || 0) >= 2)
     .sort((a, b) => (b.attempts || 0) - (a.attempts || 0))
     .slice(0, 6);
+
+  // SA "Call Attempts" distribution — one column per attempt level (5/5 … 1/5),
+  // each holding the number of org leads currently at that attempt count.
+  const callAttemptBuckets = useMemo(() =>
+    [5, 4, 3, 2, 1].map(n => ({
+      label: `${n}/5`,
+      count: scopedLeads.filter(l => (l.attempts || 0) === n).length,
+      color: n >= 4 ? C.red : n === 3 ? C.amber : C.navy,
+    })),
+  [scopedLeads]);
 
   // ── SA: Team Performance — org leads/appointments grouped by Sales Director ──
   const teamPerformance = useMemo(() => {
@@ -650,8 +660,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           </div>{/* end right column */}
         </div>
 
-        {/* ── VD / SA: Call Attempts — mirrors the contact detail Overview donut ── */}
-        {(isVD || isSA) && (
+        {/* ── VD: Call Attempts — mirrors the contact detail Overview donut ── */}
+        {isVD && (
           <Card style={{ marginBottom: 14 }}>
             <CardHeader
               title={t("kpiCallAttemptsNotReached")}
@@ -669,6 +679,31 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                   <StatusPill status={lead.status} />
                 </div>
               ))}
+            </div>
+          </Card>
+        )}
+
+        {/* ── SA: Call Attempts — attempt-level distribution, 5/5 … 1/5 columns ── */}
+        {isSA && (
+          <Card style={{ marginBottom: 14 }}>
+            <CardHeader
+              title={t("kpiCallAttemptsNotReached")}
+              action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />}
+            />
+            <div style={{ padding: "0 16px 16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", padding: "10px 0", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+                {callAttemptBuckets.map(b => (
+                  <div key={b.label} style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "center" }}>{b.label}</div>
+                ))}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", padding: "16px 0 6px", gap: 8 }}>
+                {callAttemptBuckets.map(b => (
+                  <div key={b.label} style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 30, fontWeight: 400, letterSpacing: "-0.03em", lineHeight: 1, color: b.count === 0 ? C.muted : b.color }}>{b.count}</div>
+                    <div style={{ marginTop: 5, fontSize: 10, color: C.muted }}>{b.count === 1 ? "lead" : "leads"}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </Card>
         )}
