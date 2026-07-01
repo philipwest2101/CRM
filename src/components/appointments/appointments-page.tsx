@@ -97,7 +97,7 @@ export const AppointmentsPage = ({ role, navigateTo, appointments=APPOINTMENTS, 
         {role !== "gp" && (
           <select value={filterGP} onChange={e => setFilterGP(e.target.value)}
             style={{ border:`1px solid ${C.border}`, borderRadius:7, padding:"6px 10px", fontSize:12, fontFamily:"inherit", color:C.slate, background:"#fff" }}>
-            <option value="all">All Consultants</option>
+            <option value="all">All Advisors</option>
             {gpList.map(gp => <option key={gp}>{gp}</option>)}
           </select>
         )}
@@ -204,7 +204,7 @@ export const AppointmentsPage = ({ role, navigateTo, appointments=APPOINTMENTS, 
               ["Time",       `${selected.start} – ${selected.end}`],
               ["Type",       APPT_TYPE_META[selected.type]?.label || selected.type],
               ["Status",     APPT_STATUS_META[selected.status]?.label || selected.status],
-              ["Consultant", selected.gp],
+              ["Advisor", selected.gp],
               ["Director",   selected.vd],
               ["Notes",      selected.notes || "—"],
             ].map(([k,v]) => (

@@ -123,7 +123,7 @@ export const GPEducationPage = ({ navigateTo }) => {
         {[
           { label:"Videos Completed",  value:`${completed.length}/${EDU_VIDEOS.length}`, color:C.green,  sub:`${totalPct}% of library`, icon:"✅" },
           { label:"In Progress",       value:inProgress.length,                           color:C.amber,  sub:"Resume where you left off", icon:"▶️" },
-          { label:"Team Rank",         value:`#${myRank}`,                                color:C.indigo, sub:"of 6 consultants · Feb",    icon:"🏆" },
+          { label:"Team Rank",         value:`#${myRank}`,                                color:C.indigo, sub:"of 6 advisors · Feb",    icon:"🏆" },
           { label:"Time Spent",        value:"3.8h",                                      color:C.blue,   sub:"This month",                icon:"⏱" },
         ].map(k=>(
           <SettingsCard key={k.label} style={{ padding:"16px 20px" }}>

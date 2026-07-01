@@ -48,7 +48,7 @@ export const LeadDrawerAITab = ({ lead, role }) => {
       );
       setClassified(JSON.parse(raw.replace(/```json|```/g,"").trim()));
     } catch {
-      setClassified({status:"followup",label:"Follow-up",color:C.indigo,followup:"Next week",nextAction:"Schedule a callback",reasoning:"Consultant indicated interest.",confidence:80,suggestAppointment:false});
+      setClassified({status:"followup",label:"Follow-up",color:C.indigo,followup:"Next week",nextAction:"Schedule a callback",reasoning:"Advisor indicated interest.",confidence:80,suggestAppointment:false});
     }
     setClassifying(false);
   };

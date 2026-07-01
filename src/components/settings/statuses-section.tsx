@@ -64,7 +64,7 @@ export const StatusesSection = ({ role }) => {
             border:`1.5px solid ${draft.manual?C.indigo:C.border}`,background:draft.manual?C.indigo+"08":"#fff" }}>
           <div style={{ width:18,height:18,borderRadius:5,border:`2px solid ${draft.manual?C.indigo:C.border}`,background:draft.manual?C.indigo:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",flexShrink:0 }}>{draft.manual?"✓":""}</div>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:12,fontWeight:700,color:draft.manual?C.indigo:C.text }}>Consultants can set this status manually</div>
+            <div style={{ fontSize:12,fontWeight:700,color:draft.manual?C.indigo:C.text }}>Advisors can set this status manually</div>
             <div style={{ fontSize:10,color:C.muted,marginTop:1 }}>Automatic transitions are configured in Workflow &amp; Automation, not here.</div>
           </div>
         </div>
@@ -105,7 +105,7 @@ export const StatusesSection = ({ role }) => {
     {saved && <div style={{ marginBottom:16,padding:"10px 16px",borderRadius:8,background:"#ECFDF5",border:`1px solid ${C.green}40`,fontSize:12,fontWeight:700,color:C.green }}>✅ {saved}</div>}
 
     <div style={{ padding:"12px 16px",borderRadius:10,background:C.blue+"08",border:`1px solid ${C.blue}25`,marginBottom:16,fontSize:12,color:C.text,lineHeight:1.5 }}>
-      This page defines the status vocabulary — names, order, Lifecycle Stage grouping, and the <strong>flags</strong> automation targets. Whether a status is set <strong>manually</strong> by a consultant is toggled per status here; <strong>automatic</strong> transitions (and the not-reached threshold) live in <strong>Workflow &amp; Automation</strong>. Automation reads the flags, never the name, so renaming or reordering never breaks a rule.
+      This page defines the status vocabulary — names, order, Lifecycle Stage grouping, and the <strong>flags</strong> automation targets. Whether a status is set <strong>manually</strong> by an advisor is toggled per status here; <strong>automatic</strong> transitions (and the not-reached threshold) live in <strong>Workflow &amp; Automation</strong>. Automation reads the flags, never the name, so renaming or reordering never breaks a rule.
     </div>
 
     {showNewStage && (

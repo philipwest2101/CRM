@@ -77,7 +77,7 @@ export const FullDashboardPage = ({ role, navigateTo }) => {
     {name:"Q1 Investor Briefing",  jan:180,feb:248,capacity:300},
     {name:"Webinar March — Gold",   jan:0,  feb:186,capacity:250},
     {name:"FFP Roadshow Frankfurt",jan:120,feb:94, capacity:150},
-    {name:"Consultanttraining DACH",  jan:0,  feb:67, capacity:100},
+    {name:"Advisortraining DACH",  jan:0,  feb:67, capacity:100},
   ];
 
   return (
@@ -263,7 +263,7 @@ export const FullDashboardPage = ({ role, navigateTo }) => {
                   <span onClick={()=>navigateTo("Events")} style={{ fontSize:12,color:C.muted,cursor:"pointer" }}>All →</span>
                 </div>
                 <div style={{ padding:"10px 18px 14px" }}>
-                  {[{name:"Q1 Investor Briefing",date:"25 Feb · Munich",reg:248},{name:"Webinar March — Gold",date:"8 Mar · Online",reg:186},{name:"FFP Roadshow Frankfurt",date:"14 Mar · Live",reg:94},{name:"Consultanttraining DACH",date:"22 Mar · Vienna",reg:67},{name:"Investment Forum Berlin",date:"3 Apr · Live",reg:42}].map((ev,i)=>(
+                  {[{name:"Q1 Investor Briefing",date:"25 Feb · Munich",reg:248},{name:"Webinar March — Gold",date:"8 Mar · Online",reg:186},{name:"FFP Roadshow Frankfurt",date:"14 Mar · Live",reg:94},{name:"Advisortraining DACH",date:"22 Mar · Vienna",reg:67},{name:"Investment Forum Berlin",date:"3 Apr · Live",reg:42}].map((ev,i)=>(
                     <div key={i} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 0",borderBottom:i<4?`1px solid ${C.border}`:"none" }}>
                       <div><div style={{ fontSize:13,fontWeight:500,color:C.text }}>{ev.name}</div><div style={{ fontSize:11,color:C.muted,marginTop:2 }}>{ev.date}</div></div>
                       <div style={{ fontFamily:"monospace",fontSize:15,fontWeight:700,color:C.indigo,flexShrink:0 }}>{ev.reg}</div>

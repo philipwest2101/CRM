@@ -369,7 +369,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
               <div style={{ fontSize:13,fontWeight:700,color:C.text }}>📱 Notification Preferences</div>
               <span style={{ fontSize:10,fontWeight:700,color:C.navy,padding:"2px 9px",borderRadius:10,background:C.primary+"12" }}>
-                {{superadmin:"Super Admin",vd:"Sales Director",gp:"Consultant",manager:"Product Owner"}[role]}
+                {{superadmin:"Super Admin",vd:"Sales Director",gp:"Advisor",manager:"Product Owner"}[role]}
               </span>
             </div>
             <div style={{ fontSize:11,color:C.muted,marginBottom:14 }}>

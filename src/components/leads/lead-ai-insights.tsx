@@ -16,7 +16,7 @@ export const LeadAIInsights = ({ lead }) => {
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
           system: `You are an AI assistant for vion CRM, a German financial advisory platform. 
-Analyse a lead profile and return a JSON object with actionable insights for the GP consultant.
+Analyse a lead profile and return a JSON object with actionable insights for the GP advisor.
 Output ONLY valid JSON, no markdown or preamble:
 {
   "score": <0-100>,

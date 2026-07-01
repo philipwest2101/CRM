@@ -36,5 +36,5 @@ export const VDSmartReassignment = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GP DASHBOARD  (Berater — based on 01_consultant design)
+// GP DASHBOARD  (Berater — based on 01_advisor design)
 // ─────────────────────────────────────────────────────────────────────────────

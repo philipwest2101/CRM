@@ -15,7 +15,7 @@ export const CallAnalysisTab = ({ lead, script }) => {
       const transcriptText = transcript.lines.map(l=>`${l.speaker}: "${l.text}"`).join("\n");
       const scriptText = `Greeting: "${script.greeting}"\nPitch: "${script.pitch}"\nHook: "${script.hook}"\nObjections: ${script.objections.map(o=>`Q:"${o.q}" A:"${o.a}"`).join("; ")}\nClose: "${script.close}"`;
 
-      const prompt = `You are an expert sales coach analyzing a call transcript from a financial services consultant against their prepared call script.
+      const prompt = `You are an expert sales coach analyzing a call transcript from a financial services advisor against their prepared call script.
 
 SCRIPT:
 ${scriptText}
@@ -23,7 +23,7 @@ ${scriptText}
 TRANSCRIPT (${transcript.duration}, ${transcript.date}):
 ${transcriptText}
 
-Analyze how well the consultant followed the script. Respond ONLY with valid JSON, no markdown:
+Analyze how well the advisor followed the script. Respond ONLY with valid JSON, no markdown:
 {
   "overallScore": <0-100>,
   "grade": "<A|B|C|D|F>",
@@ -87,7 +87,7 @@ Analyze how well the consultant followed the script. Respond ONLY with valid JSO
             <span style={{ fontSize:10, padding:"2px 8px", borderRadius:8, background:"#F1F5F9", color:C.slate, fontWeight:600 }}>{transcript.duration}</span>
           </div>
         </div>
-        <div style={{ fontSize:11, color:C.muted }}>Consultant: <strong style={{ color:C.text }}>{transcript.gp}</strong> · Contact: <strong style={{ color:C.text }}>{lead.name}</strong></div>
+        <div style={{ fontSize:11, color:C.muted }}>Advisor: <strong style={{ color:C.text }}>{transcript.gp}</strong> · Contact: <strong style={{ color:C.text }}>{lead.name}</strong></div>
       </div>
 
       {/* Transcript */}

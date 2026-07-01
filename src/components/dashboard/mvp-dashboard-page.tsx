@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { C } from "../../theme";
 import { PRIORITY_META, DONE_STATUSES } from "../../lib/core";
 import { useT } from "../../lib/i18n";
@@ -171,22 +171,6 @@ const KpiCard = ({ label, value, sub = null, info = null, color = C.text, warn =
   </Card>
 );
 
-// Mini circular indicator — same visual language as the Follow-up donut on the
-// contact detail Overview tab (attempts / max-attempts).
-const MiniDonut = ({ value = 0, total = 5, danger = false }) => {
-  const r = 30, circ = 2 * Math.PI * r, pct = total ? Math.min(value / total, 1) : 0;
-  const color = danger ? C.red : C.primary;
-  return (
-    <svg width={76} height={76} viewBox="0 0 76 76" style={{ flexShrink: 0 }}>
-      <circle cx={38} cy={38} r={r} fill="none" stroke={C.border} strokeWidth={8} />
-      <circle cx={38} cy={38} r={r} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round"
-        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} transform="rotate(-90 38 38)" />
-      <text x={38} y={35} textAnchor="middle" fontSize={15} fontWeight={700} fill={C.navy}>{value}/{total}</text>
-      <text x={38} y={49} textAnchor="middle" fontSize={7} fill={C.muted}>calls</text>
-    </svg>
-  );
-};
-
 const LinkBtn = ({ label, onClick }) => (
   <button onClick={onClick} style={{
     padding: "4px 10px", borderRadius: 7, border: `1px solid ${C.border}`,
@@ -196,31 +180,6 @@ const LinkBtn = ({ label, onClick }) => (
     {label}
   </button>
 );
-
-const STATUS_COLOR = {
-  open:        C.muted,
-  in_progress: C.blue,
-  attempted:   C.amber,
-  not_reached: C.red,
-  followup:    C.purple,
-  appointment: C.green,
-  closed:      C.green,
-  no_interest: C.muted,
-  dnc:         C.red,
-};
-
-const StatusPill = ({ status }) => {
-  const color = STATUS_COLOR[status] || C.muted;
-  return (
-    <span style={{
-      fontSize: 10, fontFamily: "monospace", padding: "2px 8px",
-      borderRadius: 20, fontWeight: 600, textTransform: "capitalize",
-      background: color + "18", color,
-    }}>
-      {status.replace(/_/g, " ")}
-    </span>
-  );
-};
 
 // Priority dot — colours come from the shared PRIORITY_META (low/normal/high/urgent)
 const PriorityDot = ({ priority }) => (
@@ -293,6 +252,86 @@ const MOCK_APPOINTMENTS = [
   { id:"ap7", lead:"Stefan Wolf",     date:"2026-06-29", start:"14:30", type:"inperson", status:"upcoming",  gp:"Thomas Müller", vd:"Thomas Müller" },
 ];
 
+// ── Layout constants ──────────────────────────────────────────────────────────
+// Fixed height so paired sections line up exactly; the body scrolls once its
+// rows exceed what fits (~4 rows).
+const SECTION_H = 300;
+const ATTEMPT_LEVELS = [5, 4, 3, 2, 1];
+
+// ── Aggregate figures behind the Performance / Call Attempts tables and the
+//    VD/SA KPI cards. Illustrative but realistic (org totals in the thousands).
+//    `ca` = how many of that row's leads sit at 5,4,3,2,1 call attempts. ────────
+const SA_TEAMS = [
+  { name:"Thomas Müller", leads:412, contacts:468, appts:134, closings:38, ca:{5:31,4:44,3:78,2:96,1:74} },
+  { name:"Marc Fischer",  leads:389, contacts:441, appts:121, closings:44, ca:{5:24,4:39,3:71,2:88,1:69} },
+  { name:"Jana Kruse",    leads:274, contacts:318, appts:82,  closings:22, ca:{5:29,4:41,3:52,2:60,1:41} },
+  { name:"Ralf Fischer",  leads:331, contacts:377, appts:98,  closings:29, ca:{5:27,4:36,3:63,2:79,1:58} },
+  { name:"Sabine Roth",   leads:298, contacts:339, appts:104, closings:33, ca:{5:22,4:33,3:57,2:71,1:55} },
+];
+const VD_ADVISORS = [
+  { name:"Anna Klein",   leads:97,  contacts:112, appts:34, closings:12, ca:{5:5,4:9,3:18,2:24,1:19} },
+  { name:"Ben Hartmann", leads:82,  contacts:94,  appts:27, closings:8,  ca:{5:7,4:11,3:15,2:21,1:16} },
+  { name:"Marc Otto",    leads:71,  contacts:83,  appts:19, closings:5,  ca:{5:9,4:12,3:14,2:16,1:12} },
+  { name:"Kai Becker",   leads:104, contacts:119, appts:41, closings:15, ca:{5:3,4:7,3:19,2:28,1:23} },
+  { name:"Nina Schmitt", leads:63,  contacts:74,  appts:18, closings:6,  ca:{5:6,4:9,3:12,2:15,1:11} },
+];
+
+// Performance table (rows = teams for SA, advisors for VD).
+const PerfTable = ({ title, rowLabel, rows, action }) => (
+  <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+    <CardHeader title={title} action={action} />
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.6fr 0.8fr 0.8fr 1fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[rowLabel, "Leads", "Appts", "Closings", "Rate"].map((h, i) => (
+        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
+      ))}
+    </div>
+    <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
+      {rows.map((r, i) => {
+        const rate = r.leads > 0 ? ((r.closings / r.leads) * 100).toFixed(1) + "%" : "0%";
+        return (
+          <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.6fr 0.8fr 0.8fr 1fr 0.9fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <Avatar name={r.name} size={26} />
+              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+            </div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.leads}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.appts}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.closings}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color: parseFloat(rate) >= 10 ? C.green : parseFloat(rate) >= 6 ? C.amber : C.red }}>{rate}</div>
+          </div>
+        );
+      })}
+    </div>
+  </Card>
+);
+
+// Call Attempts table — one column per attempt level (5/5 … 1/5).
+const CallAttemptsTable = ({ title, rowLabel, rows, action }) => (
+  <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+    <CardHeader title={title} action={action} />
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.6fr repeat(5, 1fr)", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[rowLabel, ...ATTEMPT_LEVELS.map(n => `${n}/5`)].map((h, i) => (
+        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
+      ))}
+    </div>
+    <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
+      {rows.map((r, i) => (
+        <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(5, 1fr)", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <Avatar name={r.name} size={26} />
+            <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+          </div>
+          {ATTEMPT_LEVELS.map(n => {
+            const count = r.ca?.[n] || 0;
+            const color = n >= 4 ? C.red : n === 3 ? C.amber : C.navy;
+            return <div key={n} style={{ textAlign: "center", fontFamily: "monospace", fontSize: 13, fontWeight: count > 0 ? 700 : 400, color: count === 0 ? C.muted : color }}>{count}</div>;
+          })}
+        </div>
+      ))}
+    </div>
+  </Card>
+);
+
 export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
 
   const t         = useT();
@@ -307,7 +346,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const greeting = hour < 12 ? t("greeting_morning") : hour < 17 ? t("greeting_afternoon") : t("greeting_evening");
 
   const roleLabel = {
-    gp: t("consultant"), vd: t("salesDirector"), superadmin: t("superAdmin"), manager: t("superAdmin"),
+    gp: t("advisor"), vd: t("salesDirector"), superadmin: t("superAdmin"), manager: t("superAdmin"),
   }[role] || role;
 
   // ── Use mock data when parent provides nothing ───────────────────────────────
@@ -384,55 +423,20 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     : isVD
       ? allLeads.filter(l => l.assignedVD === userName && !l.assignedGP)
       : newLeads;
-  const leadsToShow = panelLeads.slice(0, 6);
+  const leadsToShow = panelLeads.slice(0, 25);
 
-  // ── VD / SA KPI derivations ───────────────────────────────────────────────────
-  const totalLeadsActive     = scopedLeads.filter(l => l.status !== "closed").length;
-  const totalAppointmentsAll = scopedAppts.length;
-  const callAttemptsNotReached = scopedLeads.filter(l => l.status === "not_reached").length;
-  const closingsCount        = scopedLeads.filter(l => l.status === "closed").length;
-  const conversionRate       = totalContacts > 0 ? ((closingsCount / totalContacts) * 100).toFixed(1) + "%" : "0%";
-
-  // Leads nearing/at the call-attempts threshold — feeds the VD "Call Attempts" section (donuts).
-  const callAttemptLeads = scopedLeads
-    .filter(l => (l.attempts || 0) >= 2)
-    .sort((a, b) => (b.attempts || 0) - (a.attempts || 0))
-    .slice(0, 6);
-
-  // SA "Call Attempts" cross-tab — one row per Sales Director, one column per
-  // attempt level (5/5 … 1/5) holding the count of that VD's leads at that level.
-  const ATTEMPT_LEVELS = [5, 4, 3, 2, 1];
-  const callAttemptsByVD = useMemo(() => {
-    if (!isSA) return [];
-    const byVD: Record<string, { name: string; total: number; counts: Record<number, number> }> = {};
-    allLeads.forEach(l => {
-      if (!l.assignedVD) return;
-      const n = l.attempts || 0;
-      if (n < 1) return;   // only leads with at least one attempt
-      if (!byVD[l.assignedVD]) byVD[l.assignedVD] = { name: l.assignedVD, total: 0, counts: { 1:0, 2:0, 3:0, 4:0, 5:0 } };
-      byVD[l.assignedVD].counts[n] = (byVD[l.assignedVD].counts[n] || 0) + 1;
-      byVD[l.assignedVD].total += 1;
-    });
-    return Object.values(byVD).sort((a, b) => b.total - a.total);
-  }, [isSA, allLeads]);
-
-  // ── SA: Team Performance — org leads/appointments grouped by Sales Director ──
-  const teamPerformance = useMemo(() => {
-    if (!isSA) return [];
-    const byVD: Record<string, { name: string; leads: number; closed: number; appts: number }> = {};
-    allLeads.forEach(l => {
-      if (!l.assignedVD) return;
-      if (!byVD[l.assignedVD]) byVD[l.assignedVD] = { name: l.assignedVD, leads: 0, closed: 0, appts: 0 };
-      byVD[l.assignedVD].leads += 1;
-      if (l.status === "closed") byVD[l.assignedVD].closed += 1;
-    });
-    allAppointments.forEach(a => {
-      if (a.vd && byVD[a.vd]) byVD[a.vd].appts += 1;
-    });
-    return Object.values(byVD)
-      .map(v => ({ ...v, rate: v.leads > 0 ? ((v.closed / v.leads) * 100).toFixed(1) + "%" : "0%" }))
-      .sort((a, b) => b.leads - a.leads);
-  }, [isSA, allLeads, allAppointments]);
+  // ── VD / SA aggregates — driven by the per-team / per-advisor mock so the KPI
+  //    cards and tables show realistic org-scale numbers. ──────────────────────
+  const perfRows     = isSA ? SA_TEAMS : isVD ? VD_ADVISORS : [];
+  const perfRowLabel = isSA ? t("teamCol") : t("advisorCol");
+  const sumBy        = (k) => perfRows.reduce((s, r) => s + (r[k] || 0), 0);
+  const aggLeads     = sumBy("leads");
+  const aggContacts  = sumBy("contacts");
+  const aggAppts     = sumBy("appts");
+  const aggClosings  = sumBy("closings");
+  const aggNotReached= perfRows.reduce((s, r) => s + (r.ca?.[5] || 0), 0);
+  const aggConversion= aggLeads > 0 ? ((aggClosings / aggLeads) * 100).toFixed(1) + "%" : "0%";
+  const unassignedAgg= isSA ? 47 : 12;
 
   // ── Assign modal ────────────────────────────────────────────────────────────
   const [assignTarget, setAssignTarget] = useState(null);
@@ -468,21 +472,21 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {/* ── KPI row — same KpiCard everywhere so all three roles line up ─── */}
         {isSA ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
-            <KpiCard label={t("kpiTotalLeads")}    value={totalLeadsActive}       info={t("tooltip_kpiTotalLeads")}       color={C.navy} />
-            <KpiCard label={t("kpiTotalContacts")} value={totalContacts}          info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
-            <KpiCard label={t("unassignedLeads")}  value={panelLeads.length}      info={t("tooltip_kpiUnassignedLeads")}  color={C.primary} warn={panelLeads.length > 0} />
-            <KpiCard label={t("kpiTotalAppointments")} value={totalAppointmentsAll} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
-            <KpiCard label={t("kpiCallAttemptsNotReached")} value={callAttemptsNotReached} info={t("tooltip_kpiCallAttempts")} color={C.red} />
-            <KpiCard label={t("kpiClosings")}      value={closingsCount}          info={t("tooltip_kpiClosings")}         color={C.green} />
-            <KpiCard label={t("kpiConversionRate")} value={conversionRate}        info={t("tooltip_kpiConversionRate")}   color={C.green} />
+            <KpiCard label={t("kpiTotalLeads")}    value={aggLeads.toLocaleString()}    info={t("tooltip_kpiTotalLeads")}       color={C.navy} />
+            <KpiCard label={t("kpiTotalContacts")} value={aggContacts.toLocaleString()} info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
+            <KpiCard label={t("unassignedLeads")}  value={unassignedAgg}          info={t("tooltip_kpiUnassignedLeads")}  color={C.primary} warn={unassignedAgg > 0} />
+            <KpiCard label={t("kpiTotalAppointments")} value={aggAppts.toLocaleString()} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
+            <KpiCard label={t("kpiCallAttemptsNotReached")} value={aggNotReached} info={t("tooltip_kpiCallAttempts")} color={C.red} />
+            <KpiCard label={t("kpiClosings")}      value={aggClosings}            info={t("tooltip_kpiClosings")}         color={C.green} />
+            <KpiCard label={t("kpiConversionRate")} value={aggConversion}         info={t("tooltip_kpiConversionRate")}   color={C.green} />
           </div>
         ) : isVD ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
-            <KpiCard label={t("kpiTotalLeads")}    value={totalLeadsActive}       info={t("tooltip_kpiTotalLeads")}       color={C.navy} />
-            <KpiCard label={t("kpiTotalContacts")} value={totalContacts}          info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
-            <KpiCard label={t("pendingAssignments")} value={panelLeads.length}    info={t("tooltip_kpiPendingAssignments")} color={C.primary} warn={panelLeads.length > 0} />
-            <KpiCard label={t("kpiTotalAppointments")} value={totalAppointmentsAll} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
-            <KpiCard label={t("kpiCallAttemptsNotReached")} value={callAttemptsNotReached} info={t("tooltip_kpiCallAttempts")} color={C.red} />
+            <KpiCard label={t("kpiTotalLeads")}    value={aggLeads.toLocaleString()}    info={t("tooltip_kpiTotalLeads")}       color={C.navy} />
+            <KpiCard label={t("kpiTotalContacts")} value={aggContacts.toLocaleString()} info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
+            <KpiCard label={t("pendingAssignments")} value={unassignedAgg}        info={t("tooltip_kpiPendingAssignments")} color={C.primary} warn={unassignedAgg > 0} />
+            <KpiCard label={t("kpiTotalAppointments")} value={aggAppts.toLocaleString()} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
+            <KpiCard label={t("kpiCallAttemptsNotReached")} value={aggNotReached} info={t("tooltip_kpiCallAttempts")} color={C.red} />
           </div>
         ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
@@ -514,16 +518,16 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Main content row: Leads wide | right column (Appointments + Tasks) ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 14, marginBottom: 14, alignItems: "start" }}>
+        {/* ── Row 1: Leads | Appointments Today — equal size, scroll past ~4 rows ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
 
           {/* ── Leads panel ─────────────────────────────────────────────────── */}
-          <Card>
+          <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
             <CardHeader
               title={leadsTitle}
               action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, leadsViewId)} />}
             />
-            <div style={{ padding: "2px 16px 10px", maxHeight: 320, overflowY: "auto" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "2px 16px 6px" }}>
               {leadsToShow.length === 0 ? (
                 <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
                   {isGP ? t("noNewContactsAssigned") : t("noPendingContacts")}
@@ -561,16 +565,13 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </div>
           </Card>
 
-          {/* ── Right column: Appointments Today + Tasks stacked ─────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-            {/* Appointments Today */}
-            <Card>
-              <CardHeader
-                title={apptsTitle}
-                action={<LinkBtn label={t("calendarLink")} onClick={() => navigateTo("Calendar")} />}
-              />
-              <div style={{ padding: "2px 14px 8px", maxHeight: 200, overflowY: "auto" }}>
+          {/* ── Appointments Today ──────────────────────────────────────────── */}
+          <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+            <CardHeader
+              title={apptsTitle}
+              action={<LinkBtn label={t("calendarLink")} onClick={() => navigateTo("Calendar")} />}
+            />
+            <div style={{ flex: 1, overflowY: "auto", padding: "2px 14px 6px" }}>
                 {todayAppts.length === 0 ? (
                   <div style={{ padding: "14px 0", textAlign: "center", color: C.muted, fontSize: 12.5 }}>
                     {t("noAppointmentsToday")}
@@ -606,15 +607,18 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                 })}
               </div>
             </Card>
+        </div>
 
-            {/* Reminders / Tasks — GP only; VD/SA get the Call Attempts section instead */}
-            {isGP && (
-            <Card>
+        {/* ── Row 2: GP → Reminders & Tasks | Recent Activity ─────────────── */}
+        {isGP && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          {/* Reminders & Tasks */}
+          <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
               <CardHeader
                 title={remindersTitle}
                 action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Calendar")} />}
               />
-              <div style={{ padding: "2px 14px 12px", maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ flex: 1, overflowY: "auto", padding: "6px 14px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
                 {tasksToShow.length === 0 ? (
                   <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
                     {t("noOpenTasks")}
@@ -661,164 +665,70 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                   );
                 })}
               </div>
-            </Card>
-            )}
-
-          </div>{/* end right column */}
-        </div>
-
-        {/* ── VD: Call Attempts — mirrors the contact detail Overview donut ── */}
-        {isVD && (
-          <Card style={{ marginBottom: 14 }}>
-            <CardHeader
-              title={t("kpiCallAttemptsNotReached")}
-              action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />}
-            />
-            <div style={{ padding: "14px 16px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14 }}>
-              {callAttemptLeads.length === 0 ? (
-                <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13, gridColumn: "1 / -1" }}>
-                  {t("noDataYet")}
-                </div>
-              ) : callAttemptLeads.map(lead => (
-                <div key={lead.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                  <MiniDonut value={lead.attempts || 0} total={5} danger={lead.status === "not_reached"} />
-                  <div style={{ fontSize: 12, fontWeight: 500, color: C.text, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{lead.name}</div>
-                  <StatusPill status={lead.status} />
-                </div>
-              ))}
-            </div>
           </Card>
-        )}
 
-        {/* ── SA: Call Attempts — per-director cross-tab, 5/5 … 1/5 columns ── */}
-        {isSA && (
-          <Card style={{ marginBottom: 14 }}>
-            <CardHeader
-              title={t("kpiCallAttemptsNotReached")}
-              action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />}
-            />
-            <div style={{ padding: "0 16px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(5, 1fr)", padding: "8px 0", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-                {["Director", ...ATTEMPT_LEVELS.map(n => `${n}/5`)].map((h, i) => (
-                  <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
-                ))}
-              </div>
-              {callAttemptsByVD.length === 0 ? (
-                <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noDataYet")}</div>
-              ) : callAttemptsByVD.map((vd, i) => (
-                <div key={vd.name} style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(5, 1fr)", padding: "9px 0", borderBottom: i < callAttemptsByVD.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Avatar name={vd.name} size={26} />
-                    <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{vd.name}</span>
+          {/* Recent Activity */}
+          <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+            <CardHeader title={t("recentActivity")} />
+            <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 10px" }}>
+              {recentActivity.length === 0 ? (
+                <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noRecentActivity")}</div>
+              ) : recentActivity.map((act) => {
+                const iconBg = { call: C.green, video: C.indigo, email: C.amber, inperson: C.blue, note: C.purple }[act.type] || C.muted;
+                return (
+                  <div key={act.id} style={{ display: "flex", gap: 11, alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: iconBg + "18", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>
+                      {TYPE_ICON[act.type] || "📋"}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{act.title}</div>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>{act.date} {act.time}</div>
+                    </div>
+                    <span style={{ fontSize: 9, fontFamily: "monospace", padding: "2px 7px", borderRadius: 20, flexShrink: 0, background: C.muted + "18", color: C.muted, fontWeight: 600, textTransform: "capitalize" }}>{act.status}</span>
                   </div>
-                  {ATTEMPT_LEVELS.map(n => {
-                    const count = vd.counts[n] || 0;
-                    const color = n >= 4 ? C.red : n === 3 ? C.amber : C.navy;
-                    return (
-                      <div key={n} style={{ textAlign: "center", fontFamily: "monospace", fontSize: 13, fontWeight: count > 0 ? 700 : 400, color: count === 0 ? C.muted : color }}>{count}</div>
-                    );
-                  })}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
+        </div>
         )}
 
-        {/* ── SA: Campaign (pie) + Team Performance side by side ────────────── */}
+        {/* ── Row 2: VD / SA → Performance | Call Attempts ────────────────── */}
+        {(isVD || isSA) && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <PerfTable title={t("performance")} rowLabel={perfRowLabel} rows={perfRows}
+            action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
+          <CallAttemptsTable title={t("callAttemptsTitle")} rowLabel={perfRowLabel} rows={perfRows}
+            action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
+        </div>
+        )}
+
+        {/* ── Row 3: SA → By Campaign (full width) ────────────────────────── */}
         {isSA && (() => {
           const campaignMap: Record<string, number> = {};
           allLeads.forEach(l => { if (l.campaign) campaignMap[l.campaign] = (campaignMap[l.campaign] || 0) + 1; });
           const campaigns = Object.entries(campaignMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
           const PIE_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
           const pieSlices = campaigns.map(([name, value], i) => ({ name, value, color: PIE_COLORS[i % PIE_COLORS.length] }));
-
           return (
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1.4fr", gap:14, marginBottom:14, alignItems:"start" }}>
-              {/* Campaign pie chart */}
-              <Card>
-                <CardHeader title={t("byCampaign")} />
-                <div style={{ padding:"16px 20px", display:"flex", gap:18, alignItems:"center" }}>
-                  <PieChart slices={pieSlices} />
-                  <div style={{ flex:1, minWidth:0 }}>
-                    {campaigns.map(([name, count], i) => (
-                      <div key={name} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                        <span style={{ width:8, height:8, borderRadius:"50%", background:PIE_COLORS[i % PIE_COLORS.length], flexShrink:0 }}/>
-                        <span style={{ flex:1, fontSize:12, color:C.text, fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{name}</span>
-                        <span style={{ fontSize:12, fontWeight:700, color:C.slate }}>{count}</span>
-                      </div>
-                    ))}
-                    {campaigns.length === 0 && <div style={{ textAlign:"center",color:C.muted,fontSize:13 }}>{t("noDataYet")}</div>}
-                  </div>
-                </div>
-              </Card>
-
-              {/* Team Performance */}
-              <Card>
-                <CardHeader title={t("teamPerformance")} />
-                <div style={{ padding:"0 16px" }}>
-                  <div style={{ display:"grid", gridTemplateColumns:"1.4fr 0.8fr 0.8fr 0.8fr 0.8fr", padding:"8px 0", borderBottom:`1px solid ${C.border}`, gap:8 }}>
-                    {["Director","Leads","Appts","Closed","Rate"].map(h => (
-                      <div key={h} style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.06em", textAlign:h==="Director"?"left":"center" }}>{h}</div>
-                    ))}
-                  </div>
-                  {teamPerformance.length === 0 ? (
-                    <div style={{ padding:"16px 0",textAlign:"center",color:C.muted,fontSize:13 }}>{t("noDataYet")}</div>
-                  ) : teamPerformance.map((v, i) => (
-                    <div key={v.name} style={{ display:"grid", gridTemplateColumns:"1.4fr 0.8fr 0.8fr 0.8fr 0.8fr", padding:"9px 0", borderBottom:i<teamPerformance.length-1?`1px solid ${C.border}`:"none", gap:8, alignItems:"center" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <Avatar name={v.name} size={26} />
-                        <span style={{ fontSize:12.5, fontWeight:500, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{v.name}</span>
-                      </div>
-                      <div style={{ textAlign:"center", fontFamily:"monospace", fontSize:12.5, color:C.text }}>{v.leads}</div>
-                      <div style={{ textAlign:"center", fontFamily:"monospace", fontSize:12.5, color:C.text }}>{v.appts}</div>
-                      <div style={{ textAlign:"center", fontFamily:"monospace", fontSize:12.5, color:C.text }}>{v.closed}</div>
-                      <div style={{ textAlign:"center", fontFamily:"monospace", fontSize:12.5, fontWeight:700, color:parseFloat(v.rate)>=8?C.green:parseFloat(v.rate)>=5?C.amber:C.red }}>{v.rate}</div>
+            <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column", marginBottom: 14 }}>
+              <CardHeader title={t("byCampaign")} />
+              <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", display: "flex", gap: 28, alignItems: "center" }}>
+                <PieChart slices={pieSlices} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {campaigns.map(([name, count], i) => (
+                    <div key={name} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 12, color: C.text, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.slate }}>{count}</span>
                     </div>
                   ))}
+                  {campaigns.length === 0 && <div style={{ textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noDataYet")}</div>}
                 </div>
-              </Card>
-            </div>
+              </div>
+            </Card>
           );
         })()}
-
-        {/* ── Recent Activity — GP only; VD/SA get the Call Attempts section instead ── */}
-        {isGP && (
-        <Card>
-          <CardHeader
-            title={t("recentActivity")}
-          />
-          <div style={{ padding: "6px 16px 12px" }}>
-            {recentActivity.length === 0 ? (
-              <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                {t("noRecentActivity")}
-              </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", columnGap: 24, rowGap: 0 }}>
-                {recentActivity.map((act) => {
-                  const iconBg = { call: C.green, video: C.indigo, email: C.amber, inperson: C.blue, note: C.purple }[act.type] || C.muted;
-                  return (
-                    <div key={act.id} style={{ display: "flex", gap: 11, alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${C.border}` }}>
-                      <div style={{ width: 30, height: 30, borderRadius: "50%", background: iconBg + "18", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>
-                        {TYPE_ICON[act.type] || "📋"}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{act.title}</div>
-                        <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
-                          {!isGP && act.gp && <>{act.gp} · </>}
-                          {act.date} {act.time}
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 9, fontFamily: "monospace", padding: "2px 7px", borderRadius: 20, flexShrink: 0, background: C.muted + "18", color: C.muted, fontWeight: 600, textTransform: "capitalize" }}>
-                        {act.status}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </Card>
-        )}
 
       </div>
     </div>

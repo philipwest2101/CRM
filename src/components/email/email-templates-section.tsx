@@ -53,8 +53,8 @@ export const EmailTemplatesSection = ({ navigateTo, role }) => {
     const fresh = {
       id:`et-${Date.now()}`, lang:filterLang==="all"?"de":filterLang,
       journey:filterJourney==="all"?"welcome":filterJourney,
-      name:"New Template", subject:"", body:`Dear {{lead_name}},\n\n\n\nBest regards,\n{{consultant_name}}`,
-      variables:["{{lead_name}}","{{consultant_name}}"], published:true,
+      name:"New Template", subject:"", body:`Dear {{lead_name}},\n\n\n\nBest regards,\n{{advisor_name}}`,
+      variables:["{{lead_name}}","{{advisor_name}}"], published:true,
       createdBy:myName, createdByRole:myRole, personal:role!=="superadmin",
     };
     const next = [...templates, fresh];
@@ -344,7 +344,7 @@ export const EmailTemplatesSection = ({ navigateTo, role }) => {
         <strong style={{ color:C.navy }}>Permissions: </strong>
         {role==="superadmin" && "Admin — full access: create, edit, toggle visibility, and delete all templates."}
         {role==="vd"         && "Director — create personal templates; use in manual sends and bulk campaigns; edit & delete your own and your team's templates; org-wide templates are read-only."}
-        {role==="gp"         && "Consultant — create personal templates; use in manual sends and bulk campaigns; edit & delete your own; org-wide templates are read-only."}
+        {role==="gp"         && "Advisor — create personal templates; use in manual sends and bulk campaigns; edit & delete your own; org-wide templates are read-only."}
       </div>
     </>
   );

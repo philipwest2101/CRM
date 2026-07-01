@@ -11,7 +11,7 @@ import { C } from "../../theme";
 
 export const ReportsPage = ({ role, navigateTo }) => {
   const cfg       = {superadmin:C.navy,vd:C.indigo,gp:C.green,manager:"#0891B2"}[role];
-  const roleLabel = {superadmin:"Super Admin",vd:"Sales Director",gp:"Consultant",manager:"Product Owner"}[role];
+  const roleLabel = {superadmin:"Super Admin",vd:"Sales Director",gp:"Advisor",manager:"Product Owner"}[role];
 
   // Section definitions per role — id must match the div id used below
   const sections = role==="gp" ? [
@@ -690,7 +690,7 @@ export const ReportsPage = ({ role, navigateTo }) => {
         <Card style={{ padding:"18px 20px" }}>
           {[
             {label:"Contact Scoring",    pct:100,note:"All contacts auto-scored",        color:C.green},
-            {label:"AI Call Script",  pct:72, note:"18/25 consultants this month", color:C.indigo},
+            {label:"AI Call Script",  pct:72, note:"18/25 advisors this month", color:C.indigo},
             {label:"AI Call Logger",  pct:68, note:"Used on 68% of logged calls",  color:C.indigo},
             {label:"Call Analysis",   pct:41, note:"VoIP active",                  color:C.amber},
             {label:"AI Agent",        pct:55, note:"Active in contact drawers",       color:C.blue},

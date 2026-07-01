@@ -40,7 +40,7 @@ export const LeadsPage = ({ role, navigateTo }) => {
     if(role==="gp")         return ["My Contacts","Follow-Up","Appointments"];
     return vdMode==="personal"
       ? ["My Contacts","Follow-Up","Appointments"]
-      : ["All Contacts","Unassigned","By Consultant"];
+      : ["All Contacts","Unassigned","By Advisor"];
   };
   const isStatsTab = false;
   const cfg={superadmin:C.navy,vd:C.indigo,gp:C.green}[role];
@@ -74,7 +74,7 @@ export const LeadsPage = ({ role, navigateTo }) => {
       <div style={{ display:"flex",alignItems:"center",gap:6,fontSize:12,color:C.muted,marginBottom:20 }}>
         <span onClick={()=>navigateTo("Dashboard")} style={{ cursor:"pointer",color:C.blue,fontWeight:600 }}>Dashboard</span>
         <span>›</span><span style={{ color:C.text,fontWeight:600 }}>Contact Management</span>
-        <span style={{ marginLeft:6,fontSize:11,padding:"2px 8px",borderRadius:12,background:cfg+"18",color:cfg,fontWeight:700 }}>{{superadmin:"Super Admin",vd:"Sales Director",gp:"Consultant"}[role]}</span>
+        <span style={{ marginLeft:6,fontSize:11,padding:"2px 8px",borderRadius:12,background:cfg+"18",color:cfg,fontWeight:700 }}>{{superadmin:"Super Admin",vd:"Sales Director",gp:"Advisor"}[role]}</span>
         {role==="vd"&&<span style={{ fontSize:11,padding:"2px 8px",borderRadius:12,background:vdMode==="personal"?C.indigo+"15":C.primary+"15",color:vdMode==="personal"?C.indigo:C.navy,fontWeight:700 }}>{vdMode==="personal"?"👤 My Contacts":"👥 My Team"}</span>}
       </div>
       {/* Header */}
@@ -84,7 +84,7 @@ export const LeadsPage = ({ role, navigateTo }) => {
           <p style={{ margin:"4px 0 0",fontSize:13,color:C.slate }}>
             {role==="superadmin"&&"Full org view — assign, monitor and control all leads."}
             {role==="vd"&&vdMode==="personal"&&"Your personal pipeline — contact, schedule, and log outcomes."}
-            {role==="vd"&&vdMode==="team"&&"Your team's pipeline — assign to consultants and track progress."}
+            {role==="vd"&&vdMode==="team"&&"Your team's pipeline — assign to advisors and track progress."}
             {role==="gp"&&"Your personal pipeline — sorted by AI priority score."}
           </p>
         </div>

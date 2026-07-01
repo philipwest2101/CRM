@@ -114,15 +114,15 @@ export const ManagerDashboard = ({ navigateTo }) => {
         {/* GP Performance table */}
         <div style={{ background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden" }}>
           <div style={{ padding:"18px 22px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${C.border}` }}>
-            <div style={{ fontSize:20,fontWeight:500,color:C.text }}>Consultant Performance <em style={{ color:C.indigo,fontWeight:400 }}>MTD</em></div>
+            <div style={{ fontSize:20,fontWeight:500,color:C.text }}>Advisor Performance <em style={{ color:C.indigo,fontWeight:400 }}>MTD</em></div>
             <button onClick={()=>navigateTo("Reports")} style={{ padding:"5px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.blue,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>Full Report →</button>
           </div>
           <div style={{ padding:"0 22px" }}>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 60px 60px 60px 70px 60px",
               padding:"8px 0",borderBottom:`1px solid ${C.border}`,gap:8 }}>
-              {["Consultant","Leads","Appointments","Closing","Conv.","Score"].map(h=>(
+              {["Advisor","Leads","Appointments","Closing","Conv.","Score"].map(h=>(
                 <div key={h} style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",
-                  textAlign:h==="Consultant"?"left":"center" }}>{h}</div>
+                  textAlign:h==="Advisor"?"left":"center" }}>{h}</div>
               ))}
             </div>
             {GPs.map((gp,i)=>(

@@ -19,7 +19,7 @@ export const AuditLogSection = () => {
       <div style={{ display:"flex",gap:8,marginBottom:14,flexWrap:"wrap" }}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search user, action, target…"
           style={{ border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",fontSize:12,fontFamily:"inherit",width:220 }}/>
-        {[["all","All"],["GP","Consultants"],["VD","Directors"],["SA","Admin"],["system","System"]].map(([k,l])=>(
+        {[["all","All"],["GP","Advisors"],["VD","Directors"],["SA","Admin"],["system","System"]].map(([k,l])=>(
           <button key={k} onClick={()=>setFilter(k)}
             style={{ padding:"6px 12px",borderRadius:20,border:`1px solid ${filter===k?C.primary:C.border}`,
               background:filter===k?C.primary:"#fff",color:filter===k?"#fff":C.slate,

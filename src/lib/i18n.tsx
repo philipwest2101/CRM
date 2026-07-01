@@ -20,7 +20,7 @@ export const TRANSLATIONS = {
     // Roles
     superAdmin: "Super Admin",
     salesDirector: "Sales Director",
-    consultant: "Consultant (GP)",
+    advisor: "Advisor (GP)",
 
     // Dashboard
     greeting_morning: "Good morning",
@@ -74,10 +74,14 @@ export const TRANSLATIONS = {
     kpiCallAttemptsNotReached: "Call Attempts (Not Reached)",
     kpiConversionRate: "Conversion Rate",
     teamPerformance: "Team Performance",
+    performance: "Performance",
+    callAttemptsTitle: "Call Attempts",
+    teamCol: "Team",
+    advisorCol: "Advisor",
     tooltip_kpiTotalLeads: "Leads currently active in the pipeline (excludes closed contacts).",
     tooltip_kpiTotalContacts: "All contacts in scope, including closed ones.",
-    tooltip_kpiPendingAssignments: "Contacts waiting to be assigned to a consultant.",
-    tooltip_kpiUnassignedLeads: "Contacts not yet assigned to a director or consultant.",
+    tooltip_kpiPendingAssignments: "Contacts waiting to be assigned to an advisor.",
+    tooltip_kpiUnassignedLeads: "Contacts not yet assigned to a director or advisor.",
     tooltip_kpiTotalAppointments: "All appointments scheduled, past and upcoming.",
     tooltip_kpiCallAttempts: "Contacts that hit the maximum call attempts without being reached.",
     tooltip_kpiClosings: "Contacts successfully closed in the current period.",
@@ -92,7 +96,7 @@ export const TRANSLATIONS = {
     remindersAndTasks: "Reminders & Tasks",
     assignContact: "Assign",
     unassigned: "⚠ Unassigned",
-    contactsNotAssigned: "contacts not yet assigned to a consultant",
+    contactsNotAssigned: "contacts not yet assigned to an advisor",
 
     // System views
     myNetwork: "My Network",
@@ -350,7 +354,7 @@ export const TRANSLATIONS = {
     // Roles
     superAdmin: "Super Admin",
     salesDirector: "Vertriebsleiter",
-    consultant: "Berater (GP)",
+    advisor: "Berater (GP)",
 
     // Dashboard
     greeting_morning: "Guten Morgen",
@@ -404,6 +408,10 @@ export const TRANSLATIONS = {
     kpiCallAttemptsNotReached: "Anrufversuche (Nicht erreicht)",
     kpiConversionRate: "Conversion-Rate",
     teamPerformance: "Team-Leistung",
+    performance: "Leistung",
+    callAttemptsTitle: "Anrufversuche",
+    teamCol: "Team",
+    advisorCol: "Berater",
     tooltip_kpiTotalLeads: "Leads, die derzeit aktiv in der Pipeline sind (ohne abgeschlossene Kontakte).",
     tooltip_kpiTotalContacts: "Alle Kontakte im Geltungsbereich, einschließlich abgeschlossener.",
     tooltip_kpiPendingAssignments: "Kontakte, die auf die Zuweisung an einen Berater warten.",

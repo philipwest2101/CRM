@@ -159,10 +159,10 @@ export const EmailTemplateEditor = ({ template, journeyColor, onSave, onClose })
             <div style={{ padding:"8px 14px",background:"#F8FAFC",borderBottom:`1px solid ${C.border}`,fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em" }}>📧 Preview (variables replaced with examples)</div>
             <div style={{ padding:"14px 16px",background:"#fff" }}>
               <div style={{ fontSize:12,fontWeight:700,color:C.text,marginBottom:8 }}>
-                {subject.replace("{{lead_name}}","Max Müller").replace("{{appt_time}}","14:00").replace("{{consultant_name}}","Anna Klein")}
+                {subject.replace("{{lead_name}}","Max Müller").replace("{{appt_time}}","14:00").replace("{{advisor_name}}","Anna Klein")}
               </div>
               <div style={{ fontSize:12,color:C.slate,whiteSpace:"pre-wrap",lineHeight:1.7 }}>
-                {body.replace(/{{lead_name}}/g,"Max Müller").replace(/{{consultant_name}}/g,"Anna Klein").replace(/{{sender_email}}/g,"anna.klein@personalmail.de").replace(/{{appt_time}}/g,"14:00 Uhr").replace(/{{meeting_link}}/g,"https://zoom.us/j/123456").replace(/{{meeting_location}}/g,"Musterstraße 1, 80331 München")}
+                {body.replace(/{{lead_name}}/g,"Max Müller").replace(/{{advisor_name}}/g,"Anna Klein").replace(/{{sender_email}}/g,"anna.klein@personalmail.de").replace(/{{appt_time}}/g,"14:00 Uhr").replace(/{{meeting_link}}/g,"https://zoom.us/j/123456").replace(/{{meeting_location}}/g,"Musterstraße 1, 80331 München")}
               </div>
             </div>
           </div>

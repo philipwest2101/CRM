@@ -14,7 +14,7 @@ To proceed with your personal financial consultation, we need you to provide pro
 Please upload or send the document(s) listed below at your earliest convenience. If you have any questions, don't hesitate to reach out directly.
 
 Best regards,
-{{consultant_name}}`,
+{{advisor_name}}`,
     instructions:[
       "Most recent payslip (last 1–3 months)",
       "If self-employed: last 2 years' tax returns or profit & loss statement",
@@ -32,7 +32,7 @@ As part of our legally required identity verification process, we need a copy of
 Please ensure the document is clearly legible and not expired.
 
 Best regards,
-{{consultant_name}}`,
+{{advisor_name}}`,
     instructions:[
       "Front AND back of national ID card, OR",
       "Photo page of valid passport",
@@ -51,7 +51,7 @@ To give you the most accurate financial recommendations, we'd like to review a r
 This helps us understand your current financial situation and tailor our advice accordingly. All documents are handled strictly confidentially.
 
 Best regards,
-{{consultant_name}}`,
+{{advisor_name}}`,
     instructions:[
       "Last 3 months of bank statements",
       "Must show account holder name and IBAN",
@@ -70,7 +70,7 @@ Attached is our data processing consent form. Please sign and return it so we ca
 You can sign digitally using any PDF viewer, or print, sign, and scan/photograph it.
 
 Best regards,
-{{consultant_name}}`,
+{{advisor_name}}`,
     instructions:[
       "Download the attached consent form",
       "Sign in the designated field (digital or handwritten)",
@@ -87,7 +87,7 @@ Best regards,
 To assess your eligibility for certain financial products, we need a copy of your current employment contract or a letter of employment from your employer.
 
 Best regards,
-{{consultant_name}}`,
+{{advisor_name}}`,
     instructions:[
       "Current employment contract (first page + signature page), OR",
       "Official letter of employment on company letterhead",
@@ -103,7 +103,7 @@ Best regards,
 Please provide your most recent tax assessment notice (Steuerbescheid) issued by the tax authority. This helps us verify your declared income and optimise your financial strategy.
 
 Best regards,
-{{consultant_name}}`,
+{{advisor_name}}`,
     instructions:[
       "Most recent Steuerbescheid (tax assessment notice)",
       "Issued by Finanzamt within the last 2 years",
@@ -153,7 +153,7 @@ export const STATUS_FLAGS = [
 ];
 
 // Statuses are now pure vocabulary: name, translation, order, parent stage, the
-// semantic `flags` rules target, and `manual` (can a consultant set it by hand?).
+// semantic `flags` rules target, and `manual` (can an advisor set it by hand?).
 // All trigger/automation logic lives in Workflow & Automation.
 
 export let LIFECYCLE_STORE = [
@@ -309,7 +309,7 @@ Each reason should be a short, specific sentence (max 8 words) explaining a key 
   } catch (e) {
     // Fallback: deterministic score from lead fields so UI never breaks
     const fallback = (() => {
-      if (lead.status === "closed")      return { score:100, tier:"closed", reasons:["Deal closed","Campaign: "+lead.campaign,"Source: "+lead.source,"Consultant closed"] };
+      if (lead.status === "closed")      return { score:100, tier:"closed", reasons:["Deal closed","Campaign: "+lead.campaign,"Source: "+lead.source,"Advisor closed"] };
       if (lead.status === "appointment") return { score:82,  tier:"hot",   reasons:["Appointment confirmed","68% team close rate","Source: "+lead.source,"Region: "+lead.city] };
       if (lead.status === "no_interest") return { score:8,   tier:"cold",  reasons:["Marked no interest","No further action","Low re-engagement potential","Source: "+lead.source] };
       if (lead.attempts >= 5)            return { score:12,  tier:"cold",  reasons:["All 5 attempts exhausted","No contact made","Low re-engagement potential",lead.consent?"GDPR ok":"No GDPR consent"] };
@@ -344,7 +344,7 @@ export let WORKFLOW_RULES_STORE = [
     taskRoles:["gp"], taskDueValue:1, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 hour before",
     sendPush:true, pushRoles:["gp"],
     threshold:5, delay:0, delayUnit:"minutes",
-    description:"Welcome email to the contact, a 24h intro-call task for the consultant, and an instant push alert.",
+    description:"Welcome email to the contact, a 24h intro-call task for the advisor, and an instant push alert.",
   },
   {
     id:"wf2", active:true,
@@ -368,7 +368,7 @@ export let WORKFLOW_RULES_STORE = [
     taskRoles:["gp"], taskDueValue:0, taskDueUnit:"days", taskRemind:true, taskRemindLead:"1 day before",
     sendPush:true, pushRoles:["gp"],
     threshold:5, delay:0, delayUnit:"minutes",
-    description:"Confirm the appointment to the contact, set status to Appointment Scheduled, and give the consultant a prep task.",
+    description:"Confirm the appointment to the contact, set status to Appointment Scheduled, and give the advisor a prep task.",
   },
   {
     id:"wf4", active:true,
@@ -836,7 +836,7 @@ export const callClaudeAPI = async (systemPrompt, userMessage) => {
 
 
 export const buildPipelineSystemPrompt = (role) => {
-  const roleLabel = { superadmin:"Super Admin", vd:"Sales Director (Thomas Müller)", gp:"Consultant (Anna Klein)" }[role];
+  const roleLabel = { superadmin:"Super Admin", vd:"Sales Director (Thomas Müller)", gp:"Advisor (Anna Klein)" }[role];
   const hotLeads = ALL_LEADS.filter(l => AI_SCORES[l.id]?.tier === "hot");
   const unassigned = ALL_LEADS.filter(l => !l.assignedGP);
   return `You are an AI assistant embedded in vion CRM, a financial services sales platform. You help ${roleLabel} manage their lead pipeline.
@@ -859,7 +859,7 @@ export const buildLeadSystemPrompt = (lead, role) => {
   const ai = AI_SCORES[lead.id];
   const bt = AI_BEST_TIMES[lead.id];
   const draft = AI_EMAIL_DRAFTS[lead.id] || AI_EMAIL_DRAFTS["default"];
-  return `You are an AI assistant embedded in vion CRM. Your sole purpose is to help sales consultants manage their leads more effectively.
+  return `You are an AI assistant embedded in vion CRM. Your sole purpose is to help sales advisors manage their leads more effectively.
 
 STRICT SCOPE RULE: You may ONLY answer questions directly related to CRM work — lead management, call preparation, contact strategy, email drafting, appointment scheduling, or lead data interpretation. If the user asks about anything outside this scope (personal topics, general knowledge, coding, news, opinions, etc.), you must respond ONLY with: "I can only help with CRM-related topics. Please use one of the options above." Do not explain, apologise, or engage further with off-topic messages.
 
@@ -927,14 +927,14 @@ export const agentReply = (msg, lead, role) => {
 
     if (t.match(/close|should i|ready|convert|deal/)) return {
       text: lead.status === "appointment"
-        ? `✅ **High close probability.** ${lead.name} has a confirmed appointment — score ${ai?.score ?? "?"}/100. Consultants in your team close **68%** of appointments from the ${lead.campaign} campaign. Come prepared with a clear proposal.`
+        ? `✅ **High close probability.** ${lead.name} has a confirmed appointment — score ${ai?.score ?? "?"}/100. Advisors in your team close **68%** of appointments from the ${lead.campaign} campaign. Come prepared with a clear proposal.`
         : lead.status === "followup"
         ? `⚡ **Moderate close probability.** ${lead.name} is interested but not ready. Focus on the next call to set an appointment — that's the critical conversion step. Score: ${ai?.score ?? "?"}/100.`
         : `⚠️ **Too early to assess close probability.** ${lead.name} is at ${STATUS_META[lead.status]?.label} status. Prioritise making contact and qualifying intent first.`,
       chips: ["Draft a follow-up email","Generate call script"]
     };
 
-    if (t.match(/assign|who|consultant|gp/)) return {
+    if (t.match(/assign|who|advisor|gp/)) return {
       text: lead.assignedGP
         ? `**${lead.name}** is currently assigned to **${lead.assignedGP}**${lead.assignedGP === lead.assignedVD ? " (VD · Self)" : ""}.\n\nVD: ${lead.assignedVD ?? "Unassigned"}.\n\nTo reassign, use the **Assign tab** in this drawer.`
         : `**${lead.name}** is **unassigned**. AI Smart Assignment recommendation:\n\n• **Anna Klein** — best match (8.1% conv. rate for ${lead.campaign}, ZIP region ${lead.city})\n\nUse the Assign tab to confirm.`,
@@ -975,7 +975,7 @@ export const agentReply = (msg, lead, role) => {
   };
 
   if (t.match(/appointment|appt|scheduled|booked/)) return {
-    text: `**${appts.length} active appointments:**\n\n${appts.map(l=>`• **${l.name}** — ${l.city} · ${l.assignedGP ?? "Unassigned"} · AI Score ${AI_SCORES[l.id]?.score ?? "?"}`).join("\n")}\n\nTeam close rate on appointments is **68%** this month. Ensure each consultant has a prepared brief.`,
+    text: `**${appts.length} active appointments:**\n\n${appts.map(l=>`• **${l.name}** — ${l.city} · ${l.assignedGP ?? "Unassigned"} · AI Score ${AI_SCORES[l.id]?.score ?? "?"}`).join("\n")}\n\nTeam close rate on appointments is **68%** this month. Ensure each advisor has a prepared brief.`,
     chips: ["How is my team performing?","Show hot contacts"]
   };
 
@@ -986,7 +986,7 @@ export const agentReply = (msg, lead, role) => {
 
   if (t.match(/conversion|conv.? rate|performing|performance|team/)) return {
     text: role==="superadmin"
-      ? `**Org Performance — February 2026:**\n\n• Overall conv. rate: **6.2%** (+1.1pp vs January)\n• Best director: **Thomas Müller** at 7.1%\n• ⚠️ Jana Kruse at 3.9% — 2.3pp below average for 6 weeks\n• Best consultant: **Anna Klein** at 8.1%\n\nRecommendation: reassign 80 Messe FFM leads from Jana Kruse's team to Ralf Fischer.`
+      ? `**Org Performance — February 2026:**\n\n• Overall conv. rate: **6.2%** (+1.1pp vs January)\n• Best director: **Thomas Müller** at 7.1%\n• ⚠️ Jana Kruse at 3.9% — 2.3pp below average for 6 weeks\n• Best advisor: **Anna Klein** at 8.1%\n\nRecommendation: reassign 80 Messe FFM leads from Jana Kruse's team to Ralf Fischer.`
       : role==="vd"
       ? `**Team Performance — Thomas Müller's Team:**\n\n• Team conv. rate: **7.1%** (org average: 6.2%)\n• Anna Klein: **8.1%** 🏆\n• Marc Otto: **6.7%** (+1.2pp MoM ↑)\n• Nina Schmitt: **5.4%**\n\nPriority: 125 Messe FFM leads still uncontacted.`
       : `**Your Performance — Anna Klein:**\n\n• Conv. rate: **8.1%** (#1 in team 🏆)\n• 14 closed this month (+3 vs January)\n• 21 appointments set, 62 leads total\n• Best campaign: Q1 Finanz (25% conv.)\n\nYou're outperforming team average by 1.9pp.`,
@@ -1174,7 +1174,7 @@ export const ROLEPLAY_PERSONAS = [
 
 export const SA_RECENT_ACTIVITY = [
   { time:"2m ago",    icon:"📥", color:C.blue,   title:"47 contacts imported",              sub:"Meta Ads — Q1 Finanz campaign"              },
-  { time:"15m ago",   icon:"🏆", color:C.green,  title:"Stefan Koch closed — €2.400",    sub:"Consultant: Kai Becker · Q1 Finanz"         },
+  { time:"15m ago",   icon:"🏆", color:C.green,  title:"Stefan Koch closed — €2.400",    sub:"Advisor: Kai Becker · Q1 Finanz"         },
   { time:"1h ago",    icon:"⚠️", color:C.red,    title:"Zapier webhook error",            sub:"Make/Zapier source disconnected"             },
   { time:"2h ago",    icon:"👤", color:C.indigo, title:"Anna Klein — 8 contacts assigned",   sub:"Auto-assign by ZIP · Frankfurt"              },
   { time:"3h ago",    icon:"📅", color:C.purple, title:"Appointment booked",              sub:"Sandra Richter — 14:00 Fri · Anna Klein"     },
@@ -1440,7 +1440,7 @@ export const WORKFLOW_CATEGORIES = [
 export const ACTION_META = {
   auto_email: { icon:"✉️", label:"Auto Email", color:"#3B82F6", desc:"System sends email automatically" },
   set_status: { icon:"🔄", label:"Set Status",  color:"#0EA5E9", desc:"Move the contact to a status"        },
-  task:       { icon:"✅", label:"Task",        color:"#D97706", desc:"Creates a task for the consultant" },
+  task:       { icon:"✅", label:"Task",        color:"#D97706", desc:"Creates a task for the advisor" },
   push:       { icon:"📱", label:"Push Alert",  color:"#7C3AED", desc:"Push notification to user(s)"    },
 };
 
@@ -1477,7 +1477,7 @@ export const CATEGORIES = [
 export const AUTOMATION_TRIGGERS = [
   { group:"Contact Entry & Assignment", color:"#3B82F6", items:[
     { key:"new_lead_submitted",   label:"New contact submitted",                icon:"🆕", desc:"Contact captured via any entry point (§1, §7)" },
-    { key:"lead_assigned",        label:"Contact assigned to consultant",       icon:"⚡", desc:"SA/VD routes a contact down to a GP (§3)" },
+    { key:"lead_assigned",        label:"Contact assigned to advisor",       icon:"⚡", desc:"SA/VD routes a contact down to a GP (§3)" },
   ]},
   { group:"Contact Loop", color:"#7C3AED", items:[
     { key:"lead_not_reached_1_4", label:"Not Reached — attempt 1–4×",        icon:"📵", desc:"Each failed attempt below threshold; push alert (§4)" },
@@ -1520,7 +1520,7 @@ export const TRIGGER_COMPLIANCE = {
 
 // Staff roles a rule can target (PO intentionally omitted for now).
 
-export const RULE_ROLE_OPTS = [["gp","Consultant"],["vd","Sales Director"],["superadmin","Super Admin"]];
+export const RULE_ROLE_OPTS = [["gp","Advisor"],["vd","Sales Director"],["superadmin","Super Admin"]];
 
 export let ATTACHMENTS_STORE = [
   { id:"att-1", name:"vion Product Brochure",     file:"vion_brochure_2026.pdf",    size:"2.4 MB", type:"PDF",   lang:"de", createdBy:"superadmin", usedIn:3 },
@@ -1533,30 +1533,30 @@ export let ATTACHMENTS_STORE = [
 
 export const INITIAL_EMAIL_TEMPLATES = [
   // Welcome
-  { id:"et-w1",  lang:"de", journey:"welcome",     name:"Q1 Finanz Welcome",           subject:"Willkommen — Ihre kostenlose Finanzberatung wartet",  body:"Liebe/r {{lead_name}},\n\nvielen Dank für Ihr Interesse an unseren Finanzberatungsleistungen im Rahmen der Q1 Finanz Kampagne.\n\nIhr persönlicher Berater {{consultant_name}} wird sich in Kürze bei Ihnen melden, um einen individuellen Beratungstermin zu vereinbaren.\n\nUm sicherzustellen, dass Sie weiterhin von uns hören möchten, bestätigen Sie bitte Ihre E-Mail-Adresse mit dem Button unten.\n\nMit freundlichen Grüßen,\n{{consultant_name}}\n{{sender_email}}", variables:["{{lead_name}}","{{consultant_name}}","{{sender_email}}"], published:true },
-  { id:"et-w2",  lang:"de", journey:"welcome",     name:"Webinar März Welcome",         subject:"Ihr Platz beim Webinar ist gesichert ✅",              body:"Hallo {{lead_name}},\n\nschön, dass Sie sich für unser Webinar im März angemeldet haben!\n\nIhr Berater {{consultant_name}} freut sich darauf, Sie persönlich kennenzulernen. Sie werden in den nächsten 24 Stunden einen Anruf erhalten.\n\nBitte bestätigen Sie Ihre E-Mail-Adresse, damit wir Ihnen alle relevanten Unterlagen zusenden können.\n\nBis bald,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
-  { id:"et-w3",  lang:"de", journey:"welcome",     name:"Default Welcome",              subject:"Herzlich willkommen — wir melden uns bald",           body:"Hallo {{lead_name}},\n\nvielen Dank für Ihre Anfrage. Ein Mitglied unseres Teams wird sich innerhalb von 24 Stunden bei Ihnen melden.\n\nFreundliche Grüße,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
+  { id:"et-w1",  lang:"de", journey:"welcome",     name:"Q1 Finanz Welcome",           subject:"Willkommen — Ihre kostenlose Finanzberatung wartet",  body:"Liebe/r {{lead_name}},\n\nvielen Dank für Ihr Interesse an unseren Finanzberatungsleistungen im Rahmen der Q1 Finanz Kampagne.\n\nIhr persönlicher Berater {{advisor_name}} wird sich in Kürze bei Ihnen melden, um einen individuellen Beratungstermin zu vereinbaren.\n\nUm sicherzustellen, dass Sie weiterhin von uns hören möchten, bestätigen Sie bitte Ihre E-Mail-Adresse mit dem Button unten.\n\nMit freundlichen Grüßen,\n{{advisor_name}}\n{{sender_email}}", variables:["{{lead_name}}","{{advisor_name}}","{{sender_email}}"], published:true },
+  { id:"et-w2",  lang:"de", journey:"welcome",     name:"Webinar März Welcome",         subject:"Ihr Platz beim Webinar ist gesichert ✅",              body:"Hallo {{lead_name}},\n\nschön, dass Sie sich für unser Webinar im März angemeldet haben!\n\nIhr Berater {{advisor_name}} freut sich darauf, Sie persönlich kennenzulernen. Sie werden in den nächsten 24 Stunden einen Anruf erhalten.\n\nBitte bestätigen Sie Ihre E-Mail-Adresse, damit wir Ihnen alle relevanten Unterlagen zusenden können.\n\nBis bald,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
+  { id:"et-w3",  lang:"de", journey:"welcome",     name:"Default Welcome",              subject:"Herzlich willkommen — wir melden uns bald",           body:"Hallo {{lead_name}},\n\nvielen Dank für Ihre Anfrage. Ein Mitglied unseres Teams wird sich innerhalb von 24 Stunden bei Ihnen melden.\n\nFreundliche Grüße,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
   // Follow-up 1
-  { id:"et-f1",  lang:"de", journey:"followup1",   name:"Follow-up #1 — Interest Check", subject:"Haben Sie noch Fragen? Wir sind für Sie da",         body:"Hallo {{lead_name}},\n\nwir wollten kurz nachfragen, ob Sie unsere erste Nachricht erhalten haben und ob wir Ihnen weiterhelfen können.\n\nUnser Berater {{consultant_name}} steht Ihnen gerne für ein kurzes Gespräch zur Verfügung. Wann passt es Ihnen am besten?\n\nBeste Grüße,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
-  { id:"et-f2",  lang:"de", journey:"followup1",   name:"Follow-up #1 — Webinar Variant",subject:"Erinnerung: Ihr Webinar-Nachgespräch",              body:"Hallo {{lead_name}},\n\nach dem Webinar im März möchten wir Ihnen gerne helfen, die nächsten Schritte zu planen.\n\nBitte antworten Sie auf diese E-Mail oder rufen Sie uns an — {{consultant_name}} ist für Sie da.\n\nViele Grüße,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
+  { id:"et-f1",  lang:"de", journey:"followup1",   name:"Follow-up #1 — Interest Check", subject:"Haben Sie noch Fragen? Wir sind für Sie da",         body:"Hallo {{lead_name}},\n\nwir wollten kurz nachfragen, ob Sie unsere erste Nachricht erhalten haben und ob wir Ihnen weiterhelfen können.\n\nUnser Berater {{advisor_name}} steht Ihnen gerne für ein kurzes Gespräch zur Verfügung. Wann passt es Ihnen am besten?\n\nBeste Grüße,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
+  { id:"et-f2",  lang:"de", journey:"followup1",   name:"Follow-up #1 — Webinar Variant",subject:"Erinnerung: Ihr Webinar-Nachgespräch",              body:"Hallo {{lead_name}},\n\nach dem Webinar im März möchten wir Ihnen gerne helfen, die nächsten Schritte zu planen.\n\nBitte antworten Sie auf diese E-Mail oder rufen Sie uns an — {{advisor_name}} ist für Sie da.\n\nViele Grüße,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
   // Follow-up 2
-  { id:"et-f3",  lang:"de", journey:"followup2",   name:"Follow-up #2 — Free Resource",  subject:"Exklusiv für Sie: Unser kostenloser Finanz-Guide",  body:"Hallo {{lead_name}},\n\nals kleines Dankeschön für Ihr Interesse senden wir Ihnen unseren kostenlosen Finanz-Guide.\n\nVielleicht ist jetzt ein guter Moment für ein kurzes Gespräch? Melden Sie sich jederzeit bei {{consultant_name}}.\n\nFreundliche Grüße,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
-  { id:"et-f4",  lang:"de", journey:"followup2",   name:"Follow-up #2 — Event Invite",   subject:"Einladung: Unser nächstes Info-Event",              body:"Hallo {{lead_name}},\n\nwir laden Sie herzlich zu unserem nächsten Informationsabend ein. Es wäre eine großartige Gelegenheit, sich unverbindlich zu informieren.\n\nBei Fragen steht Ihnen {{consultant_name}} gerne zur Verfügung.\n\nBis bald,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
+  { id:"et-f3",  lang:"de", journey:"followup2",   name:"Follow-up #2 — Free Resource",  subject:"Exklusiv für Sie: Unser kostenloser Finanz-Guide",  body:"Hallo {{lead_name}},\n\nals kleines Dankeschön für Ihr Interesse senden wir Ihnen unseren kostenlosen Finanz-Guide.\n\nVielleicht ist jetzt ein guter Moment für ein kurzes Gespräch? Melden Sie sich jederzeit bei {{advisor_name}}.\n\nFreundliche Grüße,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
+  { id:"et-f4",  lang:"de", journey:"followup2",   name:"Follow-up #2 — Event Invite",   subject:"Einladung: Unser nächstes Info-Event",              body:"Hallo {{lead_name}},\n\nwir laden Sie herzlich zu unserem nächsten Informationsabend ein. Es wäre eine großartige Gelegenheit, sich unverbindlich zu informieren.\n\nBei Fragen steht Ihnen {{advisor_name}} gerne zur Verfügung.\n\nBis bald,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
   // Appointment Reminder
   // English variants
-  { id:"et-w1-en", lang:"en", journey:"welcome",     name:"Q1 Finanz Welcome (EN)",            subject:"Welcome — Your free financial consultation is waiting",    body:"Dear {{lead_name}},\n\nThank you for your interest in our financial advisory services as part of the Q1 Finanz campaign.\n\nYour personal advisor {{consultant_name}} will contact you shortly to arrange an individual consultation.\n\nTo confirm you'd like to hear from us, please verify your email address using the button below.\n\nKind regards,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
-  { id:"et-r1-en", lang:"en", journey:"reminder",    name:"Appointment Reminder — Phone (EN)", subject:"Reminder: Your phone consultation tomorrow at {{appt_time}}",body:"Dear {{lead_name}},\n\nThis is your reminder about our phone consultation tomorrow at {{appt_time}}.\n\nYour advisor {{consultant_name}} will call you. Please make sure you are reachable.\n\nSee you tomorrow,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}","{{appt_time}}"], published:true },
-  { id:"et-f1-en", lang:"en", journey:"followup1",   name:"Follow-up #1 — Interest Check (EN)",subject:"Still interested? We're here to help",                    body:"Dear {{lead_name}},\n\nWe wanted to check if you received our first message and whether we can help you further.\n\nYour advisor {{consultant_name}} is happy to arrange a short call. When would suit you best?\n\nBest regards,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
-  { id:"et-r1",  lang:"de", journey:"reminder",    name:"Appointment Reminder — Phone",  subject:"Erinnerung: Ihr Telefontermin morgen um {{appt_time}}", body:"Hallo {{lead_name}},\n\nhier ist Ihre Erinnerung an unseren Telefontermin morgen um {{appt_time}} Uhr.\n\nIhr Berater {{consultant_name}} wird Sie unter Ihrer Nummer anrufen. Bitte stellen Sie sicher, dass Sie erreichbar sind.\n\nBis morgen,\n{{consultant_name}}\n{{sender_email}}", variables:["{{lead_name}}","{{consultant_name}}","{{appt_time}}","{{sender_email}}"], published:true },
-  { id:"et-r2",  lang:"de", journey:"reminder",    name:"Appointment Reminder — Video",  subject:"Ihr Video-Meeting morgen — Link anbei",             body:"Hallo {{lead_name}},\n\nmorgen um {{appt_time}} Uhr findet unser Video-Gespräch statt. Hier ist Ihr Zoom-Link:\n\n{{meeting_link}}\n\nBei technischen Fragen wenden Sie sich bitte im Voraus an {{consultant_name}}.\n\nBis morgen!\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}","{{appt_time}}","{{meeting_link}}"], published:true },
-  { id:"et-r3",  lang:"de", journey:"reminder",    name:"Appointment Reminder — In-Person",subject:"Morgen treffen wir uns — Adresse und Details",    body:"Hallo {{lead_name}},\n\nmorgiges Treffen: {{appt_time}} Uhr, {{meeting_location}}.\n\nWir freuen uns auf Sie! Bitte bringen Sie wenn möglich relevante Unterlagen mit.\n\nBis dann,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}","{{appt_time}}","{{meeting_location}}"], published:true },
+  { id:"et-w1-en", lang:"en", journey:"welcome",     name:"Q1 Finanz Welcome (EN)",            subject:"Welcome — Your free financial consultation is waiting",    body:"Dear {{lead_name}},\n\nThank you for your interest in our financial advisory services as part of the Q1 Finanz campaign.\n\nYour personal advisor {{advisor_name}} will contact you shortly to arrange an individual consultation.\n\nTo confirm you'd like to hear from us, please verify your email address using the button below.\n\nKind regards,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
+  { id:"et-r1-en", lang:"en", journey:"reminder",    name:"Appointment Reminder — Phone (EN)", subject:"Reminder: Your phone consultation tomorrow at {{appt_time}}",body:"Dear {{lead_name}},\n\nThis is your reminder about our phone consultation tomorrow at {{appt_time}}.\n\nYour advisor {{advisor_name}} will call you. Please make sure you are reachable.\n\nSee you tomorrow,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}"], published:true },
+  { id:"et-f1-en", lang:"en", journey:"followup1",   name:"Follow-up #1 — Interest Check (EN)",subject:"Still interested? We're here to help",                    body:"Dear {{lead_name}},\n\nWe wanted to check if you received our first message and whether we can help you further.\n\nYour advisor {{advisor_name}} is happy to arrange a short call. When would suit you best?\n\nBest regards,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
+  { id:"et-r1",  lang:"de", journey:"reminder",    name:"Appointment Reminder — Phone",  subject:"Erinnerung: Ihr Telefontermin morgen um {{appt_time}}", body:"Hallo {{lead_name}},\n\nhier ist Ihre Erinnerung an unseren Telefontermin morgen um {{appt_time}} Uhr.\n\nIhr Berater {{advisor_name}} wird Sie unter Ihrer Nummer anrufen. Bitte stellen Sie sicher, dass Sie erreichbar sind.\n\nBis morgen,\n{{advisor_name}}\n{{sender_email}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}","{{sender_email}}"], published:true },
+  { id:"et-r2",  lang:"de", journey:"reminder",    name:"Appointment Reminder — Video",  subject:"Ihr Video-Meeting morgen — Link anbei",             body:"Hallo {{lead_name}},\n\nmorgen um {{appt_time}} Uhr findet unser Video-Gespräch statt. Hier ist Ihr Zoom-Link:\n\n{{meeting_link}}\n\nBei technischen Fragen wenden Sie sich bitte im Voraus an {{advisor_name}}.\n\nBis morgen!\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}","{{meeting_link}}"], published:true },
+  { id:"et-r3",  lang:"de", journey:"reminder",    name:"Appointment Reminder — In-Person",subject:"Morgen treffen wir uns — Adresse und Details",    body:"Hallo {{lead_name}},\n\nmorgiges Treffen: {{appt_time}} Uhr, {{meeting_location}}.\n\nWir freuen uns auf Sie! Bitte bringen Sie wenn möglich relevante Unterlagen mit.\n\nBis dann,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}","{{meeting_location}}"], published:true },
   // Post nurture
-  { id:"et-p1",  lang:"de", journey:"postnurture", name:"Post-Appt Follow-up",           subject:"Schön, dass wir gesprochen haben — nächste Schritte",body:"Hallo {{lead_name}},\n\nvielen Dank für unser Gespräch! Es war schön, mehr über Ihre Ziele zu erfahren.\n\nWie besprochen sende ich Ihnen die Unterlagen in Kürze zu. Melden Sie sich jederzeit, wenn Sie Fragen haben.\n\nFreundliche Grüße,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
-  { id:"et-p2",  lang:"de", journey:"postnurture", name:"Referral Request",              subject:"Kennen Sie jemanden, der auch profitieren könnte?",  body:"Hallo {{lead_name}},\n\nwir freuen uns, dass unser Gespräch hilfreich war. Falls Sie jemanden kennen, der ebenfalls von einer kostenlosen Beratung profitieren könnte, würden wir uns über eine Empfehlung sehr freuen.\n\nVielen Dank,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
-  { id:"et-p3",  lang:"de", journey:"postnurture", name:"Cross-sell Introduction",       subject:"Noch mehr Möglichkeiten für Sie",                   body:"Hallo {{lead_name}},\n\nneben unserem Hauptangebot haben wir noch weitere Dienstleistungen, die für Sie interessant sein könnten. Darf ich Ihnen dazu kurz schreiben?\n\nViele Grüße,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
+  { id:"et-p1",  lang:"de", journey:"postnurture", name:"Post-Appt Follow-up",           subject:"Schön, dass wir gesprochen haben — nächste Schritte",body:"Hallo {{lead_name}},\n\nvielen Dank für unser Gespräch! Es war schön, mehr über Ihre Ziele zu erfahren.\n\nWie besprochen sende ich Ihnen die Unterlagen in Kürze zu. Melden Sie sich jederzeit, wenn Sie Fragen haben.\n\nFreundliche Grüße,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
+  { id:"et-p2",  lang:"de", journey:"postnurture", name:"Referral Request",              subject:"Kennen Sie jemanden, der auch profitieren könnte?",  body:"Hallo {{lead_name}},\n\nwir freuen uns, dass unser Gespräch hilfreich war. Falls Sie jemanden kennen, der ebenfalls von einer kostenlosen Beratung profitieren könnte, würden wir uns über eine Empfehlung sehr freuen.\n\nVielen Dank,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
+  { id:"et-p3",  lang:"de", journey:"postnurture", name:"Cross-sell Introduction",       subject:"Noch mehr Möglichkeiten für Sie",                   body:"Hallo {{lead_name}},\n\nneben unserem Hauptangebot haben wir noch weitere Dienstleistungen, die für Sie interessant sein könnten. Darf ich Ihnen dazu kurz schreiben?\n\nViele Grüße,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
   // Re-engagement
-  { id:"et-e1",  lang:"de", journey:"reengagement",name:"Re-engagement — Event Invite",  subject:"Wir haben etwas Besonderes für Sie",                body:"Hallo {{lead_name}},\n\nes ist eine Weile her, aber wir dachten an Sie! Wir veranstalten demnächst ein exklusives Event und würden Sie gerne einladen.\n\nMelden Sie sich bei Interesse gerne bei {{consultant_name}}.\n\nHerzliche Grüße,\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
-  { id:"et-e2",  lang:"de", journey:"reengagement",name:"Re-engagement — Market Update", subject:"Wichtige Marktentwicklungen — was bedeutet das für Sie?",body:"Hallo {{lead_name}},\n\ndie Finanzmärkte haben sich verändert — und das könnte für Sie relevant sein. Darf ich Ihnen kurz erklären, was das für Ihre Situation bedeutet?\n\nBei Interesse freue ich mich auf Ihre Antwort.\n\n{{consultant_name}}", variables:["{{lead_name}}","{{consultant_name}}"], published:true },
+  { id:"et-e1",  lang:"de", journey:"reengagement",name:"Re-engagement — Event Invite",  subject:"Wir haben etwas Besonderes für Sie",                body:"Hallo {{lead_name}},\n\nes ist eine Weile her, aber wir dachten an Sie! Wir veranstalten demnächst ein exklusives Event und würden Sie gerne einladen.\n\nMelden Sie sich bei Interesse gerne bei {{advisor_name}}.\n\nHerzliche Grüße,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
+  { id:"et-e2",  lang:"de", journey:"reengagement",name:"Re-engagement — Market Update", subject:"Wichtige Marktentwicklungen — was bedeutet das für Sie?",body:"Hallo {{lead_name}},\n\ndie Finanzmärkte haben sich verändert — und das könnte für Sie relevant sein. Darf ich Ihnen kurz erklären, was das für Ihre Situation bedeutet?\n\nBei Interesse freue ich mich auf Ihre Antwort.\n\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
 ];
 // Module-level store so edits persist within session
 
@@ -1573,7 +1573,7 @@ export const EVENTS_LIST = [
       { id:"E1b", label:"20 March 2026",    time:"09:00 – 18:30", location:"Marriott Hotel, Rua Constelações 9809 Lisbon, Portugal", present:0,  absent:0,  unspecified:44, capacity:100, status:"upcoming" },
       { id:"E1c", label:"10 April 2026",    time:"09:00 – 19:30", location:"Marriott Hotel, Rua Constelações 9809 Lisbon, Portugal", present:0,  absent:0,  unspecified:31, capacity:100, status:"upcoming" },
     ],
-    description:"Our flagship business opening event. Designed for prospective DION members to get an overview of the vion concept, meet consultants, and begin their financial journey.",
+    description:"Our flagship business opening event. Designed for prospective DION members to get an overview of the vion concept, meet advisors, and begin their financial journey.",
     jan:45, feb:62,
   },
   {
@@ -1583,7 +1583,7 @@ export const EVENTS_LIST = [
       { id:"E2a", label:"12 February 2026", time:"18:00 – 20:30", location:"vion Office Frankfurt, Mainzer Landstr. 50, 60325 Frankfurt", present:41, absent:9,  unspecified:4,  capacity:80, status:"past"     },
       { id:"E2b", label:"19 March 2026",    time:"18:00 – 20:30", location:"vion Office Frankfurt, Mainzer Landstr. 50, 60325 Frankfurt", present:0,  absent:0,  unspecified:29, capacity:80, status:"upcoming" },
     ],
-    description:"An exclusive evening event where qualified contacts hear directly from senior consultants about investment strategies, gold concepts, and top company portfolios.",
+    description:"An exclusive evening event where qualified contacts hear directly from senior advisors about investment strategies, gold concepts, and top company portfolios.",
     jan:28, feb:41,
   },
   {
@@ -1593,7 +1593,7 @@ export const EVENTS_LIST = [
       { id:"E3a", label:"5 February 2026",  time:"17:30 – 19:30", location:"Online – Zoom Webinar", present:22, absent:5, unspecified:2,  capacity:60, status:"past"     },
       { id:"E3b", label:"5 March 2026",     time:"17:30 – 19:30", location:"Online – Zoom Webinar", present:0,  absent:0, unspecified:18, capacity:60, status:"upcoming" },
     ],
-    description:"A shorter online format covering current financial market developments, product updates, and Q&A with consultants.",
+    description:"A shorter online format covering current financial market developments, product updates, and Q&A with advisors.",
     jan:15, feb:22,
   },
   {
@@ -1650,7 +1650,7 @@ export const EDU_VIDEOS = [
   { id:"v3",  title:"Objection Handling Masterclass",      category:"Sales Techniques",    duration:"22:30", views:265, completions:198, rating:4.9, thumbnail:"💬", isNew:false, featured:true  },
   { id:"v4",  title:"Top Companies Concept — Strategic",   category:"Investment Strategy", duration:"14:10", views:241, completions:155, rating:4.6, thumbnail:"🏢", isNew:false, featured:false },
   { id:"v5",  title:"Top Funds Concept Dynamic",           category:"Finance Basics",      duration:"11:55", views:218, completions:172, rating:4.5, thumbnail:"💹", isNew:false, featured:false },
-  { id:"v6",  title:"GDPR & Data Privacy for Consultants", category:"Compliance",          duration:"18:00", views:196, completions:131, rating:4.4, thumbnail:"🔒", isNew:false, featured:false },
+  { id:"v6",  title:"GDPR & Data Privacy for Advisors", category:"Compliance",          duration:"18:00", views:196, completions:131, rating:4.4, thumbnail:"🔒", isNew:false, featured:false },
   { id:"v7",  title:"Building Client Trust & Rapport",     category:"Sales Techniques",    duration:"13:20", views:174, completions:143, rating:4.7, thumbnail:"🤝", isNew:false, featured:false },
   { id:"v8",  title:"Understanding Risk Profiles",         category:"Finance Basics",      duration:"20:45", views:162, completions:98,  rating:4.3, thumbnail:"⚖️", isNew:false, featured:false },
   { id:"v9",  title:"Phone Call Techniques & Scripts",     category:"Sales Techniques",    duration:"08:30", views:89,  completions:67,  rating:4.2, thumbnail:"📞", isNew:true,  featured:false },

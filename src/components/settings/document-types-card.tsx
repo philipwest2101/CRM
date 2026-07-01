@@ -15,7 +15,7 @@ export const DocumentTypesCard = () => {
   };
 
   const openNew = () => {
-    const blank = { id:`dt${Date.now()}`, icon:"📄", label:"", required:false, subject:"", body:`Dear {{lead_name}},\n\nPlease provide the requested document.\n\nBest regards,\n{{consultant_name}}`, instructions:"", acceptedFormats:"PDF · Max 10 MB" };
+    const blank = { id:`dt${Date.now()}`, icon:"📄", label:"", required:false, subject:"", body:`Dear {{lead_name}},\n\nPlease provide the requested document.\n\nBest regards,\n{{advisor_name}}`, instructions:"", acceptedFormats:"PDF · Max 10 MB" };
     setEditing("new");
     setForm({ ...blank, instructions:"" });
   };
@@ -61,7 +61,7 @@ export const DocumentTypesCard = () => {
           <F label="Email subject line">
             <input value={form.subject||""} onChange={e=>setForm(f=>({...f,subject:e.target.value}))} placeholder="Please send us your income verification" style={inp}/>
           </F>
-          <F label="Email body — use {{lead_name}} and {{consultant_name}} as placeholders">
+          <F label="Email body — use {{lead_name}} and {{advisor_name}} as placeholders">
             <textarea value={form.body||""} onChange={e=>setForm(f=>({...f,body:e.target.value}))}
               style={{...inp,minHeight:100,resize:"vertical"}} />
           </F>

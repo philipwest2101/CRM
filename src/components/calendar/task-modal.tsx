@@ -9,7 +9,7 @@ const lbl   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"upper
 const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text };
 
 // Task types come from the shared ACTIVITY_TYPES so call/email stay in sync
-// with the Add-Activity modal. The "note" type is surfaced to consultants as a
+// with the Add-Activity modal. The "note" type is surfaced to advisors as a
 // "To Do" task (✅) here, even though the activity feed labels it "Note".
 const TASK_TYPE_OVERRIDE = { note: { icon: "✅", label: "To Do" } };
 const TYPE_META = Object.fromEntries(

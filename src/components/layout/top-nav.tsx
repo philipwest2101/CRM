@@ -5,7 +5,7 @@ import { useT } from "../../lib/i18n";
 
 export const TopNav = ({ page, setPage, role, setRole, version, setVersion, pushRef, lang, setLang }) => {
   const t = useT();
-  const roles = { superadmin:{label:t("superAdmin"),abbr:"SA",color:C.navy}, vd:{label:t("salesDirector"),abbr:"VD",color:C.indigo}, gp:{label:t("consultant"),abbr:"GP",color:C.green} };
+  const roles = { superadmin:{label:t("superAdmin"),abbr:"SA",color:C.navy}, vd:{label:t("salesDirector"),abbr:"VD",color:C.indigo}, gp:{label:t("advisor"),abbr:"GP",color:C.green} };
   const r = roles[role];
   const userName = role==="gp"?"Anna Klein":role==="vd"?"Thomas Müller":role==="manager"?"Julia Bauer":"Super Admin";
   const [menuOpen,    setMenuOpen]    = useState(null);   // which top-menu dropdown is open

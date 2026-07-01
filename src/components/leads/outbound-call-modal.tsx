@@ -48,7 +48,7 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
     callClaudeAPI(systemPrompt, "Analyse this call and return your suggestion JSON.")
       .then(raw => {
         try   { setSuggestions(JSON.parse(raw.replace(/```json|```/g,"").trim())); }
-        catch { setSuggestions({ callStatus: lead.attempts>=3?"Not Reached – No Answer":"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Consultant reached ${lead.name} via ${lead.source}. Contact expressed interest in ${lead.campaign} and requested a follow-up appointment.`, confidence:82, reasoning:`Contact source (${lead.source}) and campaign (${lead.campaign}) indicate high intent.` }); }
+        catch { setSuggestions({ callStatus: lead.attempts>=3?"Not Reached – No Answer":"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Advisor reached ${lead.name} via ${lead.source}. Contact expressed interest in ${lead.campaign} and requested a follow-up appointment.`, confidence:82, reasoning:`Contact source (${lead.source}) and campaign (${lead.campaign}) indicate high intent.` }); }
       })
       .catch(() => setSuggestions({ callStatus:"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Reached ${lead.name}. Contact interested in ${lead.campaign}. Follow-up appointment scheduled.`, confidence:78, reasoning:"Inferred from contact profile and campaign context." }))
       .finally(() => setSugLoading(false));

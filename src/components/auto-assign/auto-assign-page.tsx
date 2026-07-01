@@ -90,7 +90,7 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
         <div>
           <div style={{ fontSize:11,fontWeight:700,color:C.muted,letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:4 }}>Contacts · Auto-Assignment</div>
           <h1 style={{ margin:0,fontSize:26,fontWeight:800,color:C.navy,letterSpacing:"-0.02em" }}>Auto-Assign by ZIP</h1>
-          <p style={{ margin:"4px 0 0",fontSize:13,color:C.slate }}>Automatically route unassigned leads to consultants based on ZIP code rules.</p>
+          <p style={{ margin:"4px 0 0",fontSize:13,color:C.slate }}>Automatically route unassigned leads to advisors based on ZIP code rules.</p>
         </div>
         <div style={{ display:"flex",gap:8 }}>
           <button onClick={()=>setShowRules(r=>!r)}
@@ -174,7 +174,7 @@ export const AutoAssignPage = ({ role, navigateTo }) => {
           <span style={{ fontSize:18 }}>✅</span>
           <div>
             <div style={{ fontSize:13,fontWeight:700,color:C.green }}>Assignments committed successfully</div>
-            <div style={{ fontSize:12,color:"#065F46" }}>Selected leads have been assigned and consultants notified.</div>
+            <div style={{ fontSize:12,color:"#065F46" }}>Selected leads have been assigned and advisors notified.</div>
           </div>
         </div>
       )}

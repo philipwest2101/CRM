@@ -19,9 +19,9 @@ export const VDScriptAnalysisPanel = () => {
   const runAIInsight = async () => {
     setLoading(true); setAiInsight(null);
     try {
-      const prompt = `You are a sales coaching director analyzing a financial services consultant's call script performance.
+      const prompt = `You are a sales coaching director analyzing a financial services advisor's call script performance.
 
-Consultant: ${gp.name}
+Advisor: ${gp.name}
 Calls logged this month: ${gp.callsLogged}
 Script opens: ${gp.scriptOpens} (usage rate: ${usageRate}%)
 Script adherence score (from call analysis): ${gp.adherence}/100

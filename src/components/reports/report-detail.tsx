@@ -22,7 +22,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
   const renderContent = () => {
     if(report.key==="vd_performance") {
 
-      /* ── VD view: show MY team's consultants ── */
+      /* ── VD view: show MY team's advisors ── */
       if(isVD) return (<>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
           <KpiBox label="Team Contacts" value="890" sub="+18% vs last month" color={C.navy} />
@@ -31,8 +31,8 @@ export const ReportDetail = ({ report, role, onBack }) => {
           <KpiBox label="Team Conv. Rate" value="7.1%" sub="+0.9pp vs last month" color={C.purple} />
         </div>
         <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
-          <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Consultant Breakdown — Thomas Müller's Team (MTD)</div>
-          <Tbl headers={["Consultant","Contacts","Contacted","Reached","Appointments","Closed","Conv. Rate","Trend"]}
+          <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Advisor Breakdown — Thomas Müller's Team (MTD)</div>
+          <Tbl headers={["Advisor","Contacts","Contacted","Reached","Appointments","Closed","Conv. Rate","Trend"]}
             rows={[
               ["Anna Klein",   "62","48","33","21","14",<span style={{color:C.green,fontWeight:700}}>8.1%</span>,<span style={{color:C.green,fontWeight:700}}>↑ +1.2pp</span>],
               ["Marc Otto",    "58","42","28","18","11",<span style={{color:C.green,fontWeight:700}}>6.7%</span>,<span style={{color:C.green,fontWeight:700}}>↑ +1.2pp</span>],
@@ -42,7 +42,7 @@ export const ReportDetail = ({ report, role, onBack }) => {
         </div>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:16 }}>
           <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}` }}>
-            <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:14 }}>Closings per Consultant</div>
+            <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:14 }}>Closings per Advisor</div>
             {[["Anna Klein",14,C.green],["Marc Otto",11,C.indigo],["Nina Schmitt",9,C.amber],["Thomas Müller (self)",1,C.blue]].map(([n,v,col])=>(
               <div key={n} style={{ marginBottom:10 }}>
                 <div style={{ display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4 }}>
@@ -147,9 +147,9 @@ export const ReportDetail = ({ report, role, onBack }) => {
         <KpiBox label="No-Show Rate" value="8%" sub="Team avg" color={C.red} />
       </div>
       <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
-        <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Appointments by Consultant (MTD)</div>
+        <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Appointments by Advisor (MTD)</div>
         <Tbl
-          headers={["Consultant","VD","Booked","Showed","No-Show","Cancelled","Show Rate","Closed from Appt"]}
+          headers={["Advisor","VD","Booked","Showed","No-Show","Cancelled","Show Rate","Closed from Appt"]}
           rows={[
             ["Anna Klein","T. Müller","21","18","2","1",<span style={{color:C.green,fontWeight:700}}>86%</span>,"14"],
             ["Marc Otto","T. Müller","18","14","3","1",<span style={{color:C.green,fontWeight:700}}>78%</span>,"11"],
@@ -186,9 +186,9 @@ export const ReportDetail = ({ report, role, onBack }) => {
         <KpiBox label="Avg Sales Cycle" value="9.4 days" sub="−1.2 days vs Jan" color={C.purple} />
       </div>
       <div style={{ padding:"18px 20px",borderRadius:12,background:"#fff",border:`1px solid ${C.border}`,marginBottom:16 }}>
-        <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Closed Deals by Consultant (MTD)</div>
+        <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>Closed Deals by Advisor (MTD)</div>
         <Tbl
-          headers={["Consultant","VD","Contacts","Closed","Conv. Rate","Revenue","Avg Deal","Cycle (days)"]}
+          headers={["Advisor","VD","Contacts","Closed","Conv. Rate","Revenue","Avg Deal","Cycle (days)"]}
           rows={[
             ["Anna Klein","T. Müller","62","14",<span style={{color:C.green,fontWeight:700}}>8.1%</span>,"€28,000","€2,000","8.2"],
             ["Kai Becker","L. Weber","55","10",<span style={{color:C.green,fontWeight:700}}>7.3%</span>,"€24,000","€2,400","9.1"],

@@ -87,10 +87,10 @@ export const NewAppointmentModal = ({ lead, onClose, role, onAdd }) => {
           </div>
         </div>
 
-        {/* Consultant — SA/VD can pick */}
+        {/* Advisor — SA/VD can pick */}
         {(role==="superadmin"||role==="vd") && (
           <div style={{ marginBottom:12 }}>
-            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Consultant</label>
+            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Advisor</label>
             <select value={aGP} onChange={e=>setAGP(e.target.value)}
               style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",background:"#fff",outline:"none" }}>
               {gpList.map(gp=><option key={gp} value={gp}>{gp}</option>)}

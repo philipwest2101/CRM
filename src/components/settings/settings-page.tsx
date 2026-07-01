@@ -98,7 +98,7 @@ export const SettingsPage = ({ role, navigateTo }) => {
                 <Field label="Email Address"><input defaultValue={role==="gp"?"anna.klein@vion.world":role==="vd"?"t.mueller@vion.world":"admin@vion.world"} style={inp}/></Field>
                 <Field label="Phone"><input defaultValue="+49 89 123456" style={inp}/></Field>
               </div>
-              <Field label="Role"><input value={role==="gp"?"Consultant (GP)":role==="vd"?"Sales Director (VD)":"Super Admin"} readOnly style={{...inp,background:"#F8FAFC",color:C.muted}}/></Field>
+              <Field label="Role"><input value={role==="gp"?"Advisor (GP)":role==="vd"?"Sales Director (VD)":"Super Admin"} readOnly style={{...inp,background:"#F8FAFC",color:C.muted}}/></Field>
             </SettingsCard>
             <SettingsCard title="White-Label Outreach (EF-05/06)">
               <Field label="Send emails from (display name)">
@@ -143,11 +143,11 @@ export const SettingsPage = ({ role, navigateTo }) => {
               Showing notifications relevant to your role:
               <span style={{ marginLeft:6,fontWeight:700,color:C.navy,fontSize:12,
                 padding:"2px 10px",borderRadius:12,background:C.primary+"12" }}>
-                {{superadmin:"Super Admin",vd:"Sales Director",gp:"Consultant",manager:"Product Owner"}[role]}
+                {{superadmin:"Super Admin",vd:"Sales Director",gp:"Advisor",manager:"Product Owner"}[role]}
               </span>
             </div>
 
-            {/* ── Consultant + VD: personal workflow ── */}
+            {/* ── Advisor + VD: personal workflow ── */}
             {(role==="gp"||role==="vd") && (
               <SettingsCard title="My Workflow">
                 <SettingsToggle label="New contact assigned to me"  sub="Instant alert when a contact is assigned to your queue"      defaultOn={true} />
@@ -160,8 +160,8 @@ export const SettingsPage = ({ role, navigateTo }) => {
             {/* ── VD only: team management ── */}
             {(role==="vd"||role==="superadmin") && (
               <SettingsCard title="Team Alerts">
-                <SettingsToggle label="Contact assigned to my team"   sub="When any contact is assigned to a consultant in your team"  defaultOn={true} />
-                <SettingsToggle label="GP conversion rate drop"    sub="Alert when a consultant's rate drops 10% week-on-week"   defaultOn={true} />
+                <SettingsToggle label="Contact assigned to my team"   sub="When any contact is assigned to an advisor in your team"  defaultOn={true} />
+                <SettingsToggle label="GP conversion rate drop"    sub="Alert when an advisor's rate drops 10% week-on-week"   defaultOn={true} />
                 <SettingsToggle label="Script adherence low"       sub="When a GP falls below the adherence threshold"           defaultOn={role==="vd"} />
               </SettingsCard>
             )}
@@ -253,9 +253,9 @@ export const SettingsPage = ({ role, navigateTo }) => {
                 { name:"Super Admin",    email:"admin@vion.world",          role:"Super Admin",    status:"active" },
                 { name:"Thomas Müller", email:"t.mueller@vion.world",       role:"Sales Director", status:"active" },
                 { name:"Lisa Weber",    email:"l.weber@vion.world",         role:"Sales Director", status:"active" },
-                { name:"Anna Klein",    email:"a.klein@vion.world",         role:"Consultant",     status:"active" },
-                { name:"Marc Otto",     email:"m.otto@vion.world",          role:"Consultant",     status:"active" },
-                { name:"Nina Schmitt",  email:"n.schmitt@vion.world",       role:"Consultant",     status:"active" },
+                { name:"Anna Klein",    email:"a.klein@vion.world",         role:"Advisor",     status:"active" },
+                { name:"Marc Otto",     email:"m.otto@vion.world",          role:"Advisor",     status:"active" },
+                { name:"Nina Schmitt",  email:"n.schmitt@vion.world",       role:"Advisor",     status:"active" },
                 { name:"Jana Kruse",    email:"j.kruse@vion.world",         role:"Sales Director", status:"inactive" },
               ].map((u,i)=>(
                 <div key={i} style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.border}` }}>
@@ -525,7 +525,7 @@ export const SettingsPage = ({ role, navigateTo }) => {
               <strong style={{ color:C.navy }}>Permissions: </strong>
               {role==="superadmin"&&"Admin — create org-wide labels; edit, toggle, and delete all labels."}
               {role==="vd"&&"Director — create personal labels; toggle and delete your own and your team's labels."}
-              {role==="gp"&&"Consultant — create personal labels; toggle and delete your own labels."}
+              {role==="gp"&&"Advisor — create personal labels; toggle and delete your own labels."}
             </div>
           </>);
         })()}

@@ -97,7 +97,7 @@ export const EducationPage = ({ role, navigateTo }) => {
           { label:"Total Videos",      value:EDU_VIDEOS.length, color:C.navy,   sub:"2 new this month"  },
           { label:"Total Views (MTD)", value:totalViews,         color:C.blue,   sub:"+18% vs Jan"       },
           { label:"Completions (MTD)", value:totalCompletions,   color:C.green,  sub:avgCompletion+"% avg rate" },
-          { label:"Active Consultants",value:EDU_MEMBERS.length, color:C.indigo, sub:"of 560 total"      },
+          { label:"Active Advisors",value:EDU_MEMBERS.length, color:C.indigo, sub:"of 560 total"      },
           { label:"Avg. Rating",       value:"4.6 ★",            color:C.amber,  sub:"Across all videos" },
         ].map(k=>(
           <SettingsCard key={k.label} style={{ padding:"14px 16px" }}>

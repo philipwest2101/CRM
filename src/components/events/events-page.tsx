@@ -220,7 +220,7 @@ export const EventsPage = ({ role, navigateTo }) => {
                       <table style={{ width:"100%", borderCollapse:"collapse" }}>
                         <thead>
                           <tr style={{ borderBottom:`2px solid ${C.border}` }}>
-                            {["Contact","Consultant","Director","Campaign","Registered","Status"].map(h=>(
+                            {["Contact","Advisor","Director","Campaign","Registered","Status"].map(h=>(
                               <th key={h} style={{ padding:"7px 10px", textAlign:"left", fontSize:10, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.04em" }}>{h}</th>
                             ))}
                           </tr>

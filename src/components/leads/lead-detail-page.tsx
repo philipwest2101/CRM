@@ -51,7 +51,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
     const myName = role==="gp"?"Anna Klein":role==="vd"?"Thomas Müller":"Super Admin";
     const merged = (tpl.body||"")
       .replace(/{{lead_name}}/gi, lead.name.split(" ")[0])
-      .replace(/{{consultant_name}}/gi, myName)
+      .replace(/{{advisor_name}}/gi, myName)
       .replace(/{{company_name}}/gi, "vion gmbh")
       .replace(/{{appt_time}}/gi, "")
       .replace(/\{FirstName\}/gi, lead.name.split(" ")[0])

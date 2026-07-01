@@ -55,7 +55,7 @@ export const WorkflowRulesSection = ({ role }) => {
         <div>
           <div style={{ fontSize:20,fontWeight:800,color:C.navy,marginBottom:4 }}>⚡ Workflow & Automation</div>
           <div style={{ fontSize:12,color:C.muted,maxWidth:600,lineHeight:1.6 }}>
-            Super Admin defines the automation — one rule per trigger event. A rule can set the lead's status, send an email, create a task for the consultant, and/or fire a push notification. Once an event has a rule it's no longer offered when adding the next one. Statuses are defined in Settings → Statuses.
+            Super Admin defines the automation — one rule per trigger event. A rule can set the lead's status, send an email, create a task for the advisor, and/or fire a push notification. Once an event has a rule it's no longer offered when adding the next one. Statuses are defined in Settings → Statuses.
           </div>
         </div>
         <button onClick={()=>{ if(availableCount>0){ setEditId(null); setShowNew(true); } }}
@@ -81,7 +81,7 @@ export const WorkflowRulesSection = ({ role }) => {
         <div style={{ marginTop:14,padding:"12px 16px",borderRadius:10,background:C.amber+"0A",border:`1px solid ${C.amber}40` }}>
           <div style={{ fontSize:12,fontWeight:800,color:C.amber,marginBottom:4 }}>ℹ️ {manualOnlyStatuses.length} status{manualOnlyStatuses.length===1?"":"es"} set manually only</div>
           <div style={{ fontSize:11,color:C.text,lineHeight:1.5 }}>
-            No automated workflow sets {manualOnlyStatuses.length===1?"this status":"these statuses"} — {manualOnlyStatuses.length===1?"it's":"they're"} reached only when a consultant sets {manualOnlyStatuses.length===1?"it":"them"} by hand: {manualOnlyStatuses.map(s=>s.nameEn).join(", ")}. That may be intentional; add a rule if you want automation to handle {manualOnlyStatuses.length===1?"it":"them"}.
+            No automated workflow sets {manualOnlyStatuses.length===1?"this status":"these statuses"} — {manualOnlyStatuses.length===1?"it's":"they're"} reached only when an advisor sets {manualOnlyStatuses.length===1?"it":"them"} by hand: {manualOnlyStatuses.map(s=>s.nameEn).join(", ")}. That may be intentional; add a rule if you want automation to handle {manualOnlyStatuses.length===1?"it":"them"}.
           </div>
         </div>
       )}
@@ -97,8 +97,8 @@ export const WorkflowRulesSection = ({ role }) => {
           { icon:"⚡", color:C.navy,    label:"Trigger", desc:"A CRM event fires the rule (new contact, call logged, appointment set…)" },
           { icon:"🔄", color:"#0EA5E9", label:"→ Set status", desc:"Moves the contact to a configured status" },
           { icon:"✉️", color:C.blue,    label:"→ Email", desc:"System auto-sends an email template to the contact" },
-          { icon:"✅", color:"#D97706", label:"→ Task", desc:"Creates a task (with optional reminder) for the consultant" },
-          { icon:"📱", color:C.green,   label:"→ Push", desc:"Sends a push notification to the consultant" },
+          { icon:"✅", color:"#D97706", label:"→ Task", desc:"Creates a task (with optional reminder) for the advisor" },
+          { icon:"📱", color:C.green,   label:"→ Push", desc:"Sends a push notification to the advisor" },
         ].map((s,i)=>(
           <div key={s.label} style={{ display:"flex",alignItems:"center",gap:6,flex:1 }}>
             {i>0 && <div style={{ fontSize:14,color:C.muted,flexShrink:0 }}>→</div>}

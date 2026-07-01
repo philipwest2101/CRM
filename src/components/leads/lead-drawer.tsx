@@ -421,7 +421,7 @@ export const LeadDrawer = ({ lead, onClose, openTab }) => {
                   </label>
                 ))}
               </div>
-              <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6 }}>Assign to Consultant</div>
+              <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6 }}>Assign to Advisor</div>
               <div style={{ fontSize:11,color:C.slate,marginBottom:10,padding:"8px 12px",background:C.indigo+"10",borderRadius:7,border:`1px solid ${C.indigo}20` }}>💡 Sales Directors can work leads directly — select the VD themselves.</div>
               <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:20 }}>
                 {(GPS_BY_VD[lead.assignedVD||VDS[0]]||[]).map(gp=>(
