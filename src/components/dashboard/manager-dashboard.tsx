@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { C } from "../../theme";
 
 export const ManagerDashboard = ({ navigateTo }) => {
-  const [period, setPeriod] = useState("mtd");
+  const [period, setPeriod] = useState("month");
   const [vdChecks,setVdChecks] = useState([false,false,false,false,true]);
 
   const KPIS = [
@@ -69,7 +69,7 @@ export const ManagerDashboard = ({ navigateTo }) => {
           </div>
         </div>
         <div style={{ display:"flex",gap:8 }}>
-          {["Today","Week","MTD","Quarter"].map(p=>(
+          {["Today","Week","Month","Quarter","Year"].map(p=>(
             <button key={p} onClick={()=>setPeriod(p.toLowerCase())}
               style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${period===p.toLowerCase()?C.primary:C.border}`,
                 background:period===p.toLowerCase()?C.primary:"#fff",color:period===p.toLowerCase()?"#fff":C.muted,

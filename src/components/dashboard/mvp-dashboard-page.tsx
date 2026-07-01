@@ -181,6 +181,25 @@ const LinkBtn = ({ label, onClick }) => (
   </button>
 );
 
+// Segmented time-slot selector shown in every dashboard header.
+const PERIOD_KEYS = ["today", "week", "month", "quarter", "year"];
+const PeriodTabs = ({ period, setPeriod, t }) => (
+  <div title={t("tooltip_period")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
+    {PERIOD_KEYS.map((k, i) => (
+      <button key={k} onClick={() => setPeriod(k)} style={{
+        padding: "7px 14px", border: "none",
+        borderLeft: i === 0 ? "none" : `1px solid ${C.border}`,
+        background: period === k ? C.primary : "#fff",
+        color: period === k ? "#fff" : C.muted,
+        fontSize: 12, fontWeight: period === k ? 700 : 500,
+        cursor: "pointer", fontFamily: "inherit",
+      }}>
+        {t(`period_${k}`)}
+      </button>
+    ))}
+  </div>
+);
+
 // Priority dot — colours come from the shared PRIORITY_META (low/normal/high/urgent)
 const PriorityDot = ({ priority }) => (
   <span style={{
@@ -257,6 +276,9 @@ const MOCK_APPOINTMENTS = [
 // rows exceed what fits (~4 rows).
 const SECTION_H = 300;
 const ATTEMPT_LEVELS = [5, 4, 3, 2, 1];
+
+// Multipliers applied to volume figures per selected time slot (month = baseline).
+const PERIOD_FACTOR = { today: 0.05, week: 0.25, month: 1, quarter: 3, year: 12 };
 
 // ── Aggregate figures behind the Performance / Call Attempts tables and the
 //    VD/SA KPI cards. Illustrative but realistic (org totals in the thousands).
@@ -335,6 +357,10 @@ const CallAttemptsTable = ({ title, rowLabel, rows, action }) => (
 export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
 
   const t         = useT();
+  // ── Time-slot selector (Today/Week/Month/Quarter/Year) ───────────────────────
+  const [period, setPeriod] = useState("month");
+  const pf     = PERIOD_FACTOR[period] ?? 1;
+  const scaleP = (n) => Math.round(n * pf);
   const user      = ROLE_USER[role] || ROLE_USER.superadmin;
   const userName  = user.name;
   const isSA      = role === "superadmin" || role === "manager";
@@ -427,7 +453,17 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
 
   // ── VD / SA aggregates — driven by the per-team / per-advisor mock so the KPI
   //    cards and tables show realistic org-scale numbers. ──────────────────────
-  const perfRows     = isSA ? SA_TEAMS : isVD ? VD_ADVISORS : [];
+  // Rows are scaled to the selected time slot so the KPI cards and the
+  // Performance / Call Attempts tables stay in sync.
+  const basePerfRows = isSA ? SA_TEAMS : isVD ? VD_ADVISORS : [];
+  const perfRows     = basePerfRows.map(r => ({
+    ...r,
+    leads:    scaleP(r.leads),
+    contacts: scaleP(r.contacts),
+    appts:    scaleP(r.appts),
+    closings: scaleP(r.closings),
+    ca:       ATTEMPT_LEVELS.reduce((m, n) => { m[n] = scaleP(r.ca?.[n] || 0); return m; }, {}),
+  }));
   const perfRowLabel = isSA ? t("teamCol") : t("advisorCol");
   const sumBy        = (k) => perfRows.reduce((s, r) => s + (r[k] || 0), 0);
   const aggLeads     = sumBy("leads");
@@ -460,13 +496,16 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
       <div style={{ padding: "0 28px 36px" }}>
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        <div style={{ padding: "20px 0 16px" }}>
-          <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.025em", color: C.text, margin: 0 }}>
-            {greeting}, {user.firstName}<span style={{ color: C.primary }}>.</span>
-          </h1>
-          <div style={{ marginTop: 5, fontSize: 12, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            {roleLabel} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+        <div style={{ padding: "20px 0 16px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div>
+            <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.025em", color: C.text, margin: 0 }}>
+              {greeting}, {user.firstName}<span style={{ color: C.primary }}>.</span>
+            </h1>
+            <div style={{ marginTop: 5, fontSize: 12, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              {roleLabel} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            </div>
           </div>
+          <PeriodTabs period={period} setPeriod={setPeriod} t={t} />
         </div>
 
         {/* ── KPI row — same KpiCard everywhere so all three roles line up ─── */}
@@ -494,12 +533,14 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             label={contactsLabel}
             value={totalContacts}
             sub={isGP ? t("assignedToMe") : t("inMyTeam")}
+            info={t("tooltip_kpiMyNetwork")}
             color={C.navy}
           />
           <KpiCard
             label={newLeadsLabel}
             value={newLeads.length}
             sub={isGP ? t("openAndAssigned") : unassignedCount > 0 ? `${unassignedCount} pending` : t("allAssigned")}
+            info={t("tooltip_kpiMyLeads")}
             color={C.primary}
             warn={!isGP && unassignedCount > 0}
           />
@@ -507,12 +548,14 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             label={t("appointmentsToday")}
             value={todayAppts.length}
             sub={t("mySchedule")}
+            info={t("tooltip_kpiAppointmentsToday")}
             color={C.indigo}
           />
           <KpiCard
             label={t("openTasks")}
             value={openTasks.length}
             sub={t("remindersAndToDos")}
+            info={t("tooltip_kpiOpenTasks")}
             color={openTasks.length > 0 ? C.amber : C.green}
           />
         </div>

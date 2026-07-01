@@ -82,7 +82,7 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
           </div>
         </div>
         <div style={{ display:"flex",gap:8 }}>
-          {["Today","Week","Month","Quarter","YTD"].map(p=>(
+          {["Today","Week","Month","Quarter","Year"].map(p=>(
             <button key={p} onClick={()=>setPeriod(p.toLowerCase())}
               style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${period===p.toLowerCase()?C.primary:C.border}`,
                 background:period===p.toLowerCase()?C.primary:"#fff",color:period===p.toLowerCase()?"#fff":C.muted,
