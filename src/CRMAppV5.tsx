@@ -9,6 +9,7 @@ import { BulkEmailHistoryPage } from "./components/email/bulk-email-history-page
 import { EventsPage } from "./components/events/events-page";
 import { TopNav } from "./components/layout/top-nav";
 import { ImportsHistoryPage } from "./components/imports/imports-history-page";
+import { NewsletterPage } from "./components/newsletter/newsletter-page";
 import { LeadDetailPage } from "./components/leads/lead-detail-page";
 import { MVPContactDetailPage } from "./components/leads/mvp-contact-detail-page";
 import { LeadsPage } from "./components/leads/leads-page";
@@ -207,6 +208,7 @@ export default function CRMAppV5() {
       {page==="Settings"        && (version==="mvp"
                                       ? <MVPSettingsPage  role={role} />
                                       : <SettingsPage     role={role} navigateTo={navigateTo} />)}
+      {page==="Newsletter"       && <NewsletterPage />}
       {page==="Email Marketing"  && <EmailMarketingPage     role={role} navigateTo={navigateTo} />}
       {page==="BulkEmailHistory" && <BulkEmailHistoryPage navigateTo={navigateTo} />}
       {page==="Education"      && <EducationPage        role={role} navigateTo={navigateTo} />}

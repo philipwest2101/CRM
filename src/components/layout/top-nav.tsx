@@ -30,9 +30,9 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
           { label:t("dashboard"), page:"Dashboard" },
           { label:t("contacts"),  page:"Leads",           sub:[[t("contactsList"),"Leads"],[t("bulkEmailsHistory"),"BulkEmailHistory"],[t("importsHistory"),"LeadCapture"]] },
           { label:t("calendar"),  page:"Calendar" },
-          { label:t("newsletter"),page:"Email Marketing" },
+          { label:t("newsletter"),page:"Newsletter" },
           { label:t("reports"),   page:"Reports",         sub:[["Report 1","Reports"],["Report 2","Reports"],["Report 3","Reports"]] },
-        ].filter((_,i)=> version!=="mvp" || i < 3).map(item=>{
+        ].filter((_,i)=> version!=="mvp" || i < 4).map(item=>{
           const active = page===item.page
             || (item.page==="Leads" && (page==="AutoAssign"||page==="LeadCapture"||page==="LeadDetail"||page==="BulkEmailHistory"))
             || (item.page==="Calendar" && (page==="Appointments"||page==="Reminders"||page==="Activities"));
