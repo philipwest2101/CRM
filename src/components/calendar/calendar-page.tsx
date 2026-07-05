@@ -30,6 +30,20 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [taskModal,   setTaskModal]   = useState(null);    // { mode, data }
   const [apptModal,   setApptModal]   = useState(null);    // { mode, data }
   const [outcomeAppt, setOutcomeAppt] = useState(null);
+  const [cellMenu,    setCellMenu]    = useState(null);    // { x, y, date, time } — create-here popover
+
+  // Week/Day cell click → select the date and offer to create something in
+  // that slot (task or appointment, date + hour prefilled).
+  const openCellMenu = (e, date, hour) => {
+    e.stopPropagation();
+    setSelectedDate(date);
+    setCellMenu({
+      x: Math.min(e.clientX, window.innerWidth - 240),
+      y: Math.min(e.clientY, window.innerHeight - 150),
+      date,
+      time: hour != null ? `${String(hour).padStart(2, "0")}:00` : "09:00",
+    });
+  };
 
   const myGP = "Anna Klein"; const myVD = "Thomas Müller";
 
@@ -358,13 +372,14 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                     const ds = fmtDateObj(d);
                     const slotActs = (byDate[ds]||[]).filter(a=>a.time&&parseInt(a.time)===h);
                     return (
-                      <div key={di} onClick={()=>{ setSelectedDate(ds); if(slotActs.length===0){ setShowAddMenu(true); } }}
+                      <div key={di} onClick={(e)=>openCellMenu(e, ds, h)}
                         style={{ borderBottom:`1px solid ${C.border}`,borderLeft:`1px solid ${C.border}`,
                           padding:"2px",cursor:"pointer",background:ds===selectedDate?"#EFF6FF20":"#fff",
                           position:"relative",minHeight:52 }}>
                         {slotActs.length===0 ? null :
                          slotActs.length===1 ? (()=>{ const a=slotActs[0]; const at=metaOf(a); return (
                            <div title={`${a.title} ${a.time||""}`}
+                             onClick={e=>{ e.stopPropagation(); setSelectedDate(ds); setSelected(a); }}
                              style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
                                borderLeft:`2px solid ${at.color}`,padding:"2px 5px",borderRadius:"0 4px 4px 0",
                                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",margin:1,lineHeight:1.4 }}>
@@ -376,6 +391,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                            <div style={{ position:"relative" }}>
                              {slotActs.slice(0,2).map((a,ai)=>{ const at=metaOf(a); return (
                                <div key={a.id} title={`${a.title} ${a.time||""}`}
+                                 onClick={e=>{ e.stopPropagation(); setSelectedDate(ds); setSelected(a); }}
                                  style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
                                    borderLeft:`2px solid ${at.color}`,padding:"2px 5px",
                                    borderRadius:"0 4px 4px 0",overflow:"hidden",
@@ -412,7 +428,8 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                   const slotActs = dayActs.filter(a=>a.time&&parseInt(a.time)===h);
                   const hasConflict = slotActs.length>1;
                   return (
-                    <div key={h} style={{ display:"flex",gap:0,minHeight:56,
+                    <div key={h} onClick={(e)=>openCellMenu(e, ds, h)}
+                      style={{ display:"flex",gap:0,minHeight:56,cursor:"pointer",
                       borderBottom:`1px solid ${C.border}`,background:hasConflict?"#FFF7ED":"#fff" }}>
                       {/* Time label */}
                       <div style={{ width:60,flexShrink:0,padding:"6px 8px 0",
@@ -432,7 +449,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                                 padding:"6px 10px",borderRadius:7,background:at.bg,
                                 borderLeft:`3px solid ${at.color}`,cursor:"pointer",
                                 outline:hasConflict&&ai>0?`1px dashed ${at.color}40`:"none" }}
-                              onClick={()=>setSelected(a)}>
+                              onClick={(e)=>{ e.stopPropagation(); setSelected(a); }}>
                               <div style={{ fontSize:11,fontWeight:700,color:at.color }}>
                                 {at.icon} {a.time}{a.end?` – ${a.end}`:""} {hasConflict&&<span style={{ fontSize:9,background:C.amber+"20",color:C.amber,padding:"1px 5px",borderRadius:8,marginLeft:4 }}>overlap</span>}
                               </div>
@@ -628,6 +645,27 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           </>
         );
       })()}
+
+      {/* ── Cell create-here popover (Week/Day views) ──────────────────────── */}
+      {cellMenu && (<>
+        <div onClick={()=>setCellMenu(null)} style={{ position:"fixed",inset:0,zIndex:300 }}/>
+        <div style={{ position:"fixed",top:cellMenu.y,left:cellMenu.x,zIndex:301,background:"#fff",
+          borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.15)",border:`1px solid ${C.border}`,
+          minWidth:220,padding:"6px 0",overflow:"hidden" }}>
+          <div style={{ padding:"7px 16px 6px",borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,color:C.muted }}>
+            📅 {new Date(cellMenu.date+"T12:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})} · {cellMenu.time}
+          </div>
+          {[[`✅ ${t("createTask")}`,()=>setTaskModal({mode:"create",data:{date:cellMenu.date,time:cellMenu.time}})],
+            [`📅 ${t("scheduleAppointment")}`,()=>setApptModal({mode:"create",data:{date:cellMenu.date,time:cellMenu.time}})]].map(([label,fn])=>(
+            <div key={label} onClick={()=>{ setCellMenu(null); fn(); }}
+              style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",fontSize:13,fontWeight:600,color:C.text }}
+              onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              {label}
+            </div>
+          ))}
+        </div>
+      </>)}
 
       {/* ── New / Edit Activity Modal ──────────────────────────────────────── */}
       {showNew && <NewActivityModal

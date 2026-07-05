@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
-import { PRIORITY_META, DONE_STATUSES } from "../../lib/core";
+import { PRIORITY_META, DONE_STATUSES, MEETING_TYPE_META } from "../../lib/core";
 import { useT } from "../../lib/i18n";
 
 // ── Dashboard assignee list ───────────────────────────────────────────────────
@@ -268,14 +268,14 @@ const MOCK_ACTIVITIES = [
 ];
 const MOCK_APPOINTMENTS = [
   // GP Anna Klein — today
-  { id:"ap1", lead:"Sandra Richter",  date:"2026-06-29", start:"09:00", type:"call",     status:"upcoming",  gp:"Anna Klein",    vd:"Thomas Müller" },
-  { id:"ap2", lead:"Hans Müller",     date:"2026-06-29", start:"10:30", type:"video",    status:"confirmed", gp:"Anna Klein",    vd:"Thomas Müller" },
-  { id:"ap3", lead:"Klaus Wagner",    date:"2026-06-29", start:"12:00", type:"inperson", status:"upcoming",  gp:"Anna Klein",    vd:"Thomas Müller" },
-  { id:"ap4", lead:"Julia Weiss",     date:"2026-06-29", start:"14:00", type:"call",     status:"confirmed", gp:"Anna Klein",    vd:"Thomas Müller" },
+  { id:"ap1", lead:"Sandra Richter",  date:"2026-06-29", start:"09:00", type:"call",     apptType:"Consultation Appointment", status:"upcoming",  gp:"Anna Klein",    vd:"Thomas Müller" },
+  { id:"ap2", lead:"Hans Müller",     date:"2026-06-29", start:"10:30", type:"video",    apptType:"Investment Talk",          status:"confirmed", gp:"Anna Klein",    vd:"Thomas Müller" },
+  { id:"ap3", lead:"Klaus Wagner",    date:"2026-06-29", start:"12:00", type:"inperson", apptType:"Business Opening",         status:"upcoming",  gp:"Anna Klein",    vd:"Thomas Müller" },
+  { id:"ap4", lead:"Julia Weiss",     date:"2026-06-29", start:"14:00", type:"call",     apptType:"Finance Talk",             status:"confirmed", gp:"Anna Klein",    vd:"Thomas Müller" },
   // VD Thomas Müller — own appointments (gp === vd = Thomas Müller)
-  { id:"ap5", lead:"Eva Gruber",      date:"2026-06-29", start:"09:30", type:"call",     status:"confirmed", gp:"Thomas Müller", vd:"Thomas Müller" },
-  { id:"ap6", lead:"Klaus Richter",   date:"2026-06-29", start:"11:00", type:"video",    status:"upcoming",  gp:"Thomas Müller", vd:"Thomas Müller" },
-  { id:"ap7", lead:"Stefan Wolf",     date:"2026-06-29", start:"14:30", type:"inperson", status:"upcoming",  gp:"Thomas Müller", vd:"Thomas Müller" },
+  { id:"ap5", lead:"Eva Gruber",      date:"2026-06-29", start:"09:30", type:"call",     apptType:"Consultation Appointment", status:"confirmed", gp:"Thomas Müller", vd:"Thomas Müller" },
+  { id:"ap6", lead:"Klaus Richter",   date:"2026-06-29", start:"11:00", type:"video",    apptType:"Investment Talk",          status:"upcoming",  gp:"Thomas Müller", vd:"Thomas Müller" },
+  { id:"ap7", lead:"Stefan Wolf",     date:"2026-06-29", start:"14:30", type:"inperson", apptType:"Business Opening",         status:"upcoming",  gp:"Thomas Müller", vd:"Thomas Müller" },
 ];
 
 // ── Layout constants ──────────────────────────────────────────────────────────
@@ -286,6 +286,29 @@ const ATTEMPT_LEVELS = [5, 4, 3, 2, 1];
 
 // Multipliers applied to volume figures per selected time slot (month = baseline).
 const PERIOD_FACTOR = { today: 0.05, week: 0.25, month: 1, quarter: 3, year: 12 };
+
+// ── Time-slot → rolling window (in days, ending on the anchor day) ───────────
+// Used to really filter the personal (GP / VD-My) lists by date, so the
+// Today/Week/… pills change what the panels show — not just the mock scaling.
+const PERIOD_WINDOW_DAYS = { today: 1, week: 7, month: 30, quarter: 90, year: 365 };
+const MONTH_ABBR = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+
+// Normalise the various mock date formats to "YYYY-MM-DD".
+// Relative labels ("Today", "Every Monday", …) return null → always shown.
+const toISODate = (s) => {
+  if (typeof s !== "string") return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const mt = s.match(/^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/); // "26 Feb 2026"
+  if (mt && MONTH_ABBR[mt[2].toLowerCase()] != null) {
+    return `${mt[3]}-${String(MONTH_ABBR[mt[2].toLowerCase()] + 1).padStart(2, "0")}-${String(Number(mt[1])).padStart(2, "0")}`;
+  }
+  return null;
+};
+const shiftISODate = (iso, days) => {
+  const d = new Date(iso + "T12:00");
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 // ── Aggregate figures behind the Performance / Call Attempts tables and the
 //    VD/SA KPI cards. Illustrative but realistic (org totals in the thousands).
@@ -546,37 +569,52 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
 
   const unassignedCount = newLeads.filter(l => !l.assignedGP && !l.assignedVD).length;
 
-  // "Today" in this wireframe: if the real date has no appointments in the mock
-  // data, fall back to the latest day that does — the section always shows
-  // sample data.
-  const todayStr       = new Date().toISOString().slice(0, 10);
-  const activeAppts    = scopedAppts.filter(a => a.status !== "cancelled");
-  let todayAppts       = activeAppts.filter(a => a.date === todayStr);
-  if (todayAppts.length === 0 && activeAppts.length > 0) {
-    const latestDate = activeAppts.reduce((m, a) => (a.date > m ? a.date : m), "");
-    todayAppts = activeAppts.filter(a => a.date === latestDate);
-  }
-  todayAppts = [...todayAppts].sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+  // ── Time-slot date window ────────────────────────────────────────────────
+  // Anchor day: the real today if the mock data has entries for it, otherwise
+  // the latest data day that isn't in the future — so every period shows
+  // sample data. The selected period then becomes a rolling window ending on
+  // the anchor day, and appointments / tasks / activity are filtered by it.
+  const activeAppts = scopedAppts.filter(a => a.status !== "cancelled");
+  const todayStr    = new Date().toISOString().slice(0, 10);
+  const dataDates   = [...activeAppts, ...scopedActivities].map(x => toISODate(x.date)).filter(Boolean).sort();
+  const anchorDate  = dataDates.includes(todayStr) ? todayStr
+    : (dataDates.filter(d => d <= todayStr).pop() || dataDates[dataDates.length - 1] || todayStr);
+  const windowStart = shiftISODate(anchorDate, -((PERIOD_WINDOW_DAYS[period] ?? 30) - 1));
+  const inPeriod    = (dateStr) => {
+    const iso = toISODate(dateStr);
+    return !iso || (iso >= windowStart && iso <= anchorDate);
+  };
+
+  // Appointments in the selected period — newest day first, mornings first.
+  const periodAppts = activeAppts
+    .filter(a => inPeriod(a.date))
+    .sort((a, b) => (b.date || "").localeCompare(a.date || "") || (a.start || "").localeCompare(b.start || ""));
 
   // Tasks & reminders share one list (entityType reminder|task) and one "done" model.
   const isDone   = (a) => DONE_STATUSES.includes(a.status);
   const taskItems = scopedActivities
-    .filter(a => a.entityType === "reminder" || a.entityType === "task")
+    .filter(a => (a.entityType === "reminder" || a.entityType === "task") && inPeriod(a.date))
     .sort((a, b) => Number(isDone(a)) - Number(isDone(b)));   // open first, done sink to bottom
   const openTasks  = taskItems.filter(a => !isDone(a));
   const tasksToShow = taskItems.slice(0, 7);
 
   // Recent activity excludes the task/reminder items shown in the Tasks panel.
   const recentActivity = scopedActivities
-    .filter(a => a.entityType !== "reminder" && a.entityType !== "task")
+    .filter(a => a.entityType !== "reminder" && a.entityType !== "task" && inPeriod(a.date))
     .slice(0, 8);
+
+  // Short date shown next to the time once the window spans more than one day.
+  const fmtApptDay = (dateStr) => {
+    const iso = toISODate(dateStr);
+    return iso ? new Date(iso + "T12:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : dateStr;
+  };
 
   // ── Panel titles per role / view ────────────────────────────────────────────
   const leadsTitle     = personal ? t("myLeads") : isVD ? t("pendingAssignment") : t("unassignedLeads");
   const contactsLabel  = personal ? t("myNetwork") : isVD ? t("myLeads") : t("totalContacts");
   const newLeadsLabel  = personal ? t("myLeads") : isVD ? t("pendingAssignments") : t("newContacts");
   const remindersTitle = t("remindersAndTasks");
-  const apptsTitle     = t("appointmentsToday");
+  const apptsTitle     = t("appointments");
 
   // System view id the Leads page should open on when the "All" link is clicked —
   // keeps the dashboard's "My Leads / Pending Assignment / Unassigned Leads" panels
@@ -703,8 +741,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             warn={!personal && unassignedCount > 0}
           />
           <KpiCard
-            label={t("appointmentsToday")}
-            value={todayAppts.length}
+            label={t("appointments")}
+            value={periodAppts.length}
             sub={t("mySchedule")}
             info={t("tooltip_kpiAppointmentsToday")}
             color={C.indigo}
@@ -773,18 +811,18 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               action={<LinkBtn label={t("calendarLink")} onClick={() => navigateTo("Calendar")} />}
             />
             <div style={{ flex: 1, overflowY: "auto", padding: "2px 14px 6px" }}>
-                {todayAppts.length === 0 ? (
+                {periodAppts.length === 0 ? (
                   <div style={{ padding: "14px 0", textAlign: "center", color: C.muted, fontSize: 12.5 }}>
-                    {t("noAppointmentsToday")}
+                    {t("noAppointments")}
                   </div>
-                ) : todayAppts.map((appt, i) => {
+                ) : periodAppts.map((appt, i) => {
                   const typeColor = { call: C.green, video: C.indigo, inperson: C.amber, email: C.blue }[appt.type] || C.indigo;
-                  const statusColor = { upcoming: C.blue, confirmed: C.green, done: C.muted, noshow: C.red }[appt.status] || C.muted;
+                  const meeting = MEETING_TYPE_META[appt.apptType] || MEETING_TYPE_META["Consultation Appointment"];
                   return (
                     <div key={appt.id} style={{
                       display: "flex", alignItems: "center", gap: 9,
                       padding: "8px 0",
-                      borderBottom: i < todayAppts.length - 1 ? `1px solid ${C.border}` : "none",
+                      borderBottom: i < periodAppts.length - 1 ? `1px solid ${C.border}` : "none",
                     }}>
                       <div style={{ width:32, height:32, borderRadius:8, background:typeColor+"18", display:"grid", placeItems:"center", fontSize:15, flexShrink:0 }}>
                         {TYPE_ICON[appt.type] || "📅"}
@@ -792,16 +830,18 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appt.lead}</div>
                         <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
-                          <span style={{ fontFamily: "monospace", color: typeColor, fontWeight: 600 }}>{appt.start}</span>
+                          <span style={{ fontFamily: "monospace", color: typeColor, fontWeight: 600 }}>
+                            {period !== "today" && <>{fmtApptDay(appt.date)} · </>}{appt.start}
+                          </span>
                           {!personal && appt.gp && <> · {appt.gp}</>}
                         </div>
                       </div>
                       <span style={{
                         fontSize: 9, fontFamily: "monospace", padding: "2px 6px",
                         borderRadius: 20, fontWeight: 700, flexShrink: 0,
-                        background: statusColor + "18", color: statusColor,
+                        background: meeting.color + "18", color: meeting.color,
                       }}>
-                        {appt.status}
+                        {meeting.short}
                       </span>
                     </div>
                   );

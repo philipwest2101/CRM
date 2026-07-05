@@ -693,6 +693,17 @@ export const APPT_TYPE_META = {
   inperson: { label:"🤝 In-Person",   color:"#10B981", bg:"#ECFDF5" },
 };
 
+// Business meeting types (what the appointment is about) — used for the
+// dashboard badges and matches the "Meeting Type" options in the modals.
+export const MEETING_TYPE_META = {
+  "Consultation Appointment": { short:"Consultation",     color:"#3B82F6" },
+  "Recruiting":               { short:"Recruiting",       color:"#8B5CF6" },
+  "Business Opening":         { short:"Business Opening", color:"#10B981" },
+  "Investment Talk":          { short:"Investment Talk",  color:"#6366F1" },
+  "Finance Talk":             { short:"Finance Talk",     color:"#F59E0B" },
+  "Other":                    { short:"Other",            color:"#94A3B8" },
+};
+
 export const APPT_STATUS_META = {
   upcoming:  { label:"Upcoming",   color:"#3B82F6" },
   confirmed: { label:"Confirmed",  color:"#6366F1" },
@@ -740,58 +751,58 @@ export const UNASSIGNED_LEADS_POOL = [
 
 export const APPOINTMENTS = [
   // ── Past ──────────────────────────────────────────────────────────────────
-  { id:"A-101", date:"2026-02-17", start:"10:00", end:"10:45", type:"call",     lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"done",      notes:"Interested — confirmed appointment for 26th" },
-  { id:"A-102", date:"2026-02-18", start:"14:00", end:"15:00", type:"video",    lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",     vd:"Thomas Müller", status:"done",      notes:"Qualified — strong interest in Q1 Finanz" },
-  { id:"A-103", date:"2026-02-19", start:"11:00", end:"12:00", type:"inperson", lead:"Bernd Vogel",     leadId:"L-1054", gp:"Thomas Müller",  vd:"Thomas Müller", status:"done",      notes:"Closed €1.800 — VD self-close" },
-  { id:"A-104", date:"2026-02-20", start:"15:00", end:"16:00", type:"video",    lead:"Stefan Koch",     leadId:"L-1035", gp:"Kai Becker",     vd:"Lisa Weber",    status:"done",      notes:"Closed €2.400 — strong pitch" },
-  { id:"A-105", date:"2026-02-23", start:"09:00", end:"09:30", type:"call",     lead:"Peter Hoffmann",  leadId:"L-1039", gp:"Anna Klein",     vd:"Thomas Müller", status:"noshow",    notes:"No answer — will retry tomorrow" },
-  { id:"A-106", date:"2026-02-23", start:"11:00", end:"12:00", type:"video",    lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",     vd:"Lisa Weber",    status:"done",      notes:"Presentation done — follow-up scheduled" },
-  { id:"A-107", date:"2026-02-23", start:"15:30", end:"16:15", type:"call",     lead:"Ralf Neumann",    leadId:"L-1050", gp:"Thomas Müller",  vd:"Thomas Müller", status:"done",      notes:"In progress — proposal sent" },
+  { id:"A-101", date:"2026-02-17", start:"10:00", end:"10:45", type:"call",     apptType:"Consultation Appointment", lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"done",      notes:"Interested — confirmed appointment for 26th" },
+  { id:"A-102", date:"2026-02-18", start:"14:00", end:"15:00", type:"video",    apptType:"Investment Talk", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",     vd:"Thomas Müller", status:"done",      notes:"Qualified — strong interest in Q1 Finanz" },
+  { id:"A-103", date:"2026-02-19", start:"11:00", end:"12:00", type:"inperson", apptType:"Business Opening", lead:"Bernd Vogel",     leadId:"L-1054", gp:"Thomas Müller",  vd:"Thomas Müller", status:"done",      notes:"Closed €1.800 — VD self-close" },
+  { id:"A-104", date:"2026-02-20", start:"15:00", end:"16:00", type:"video",    apptType:"Finance Talk", lead:"Stefan Koch",     leadId:"L-1035", gp:"Kai Becker",     vd:"Lisa Weber",    status:"done",      notes:"Closed €2.400 — strong pitch" },
+  { id:"A-105", date:"2026-02-23", start:"09:00", end:"09:30", type:"call",     apptType:"Consultation Appointment", lead:"Peter Hoffmann",  leadId:"L-1039", gp:"Anna Klein",     vd:"Thomas Müller", status:"noshow",    notes:"No answer — will retry tomorrow" },
+  { id:"A-106", date:"2026-02-23", start:"11:00", end:"12:00", type:"video",    apptType:"Investment Talk", lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",     vd:"Lisa Weber",    status:"done",      notes:"Presentation done — follow-up scheduled" },
+  { id:"A-107", date:"2026-02-23", start:"15:30", end:"16:15", type:"call",     apptType:"Finance Talk", lead:"Ralf Neumann",    leadId:"L-1050", gp:"Thomas Müller",  vd:"Thomas Müller", status:"done",      notes:"In progress — proposal sent" },
   // ── Today (Feb 24) ─────────────────────────────────────────────────────────
-  { id:"A-108", date:"2026-02-24", start:"10:00", end:"10:45", type:"call",     lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"2nd contact — high score 92. Aim to set appointment." },
-  { id:"A-109", date:"2026-02-24", start:"11:30", end:"12:00", type:"call",     lead:"Peter Hoffmann",  leadId:"L-1039", gp:"Marc Otto",      vd:"Thomas Müller", status:"upcoming",  notes:"Re-attempt after no-show yesterday" },
-  { id:"A-110", date:"2026-02-24", start:"14:00", end:"15:00", type:"video",    lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"confirmed", notes:"Strategy session — pre-close. Prepare 3 options." },
-  { id:"A-111", date:"2026-02-24", start:"15:30", end:"16:30", type:"inperson", lead:"Dirk Schumacher", leadId:"L-1052", gp:"Thomas Müller",  vd:"Thomas Müller", status:"confirmed", notes:"VD direct appointment — Partner Ref contact" },
-  { id:"A-112", date:"2026-02-24", start:"16:00", end:"17:00", type:"video",    lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",     vd:"Lisa Weber",    status:"upcoming",  notes:"Follow-up from Monday — qualification call" },
+  { id:"A-108", date:"2026-02-24", start:"10:00", end:"10:45", type:"call",     apptType:"Consultation Appointment", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"2nd contact — high score 92. Aim to set appointment." },
+  { id:"A-109", date:"2026-02-24", start:"11:30", end:"12:00", type:"call",     apptType:"Recruiting", lead:"Peter Hoffmann",  leadId:"L-1039", gp:"Marc Otto",      vd:"Thomas Müller", status:"upcoming",  notes:"Re-attempt after no-show yesterday" },
+  { id:"A-110", date:"2026-02-24", start:"14:00", end:"15:00", type:"video",    apptType:"Investment Talk", lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"confirmed", notes:"Strategy session — pre-close. Prepare 3 options." },
+  { id:"A-111", date:"2026-02-24", start:"15:30", end:"16:30", type:"inperson", apptType:"Business Opening", lead:"Dirk Schumacher", leadId:"L-1052", gp:"Thomas Müller",  vd:"Thomas Müller", status:"confirmed", notes:"VD direct appointment — Partner Ref contact" },
+  { id:"A-112", date:"2026-02-24", start:"16:00", end:"17:00", type:"video",    apptType:"Consultation Appointment", lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",     vd:"Lisa Weber",    status:"upcoming",  notes:"Follow-up from Monday — qualification call" },
   // ── Rest of week ───────────────────────────────────────────────────────────
-  { id:"A-113", date:"2026-02-25", start:"09:30", end:"10:00", type:"call",     lead:"Claudia Becker",  leadId:"L-1034", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Giveaway contact — follow-up call" },
-  { id:"A-114", date:"2026-02-25", start:"11:00", end:"12:00", type:"video",    lead:"Ralf Neumann",    leadId:"L-1050", gp:"Thomas Müller",  vd:"Thomas Müller", status:"upcoming",  notes:"Proposal review — Q1 Finanz" },
-  { id:"A-115", date:"2026-02-25", start:"14:00", end:"14:30", type:"call",     lead:"Monika Braun",    leadId:"L-1036", gp:"Kai Becker",     vd:"Lisa Weber",    status:"cancelled", notes:"Client cancelled — reschedule" },
-  { id:"A-116", date:"2026-02-26", start:"10:00", end:"11:30", type:"inperson", lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Full financial consultation — close expected" },
-  { id:"A-117", date:"2026-02-26", start:"14:30", end:"15:00", type:"call",     lead:"Karla Metz",      leadId:"L-1053", gp:"Thomas Müller",  vd:"Thomas Müller", status:"upcoming",  notes:"Messe FFM contact — first real conversation" },
-  { id:"A-118", date:"2026-02-26", start:"16:00", end:"17:00", type:"video",    lead:"Ben Schulze",     leadId:"L-1030", gp:"Ben Hartmann",   vd:"Ralf Fischer",  status:"upcoming",  notes:"Partner Ref — qualification call" },
-  { id:"A-119", date:"2026-02-27", start:"09:00", end:"09:30", type:"call",     lead:"Nina Hartmann",   leadId:"L-1031", gp:"Tanja Vogt",     vd:"Lisa Weber",    status:"upcoming",  notes:"Messe FFM — in progress, moved forward" },
-  { id:"A-120", date:"2026-02-27", start:"11:00", end:"12:00", type:"video",    lead:"Hanna Vogel",     leadId:"L-1033", gp:"Marc Otto",      vd:"Thomas Müller", status:"upcoming",  notes:"Q1 Finanz — first appointment after cold outreach" },
+  { id:"A-113", date:"2026-02-25", start:"09:30", end:"10:00", type:"call",     apptType:"Finance Talk", lead:"Claudia Becker",  leadId:"L-1034", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Giveaway contact — follow-up call" },
+  { id:"A-114", date:"2026-02-25", start:"11:00", end:"12:00", type:"video",    apptType:"Investment Talk", lead:"Ralf Neumann",    leadId:"L-1050", gp:"Thomas Müller",  vd:"Thomas Müller", status:"upcoming",  notes:"Proposal review — Q1 Finanz" },
+  { id:"A-115", date:"2026-02-25", start:"14:00", end:"14:30", type:"call",     apptType:"Consultation Appointment", lead:"Monika Braun",    leadId:"L-1036", gp:"Kai Becker",     vd:"Lisa Weber",    status:"cancelled", notes:"Client cancelled — reschedule" },
+  { id:"A-116", date:"2026-02-26", start:"10:00", end:"11:30", type:"inperson", apptType:"Investment Talk", lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Full financial consultation — close expected" },
+  { id:"A-117", date:"2026-02-26", start:"14:30", end:"15:00", type:"call",     apptType:"Business Opening", lead:"Karla Metz",      leadId:"L-1053", gp:"Thomas Müller",  vd:"Thomas Müller", status:"upcoming",  notes:"Messe FFM contact — first real conversation" },
+  { id:"A-118", date:"2026-02-26", start:"16:00", end:"17:00", type:"video",    apptType:"Recruiting", lead:"Ben Schulze",     leadId:"L-1030", gp:"Ben Hartmann",   vd:"Ralf Fischer",  status:"upcoming",  notes:"Partner Ref — qualification call" },
+  { id:"A-119", date:"2026-02-27", start:"09:00", end:"09:30", type:"call",     apptType:"Consultation Appointment", lead:"Nina Hartmann",   leadId:"L-1031", gp:"Tanja Vogt",     vd:"Lisa Weber",    status:"upcoming",  notes:"Messe FFM — in progress, moved forward" },
+  { id:"A-120", date:"2026-02-27", start:"11:00", end:"12:00", type:"video",    apptType:"Finance Talk", lead:"Hanna Vogel",     leadId:"L-1033", gp:"Marc Otto",      vd:"Thomas Müller", status:"upcoming",  notes:"Q1 Finanz — first appointment after cold outreach" },
   // ── Next week ──────────────────────────────────────────────────────────────
-  { id:"A-121", date:"2026-03-02", start:"10:00", end:"11:00", type:"video",    lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Post-consultation follow-up — closing call" },
-  { id:"A-122", date:"2026-03-03", start:"14:00", end:"15:00", type:"inperson", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Strategy presentation if appointment set today" },
-  { id:"A-123", date:"2026-03-04", start:"09:30", end:"10:30", type:"call",     lead:"Hanna Vogel",     leadId:"L-1033", gp:"Marc Otto",      vd:"Thomas Müller", status:"upcoming",  notes:"Q1 Finanz — proposal review" },
+  { id:"A-121", date:"2026-03-02", start:"10:00", end:"11:00", type:"video",    apptType:"Investment Talk", lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Post-consultation follow-up — closing call" },
+  { id:"A-122", date:"2026-03-03", start:"14:00", end:"15:00", type:"inperson", apptType:"Business Opening", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",     vd:"Thomas Müller", status:"upcoming",  notes:"Strategy presentation if appointment set today" },
+  { id:"A-123", date:"2026-03-04", start:"09:30", end:"10:30", type:"call",     apptType:"Finance Talk", lead:"Hanna Vogel",     leadId:"L-1033", gp:"Marc Otto",      vd:"Thomas Müller", status:"upcoming",  notes:"Q1 Finanz — proposal review" },
   // ── Today 2026-06-28 ───────────────────────────────────────────────────────
-  { id:"A-201", date:"2026-06-28", start:"09:00", end:"09:45", type:"call",     lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Initial consultation — high AI score" },
-  { id:"A-202", date:"2026-06-28", start:"10:30", end:"11:30", type:"video",    lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Product presentation — Q1 Finanz" },
-  { id:"A-203", date:"2026-06-28", start:"12:00", end:"13:00", type:"inperson", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Strategy session — 2nd meeting" },
-  { id:"A-204", date:"2026-06-28", start:"14:00", end:"14:45", type:"call",     lead:"Robert Keller",   leadId:"L-2006", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Referral contact — first appointment" },
-  { id:"A-205", date:"2026-06-28", start:"15:30", end:"16:30", type:"video",    lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Follow-up after proposal sent" },
-  { id:"A-206", date:"2026-06-28", start:"16:00", end:"17:00", type:"inperson", lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",    vd:"Lisa Weber",    status:"upcoming",  notes:"Qualification meeting" },
-  { id:"A-207", date:"2026-06-28", start:"17:30", end:"18:00", type:"call",     lead:"Dirk Schumacher", leadId:"L-1052", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — check in call" },
+  { id:"A-201", date:"2026-06-28", start:"09:00", end:"09:45", type:"call",     apptType:"Consultation Appointment", lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Initial consultation — high AI score" },
+  { id:"A-202", date:"2026-06-28", start:"10:30", end:"11:30", type:"video",    apptType:"Investment Talk", lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Product presentation — Q1 Finanz" },
+  { id:"A-203", date:"2026-06-28", start:"12:00", end:"13:00", type:"inperson", apptType:"Business Opening", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Strategy session — 2nd meeting" },
+  { id:"A-204", date:"2026-06-28", start:"14:00", end:"14:45", type:"call",     apptType:"Finance Talk", lead:"Robert Keller",   leadId:"L-2006", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Referral contact — first appointment" },
+  { id:"A-205", date:"2026-06-28", start:"15:30", end:"16:30", type:"video",    apptType:"Consultation Appointment", lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Follow-up after proposal sent" },
+  { id:"A-206", date:"2026-06-28", start:"16:00", end:"17:00", type:"inperson", apptType:"Recruiting", lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",    vd:"Lisa Weber",    status:"upcoming",  notes:"Qualification meeting" },
+  { id:"A-207", date:"2026-06-28", start:"17:30", end:"18:00", type:"call",     apptType:"Finance Talk", lead:"Dirk Schumacher", leadId:"L-1052", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — check in call" },
   // ── Today 2026-06-29 — GP Anna Klein ───────────────────────────────────────
-  { id:"A-301", date:"2026-06-29", start:"09:00", end:"09:45", type:"call",     lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Follow-up after proposal — Q1 Finanz" },
-  { id:"A-302", date:"2026-06-29", start:"11:30", end:"12:30", type:"video",    lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Full consultation — pre-close" },
-  { id:"A-303", date:"2026-06-29", start:"14:00", end:"15:00", type:"inperson", lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"2nd appointment — needs proposal" },
-  { id:"A-304", date:"2026-06-29", start:"16:30", end:"17:00", type:"call",     lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Quick check-in — contract status" },
+  { id:"A-301", date:"2026-06-29", start:"09:00", end:"09:45", type:"call",     apptType:"Consultation Appointment", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Follow-up after proposal — Q1 Finanz" },
+  { id:"A-302", date:"2026-06-29", start:"11:30", end:"12:30", type:"video",    apptType:"Investment Talk", lead:"Lars Dietrich",   leadId:"L-1032", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Full consultation — pre-close" },
+  { id:"A-303", date:"2026-06-29", start:"14:00", end:"15:00", type:"inperson", apptType:"Business Opening", lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"2nd appointment — needs proposal" },
+  { id:"A-304", date:"2026-06-29", start:"16:30", end:"17:00", type:"call",     apptType:"Finance Talk", lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Quick check-in — contract status" },
   // ── Today 2026-06-29 — VD Thomas Müller (direct / self-close) ──────────────
-  { id:"A-305", date:"2026-06-29", start:"09:30", end:"10:15", type:"call",     lead:"Eva Gruber",      leadId:"L-2013", gp:"Thomas Müller", vd:"Thomas Müller", status:"confirmed", notes:"VD direct — partner referral, first appointment" },
-  { id:"A-306", date:"2026-06-29", start:"11:00", end:"12:00", type:"video",    lead:"Klaus Richter",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — strategic partnership discussion" },
-  { id:"A-307", date:"2026-06-29", start:"14:30", end:"15:30", type:"inperson", lead:"Stefan Wolf",     leadId:"L-2015", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Q2 planning & cross-sell" },
+  { id:"A-305", date:"2026-06-29", start:"09:30", end:"10:15", type:"call",     apptType:"Consultation Appointment", lead:"Eva Gruber",      leadId:"L-2013", gp:"Thomas Müller", vd:"Thomas Müller", status:"confirmed", notes:"VD direct — partner referral, first appointment" },
+  { id:"A-306", date:"2026-06-29", start:"11:00", end:"12:00", type:"video",    apptType:"Investment Talk", lead:"Klaus Richter",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — strategic partnership discussion" },
+  { id:"A-307", date:"2026-06-29", start:"14:30", end:"15:30", type:"inperson", apptType:"Business Opening", lead:"Stefan Wolf",     leadId:"L-2015", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Q2 planning & cross-sell" },
   // ── Today 2026-07-01 — GP Anna Klein ────────────────────────────────────────
-  { id:"A-401", date:"2026-07-01", start:"09:00", end:"09:45", type:"call",     lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"3rd contact — nearing appointment decision" },
-  { id:"A-402", date:"2026-07-01", start:"10:30", end:"11:15", type:"video",    lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Product walkthrough — Q1 Finanz" },
-  { id:"A-403", date:"2026-07-01", start:"12:00", end:"13:00", type:"inperson", lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"First in-person meeting — Partner Ref" },
-  { id:"A-404", date:"2026-07-01", start:"14:00", end:"14:30", type:"call",     lead:"Anna Bergmann",   leadId:"L-2013", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Follow-up after webinar interest" },
+  { id:"A-401", date:"2026-07-01", start:"09:00", end:"09:45", type:"call",     apptType:"Consultation Appointment", lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"3rd contact — nearing appointment decision" },
+  { id:"A-402", date:"2026-07-01", start:"10:30", end:"11:15", type:"video",    apptType:"Investment Talk", lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Product walkthrough — Q1 Finanz" },
+  { id:"A-403", date:"2026-07-01", start:"12:00", end:"13:00", type:"inperson", apptType:"Business Opening", lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"First in-person meeting — Partner Ref" },
+  { id:"A-404", date:"2026-07-01", start:"14:00", end:"14:30", type:"call",     apptType:"Finance Talk", lead:"Anna Bergmann",   leadId:"L-2013", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Follow-up after webinar interest" },
   // ── Today 2026-07-01 — VD Thomas Müller (direct / self-close) ──────────────
-  { id:"A-405", date:"2026-07-01", start:"11:00", end:"11:30", type:"call",     lead:"Michael Stein",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Messe FFM contact" },
-  { id:"A-406", date:"2026-07-01", start:"14:30", end:"15:15", type:"video",    lead:"Eva Gruber",      leadId:"L-2015", gp:"Thomas Müller", vd:"Thomas Müller", status:"confirmed", notes:"VD direct — contract review, partner referral" },
-  { id:"A-407", date:"2026-07-01", start:"16:00", end:"16:45", type:"inperson", lead:"Stefan Wolf",     leadId:"L-2017", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Q3 planning & cross-sell" },
+  { id:"A-405", date:"2026-07-01", start:"11:00", end:"11:30", type:"call",     apptType:"Recruiting", lead:"Michael Stein",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Messe FFM contact" },
+  { id:"A-406", date:"2026-07-01", start:"14:30", end:"15:15", type:"video",    apptType:"Investment Talk", lead:"Eva Gruber",      leadId:"L-2015", gp:"Thomas Müller", vd:"Thomas Müller", status:"confirmed", notes:"VD direct — contract review, partner referral" },
+  { id:"A-407", date:"2026-07-01", start:"16:00", end:"16:45", type:"inperson", apptType:"Business Opening", lead:"Stefan Wolf",     leadId:"L-2017", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Q3 planning & cross-sell" },
 ];
 
 
@@ -799,6 +810,7 @@ export let ACTIVITIES_STORE = [
   // From APPOINTMENTS — mapped to activity model
   ...APPOINTMENTS.map(a => ({
     id: a.id, type: a.type==="call"?"call":a.type==="video"?"video":"inperson",
+    apptType: a.apptType,
     title: a.lead, lead: a.lead, leadId: a.leadId,
     date: a.date, time: a.start, end: a.end,
     gp: a.gp, vd: a.vd, status: a.status,
