@@ -12,39 +12,31 @@ const DASH_USERS = [
   { id: "u5", name: "Sophie Braun",  role: "Berater" },
 ];
 
-// ── Simple SVG donut/pie chart ────────────────────────────────────────────────
-const PieChart = ({ slices }) => {
-  const total = slices.reduce((s, sl) => s + sl.value, 0);
-  if (!total) return null;
-  const R = 55, cx = 65, cy = 65, inner = 28;
-  let cum = -Math.PI / 2;
-  const paths = slices.map(sl => {
-    const a = (sl.value / total) * 2 * Math.PI;
-    const x1 = cx + R * Math.cos(cum), y1 = cy + R * Math.sin(cum);
-    cum += a;
-    const x2 = cx + R * Math.cos(cum), y2 = cy + R * Math.sin(cum);
-    return { ...sl, path: `M${cx},${cy} L${x1},${y1} A${R},${R},0,${a > Math.PI ? 1 : 0},1,${x2},${y2} Z` };
-  });
-  return (
-    <svg width={130} height={130} style={{ flexShrink: 0 }}>
-      {paths.map((sl, i) => <path key={i} d={sl.path} fill={sl.color} />)}
-      <circle cx={cx} cy={cy} r={inner} fill="#fff" />
-    </svg>
-  );
-};
+// Teams a Super Admin can assign a lead to (team = a director's org).
+const DASH_TEAMS = [
+  { id: "t1", name: "Team Thomas Müller", director: "Thomas Müller" },
+  { id: "t2", name: "Team Marc Fischer",  director: "Marc Fischer"  },
+  { id: "t3", name: "Team Jana Kruse",    director: "Jana Kruse"    },
+  { id: "t4", name: "Team Ralf Fischer",  director: "Ralf Fischer"  },
+  { id: "t5", name: "Team Sabine Roth",   director: "Sabine Roth"   },
+];
 
 // ── Assign modal (dashboard) ──────────────────────────────────────────────────
-const DashAssignModal = ({ lead, onClose }) => {
+// SA can assign a lead to a specific advisor OR a whole team; VD assigns to advisors.
+const DashAssignModal = ({ lead, onClose, allowTeams = false }) => {
+  const [mode, setMode]         = useState("advisor");   // "advisor" | "team"
   const [assignee, setAssignee] = useState("");
   const [confirm, setConfirm]   = useState(false);
-  const user = DASH_USERS.find(u => u.id === assignee);
+  const target = mode === "team"
+    ? DASH_TEAMS.find(t => t.id === assignee)
+    : DASH_USERS.find(u => u.id === assignee);
 
   if (confirm) return (
     <>
       <div onClick={() => setConfirm(false)} style={{ position:"fixed",inset:0,background:"rgba(15,23,42,0.45)",zIndex:600 }}/>
       <div style={{ position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:400,maxWidth:"92vw",background:"#fff",borderRadius:16,zIndex:700,boxShadow:"0 24px 64px rgba(0,0,0,0.22)",padding:"22px 24px",fontFamily:"inherit" }}>
         <div style={{ fontSize:17,fontWeight:700,color:C.navy,marginBottom:8 }}>Confirm Assignment</div>
-        <div style={{ fontSize:13,color:C.slate,marginBottom:22 }}>Assign <b>{lead?.name}</b> to <b>{user?.name}</b>?</div>
+        <div style={{ fontSize:13,color:C.slate,marginBottom:22 }}>Assign <b>{lead?.name}</b> to <b>{target?.name}</b>?</div>
         <div style={{ display:"flex",justifyContent:"flex-end",gap:12 }}>
           <button onClick={()=>setConfirm(false)} style={{ padding:"9px 20px",borderRadius:9,border:"none",background:"transparent",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
           <button onClick={onClose} style={{ padding:"9px 24px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>Assign</button>
@@ -62,11 +54,23 @@ const DashAssignModal = ({ lead, onClose }) => {
           <button onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",fontSize:20,color:C.muted }}>×</button>
         </div>
         <div style={{ fontSize:13,color:C.slate,marginBottom:14 }}>Contact: <b>{lead?.name}</b></div>
+        {allowTeams && (
+          <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:9,overflow:"hidden",marginBottom:14 }}>
+            {[["advisor","Advisor"],["team","Team"]].map(([key,label],i)=>(
+              <button key={key} onClick={()=>{ setMode(key); setAssignee(""); }}
+                style={{ flex:1,padding:"8px 0",border:"none",borderLeft:i===0?"none":`1px solid ${C.border}`,
+                  background:mode===key?C.primary:"#fff",color:mode===key?"#fff":C.muted,
+                  fontSize:12,fontWeight:mode===key?700:500,cursor:"pointer",fontFamily:"inherit" }}>{label}</button>
+            ))}
+          </div>
+        )}
         <label style={{ fontSize:13,fontWeight:600,color:C.navy,display:"block",marginBottom:6 }}>Assign to *</label>
         <select value={assignee} onChange={e=>setAssignee(e.target.value)}
           style={{ width:"100%",padding:"10px 12px",borderRadius:8,border:`1px solid ${C.border}`,fontSize:13,fontFamily:"inherit",color:assignee?C.text:C.muted,outline:"none",background:"#fff",marginBottom:22 }}>
-          <option value="">Select a user...</option>
-          {DASH_USERS.map(u=><option key={u.id} value={u.id}>{u.name} — {u.role}</option>)}
+          <option value="">{mode === "team" ? "Select a team..." : "Select a user..."}</option>
+          {mode === "team"
+            ? DASH_TEAMS.map(tm=><option key={tm.id} value={tm.id}>{tm.name} — {tm.director}</option>)
+            : DASH_USERS.map(u=><option key={u.id} value={u.id}>{u.name} — {u.role}</option>)}
         </select>
         <div style={{ display:"flex",justifyContent:"flex-end",gap:12 }}>
           <button onClick={onClose} style={{ padding:"9px 20px",borderRadius:9,border:"none",background:"transparent",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer" }}>Cancel</button>
@@ -114,13 +118,16 @@ const Card = ({ children, style = {} }) => (
   </div>
 );
 
-const CardHeader = ({ title, action = null }) => (
+const CardHeader = ({ title, action = null, info = null }) => (
   <div style={{
     padding: "11px 16px 9px",
     borderBottom: `1px solid ${C.border}`,
     display: "flex", alignItems: "center", justifyContent: "space-between",
   }}>
-    <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{title}</div>
+    <div style={{ fontSize: 15, fontWeight: 600, color: C.text, display: "flex", alignItems: "center" }}>
+      {title}
+      {info && <InfoTip text={info} />}
+    </div>
     {action}
   </div>
 );
@@ -298,28 +305,57 @@ const VD_ADVISORS = [
   { name:"Nina Schmitt", leads:63,  contacts:74,  appts:18, closings:6,  ca:{5:6,4:9,3:12,2:15,1:11} },
 ];
 
-// Performance table (rows = teams for SA, advisors for VD).
-const PerfTable = ({ title, rowLabel, rows, action }) => (
+// ── SA: Campaign ROI — leads generated, spend, revenue per campaign (monthly
+//    baseline; scaled by the selected time slot). ─────────────────────────────
+const SA_CAMPAIGNS = [
+  { name:"Q1 Finanz",    leads:486, closings:41, cost:12400, revenue:98400 },
+  { name:"Webinar März", leads:352, closings:19, cost:6800,  revenue:45600 },
+  { name:"Messe FFM",    leads:243, closings:11, cost:9500,  revenue:26400 },
+  { name:"Partner Ref",  leads:189, closings:24, cost:3200,  revenue:57600 },
+  { name:"Giveaway",     leads:167, closings:4,  cost:2100,  revenue:9600  },
+];
+const CAMPAIGN_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
+
+// ── SA: Missing Feedback — advisors who have not updated the status of leads
+//    assigned to them (alert list with a notify action). ──────────────────────
+const MISSING_FEEDBACK = [
+  { id:"mf1", advisor:"Marc Otto",    team:"Thomas Müller", leads:6, days:5 },
+  { id:"mf2", advisor:"Tanja Vogt",   team:"Jana Kruse",    leads:5, days:6 },
+  { id:"mf3", advisor:"Nina Schmitt", team:"Thomas Müller", leads:4, days:3 },
+  { id:"mf4", advisor:"Jonas Peters", team:"Marc Fischer",  leads:3, days:4 },
+  { id:"mf5", advisor:"Ben Hartmann", team:"Ralf Fischer",  leads:2, days:2 },
+];
+
+const fmtEUR = (v) => "€" + (v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, "") + "k" : Math.round(v).toString());
+
+// Campaign ROI table — tracks leads generated per campaign plus spend/revenue.
+const CampaignRoiCard = ({ t, scaleP, action }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
-    <CardHeader title={title} action={action} />
-    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.6fr 0.8fr 0.8fr 1fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[rowLabel, "Leads", "Appts", "Closings", "Rate"].map((h, i) => (
+    <CardHeader title={t("campaignRoi")} action={action} />
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.8fr 0.9fr 0.8fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[t("campaignColumn"), "Leads", t("costCol"), t("revenueCol"), t("roiCol")].map((h, i) => (
         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
       ))}
     </div>
     <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
-      {rows.map((r, i) => {
-        const rate = r.leads > 0 ? ((r.closings / r.leads) * 100).toFixed(1) + "%" : "0%";
+      {SA_CAMPAIGNS.map((cp, i) => {
+        const cost = scaleP(cp.cost), revenue = scaleP(cp.revenue);
+        const roi = cost > 0 ? Math.round(((revenue - cost) / cost) * 100) : 0;
+        const roiColor = roi >= 200 ? C.green : roi >= 100 ? C.amber : C.red;
         return (
-          <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.6fr 0.8fr 0.8fr 1fr 0.9fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+          <div key={cp.name} style={{ display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.8fr 0.9fr 0.8fr", padding: "10px 0", borderBottom: i < SA_CAMPAIGNS.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <Avatar name={r.name} size={26} />
-              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: CAMPAIGN_COLORS[i % CAMPAIGN_COLORS.length], flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cp.name}</span>
             </div>
-            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.leads}</div>
-            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.appts}</div>
-            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.closings}</div>
-            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color: parseFloat(rate) >= 10 ? C.green : parseFloat(rate) >= 6 ? C.amber : C.red }}>{rate}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{scaleP(cp.leads)}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{fmtEUR(cost)}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{fmtEUR(revenue)}</div>
+            <div style={{ textAlign: "center" }}>
+              <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: roiColor + "15", color: roiColor }}>
+                {roi >= 0 ? "+" : ""}{roi}%
+              </span>
+            </div>
           </div>
         );
       })}
@@ -327,26 +363,114 @@ const PerfTable = ({ title, rowLabel, rows, action }) => (
   </Card>
 );
 
-// Call Attempts table — one column per attempt level (5/5 … 1/5).
-const CallAttemptsTable = ({ title, rowLabel, rows, action }) => (
+// Missing Feedback alerts — advisors without status updates on assigned leads.
+const MissingFeedbackCard = ({ t }) => {
+  const [notified, setNotified] = useState({});
+  return (
+    <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+      <CardHeader
+        title={t("missingFeedbackTitle")}
+        info={t("tooltip_missingFeedback")}
+        action={
+          <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: C.red + "15", color: C.red }}>
+            {MISSING_FEEDBACK.reduce((s, m) => s + m.leads, 0)}
+          </span>
+        }
+      />
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 8px" }}>
+        {MISSING_FEEDBACK.map((m, i) => (
+          <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < MISSING_FEEDBACK.length - 1 ? `1px solid ${C.border}` : "none" }}>
+            <span style={{ fontSize: 15, flexShrink: 0 }}>{m.days >= 5 ? "🔴" : "⚠️"}</span>
+            <Avatar name={m.advisor} size={28} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {m.advisor} — {m.leads} {t("leadsWithoutFeedback")}
+              </div>
+              <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                Team {m.team} · <span style={{ color: m.days >= 5 ? C.red : C.amber, fontWeight: 600 }}>{m.days} {t("daysOverdue")}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setNotified(prev => ({ ...prev, [m.id]: true }))}
+              disabled={!!notified[m.id]}
+              style={{
+                padding: "4px 10px", borderRadius: 6, flexShrink: 0,
+                border: notified[m.id] ? `1px solid ${C.green}40` : "none",
+                background: notified[m.id] ? C.green + "12" : C.primary,
+                color: notified[m.id] ? C.green : "#fff",
+                fontSize: 10, fontFamily: "monospace", letterSpacing: "0.05em", textTransform: "uppercase",
+                cursor: notified[m.id] ? "default" : "pointer", fontWeight: 600,
+              }}>
+              {notified[m.id] ? t("notified") : t("notify")}
+            </button>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+};
+
+// Performance table (rows = teams for SA, advisors for VD).
+// Closing % = closings / appointments; Success % = closings / leads.
+const PerfTable = ({ title, rowLabel, rows, action, closingCol, successCol }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={title} action={action} />
-    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.6fr repeat(5, 1fr)", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[rowLabel, ...ATTEMPT_LEVELS.map(n => `${n}/5`)].map((h, i) => (
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.8fr 0.9fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[rowLabel, "Leads", "Appts", "Closings", closingCol, successCol].map((h, i) => (
+        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
+      ))}
+    </div>
+    <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
+      {rows.map((r, i) => {
+        const closingRate = r.appts > 0 ? ((r.closings / r.appts) * 100).toFixed(1) + "%" : "0%";
+        const successRate = r.leads > 0 ? ((r.closings / r.leads) * 100).toFixed(1) + "%" : "0%";
+        return (
+          <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.8fr 0.9fr 0.9fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <Avatar name={r.name} size={26} />
+              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+            </div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.leads}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.appts}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.closings}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color: parseFloat(closingRate) >= 30 ? C.green : parseFloat(closingRate) >= 20 ? C.amber : C.red }}>{closingRate}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color: parseFloat(successRate) >= 10 ? C.green : parseFloat(successRate) >= 6 ? C.amber : C.red }}>{successRate}</div>
+          </div>
+        );
+      })}
+    </div>
+  </Card>
+);
+
+// Call Attempts table — leads bucketed by how many call attempts were needed to
+// reach them: 1–2 (fine), 3, 4, 5+ (problem zone highlighted).
+const ATTEMPT_BUCKETS = [
+  { key: "12",  label: "1–2" },
+  { key: "3",   label: "3"   },
+  { key: "4",   label: "4"   },
+  { key: "5",   label: "5+"  },
+];
+const bucketCount = (ca, key) => key === "12" ? (ca?.[1] || 0) + (ca?.[2] || 0) : (ca?.[Number(key)] || 0);
+
+const CallAttemptsTable = ({ title, rowLabel, rows, action, info }) => (
+  <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+    <CardHeader title={title} action={action} info={info} />
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.6fr repeat(4, 1fr)", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[rowLabel, ...ATTEMPT_BUCKETS.map(b => b.label)].map((h, i) => (
         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
       ))}
     </div>
     <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
       {rows.map((r, i) => (
-        <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(5, 1fr)", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+        <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(4, 1fr)", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <Avatar name={r.name} size={26} />
             <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
           </div>
-          {ATTEMPT_LEVELS.map(n => {
-            const count = r.ca?.[n] || 0;
-            const color = n >= 4 ? C.red : n === 3 ? C.amber : C.navy;
-            return <div key={n} style={{ textAlign: "center", fontFamily: "monospace", fontSize: 13, fontWeight: count > 0 ? 700 : 400, color: count === 0 ? C.muted : color }}>{count}</div>;
+          {ATTEMPT_BUCKETS.map(b => {
+            const count = bucketCount(r.ca, b.key);
+            const color = b.key === "5" || b.key === "4" ? C.red : b.key === "3" ? C.amber : C.navy;
+            return <div key={b.key} style={{ textAlign: "center", fontFamily: "monospace", fontSize: 13, fontWeight: count > 0 ? 700 : 400, color: count === 0 ? C.muted : color }}>{count}</div>;
           })}
         </div>
       ))}
@@ -367,6 +491,12 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const isVD      = role === "vd";
   const isGP      = role === "gp";
 
+  // ── VD hybrid view — toggle between "My Dashboard" (personal CRM, like an
+  //    Advisor) and "Team Dashboard" (assignments + advisor performance). ─────
+  const [vdView, setVdView] = useState("my");
+  const personal = isGP || (isVD && vdView === "my");   // personal (advisor-style) layout
+  const teamView = isSA || (isVD && vdView === "team"); // team-management layout
+
   // ── Greeting ────────────────────────────────────────────────────────────────
   const hour = new Date().getHours();
   const greeting = hour < 12 ? t("greeting_morning") : hour < 17 ? t("greeting_afternoon") : t("greeting_evening");
@@ -381,22 +511,23 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const allAppointments= appointments.length> 0 ? appointments: MOCK_APPOINTMENTS;
 
   // ── Role-scoped data filters ─────────────────────────────────────────────────
-  // GP  → only their own leads / appointments / activities
-  // VD  → their entire team (everyone where assignedVD === their name)
-  // SA  → everything
-  const scopedLeads = isGP
+  // GP            → only their own leads / appointments / activities
+  // VD (My)       → only leads/appointments/tasks where the VD is personally the advisor
+  // VD (Team)     → their entire team (everyone where assignedVD === their name)
+  // SA            → everything
+  const scopedLeads = personal
     ? allLeads.filter(l => l.assignedGP === userName)
     : isVD
       ? allLeads.filter(l => l.assignedVD === userName)
       : allLeads;
 
-  const scopedAppts = isGP
+  const scopedAppts = personal
     ? allAppointments.filter(a => a.gp === userName)
     : isVD
       ? allAppointments.filter(a => a.vd === userName)
       : allAppointments;
 
-  const scopedActivities = isGP
+  const scopedActivities = personal
     ? allActivities.filter(a => a.gp === userName)
     : isVD
       ? allActivities.filter(a => a.vd === userName)
@@ -406,8 +537,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const totalContacts  = scopedLeads.length;
 
   // New contacts = open status within scope
-  // For VD/SA also surface unassigned contacts (no GP assigned yet)
-  const newLeads = isGP
+  // For VD (team) / SA also surface unassigned contacts (no GP assigned yet)
+  const newLeads = personal
     ? scopedLeads.filter(l => l.status === "open")
     : isVD
       ? allLeads.filter(l => l.status === "open" && (l.assignedVD === userName || !l.assignedVD))
@@ -415,8 +546,17 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
 
   const unassignedCount = newLeads.filter(l => !l.assignedGP && !l.assignedVD).length;
 
+  // "Today" in this wireframe: if the real date has no appointments in the mock
+  // data, fall back to the latest day that does — the section always shows
+  // sample data.
   const todayStr       = new Date().toISOString().slice(0, 10);
-  const todayAppts     = scopedAppts.filter(a => a.date === todayStr && a.status !== "cancelled");
+  const activeAppts    = scopedAppts.filter(a => a.status !== "cancelled");
+  let todayAppts       = activeAppts.filter(a => a.date === todayStr);
+  if (todayAppts.length === 0 && activeAppts.length > 0) {
+    const latestDate = activeAppts.reduce((m, a) => (a.date > m ? a.date : m), "");
+    todayAppts = activeAppts.filter(a => a.date === latestDate);
+  }
+  todayAppts = [...todayAppts].sort((a, b) => (a.start || "").localeCompare(b.start || ""));
 
   // Tasks & reminders share one list (entityType reminder|task) and one "done" model.
   const isDone   = (a) => DONE_STATUSES.includes(a.status);
@@ -431,24 +571,24 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     .filter(a => a.entityType !== "reminder" && a.entityType !== "task")
     .slice(0, 8);
 
-  // ── Panel titles per role ────────────────────────────────────────────────────
-  const leadsTitle     = isGP ? t("myLeads") : isVD ? t("pendingAssignment") : t("unassignedLeads");
-  const contactsLabel  = isGP ? t("myNetwork") : isVD ? t("myLeads") : t("totalContacts");
-  const newLeadsLabel  = isGP ? t("myLeads") : isVD ? t("pendingAssignments") : t("newContacts");
+  // ── Panel titles per role / view ────────────────────────────────────────────
+  const leadsTitle     = personal ? t("myLeads") : isVD ? t("pendingAssignment") : t("unassignedLeads");
+  const contactsLabel  = personal ? t("myNetwork") : isVD ? t("myLeads") : t("totalContacts");
+  const newLeadsLabel  = personal ? t("myLeads") : isVD ? t("pendingAssignments") : t("newContacts");
   const remindersTitle = t("remindersAndTasks");
   const apptsTitle     = t("appointmentsToday");
 
   // System view id the Leads page should open on when the "All" link is clicked —
   // keeps the dashboard's "My Leads / Pending Assignment / Unassigned Leads" panels
   // in sync with the matching Contacts view.
-  const leadsViewId = isGP ? "myleads" : isVD ? "pendingA" : "pending";
+  const leadsViewId = personal ? "myleads" : isVD ? "pendingA" : "pending";
 
-  // Contacts to show in panel (max 6) — SA: truly unassigned; VD: assigned to VD but no GP
-  const panelLeads = isSA
-    ? allLeads.filter(l => !l.assignedGP)
-    : isVD
-      ? allLeads.filter(l => l.assignedVD === userName && !l.assignedGP)
-      : newLeads;
+  // Contacts to show in panel (max 6) — SA: truly unassigned; VD (team): assigned to VD but no GP
+  const panelLeads = personal
+    ? newLeads
+    : isSA
+      ? allLeads.filter(l => !l.assignedGP)
+      : allLeads.filter(l => l.assignedVD === userName && !l.assignedGP);
   const leadsToShow = panelLeads.slice(0, 25);
 
   // ── VD / SA aggregates — driven by the per-team / per-advisor mock so the KPI
@@ -505,7 +645,25 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               {roleLabel} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </div>
           </div>
-          <PeriodTabs period={period} setPeriod={setPeriod} t={t} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {isVD && (
+              <div title={t("tooltip_vdToggle")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
+                {[["my", t("myDashboard")], ["team", t("teamDashboard")]].map(([key, label], i) => (
+                  <button key={key} onClick={() => setVdView(key)} style={{
+                    padding: "7px 14px", border: "none",
+                    borderLeft: i === 0 ? "none" : `1px solid ${C.border}`,
+                    background: vdView === key ? C.navy : "#fff",
+                    color: vdView === key ? "#fff" : C.muted,
+                    fontSize: 12, fontWeight: vdView === key ? 700 : 500,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <PeriodTabs period={period} setPeriod={setPeriod} t={t} />
+          </div>
         </div>
 
         {/* ── KPI row — same KpiCard everywhere so all three roles line up ─── */}
@@ -519,7 +677,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             <KpiCard label={t("kpiClosings")}      value={aggClosings}            info={t("tooltip_kpiClosings")}         color={C.green} />
             <KpiCard label={t("kpiConversionRate")} value={aggConversion}         info={t("tooltip_kpiConversionRate")}   color={C.green} />
           </div>
-        ) : isVD ? (
+        ) : isVD && teamView ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
             <KpiCard label={t("kpiTotalLeads")}    value={aggLeads.toLocaleString()}    info={t("tooltip_kpiTotalLeads")}       color={C.navy} />
             <KpiCard label={t("kpiTotalContacts")} value={aggContacts.toLocaleString()} info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
@@ -532,17 +690,17 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           <KpiCard
             label={contactsLabel}
             value={totalContacts}
-            sub={isGP ? t("assignedToMe") : t("inMyTeam")}
+            sub={personal ? t("assignedToMe") : t("inMyTeam")}
             info={t("tooltip_kpiMyNetwork")}
             color={C.navy}
           />
           <KpiCard
             label={newLeadsLabel}
             value={newLeads.length}
-            sub={isGP ? t("openAndAssigned") : unassignedCount > 0 ? `${unassignedCount} pending` : t("allAssigned")}
+            sub={personal ? t("openAndAssigned") : unassignedCount > 0 ? `${unassignedCount} pending` : t("allAssigned")}
             info={t("tooltip_kpiMyLeads")}
             color={C.primary}
-            warn={!isGP && unassignedCount > 0}
+            warn={!personal && unassignedCount > 0}
           />
           <KpiCard
             label={t("appointmentsToday")}
@@ -573,7 +731,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             <div style={{ flex: 1, overflowY: "auto", padding: "2px 16px 6px" }}>
               {leadsToShow.length === 0 ? (
                 <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                  {isGP ? t("noNewContactsAssigned") : t("noPendingContacts")}
+                  {personal ? t("noNewContactsAssigned") : t("noPendingContacts")}
                 </div>
               ) : leadsToShow.map((lead, i) => (
                 <div key={lead.id} style={{
@@ -589,10 +747,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name}</div>
                     <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {lead.city} · {lead.source}
-                      {isVD && lead.assignedVD && <span style={{ marginLeft: 5, color: C.slate }}>· {lead.assignedVD}</span>}
+                      {isVD && !personal && lead.assignedVD && <span style={{ marginLeft: 5, color: C.slate }}>· {lead.assignedVD}</span>}
                     </div>
                   </div>
-                  {isGP ? (
+                  {personal ? (
                     <button onClick={() => navigateTo("Leads")}
                       style={{ padding:"4px 10px",background:C.primary,color:"#fff",border:"none",borderRadius:6,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontWeight:600 }}>
                       {t("openContact")}
@@ -635,7 +793,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                         <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appt.lead}</div>
                         <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
                           <span style={{ fontFamily: "monospace", color: typeColor, fontWeight: 600 }}>{appt.start}</span>
-                          {!isGP && appt.gp && <> · {appt.gp}</>}
+                          {!personal && appt.gp && <> · {appt.gp}</>}
                         </div>
                       </div>
                       <span style={{
@@ -652,8 +810,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </Card>
         </div>
 
-        {/* ── Row 2: GP → Reminders & Tasks | Recent Activity ─────────────── */}
-        {isGP && (
+        {/* ── Row 2: GP / VD (My) → Reminders & Tasks | Recent Activity ───── */}
+        {personal && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
           {/* Reminders & Tasks */}
           <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
@@ -700,7 +858,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                           <PriorityDot priority={rem.priority} />
                           {rem.time ? `${rem.time} · ` : ""}{rem.date}
                           {rem.lead && <> · {rem.lead}</>}
-                          {!isGP && rem.gp && <> · <span style={{ color: C.slate }}>{rem.gp}</span></>}
+                          {!personal && rem.gp && <> · <span style={{ color: C.slate }}>{rem.gp}</span></>}
                         </div>
                       </div>
                       <span style={{ fontSize: 13 }}>{TYPE_ICON[rem.type] || "🔔"}</span>
@@ -736,46 +894,30 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Row 2: VD / SA → Performance | Call Attempts ────────────────── */}
-        {(isVD || isSA) && (
+        {/* ── Row 2: SA / VD (Team) → Performance | Call Attempts ─────────── */}
+        {teamView && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-          <PerfTable title={t("performance")} rowLabel={perfRowLabel} rows={perfRows}
+          <PerfTable title={isSA ? t("teamPerformance") : t("advisorPerformance")} rowLabel={perfRowLabel} rows={perfRows}
+            closingCol={t("closingRateCol")} successCol={t("successRateCol")}
             action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
           <CallAttemptsTable title={t("callAttemptsTitle")} rowLabel={perfRowLabel} rows={perfRows}
+            info={t("tooltip_callAttemptsTable")}
             action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
         </div>
         )}
 
-        {/* ── Row 3: SA → By Campaign (full width) ────────────────────────── */}
-        {isSA && (() => {
-          const campaignMap: Record<string, number> = {};
-          allLeads.forEach(l => { if (l.campaign) campaignMap[l.campaign] = (campaignMap[l.campaign] || 0) + 1; });
-          const campaigns = Object.entries(campaignMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
-          const PIE_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
-          const pieSlices = campaigns.map(([name, value], i) => ({ name, value, color: PIE_COLORS[i % PIE_COLORS.length] }));
-          return (
-            <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column", marginBottom: 14 }}>
-              <CardHeader title={t("byCampaign")} />
-              <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", display: "flex", gap: 28, alignItems: "center" }}>
-                <PieChart slices={pieSlices} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {campaigns.map(([name, count], i) => (
-                    <div key={name} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
-                      <span style={{ flex: 1, fontSize: 12, color: C.text, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.slate }}>{count}</span>
-                    </div>
-                  ))}
-                  {campaigns.length === 0 && <div style={{ textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noDataYet")}</div>}
-                </div>
-              </div>
-            </Card>
-          );
-        })()}
+        {/* ── Row 3: SA → Campaign ROI | Missing Feedback alerts ──────────── */}
+        {isSA && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <CampaignRoiCard t={t} scaleP={scaleP}
+            action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
+          <MissingFeedbackCard t={t} />
+        </div>
+        )}
 
       </div>
     </div>
-    {assignTarget && <DashAssignModal lead={assignTarget} onClose={() => setAssignTarget(null)} />}
+    {assignTarget && <DashAssignModal lead={assignTarget} allowTeams={isSA} onClose={() => setAssignTarget(null)} />}
     </>
   );
 };

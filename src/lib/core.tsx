@@ -226,6 +226,10 @@ export const ALL_LEADS = [
   { id:"L-2012", lang:"de", name:"Tobias Fischer",  email:"t.fischer@web.de",       phone:"+49 151 6677889", zip:"50667", city:"Köln",        source:"Referral",      campaign:"Partner Ref",  status:"open", assignedVD:"Thomas Müller", assignedGP:"Anna Klein", created:"2 days ago",   consent:true,  attempts:2 },
   { id:"L-2013", lang:"de", name:"Anna Bergmann",   email:"a.bergmann@t-online.de", phone:"+49 160 2233445", zip:"20095", city:"Hamburg",     source:"Meta Ads",      campaign:"Webinar März", status:"open", assignedVD:"Thomas Müller", assignedGP:"Anna Klein", created:"3 days ago",   consent:false, attempts:1 },
   { id:"L-2014", lang:"de", name:"Michael Stein",   email:"m.stein@email.de",       phone:"+49 174 8877665", zip:"10115", city:"Berlin",      source:"Landing Page",  campaign:"Messe FFM",    status:"open", assignedVD:"Thomas Müller", assignedGP:"Anna Klein", created:"4 days ago",   consent:true,  attempts:0 },
+  // ── VD Thomas Müller personal open leads (VD "My Dashboard" panel) ──────────
+  { id:"L-2015", lang:"de", name:"Eva Gruber",      email:"e.gruber@web.de",        phone:"+49 171 5544332", zip:"80689", city:"München",     source:"Referral",      campaign:"Partner Ref",  status:"open", assignedVD:"Thomas Müller", assignedGP:"Thomas Müller", created:"Today, 08:45", consent:true,  attempts:1 },
+  { id:"L-2016", lang:"de", name:"Klaus Richter",   email:"k.richter@gmail.com",    phone:"+49 176 2233441", zip:"86150", city:"Augsburg",    source:"Meta Ads",      campaign:"Q1 Finanz",    status:"open", assignedVD:"Thomas Müller", assignedGP:"Thomas Müller", created:"Yesterday",    consent:true,  attempts:0 },
+  { id:"L-2017", lang:"de", name:"Stefan Wolf",     email:"s.wolf@t-online.de",     phone:"+49 152 8899007", zip:"80999", city:"München",     source:"CSV",           campaign:"Messe FFM",    status:"open", assignedVD:"Thomas Müller", assignedGP:"Thomas Müller", created:"2 days ago",   consent:false, attempts:2 },
 ];
 
 // ─── P0 AI: Live Contact Scoring ─────────────────────────────────────────────────
@@ -786,6 +790,8 @@ export const APPOINTMENTS = [
   { id:"A-404", date:"2026-07-01", start:"14:00", end:"14:30", type:"call",     lead:"Anna Bergmann",   leadId:"L-2013", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Follow-up after webinar interest" },
   // ── Today 2026-07-01 — VD Thomas Müller (direct / self-close) ──────────────
   { id:"A-405", date:"2026-07-01", start:"11:00", end:"11:30", type:"call",     lead:"Michael Stein",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Messe FFM contact" },
+  { id:"A-406", date:"2026-07-01", start:"14:30", end:"15:15", type:"video",    lead:"Eva Gruber",      leadId:"L-2015", gp:"Thomas Müller", vd:"Thomas Müller", status:"confirmed", notes:"VD direct — contract review, partner referral" },
+  { id:"A-407", date:"2026-07-01", start:"16:00", end:"16:45", type:"inperson", lead:"Stefan Wolf",     leadId:"L-2017", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Q3 planning & cross-sell" },
 ];
 
 
