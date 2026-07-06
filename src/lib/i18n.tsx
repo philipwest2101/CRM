@@ -477,6 +477,10 @@ export const TRANSLATIONS = {
     nlSaveGroup: "Save group",
     nlGroupSaved: "👥 Group saved",
     nlKeepMembers: "Leave selection empty to keep the current members.",
+    nlNewsStats: "Newsletters & Statistics",
+    nlSearchTemplates: "Search templates…",
+    nlSections: "Sections",
+    nlResizeHint: "Drag the handle between columns to resize them.",
   },
 
   de: {
@@ -954,6 +958,10 @@ export const TRANSLATIONS = {
     nlSaveGroup: "Gruppe speichern",
     nlGroupSaved: "👥 Gruppe gespeichert",
     nlKeepMembers: "Auswahl leer lassen, um die aktuellen Mitglieder zu behalten.",
+    nlNewsStats: "Newsletter & Statistik",
+    nlSearchTemplates: "Vorlagen durchsuchen…",
+    nlSections: "Bereiche",
+    nlResizeHint: "Griff zwischen den Spalten ziehen, um die Breite anzupassen.",
   },
 };
 
