@@ -5,17 +5,20 @@ import { useT, LangContext } from "../../lib/i18n";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Newsletter — HubSpot-style email editor (mock, client-side)
-//   Tabs: Templates (gallery) / Groups (built from contacts) / Statistics.
-//   Editor: single page — block palette, inline-editable canvas, settings &
-//   send panel side by side.
+//   Tabs: Newsletters (instances) / Templates (masters) / Groups / Statistics.
+//   A newsletter is created as an INSTANCE of a template — editing it never
+//   touches the template. Templates are managed (create/edit/delete) in their
+//   own tab with an editor that has no send options.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Localised value helper — template content carries both languages.
+// Localised value helper — seed content carries both languages; user edits
+// store plain strings (pick passes them through unchanged).
 const L = (de, en) => ({ de, en });
 const pick = (v, lang) => (v && typeof v === "object" && v.de !== undefined) ? v[lang] : v;
+const LOC_FIELDS = ["text", "label", "left", "right", "html"];
 
 // ── Block palette ────────────────────────────────────────────────────────────
-const BLOCK_TYPES = [
+const CONTENT_BLOCKS = [
   { type:"logo",    icon:"🏷️", labelKey:"nlBlockLogo"    },
   { type:"image",   icon:"🖼️", labelKey:"nlBlockImage"   },
   { type:"heading", icon:"🔠", labelKey:"nlBlockHeading" },
@@ -23,6 +26,11 @@ const BLOCK_TYPES = [
   { type:"button",  icon:"🔘", labelKey:"nlBlockButton"  },
   { type:"divider", icon:"➖", labelKey:"nlBlockDivider" },
   { type:"footer",  icon:"⚓", labelKey:"nlBlockFooter"  },
+  { type:"html",    icon:"🧩", labelKey:"nlBlockHtml"    },
+];
+const LAYOUT_BLOCKS = [
+  { type:"cols2",   icon:"⬛⬛", labelKey:"nlBlockCols2"   },
+  { type:"imgtext", icon:"🖼📝", labelKey:"nlBlockImgText" },
 ];
 
 const BLOCK_DEFAULTS = {
@@ -33,17 +41,20 @@ const BLOCK_DEFAULTS = {
   button:  { label:L("Jetzt mehr erfahren","Call to action"), url:"#" },
   divider: {},
   footer:  { text:"vion gmbh · Musterstraße 1 · 80331 München" },
+  html:    { html:L('<p style="margin:0">Eigener <b>HTML</b>-Inhalt — Tags wie &lt;b&gt;, &lt;a&gt; oder &lt;table&gt; sind erlaubt.</p>','<p style="margin:0">Custom <b>HTML</b> content — tags like &lt;b&gt;, &lt;a&gt; or &lt;table&gt; are allowed.</p>') },
+  cols2:   { left:L("Linke Spalte — Text hier eingeben.","Left column — enter text here."), right:L("Rechte Spalte — Text hier eingeben.","Right column — enter text here.") },
+  imgtext: { label:L("Bild","Image"), text:L("Text neben dem Bild — ideal für Produkt-Highlights oder Team-Vorstellungen.","Text next to the image — great for product highlights or team introductions.") },
 };
 
 let blockSeq = 0;
 const resolveBlock = (b, lang) => {
   const o = { ...b, id:`b${Date.now()}_${blockSeq++}` };
-  for (const k of ["text","label"]) if (o[k] !== undefined) o[k] = pick(o[k], lang);
+  for (const k of LOC_FIELDS) if (o[k] !== undefined) o[k] = pick(o[k], lang);
   return o;
 };
 const newBlock = (type, lang) => resolveBlock({ type, ...BLOCK_DEFAULTS[type] }, lang);
 
-// ── Pre-built templates (block sets, both languages) ─────────────────────────
+// ── Pre-built templates (masters; both languages) ────────────────────────────
 const NL_TEMPLATES = [
   { id:"t1", name:L("Monatliches Markt-Update","Monthly Market Update"), desc:L("Regelmäßiger Finanzmarkt-Überblick","Regular financial market digest"),
     subject:L("Ihr monatliches Markt-Update von vion","Your monthly market update from vion"),
@@ -114,10 +125,10 @@ const instantiateTpl = (tpl, lang) => tpl.blocks.map(b => resolveBlock(b, lang))
 
 // ── Recipient groups (user data — seeded in German, the app default) ─────────
 const NL_GROUPS = [
-  { id:"g1", name:"Newsletter-Abonnenten", members:210, desc:"Alle Kontakte mit Newsletter-Opt-in" },
-  { id:"g2", name:"Alle Kunden",           members:142, desc:"Aktive Kunden mit Vertrag" },
-  { id:"g3", name:"Finanzierung Leads Q2", members:48,  desc:"Kampagne: Finanzierung · Q2" },
-  { id:"g4", name:"Webinar-Teilnehmer",    members:198, desc:"Mind. ein Webinar besucht" },
+  { id:"g1", name:"Newsletter-Abonnenten", members:210, desc:"Alle Kontakte mit Newsletter-Opt-in", memberIds:[] },
+  { id:"g2", name:"Alle Kunden",           members:142, desc:"Aktive Kunden mit Vertrag",           memberIds:[] },
+  { id:"g3", name:"Finanzierung Leads Q2", members:48,  desc:"Kampagne: Finanzierung · Q2",         memberIds:[] },
+  { id:"g4", name:"Webinar-Teilnehmer",    members:198, desc:"Mind. ein Webinar besucht",           memberIds:[] },
 ];
 
 // ── Send history + unsubscribes (mock, matches the stats wireframe) ──────────
@@ -160,6 +171,10 @@ const btn = (primary=false): React.CSSProperties => ({
   background: primary ? C.primary : "#fff",
   color: primary ? "#fff" : C.slate,
 });
+const iconBtn = (color=C.slate): React.CSSProperties => ({
+  padding:"5px 9px", borderRadius:7, fontSize:12, cursor:"pointer", fontFamily:"inherit",
+  border:`1px solid ${color===C.red?C.red+"40":C.border}`, background:"#fff", color,
+});
 const Avatar = ({ name }) => {
   const initials = name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
   const palette = [C.blue, C.indigo, C.green, C.amber, "#EC4899", C.purple];
@@ -175,9 +190,15 @@ const editableTextStyle = (base): React.CSSProperties => ({
   ...base, width:"100%", border:"none", outline:"none", background:"#FFF8EE",
   fontFamily:"inherit", boxSizing:"border-box", resize:"none", padding:0, borderRadius:4,
 });
+const textBodyStyle = { fontSize:13.5, color:"#33475B", lineHeight:1.7, whiteSpace:"pre-wrap" as const };
 
 const BlockView = ({ b, editing=false, onChange=null }) => {
   const stop = e => e.stopPropagation();
+  const ta = (field, style, extra={}) => (
+    <textarea autoFocus value={b[field]||""} onClick={stop} onChange={e=>onChange({ [field]:e.target.value })}
+      rows={Math.max(2, String(b[field]||"").split("\n").length)}
+      style={{ ...editableTextStyle(style), ...extra }}/>
+  );
   switch (b.type) {
     case "logo": {
       const style = { fontSize:20, fontWeight:800, letterSpacing:"-0.02em", textAlign:"center" as const };
@@ -215,14 +236,10 @@ const BlockView = ({ b, editing=false, onChange=null }) => {
       const isFooter = b.type==="footer";
       const style = isFooter
         ? { fontSize:10.5, color:"#8CA3B8", lineHeight:1.8, textAlign:"center" as const, whiteSpace:"pre-wrap" as const }
-        : { fontSize:13.5, color:"#33475B", lineHeight:1.7, whiteSpace:"pre-wrap" as const };
+        : textBodyStyle;
       return (
         <div style={{ padding:isFooter?"16px 24px 22px":"8px 24px" }}>
-          {editing
-            ? <textarea autoFocus value={b.text||""} onClick={stop} onChange={e=>onChange({ text:e.target.value })}
-                rows={Math.max(2, String(b.text||"").split("\n").length)}
-                style={editableTextStyle(style)}/>
-            : <div style={style}>{b.text}</div>}
+          {editing ? ta("text", style) : <div style={style}>{b.text}</div>}
           {isFooter && !editing && (
             <div style={{ ...style, marginTop:2 }}>
               <span style={{ textDecoration:"underline" }}>Unsubscribe</span> · <span style={{ textDecoration:"underline" }}>Manage preferences</span>
@@ -241,40 +258,136 @@ const BlockView = ({ b, editing=false, onChange=null }) => {
       </div>);
     case "divider": return (
       <div style={{ padding:"10px 24px" }}><div style={{ height:1, background:"#E3EAF1" }}/></div>);
+    case "html": return (
+      <div style={{ padding:"8px 24px" }}>
+        {editing
+          ? ta("html", { fontSize:11.5, lineHeight:1.6 }, { fontFamily:"monospace", background:"#1D2939", color:"#A7F3D0", padding:"8px 10px" })
+          : <div style={textBodyStyle} dangerouslySetInnerHTML={{ __html: b.html||"" }}/>}
+      </div>);
+    case "cols2": return (
+      <div style={{ padding:"8px 24px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+        {["left","right"].map(side=>(
+          <div key={side}>
+            {editing ? ta(side, textBodyStyle) : <div style={textBodyStyle}>{b[side]}</div>}
+          </div>
+        ))}
+      </div>);
+    case "imgtext": return (
+      <div style={{ padding:"8px 24px", display:"grid", gridTemplateColumns:"150px 1fr", gap:14, alignItems:"start" }}>
+        <div style={{ height:110, borderRadius:8, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          gap:4, color:"#8CA3B8", fontSize:10.5, background:"linear-gradient(135deg,#F0F4F8,#DFE8F0)", border:"1.5px dashed #C3D1DE" }}>
+          <span style={{ fontSize:20 }}>🖼️</span>
+          {editing
+            ? <input value={b.label||""} onClick={stop} onChange={e=>onChange({ label:e.target.value })}
+                style={{ ...editableTextStyle({ fontSize:10.5, textAlign:"center" }), width:110, color:"#8CA3B8" }}/>
+            : (b.label || "")}
+        </div>
+        <div>{editing ? ta("text", textBodyStyle) : <div style={textBodyStyle}>{b.text}</div>}</div>
+      </div>);
     default: return null;
   }
 };
 
-const EmailFrame = ({ blocks }) => (
-  <div style={{ width:600, background:"#fff", borderRadius:4, overflow:"hidden", boxShadow:"0 1px 6px rgba(45,62,80,0.12)" }}>
+const EmailFrame = ({ blocks, width=600 }) => (
+  <div style={{ width, background:"#fff", borderRadius:4, overflow:"hidden", boxShadow:"0 1px 6px rgba(45,62,80,0.12)" }}>
     {blocks.map(b => <BlockView key={b.id} b={b} />)}
   </div>
 );
 
-const TemplateThumb = ({ blocks }) => (
-  <div style={{ height:190, overflow:"hidden", background:CANVAS_BG, display:"flex", justifyContent:"center", paddingTop:14 }}>
-    <div style={{ transform:"scale(0.4)", transformOrigin:"top center", flexShrink:0 }}>
+const TemplateThumb = ({ blocks, height=190, scale=0.4 }) => (
+  <div style={{ height, overflow:"hidden", background:CANVAS_BG, display:"flex", justifyContent:"center", paddingTop:14 }}>
+    <div style={{ transform:`scale(${scale})`, transformOrigin:"top center", flexShrink:0 }}>
       <EmailFrame blocks={blocks} />
     </div>
   </div>
 );
 
 const Toast = ({ msg }) => (
-  <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)", zIndex:700,
+  <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)", zIndex:900,
     background:C.navy, color:"#fff", padding:"11px 20px", borderRadius:10, fontSize:13, fontWeight:600,
     boxShadow:"0 8px 28px rgba(0,0,0,0.25)", whiteSpace:"nowrap" }}>
     {msg}
   </div>
 );
 
-// ── Add Group modal — filter all contacts and pick the members ───────────────
-const AddGroupModal = ({ t, onClose, onCreate }) => {
-  const [gName, setGName] = useState("");
+// ── Device toggle (Desktop / Mobile) ─────────────────────────────────────────
+const DeviceToggle = ({ t, mode, setMode }) => (
+  <div style={{ display:"flex", border:`1px solid ${C.border}`, borderRadius:8, overflow:"hidden", flexShrink:0 }}>
+    {[["desktop",`🖥 ${t("nlDesktop")}`],["mobile",`📱 ${t("nlMobile")}`]].map(([k,l],i)=>(
+      <button key={k} onClick={()=>setMode(k)}
+        style={{ padding:"6px 12px", border:"none", borderLeft:i===0?"none":`1px solid ${C.border}`,
+          background:mode===k?C.primary:"#fff", color:mode===k?"#fff":C.slate,
+          fontSize:11.5, fontWeight:mode===k?700:500, cursor:"pointer", fontFamily:"inherit" }}>{l}</button>
+    ))}
+  </div>
+);
+
+// ── Preview modal — desktop / mobile rendering of a block set ────────────────
+const PreviewModal = ({ t, title, blocks, onClose }) => {
+  const [device, setDevice] = useState("desktop");
+  const w = device==="mobile" ? 375 : 600;
+  return (<>
+    <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(15,23,42,0.55)", zIndex:500 }}/>
+    <div style={{ position:"fixed", top:"4vh", left:"50%", transform:"translateX(-50%)", width:720, maxWidth:"94vw",
+      height:"90vh", display:"flex", flexDirection:"column", background:"#fff", borderRadius:16, zIndex:600,
+      boxShadow:"0 24px 64px rgba(0,0,0,0.3)", overflow:"hidden" }}>
+      <div style={{ padding:"12px 18px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12 }}>
+        <span style={{ fontSize:14, fontWeight:800, color:C.navy, flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          👁 {t("nlPreviewBtn")}{title ? ` — ${title}` : ""}
+        </span>
+        <DeviceToggle t={t} mode={device} setMode={setDevice}/>
+        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.muted }}>×</button>
+      </div>
+      <div style={{ flex:1, overflowY:"auto", background:CANVAS_BG, display:"flex", justifyContent:"center", padding:"22px 0 40px" }}>
+        <div style={{ flexShrink:0 }}><EmailFrame blocks={blocks} width={w}/></div>
+      </div>
+    </div>
+  </>);
+};
+
+// ── Template picker — "get an instance" when creating a newsletter ───────────
+const TemplatePicker = ({ t, lang, tpls, onPick, onClose }) => (<>
+  <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(15,23,42,0.55)", zIndex:500 }}/>
+  <div style={{ position:"fixed", top:"6vh", left:"50%", transform:"translateX(-50%)", width:860, maxWidth:"94vw",
+    maxHeight:"86vh", display:"flex", flexDirection:"column", background:"#fff", borderRadius:16, zIndex:600,
+    boxShadow:"0 24px 64px rgba(0,0,0,0.3)", overflow:"hidden" }}>
+    <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center" }}>
+      <span style={{ fontSize:15, fontWeight:800, color:C.navy, flex:1 }}>📋 {t("nlChooseTemplate")}</span>
+      <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.muted }}>×</button>
+    </div>
+    <div style={{ flex:1, overflowY:"auto", padding:18, display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(240px, 1fr))", gap:14 }}>
+      <div onClick={()=>onPick(null)}
+        style={{ border:`1.5px dashed ${C.border}`, borderRadius:12, cursor:"pointer", minHeight:196,
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6, color:C.slate }}
+        onMouseEnter={e=>{ e.currentTarget.style.borderColor=C.primary; e.currentTarget.style.color=C.primaryDark; }}
+        onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.slate; }}>
+        <div style={{ fontSize:28 }}>＋</div>
+        <div style={{ fontSize:12.5, fontWeight:700 }}>{t("nlStartBlank")}</div>
+      </div>
+      {tpls.map(tpl=>(
+        <div key={tpl.id} onClick={()=>onPick(tpl)}
+          style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden", cursor:"pointer", background:"#fff" }}
+          onMouseEnter={e=>e.currentTarget.style.boxShadow="0 6px 20px rgba(45,62,80,0.14)"}
+          onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
+          <TemplateThumb blocks={instantiateTpl(tpl, lang)} height={140} scale={0.3}/>
+          <div style={{ padding:"9px 12px", borderTop:`1px solid ${C.border}` }}>
+            <div style={{ fontSize:12.5, fontWeight:700, color:C.text }}>{pick(tpl.name, lang)}</div>
+            <div style={{ fontSize:10.5, color:C.muted, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pick(tpl.desc, lang)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</>);
+
+// ── Group modal — create or edit a group from filtered contacts ──────────────
+const GroupModal = ({ t, initial=null, onClose, onSave }) => {
+  const [gName, setGName] = useState(initial?.name || "");
   const [fCamp, setFCamp] = useState("all");
   const [fSrc,  setFSrc]  = useState("all");
   const [fCity, setFCity] = useState("all");
   const [q,     setQ]     = useState("");
-  const [sel,   setSel]   = useState({});
+  const [sel,   setSel]   = useState(() => Object.fromEntries((initial?.memberIds||[]).map(id=>[id,true])));
 
   const uniq = (key) => [...new Set(ALL_LEADS.map(l=>l[key]).filter(Boolean))].sort();
   const campaigns = uniq("campaign"), sources = uniq("source"), cities = uniq("city");
@@ -295,10 +408,18 @@ const AddGroupModal = ({ t, onClose, onCreate }) => {
 
   const selStyle: React.CSSProperties = { ...inputStyle, padding:"8px 10px", fontSize:12, cursor:"pointer", width:"auto", minWidth:130 };
 
-  const create = () => {
-    if (!gName.trim() || count===0) { onCreate(null); return; }
+  const save = () => {
+    if (!gName.trim() || (!initial && count===0)) { onSave(null); return; }
+    const memberIds = Object.keys(sel).filter(id=>sel[id]);
     const parts = [fCamp!=="all"&&fCamp, fSrc!=="all"&&fSrc, fCity!=="all"&&fCity].filter(Boolean);
-    onCreate({ id:`g${Date.now()}`, name:gName.trim(), members:count, desc:parts.join(" · ") || t("nlContactCol") });
+    onSave({
+      id: initial?.id || `g${Date.now()}`,
+      name: gName.trim(),
+      // Editing a seeded group with an empty selection keeps its member count.
+      members: count>0 ? count : (initial?.members || 0),
+      memberIds: count>0 ? memberIds : (initial?.memberIds || []),
+      desc: parts.join(" · ") || initial?.desc || t("nlContactCol"),
+    });
   };
 
   return (<>
@@ -306,12 +427,12 @@ const AddGroupModal = ({ t, onClose, onCreate }) => {
     <div style={{ position:"fixed", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:760, maxWidth:"94vw",
       maxHeight:"86vh", display:"flex", flexDirection:"column", background:"#fff", borderRadius:16, zIndex:600,
       boxShadow:"0 24px 64px rgba(0,0,0,0.22)", overflow:"hidden" }}>
-      {/* Header */}
       <div style={{ padding:"16px 22px 12px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12 }}>
-        <span style={{ fontSize:16, fontWeight:800, color:C.navy, flex:1 }}>👥 {t("nlAddGroup").replace("+ ","")}</span>
+        <span style={{ fontSize:16, fontWeight:800, color:C.navy, flex:1 }}>
+          👥 {initial ? t("nlEditGroup") : t("nlAddGroup").replace("+ ","")}
+        </span>
         <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.muted }}>×</button>
       </div>
-      {/* Name + filters */}
       <div style={{ padding:"14px 22px", borderBottom:`1px solid ${C.border}`, display:"flex", flexDirection:"column", gap:10 }}>
         <div>
           <label style={labelStyle}>{t("nlGroupName")}</label>
@@ -333,8 +454,10 @@ const AddGroupModal = ({ t, onClose, onCreate }) => {
           <input value={q} onChange={e=>setQ(e.target.value)} placeholder={t("nlSearchContacts")}
             style={{ ...inputStyle, padding:"8px 10px", fontSize:12, flex:1, minWidth:160 }}/>
         </div>
+        {initial && count===0 && (
+          <div style={{ fontSize:11, color:C.amber }}>{t("nlKeepMembers")}</div>
+        )}
       </div>
-      {/* Contact table */}
       <div style={{ flex:1, overflowY:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse" }}>
           <thead>
@@ -370,15 +493,14 @@ const AddGroupModal = ({ t, onClose, onCreate }) => {
           </tbody>
         </table>
       </div>
-      {/* Footer */}
       <div style={{ padding:"13px 22px", borderTop:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12 }}>
         <span style={{ fontSize:12.5, color:C.slate }}>
           <b style={{ color:C.navy }}>{count}</b> / {filtered.length} {t("nlSelected")}
         </span>
         <div style={{ flex:1 }}/>
         <button onClick={onClose} style={btn()}>{t("nlCancel")}</button>
-        <button onClick={create} style={{ ...btn(true), opacity:(!gName.trim()||count===0)?0.5:1 }}>
-          👥 {t("nlCreateGroup")}
+        <button onClick={save} style={{ ...btn(true), opacity:(!gName.trim()||(!initial&&count===0))?0.5:1 }}>
+          👥 {initial ? t("nlSaveGroup") : t("nlCreateGroup")}
         </button>
       </div>
     </div>
@@ -390,14 +512,19 @@ export const NewsletterPage = () => {
   const t = useT();
   const { lang } = useContext(LangContext);
 
-  const [tab, setTab]         = useState("templates");     // templates | groups | stats
+  const [tab, setTab]         = useState("newsletters");   // newsletters | templates | groups | stats
   const [view, setView]       = useState("list");          // list | editor
   const [items, setItems]     = useState(NL_ITEMS);
+  const [tpls, setTpls]       = useState(NL_TEMPLATES);
   const [groups, setGroups]   = useState(NL_GROUPS);
   const [toast, setToast]     = useState(null);
-  const [groupModal, setGroupModal] = useState(false);
+  const [groupModal, setGroupModal] = useState(null);      // null | { initial? }
+  const [preview, setPreview] = useState(null);            // null | { title, blocks }
+  const [picker, setPicker]   = useState(false);
 
   // ── Editor state ───────────────────────────────────────────────────────────
+  const [editorMode, setEditorMode] = useState("newsletter"); // newsletter | template
+  const [canvasMode, setCanvasMode] = useState("desktop");    // desktop | mobile
   const [editId, setEditId]       = useState(null);
   const [name, setName]           = useState("");
   const [subject, setSubject]     = useState("");
@@ -422,9 +549,14 @@ export const NewsletterPage = () => {
   };
   const group     = groups.find(g=>g.id===groupId) || groups[0];
   const selBlock  = blocks.find(b=>b.id===selId);
+  const isTplMode = editorMode==="template";
+  const canvasW   = canvasMode==="mobile" ? 375 : 600;
 
   // ── Editor open / save / send ──────────────────────────────────────────────
+  // Newsletter = INSTANCE of a template: blocks are deep-copied, so edits never
+  // change the template master.
   const openEditor = (item=null, template=null) => {
+    setEditorMode("newsletter"); setCanvasMode("desktop");
     setEditId(item?.id || null);
     setName(item?.name || (template ? pick(template.name, lang) : ""));
     setSubject(item?.subject || (template ? pick(template.subject, lang) : ""));
@@ -435,26 +567,51 @@ export const NewsletterPage = () => {
     setSelId(null); setSendOpt("now"); setTestSent(false);
     setView("editor");
   };
-  const closeEditor = () => { setView("list"); setEditId(null); setTab("stats"); };
+  const openTplEditor = (tpl=null) => {
+    setEditorMode("template"); setCanvasMode("desktop");
+    setEditId(tpl?.id || null);
+    setName(tpl ? pick(tpl.name, lang) : "");
+    setSubject(tpl ? pick(tpl.subject, lang) : "");
+    setBlocks(tpl ? instantiateTpl(tpl, lang)
+      : [newBlock("logo", lang), newBlock("heading", lang), newBlock("text", lang), newBlock("footer", lang)]);
+    setSelId(null);
+    setView("editor");
+  };
+  const closeEditor = (targetTab=null) => {
+    setView("list"); setEditId(null);
+    setTab(targetTab || (isTplMode ? "templates" : "newsletters"));
+  };
 
-  const upsert = (status, date, statsPatch={}) => {
+  const upsertItem = (status, date, statsPatch={}) => {
     const entry = {
       id:editId||`n${Date.now()}`, name:name||t("nlUntitled"), subject, preheader, groupId, blocks, status, date,
       stats:{ rec:group?.members||0, deliv:0, opened:0, clicked:0, unsub:0, bounces:0, ...statsPatch },
     };
     setItems(prev => editId ? prev.map(i=>i.id===editId?entry:i) : [entry, ...prev]);
   };
-  const saveDraft = () => { upsert("draft", "—"); showToast(t("nlDraftSaved")); };
+  const saveDraft = () => { upsertItem("draft", "—"); showToast(t("nlDraftSaved")); };
   const sendTest  = () => { setTestSent(true); showToast(`${t("nlTestSentToast")} ${fromEmail}`); };
   const send = () => {
     if(!subject.trim() || blocks.length===0) { showToast(t("nlIncompleteToast")); return; }
-    if(sendOpt==="scheduled") { upsert("scheduled", `${schedDate}, ${schedTime}`); closeEditor(); showToast(`${t("nlScheduledToast")} ${schedDate}, ${schedTime}`); }
+    if(sendOpt==="scheduled") { upsertItem("scheduled", `${schedDate}, ${schedTime}`); closeEditor("stats"); showToast(`${t("nlScheduledToast")} ${schedDate}, ${schedTime}`); }
     else {
       const m = group?.members||0;
-      upsert("sent", new Date().toLocaleDateString("de-DE"), { deliv:m, opened:0, clicked:0 });
-      closeEditor(); showToast(`${t("nlSentToast")} ${m.toLocaleString()} ${t("nlRecipients")}`);
+      upsertItem("sent", new Date().toLocaleDateString("de-DE"), { deliv:m, opened:0, clicked:0 });
+      closeEditor("stats"); showToast(`${t("nlSentToast")} ${m.toLocaleString()} ${t("nlRecipients")}`);
     }
   };
+  const saveTemplate = () => {
+    const existing = editId ? tpls.find(x=>x.id===editId) : null;
+    const entry = {
+      id: editId || `t${Date.now()}`,
+      name: name || t("nlUntitledTemplate"),
+      desc: existing ? pick(existing.desc, lang) : "",
+      subject, blocks,
+    };
+    setTpls(prev => editId ? prev.map(x=>x.id===editId?entry:x) : [...prev, entry]);
+    closeEditor("templates"); showToast(t("nlTemplateSaved"));
+  };
+  const deleteTemplate = (id) => { setTpls(prev=>prev.filter(x=>x.id!==id)); showToast(t("nlTemplateDeleted")); };
 
   // ── Block operations ───────────────────────────────────────────────────────
   const addBlockAt = (type, idx=null) => {
@@ -475,8 +632,27 @@ export const NewsletterPage = () => {
     setGroups(prev=>prev.filter(g=>g.id!==id)); showToast(t("nlGroupDeleted"));
   };
 
+  const paletteSection = (label, list) => (<>
+    <div style={{ fontSize:10.5, fontWeight:800, color:C.slate, textTransform:"uppercase", letterSpacing:"0.07em", margin:"4px 2px 10px" }}>{label}</div>
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:7, marginBottom:12 }}>
+      {list.map(bt=>(
+        <div key={bt.type} draggable
+          onDragStart={()=>setDragType(bt.type)}
+          onDragEnd={()=>{ setDragType(null); setDropIdx(null); }}
+          onClick={()=>addBlockAt(bt.type)}
+          style={{ padding:"12px 4px 9px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff",
+            textAlign:"center", cursor:"grab", userSelect:"none" }}
+          onMouseEnter={e=>{ e.currentTarget.style.borderColor=C.primary; e.currentTarget.style.background=C.primarySoft; }}
+          onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.background="#fff"; }}>
+          <div style={{ fontSize:16, marginBottom:3, letterSpacing:-2 }}>{bt.icon}</div>
+          <div style={{ fontSize:10.5, fontWeight:700, color:C.text }}>{t(bt.labelKey)}</div>
+        </div>
+      ))}
+    </div>
+  </>);
+
   // ════════════════════════════════════════════════════════════════════════════
-  // EDITOR — one page: palette | inline-editable canvas | settings & send
+  // EDITOR — palette | inline-editable canvas | (newsletter only) settings & send
   // ════════════════════════════════════════════════════════════════════════════
   if(view==="editor") {
     const checklist = [
@@ -492,33 +668,23 @@ export const NewsletterPage = () => {
         {/* ── Top bar ── */}
         <div style={{ background:"#fff", borderBottom:`1px solid ${C.border}`, padding:"0 16px", height:52,
           display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
-          <button onClick={closeEditor} style={{ ...btn(), padding:"6px 12px", fontSize:12 }}>{t("nlExit")}</button>
-          <input value={name} onChange={e=>setName(e.target.value)} placeholder={t("nlUntitled")}
+          <button onClick={()=>closeEditor()} style={{ ...btn(), padding:"6px 12px", fontSize:12 }}>{t("nlExit")}</button>
+          {isTplMode && <span style={{ fontSize:11, fontWeight:800, color:C.indigo, background:C.indigo+"12", padding:"3px 10px", borderRadius:12, flexShrink:0 }}>📋 {t("nlTemplates")}</span>}
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder={isTplMode?t("nlUntitledTemplate"):t("nlUntitled")}
             style={{ border:"none", outline:"none", fontSize:15, fontWeight:700, color:C.navy, fontFamily:"inherit",
               flex:1, background:"transparent" }}/>
-          <button onClick={saveDraft} style={{ ...btn(), padding:"7px 13px", fontSize:12 }}>{t("nlSaveDraft")}</button>
+          <DeviceToggle t={t} mode={canvasMode} setMode={setCanvasMode}/>
+          {isTplMode
+            ? <button onClick={saveTemplate} style={{ ...btn(true), padding:"7px 14px", fontSize:12 }}>{t("nlSaveTemplate")}</button>
+            : <button onClick={saveDraft} style={{ ...btn(), padding:"7px 13px", fontSize:12 }}>{t("nlSaveDraft")}</button>}
         </div>
 
         <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
-          {/* ── Left: block palette ── */}
+          {/* ── Left: block palette (content + layout) ── */}
           <div style={{ width:232, background:"#fff", borderRight:`1px solid ${C.border}`, overflowY:"auto", flexShrink:0, padding:12 }}>
-            <div style={{ fontSize:10.5, fontWeight:800, color:C.slate, textTransform:"uppercase", letterSpacing:"0.07em", margin:"4px 2px 10px" }}>{t("nlContentBlocks")}</div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:7 }}>
-              {BLOCK_TYPES.map(bt=>(
-                <div key={bt.type} draggable
-                  onDragStart={()=>setDragType(bt.type)}
-                  onDragEnd={()=>{ setDragType(null); setDropIdx(null); }}
-                  onClick={()=>addBlockAt(bt.type)}
-                  style={{ padding:"12px 4px 9px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff",
-                    textAlign:"center", cursor:"grab", userSelect:"none" }}
-                  onMouseEnter={e=>{ e.currentTarget.style.borderColor=C.primary; e.currentTarget.style.background=C.primarySoft; }}
-                  onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.background="#fff"; }}>
-                  <div style={{ fontSize:18, marginBottom:3 }}>{bt.icon}</div>
-                  <div style={{ fontSize:10.5, fontWeight:700, color:C.text }}>{t(bt.labelKey)}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop:12, padding:"9px 11px", borderRadius:9, background:"#F0F6FF", border:"1px solid #D6E6FF", fontSize:10.5, color:"#33475B", lineHeight:1.55 }}>
+            {paletteSection(t("nlContentBlocks"), CONTENT_BLOCKS)}
+            {paletteSection(t("nlLayoutSection"), LAYOUT_BLOCKS)}
+            <div style={{ padding:"9px 11px", borderRadius:9, background:"#F0F6FF", border:"1px solid #D6E6FF", fontSize:10.5, color:"#33475B", lineHeight:1.55 }}>
               {t("nlBlocksHint")}
             </div>
             <div style={{ fontSize:10.5, fontWeight:800, color:C.slate, textTransform:"uppercase", letterSpacing:"0.07em", margin:"14px 2px 8px" }}>{t("nlPersonalisation")}</div>
@@ -538,13 +704,20 @@ export const NewsletterPage = () => {
             onClick={()=>setSelId(null)}
             onDragOver={e=>{ if(dragType){ e.preventDefault(); } }}
             onDrop={e=>{ if(dragType){ e.preventDefault(); addBlockAt(dragType, dropIdx); setDragType(null); setDropIdx(null); } }}>
-            <div style={{ width:600, flexShrink:0 }} onClick={e=>e.stopPropagation()}>
-              {/* Inbox preview line */}
-              <div style={{ padding:"9px 14px", marginBottom:12, background:"#fff", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12, color:C.slate, display:"flex", gap:8, alignItems:"baseline", overflow:"hidden", whiteSpace:"nowrap" }}>
-                <span style={{ fontWeight:700, color:C.navy, flexShrink:0 }}>{fromName}</span>
-                <span style={{ fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis" }}>{subject||t("nlNoSubjectYet")}</span>
-                <span style={{ color:C.muted, overflow:"hidden", textOverflow:"ellipsis" }}>{preheader||t("nlPreviewTextDefault")}</span>
-              </div>
+            <div style={{ width:canvasW, flexShrink:0, transition:"width 0.2s" }} onClick={e=>e.stopPropagation()}>
+              {/* Subject line: template mode = editable field; newsletter mode = inbox preview */}
+              {isTplMode ? (
+                <div style={{ padding:"10px 14px", marginBottom:12, background:"#fff", borderRadius:8, border:`1px solid ${C.border}` }}>
+                  <label style={labelStyle}>{t("nlSubjectLine")}</label>
+                  <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder={t("nlSubjectPh")} style={inputStyle}/>
+                </div>
+              ) : (
+                <div style={{ padding:"9px 14px", marginBottom:12, background:"#fff", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12, color:C.slate, display:"flex", gap:8, alignItems:"baseline", overflow:"hidden", whiteSpace:"nowrap" }}>
+                  <span style={{ fontWeight:700, color:C.navy, flexShrink:0 }}>{fromName}</span>
+                  <span style={{ fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis" }}>{subject||t("nlNoSubjectYet")}</span>
+                  <span style={{ color:C.muted, overflow:"hidden", textOverflow:"ellipsis" }}>{preheader||t("nlPreviewTextDefault")}</span>
+                </div>
+              )}
 
               <div style={{ background:"#fff", borderRadius:4, overflow:"hidden", boxShadow:"0 1px 6px rgba(45,62,80,0.12)" }}>
                 {blocks.map((b, i)=>(
@@ -590,7 +763,8 @@ export const NewsletterPage = () => {
             </div>
           </div>
 
-          {/* ── Right: settings & send ── */}
+          {/* ── Right: settings & send — newsletters only, not templates ── */}
+          {!isTplMode && (
           <div style={{ width:300, background:"#fff", borderLeft:`1px solid ${C.border}`, overflowY:"auto", flexShrink:0, padding:16 }}>
             <div style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:12 }}>⚙️ {t("nlSettingsSend")}</div>
             <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
@@ -619,7 +793,6 @@ export const NewsletterPage = () => {
                 </select>
               </div>
 
-              {/* Checklist */}
               <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:11 }}>
                 <label style={labelStyle}>{t("nlChecklist")}</label>
                 {checklist.map((c,i)=>(
@@ -634,7 +807,6 @@ export const NewsletterPage = () => {
                 </button>
               </div>
 
-              {/* When to send */}
               <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:11 }}>
                 <label style={labelStyle}>{t("nlWhenToSend")}</label>
                 {[["now",t("nlSendNow"),t("nlSendNowSub")],["scheduled",t("nlSchedule"),t("nlScheduleSub")]].map(([k,l,d])=>(
@@ -659,24 +831,25 @@ export const NewsletterPage = () => {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
     );
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // LIST VIEW — Templates | Groups | Statistics
+  // LIST VIEW — Newsletters | Templates | Groups | Statistics
   // ════════════════════════════════════════════════════════════════════════════
-  const sentItems  = items.filter(i=>i.status==="sent");
-  const rate = (num) => {
+  const sentItems = items.filter(i=>i.status==="sent");
+  const rateOf = (num) => {
     const rates = sentItems.filter(i=>i.stats.deliv>0).map(i=>i.stats[num]/i.stats.deliv);
     return rates.length ? Math.round(rates.reduce((a,b)=>a+b,0)/rates.length*100) + " %" : "—";
   };
   const kpis = [
-    { icon:"✉️", tint:C.blue,  value:String(sentItems.length),                              label:t("nlNewslettersSent") },
-    { icon:"👁️", tint:C.green, value:rate("opened"),                                        label:t("nlOpenRate") },
-    { icon:"🖱️", tint:C.amber, value:rate("clicked"),                                       label:t("nlClickRate") },
-    { icon:"✖️", tint:C.red,   value:String(sentItems.reduce((s,i)=>s+i.stats.unsub,0)),    label:t("nlUnsubscribes") },
+    { icon:"✉️", tint:C.blue,  value:String(sentItems.length),                           label:t("nlNewslettersSent") },
+    { icon:"👁️", tint:C.green, value:rateOf("opened"),                                   label:t("nlOpenRate") },
+    { icon:"🖱️", tint:C.amber, value:rateOf("clicked"),                                  label:t("nlClickRate") },
+    { icon:"✖️", tint:C.red,   value:String(sentItems.reduce((s,i)=>s+i.stats.unsub,0)), label:t("nlUnsubscribes") },
   ];
   const sectionLabel: React.CSSProperties = { fontSize:11, fontWeight:800, color:C.slate, textTransform:"uppercase", letterSpacing:"0.1em", margin:"18px 2px 8px" };
   const statusBadge = (s) => (
@@ -689,17 +862,24 @@ export const NewsletterPage = () => {
   return (
     <div style={{ padding:"24px 28px 48px", maxWidth:1100, margin:"0 auto" }}>
       {toast && <Toast msg={toast}/>}
-      {groupModal && <AddGroupModal t={t} onClose={()=>setGroupModal(false)}
-        onCreate={g=>{ if(!g){ showToast(t("nlNeedNameAndContacts")); return; } setGroups(prev=>[...prev,g]); setGroupModal(false); showToast(t("nlGroupCreated")); }}/>}
+      {groupModal && <GroupModal t={t} initial={groupModal.initial||null} onClose={()=>setGroupModal(null)}
+        onSave={g=>{
+          if(!g){ showToast(t("nlNeedNameAndContacts")); return; }
+          setGroups(prev => prev.some(x=>x.id===g.id) ? prev.map(x=>x.id===g.id?g:x) : [...prev, g]);
+          setGroupModal(null); showToast(groupModal.initial ? t("nlGroupSaved") : t("nlGroupCreated"));
+        }}/>}
+      {preview && <PreviewModal t={t} title={preview.title} blocks={preview.blocks} onClose={()=>setPreview(null)}/>}
+      {picker && <TemplatePicker t={t} lang={lang} tpls={tpls} onClose={()=>setPicker(false)}
+        onPick={tpl=>{ setPicker(false); openEditor(null, tpl); }}/>}
 
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
         <h1 style={{ margin:0, fontSize:22, fontWeight:700, color:C.navy, letterSpacing:"-0.02em" }}>{t("newsletter")}</h1>
-        <button onClick={()=>openEditor()} style={btn(true)}>{t("nlNewNewsletter")}</button>
+        <button onClick={()=>setPicker(true)} style={btn(true)}>{t("nlNewNewsletter")}</button>
       </div>
 
-      {/* Tabs — Templates | Groups | Statistics */}
+      {/* Tabs — Newsletters | Templates | Groups | Statistics */}
       <div style={{ display:"flex", gap:4, marginBottom:16, borderBottom:`1px solid ${C.border}` }}>
-        {[["templates",`📋 ${t("nlTemplates")} (${NL_TEMPLATES.length})`],["groups",`👥 ${t("nlGroups")} (${groups.length})`],["stats",`📊 ${t("nlStats")}`]].map(([k,l])=>(
+        {[["newsletters",`📰 ${t("nlNewslettersTab")} (${items.length})`],["templates",`📋 ${t("nlTemplates")} (${tpls.length})`],["groups",`👥 ${t("nlGroups")} (${groups.length})`],["stats",`📊 ${t("nlStats")}`]].map(([k,l])=>(
           <button key={k} onClick={()=>setTab(k)}
             style={{ padding:"9px 16px", border:"none", background:"transparent", fontSize:13, fontFamily:"inherit", cursor:"pointer",
               fontWeight:tab===k?700:500, color:tab===k?C.primaryDark:C.slate,
@@ -709,34 +889,83 @@ export const NewsletterPage = () => {
         ))}
       </div>
 
-      {/* ── Templates gallery ── */}
+      {/* ── Newsletters (instances) ── */}
+      {tab==="newsletters" && (
+        <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead>
+              <tr style={{ background:C.light, borderBottom:`1px solid ${C.border}` }}>
+                {[t("nlNameCol"),t("nlGroupCol"),t("nlStatusCol"),t("nlRecCol"),t("nlDateCol"),""].map((h,i)=>(
+                  <th key={i} style={{ padding:"11px 14px", textAlign:"left", fontSize:12, fontWeight:600, color:C.navy, whiteSpace:"nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map(i=>{
+                const g = groups.find(g=>g.id===i.groupId);
+                return (
+                  <tr key={i.id} style={{ borderBottom:`1px solid ${C.border}` }}>
+                    <td style={{ padding:"12px 14px" }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{i.name}</div>
+                      <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>{i.subject}</div>
+                    </td>
+                    <td style={{ padding:"12px 14px", fontSize:12, color:C.slate }}>{g?.name||"—"}</td>
+                    <td style={{ padding:"12px 14px" }}>{statusBadge(i.status)}</td>
+                    <td style={{ padding:"12px 14px", fontSize:12, color:C.slate }}>{i.status==="sent"?i.stats.deliv.toLocaleString():(g?.members||0).toLocaleString()}</td>
+                    <td style={{ padding:"12px 14px", fontSize:12, color:C.slate, whiteSpace:"nowrap" }}>{i.date}</td>
+                    <td style={{ padding:"12px 14px", textAlign:"right", whiteSpace:"nowrap" }}>
+                      <button onClick={()=>setPreview({ title:i.name, blocks:i.blocks })} title={t("nlPreviewBtn")}
+                        style={{ ...iconBtn(), marginRight:6 }}>👁</button>
+                      {i.status!=="sent" && (
+                        <button onClick={()=>openEditor(i)} title="✏️" style={iconBtn()}>✏️</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {items.length===0 && (
+                <tr><td colSpan={6} style={{ padding:"40px", textAlign:"center", color:C.muted, fontSize:13 }}>
+                  📰 {t("nlNoNewsletters")}
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Templates (masters: create / edit / delete / preview) ── */}
       {tab==="templates" && (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(300px, 1fr))", gap:16 }}>
-          <div onClick={()=>openEditor()}
+          <div onClick={()=>openTplEditor()}
             style={{ background:"#fff", border:`1.5px dashed ${C.border}`, borderRadius:14, overflow:"hidden", cursor:"pointer",
               display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:262, gap:8, color:C.slate }}
             onMouseEnter={e=>{ e.currentTarget.style.borderColor=C.primary; e.currentTarget.style.color=C.primaryDark; }}
             onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.slate; }}>
             <div style={{ fontSize:34 }}>＋</div>
-            <div style={{ fontSize:13, fontWeight:700 }}>{t("nlStartBlank")}</div>
+            <div style={{ fontSize:13, fontWeight:700 }}>{t("nlNewTemplate").replace("+ ","")}</div>
             <div style={{ fontSize:11, color:C.muted }}>{t("nlStartBlankSub")}</div>
           </div>
-          {NL_TEMPLATES.map(tpl=>(
-            <div key={tpl.id} style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden", display:"flex", flexDirection:"column" }}
-              onMouseEnter={e=>e.currentTarget.style.boxShadow="0 6px 20px rgba(45,62,80,0.12)"}
-              onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
-              <div style={{ cursor:"pointer" }} onClick={()=>openEditor(null, tpl)}>
-                <TemplateThumb blocks={instantiateTpl(tpl, lang)}/>
-              </div>
-              <div style={{ padding:"12px 14px", display:"flex", alignItems:"center", gap:10, borderTop:`1px solid ${C.border}` }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{pick(tpl.name, lang)}</div>
-                  <div style={{ fontSize:11, color:C.muted, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pick(tpl.desc, lang)}</div>
+          {tpls.map(tpl=>{
+            const tplBlocks = instantiateTpl(tpl, lang);
+            return (
+              <div key={tpl.id} style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden", display:"flex", flexDirection:"column" }}
+                onMouseEnter={e=>e.currentTarget.style.boxShadow="0 6px 20px rgba(45,62,80,0.12)"}
+                onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
+                <div style={{ cursor:"pointer" }} onClick={()=>setPreview({ title:pick(tpl.name, lang), blocks:tplBlocks })}>
+                  <TemplateThumb blocks={tplBlocks}/>
                 </div>
-                <button onClick={()=>openEditor(null, tpl)} style={{ ...btn(true), padding:"7px 13px", fontSize:12, flexShrink:0 }}>{t("nlUse")}</button>
+                <div style={{ padding:"12px 14px", display:"flex", alignItems:"center", gap:8, borderTop:`1px solid ${C.border}` }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{pick(tpl.name, lang)}</div>
+                    <div style={{ fontSize:11, color:C.muted, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pick(tpl.desc, lang)||"—"}</div>
+                  </div>
+                  <button onClick={()=>setPreview({ title:pick(tpl.name, lang), blocks:tplBlocks })} title={t("nlPreviewBtn")} style={iconBtn()}>👁</button>
+                  <button onClick={()=>openTplEditor(tpl)} title="✏️" style={iconBtn()}>✏️</button>
+                  <button onClick={()=>deleteTemplate(tpl.id)} title="🗑" style={iconBtn(C.red)}>🗑</button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -745,7 +974,7 @@ export const NewsletterPage = () => {
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
             <span style={{ fontSize:12, color:C.muted, flex:1 }}>{t("nlGroupsHint")}</span>
-            <button onClick={()=>setGroupModal(true)} style={btn(true)}>{t("nlAddGroup")}</button>
+            <button onClick={()=>setGroupModal({})} style={btn(true)}>{t("nlAddGroup")}</button>
           </div>
           <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
             {groups.map((g,idx)=>(
@@ -759,7 +988,8 @@ export const NewsletterPage = () => {
                   <div style={{ fontSize:15, fontWeight:700, color:C.navy }}>{g.members.toLocaleString()}</div>
                   <div style={{ fontSize:10, color:C.muted }}>{t("nlMembers")}</div>
                 </div>
-                <button onClick={()=>removeGroup(g.id)} style={{ ...btn(), padding:"5px 10px", fontSize:12, color:C.red, borderColor:C.red+"40" }}>🗑</button>
+                <button onClick={()=>setGroupModal({ initial:g })} title={t("nlEditGroup")} style={iconBtn()}>✏️</button>
+                <button onClick={()=>removeGroup(g.id)} title="🗑" style={iconBtn(C.red)}>🗑</button>
               </div>
             ))}
           </div>
@@ -769,7 +999,6 @@ export const NewsletterPage = () => {
       {/* ── Statistics ── */}
       {tab==="stats" && (
         <div>
-          {/* KPI cards */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:14 }}>
             {kpis.map((k,i)=>(
               <div key={i} style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 18px" }}>
@@ -780,7 +1009,6 @@ export const NewsletterPage = () => {
             ))}
           </div>
 
-          {/* Send history */}
           <div style={sectionLabel}>{t("nlSendHistory")}</div>
           <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
             <table style={{ width:"100%", borderCollapse:"collapse" }}>
@@ -804,23 +1032,20 @@ export const NewsletterPage = () => {
                       <td style={{ padding:"12px", fontSize:12.5, color:C.slate, whiteSpace:"nowrap" }}>{g?.name||"—"}</td>
                       {num(s.rec, true)}{num(s.deliv)}{num(s.opened)}{num(s.clicked)}{num(s.unsub)}{num(s.bounces)}
                       <td style={{ padding:"12px", whiteSpace:"nowrap" }}>{statusBadge(i.status)}</td>
-                      <td style={{ padding:"12px", textAlign:"right" }}>
+                      <td style={{ padding:"12px", textAlign:"right", whiteSpace:"nowrap" }}>
+                        <button onClick={()=>setPreview({ title:i.name, blocks:i.blocks })} title={t("nlPreviewBtn")}
+                          style={{ ...iconBtn(), marginRight:i.status!=="sent"?6:0 }}>👁</button>
                         {i.status!=="sent" && (
-                          <button onClick={()=>openEditor(i)} title="Edit"
-                            style={{ ...btn(), padding:"4px 10px", fontSize:12 }}>✏️</button>
+                          <button onClick={()=>openEditor(i)} title="✏️" style={iconBtn()}>✏️</button>
                         )}
                       </td>
                     </tr>
                   );
                 })}
-                {items.length===0 && (
-                  <tr><td colSpan={11} style={{ padding:"36px", textAlign:"center", color:C.muted, fontSize:13 }}>{t("nlNoNewsletters")}</td></tr>
-                )}
               </tbody>
             </table>
           </div>
 
-          {/* Unsubscribes */}
           <div style={sectionLabel}>{t("nlUnsubscribes")}</div>
           <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, overflow:"hidden" }}>
             <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 16px", background:C.light, borderBottom:`1px solid ${C.border}` }}>
