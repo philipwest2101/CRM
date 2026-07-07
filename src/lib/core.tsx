@@ -1346,6 +1346,81 @@ export const NL_BUILDER_BLOCKS = [
 ];
 
 
+// ── Newsletter templates (block-based masters, shared store) ─────────────────
+// Localised value helper — seed content carries both languages; user edits
+// store plain strings (pick passes them through unchanged).
+export const L = (de, en) => ({ de, en });
+export const pick = (v, lang) => (v && typeof v === "object" && v.de !== undefined) ? v[lang] : v;
+
+export const INITIAL_NL_TEMPLATES = [
+  { id:"t1", name:L("Monatliches Markt-Update","Monthly Market Update"), desc:L("Regelmäßiger Finanzmarkt-Überblick","Regular financial market digest"),
+    subject:L("Ihr monatliches Markt-Update von vion","Your monthly market update from vion"),
+    blocks:[
+      { type:"logo", text:"vionworld" },
+      { type:"heading", text:L("📈 Markt-Update — {Monat}","📈 Market Update — {Month}") },
+      { type:"text", text:L("Guten Tag {FirstName},\n\nhier ist Ihre Marktübersicht für diesen Monat — die wichtigsten Bewegungen, was sie für Sie bedeuten und der Ausblick unserer Analysten.","Dear {FirstName},\n\nHere is your market summary for this month — key movements, what they mean for you, and our analysts' outlook for the coming weeks.") },
+      { type:"image", label:L("Marktchart","Market chart") },
+      { type:"text", text:L("• Märkte im Überblick — die wichtigsten Bewegungen\n• Der Ausblick unserer Analysten für die kommenden Wochen\n• Ein praktischer Tipp für Ihr Portfolio","• Markets at a glance — key movements and what they mean for you\n• Our analysts' outlook for the coming weeks\n• One practical tip to strengthen your portfolio") },
+      { type:"button", label:L("Zum vollständigen Bericht","Read the full report"), url:"#" },
+      { type:"divider" },
+      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
+    ]},
+  { id:"t2", name:L("Produkt-Ankündigung","Product Announcement"), desc:L("Neues Produkt oder neue Leistung vorstellen","Introduce a new product or service"),
+    subject:L("Neu bei vion: das sollten Sie kennen","New at vion: something we think you'll love"),
+    blocks:[
+      { type:"logo", text:"vionworld" },
+      { type:"image", label:L("Produktbild","Product hero image") },
+      { type:"heading", text:L("🎉 Unser neuestes Angebot","🎉 Introducing our newest offering") },
+      { type:"text", text:L("Guten Tag {FirstName},\n\nwir haben Neuigkeiten — wir haben etwas Neues für Sie. Darum lohnt es sich:\n\n• Vorteil 1\n• Vorteil 2\n• Vorteil 3","Dear {FirstName},\n\nWe have exciting news — we've just launched something new. Here's why it matters for you:\n\n• Benefit 1\n• Benefit 2\n• Benefit 3") },
+      { type:"button", label:L("Mehr erfahren","Learn more"), url:"#" },
+      { type:"divider" },
+      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
+    ]},
+  { id:"t3", name:L("Event-Einladung","Event Invitation"), desc:L("Zu Webinar oder Veranstaltung einladen","Invite subscribers to a webinar or event"),
+    subject:L("Sie sind eingeladen: [Veranstaltung]","You're invited: [Event name]"),
+    blocks:[
+      { type:"logo", text:"vionworld" },
+      { type:"heading", text:L("📅 Sie sind eingeladen!","📅 You're invited!") },
+      { type:"text", text:L("Guten Tag {FirstName},\n\nwir laden Sie herzlich zu unserer Veranstaltung ein:\n\n📅 Datum: [Datum]\n🕕 Uhrzeit: [Uhrzeit]\n📍 Ort: [Ort / Online]","Dear {FirstName},\n\nWe warmly invite you to our upcoming event:\n\n📅 Date: [Date]\n🕕 Time: [Time]\n📍 Location: [Location / Online]") },
+      { type:"text", text:L("Die Plätze sind begrenzt — sichern Sie sich Ihren noch heute.","Seats are limited — reserve yours today.") },
+      { type:"button", label:L("Platz reservieren","Reserve my seat"), url:"#" },
+      { type:"divider" },
+      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
+    ]},
+  { id:"t4", name:L("Willkommens-Newsletter","Welcome Newsletter"), desc:L("Erster Newsletter für neue Abonnenten","First newsletter for new subscribers"),
+    subject:L("Willkommen beim vion Newsletter, {FirstName}!","Welcome to the vion newsletter, {FirstName}!"),
+    blocks:[
+      { type:"logo", text:"vionworld" },
+      { type:"heading", text:L("👋 Willkommen, {FirstName}!","👋 Welcome aboard, {FirstName}!") },
+      { type:"text", text:L("Schön, dass Sie dabei sind! Das erwartet Sie in unserem Newsletter:\n\n• Monatliche Markt-Updates und Finanz-Einblicke\n• Praktische Tipps für Ihre Finanzplanung\n• Einladungen zu exklusiven Events und Webinaren","Great to have you with us! Here's what you can expect from our newsletter:\n\n• Monthly market updates and financial insights\n• Practical tips for your financial planning\n• Invitations to exclusive events and webinars") },
+      { type:"button", label:L("Berater kennenlernen","Meet your advisor"), url:"#" },
+      { type:"divider" },
+      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
+    ]},
+  { id:"t5", name:L("Tipps & Einblicke","Tips & Insights"), desc:L("Wissenswertes und praktische Ratschläge","Educational content and practical advice"),
+    subject:L("3 Finanz-Tipps, die Sie sofort nutzen können","3 financial tips you can use right away"),
+    blocks:[
+      { type:"logo", text:"vionworld" },
+      { type:"heading", text:L("💡 3 Tipps für Ihre Finanzen","💡 3 tips for your finances") },
+      { type:"text", text:L("Guten Tag {FirstName},\n\n1️⃣ [Tipp eins — kurz und umsetzbar]\n\n2️⃣ [Tipp zwei — kurz und umsetzbar]\n\n3️⃣ [Tipp drei — kurz und umsetzbar]","Dear {FirstName},\n\n1️⃣ [Tip one — short and actionable]\n\n2️⃣ [Tip two — short and actionable]\n\n3️⃣ [Tip three — short and actionable]") },
+      { type:"divider" },
+      { type:"text", text:L("Sie möchten eine persönliche Empfehlung? Ihr Berater ist nur eine Antwort entfernt.","Want a personal recommendation? Your advisor is just one reply away.") },
+      { type:"button", label:L("Kostenlose Beratung buchen","Book a free consultation"), url:"#" },
+      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
+    ]},
+  { id:"t6", name:L("Saisonale Grüße","Seasonal Greetings"), desc:L("Feiertags- und Saisongrüße an Ihre Kontakte","Holiday and season's greetings"),
+    subject:L("Herzliche Grüße vom gesamten vion Team","Season's greetings from all of us at vion"),
+    blocks:[
+      { type:"image", label:L("Saisonales Banner","Seasonal banner") },
+      { type:"heading", text:L("🎄 Herzliche Grüße, {FirstName}!","🎄 Season's greetings, {FirstName}!") },
+      { type:"text", text:L("Zum Jahresende möchten wir Danke sagen — für Ihr Vertrauen und die gute Zusammenarbeit.\n\nWir wünschen Ihnen und Ihren Liebsten eine wunderbare Weihnachtszeit und ein gesundes, erfolgreiches neues Jahr.","As the year draws to a close, we want to say thank you — for your trust and the great cooperation.\n\nWe wish you and your loved ones a wonderful holiday season and a healthy, successful new year.") },
+      { type:"divider" },
+      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
+    ]},
+];
+export let NL_TEMPLATES_STORE = INITIAL_NL_TEMPLATES.map(t=>({...t}));
+
+
 export const EM_STATUS_META = {
   sent:      { label:"Sent",      color:C.green  },
   scheduled: { label:"Scheduled", color:C.blue   },
@@ -1427,6 +1502,7 @@ export const JOURNEY_META = {
   reminder:     {label:"Appointment Reminder", color:"#6366F1"},
   postnurture:  {label:"Post-Appt Nurture",    color:"#10B981"},
   reengagement: {label:"Re-Engagement",        color:"#F59E0B"},
+  newsletter:   {label:"Newsletter",           color:"#0EA5E9"},
 };
 
 export const AUDIT_EVENTS = [
@@ -1713,6 +1789,7 @@ export const GP_EDU_PROGRESS = {
 // ── Mutable-store setters (replace cross-module reassignment) ────────────────
 export function setLIFECYCLE_STORE(next){ LIFECYCLE_STORE = next; STATUS_META = buildStatusMeta(); }
 export function setEMAIL_TEMPLATES_STORE(next){ EMAIL_TEMPLATES_STORE = next; }
+export function setNL_TEMPLATES_STORE(next){ NL_TEMPLATES_STORE = next; }
 export function setDOCUMENT_TYPES_STORE(next){ DOCUMENT_TYPES_STORE = next; }
 export function setLABELS_STORE(next){ LABELS_STORE = next; }
 export function setATTACHMENTS_STORE(next){ ATTACHMENTS_STORE = next; }

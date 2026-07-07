@@ -1,6 +1,6 @@
 import React, { useState, useContext, useRef } from "react";
 import { C } from "../../theme";
-import { ALL_LEADS } from "../../lib/core";
+import { ALL_LEADS, L, pick, NL_TEMPLATES_STORE, setNL_TEMPLATES_STORE } from "../../lib/core";
 import { useT, LangContext } from "../../lib/i18n";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -11,10 +11,8 @@ import { useT, LangContext } from "../../lib/i18n";
 //   own tab with an editor that has no send options.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Localised value helper — seed content carries both languages; user edits
-// store plain strings (pick passes them through unchanged).
-const L = (de, en) => ({ de, en });
-const pick = (v, lang) => (v && typeof v === "object" && v.de !== undefined) ? v[lang] : v;
+// L/pick (localised seed content helpers) live in core.tsx next to the shared
+// NL_TEMPLATES_STORE, so Settings → Email Templates can read the same data.
 const LOC_FIELDS = ["text", "label", "left", "right", "html"];
 
 // ── Block palette ────────────────────────────────────────────────────────────
@@ -62,73 +60,6 @@ const resolveBlock = (b, lang) => {
 const newBlock = (type, lang) => resolveBlock({ type, ...BLOCK_DEFAULTS[type] }, lang);
 const newSection = (ratios, lang) => resolveBlock({ type:"section", ratios, cells:ratios.map(()=>SECTION_CELL_TEXT) }, lang);
 
-// ── Pre-built templates (masters; both languages) ────────────────────────────
-const NL_TEMPLATES = [
-  { id:"t1", name:L("Monatliches Markt-Update","Monthly Market Update"), desc:L("Regelmäßiger Finanzmarkt-Überblick","Regular financial market digest"),
-    subject:L("Ihr monatliches Markt-Update von vion","Your monthly market update from vion"),
-    blocks:[
-      { type:"logo", text:"vionworld" },
-      { type:"heading", text:L("📈 Markt-Update — {Monat}","📈 Market Update — {Month}") },
-      { type:"text", text:L("Guten Tag {FirstName},\n\nhier ist Ihre Marktübersicht für diesen Monat — die wichtigsten Bewegungen, was sie für Sie bedeuten und der Ausblick unserer Analysten.","Dear {FirstName},\n\nHere is your market summary for this month — key movements, what they mean for you, and our analysts' outlook for the coming weeks.") },
-      { type:"image", label:L("Marktchart","Market chart") },
-      { type:"text", text:L("• Märkte im Überblick — die wichtigsten Bewegungen\n• Der Ausblick unserer Analysten für die kommenden Wochen\n• Ein praktischer Tipp für Ihr Portfolio","• Markets at a glance — key movements and what they mean for you\n• Our analysts' outlook for the coming weeks\n• One practical tip to strengthen your portfolio") },
-      { type:"button", label:L("Zum vollständigen Bericht","Read the full report"), url:"#" },
-      { type:"divider" },
-      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
-    ]},
-  { id:"t2", name:L("Produkt-Ankündigung","Product Announcement"), desc:L("Neues Produkt oder neue Leistung vorstellen","Introduce a new product or service"),
-    subject:L("Neu bei vion: das sollten Sie kennen","New at vion: something we think you'll love"),
-    blocks:[
-      { type:"logo", text:"vionworld" },
-      { type:"image", label:L("Produktbild","Product hero image") },
-      { type:"heading", text:L("🎉 Unser neuestes Angebot","🎉 Introducing our newest offering") },
-      { type:"text", text:L("Guten Tag {FirstName},\n\nwir haben Neuigkeiten — wir haben etwas Neues für Sie. Darum lohnt es sich:\n\n• Vorteil 1\n• Vorteil 2\n• Vorteil 3","Dear {FirstName},\n\nWe have exciting news — we've just launched something new. Here's why it matters for you:\n\n• Benefit 1\n• Benefit 2\n• Benefit 3") },
-      { type:"button", label:L("Mehr erfahren","Learn more"), url:"#" },
-      { type:"divider" },
-      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
-    ]},
-  { id:"t3", name:L("Event-Einladung","Event Invitation"), desc:L("Zu Webinar oder Veranstaltung einladen","Invite subscribers to a webinar or event"),
-    subject:L("Sie sind eingeladen: [Veranstaltung]","You're invited: [Event name]"),
-    blocks:[
-      { type:"logo", text:"vionworld" },
-      { type:"heading", text:L("📅 Sie sind eingeladen!","📅 You're invited!") },
-      { type:"text", text:L("Guten Tag {FirstName},\n\nwir laden Sie herzlich zu unserer Veranstaltung ein:\n\n📅 Datum: [Datum]\n🕕 Uhrzeit: [Uhrzeit]\n📍 Ort: [Ort / Online]","Dear {FirstName},\n\nWe warmly invite you to our upcoming event:\n\n📅 Date: [Date]\n🕕 Time: [Time]\n📍 Location: [Location / Online]") },
-      { type:"text", text:L("Die Plätze sind begrenzt — sichern Sie sich Ihren noch heute.","Seats are limited — reserve yours today.") },
-      { type:"button", label:L("Platz reservieren","Reserve my seat"), url:"#" },
-      { type:"divider" },
-      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
-    ]},
-  { id:"t4", name:L("Willkommens-Newsletter","Welcome Newsletter"), desc:L("Erster Newsletter für neue Abonnenten","First newsletter for new subscribers"),
-    subject:L("Willkommen beim vion Newsletter, {FirstName}!","Welcome to the vion newsletter, {FirstName}!"),
-    blocks:[
-      { type:"logo", text:"vionworld" },
-      { type:"heading", text:L("👋 Willkommen, {FirstName}!","👋 Welcome aboard, {FirstName}!") },
-      { type:"text", text:L("Schön, dass Sie dabei sind! Das erwartet Sie in unserem Newsletter:\n\n• Monatliche Markt-Updates und Finanz-Einblicke\n• Praktische Tipps für Ihre Finanzplanung\n• Einladungen zu exklusiven Events und Webinaren","Great to have you with us! Here's what you can expect from our newsletter:\n\n• Monthly market updates and financial insights\n• Practical tips for your financial planning\n• Invitations to exclusive events and webinars") },
-      { type:"button", label:L("Berater kennenlernen","Meet your advisor"), url:"#" },
-      { type:"divider" },
-      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
-    ]},
-  { id:"t5", name:L("Tipps & Einblicke","Tips & Insights"), desc:L("Wissenswertes und praktische Ratschläge","Educational content and practical advice"),
-    subject:L("3 Finanz-Tipps, die Sie sofort nutzen können","3 financial tips you can use right away"),
-    blocks:[
-      { type:"logo", text:"vionworld" },
-      { type:"heading", text:L("💡 3 Tipps für Ihre Finanzen","💡 3 tips for your finances") },
-      { type:"text", text:L("Guten Tag {FirstName},\n\n1️⃣ [Tipp eins — kurz und umsetzbar]\n\n2️⃣ [Tipp zwei — kurz und umsetzbar]\n\n3️⃣ [Tipp drei — kurz und umsetzbar]","Dear {FirstName},\n\n1️⃣ [Tip one — short and actionable]\n\n2️⃣ [Tip two — short and actionable]\n\n3️⃣ [Tip three — short and actionable]") },
-      { type:"divider" },
-      { type:"text", text:L("Sie möchten eine persönliche Empfehlung? Ihr Berater ist nur eine Antwort entfernt.","Want a personal recommendation? Your advisor is just one reply away.") },
-      { type:"button", label:L("Kostenlose Beratung buchen","Book a free consultation"), url:"#" },
-      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
-    ]},
-  { id:"t6", name:L("Saisonale Grüße","Seasonal Greetings"), desc:L("Feiertags- und Saisongrüße an Ihre Kontakte","Holiday and season's greetings"),
-    subject:L("Herzliche Grüße vom gesamten vion Team","Season's greetings from all of us at vion"),
-    blocks:[
-      { type:"image", label:L("Saisonales Banner","Seasonal banner") },
-      { type:"heading", text:L("🎄 Herzliche Grüße, {FirstName}!","🎄 Season's greetings, {FirstName}!") },
-      { type:"text", text:L("Zum Jahresende möchten wir Danke sagen — für Ihr Vertrauen und die gute Zusammenarbeit.\n\nWir wünschen Ihnen und Ihren Liebsten eine wunderbare Weihnachtszeit und ein gesundes, erfolgreiches neues Jahr.","As the year draws to a close, we want to say thank you — for your trust and the great cooperation.\n\nWe wish you and your loved ones a wonderful holiday season and a healthy, successful new year.") },
-      { type:"divider" },
-      { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
-    ]},
-];
 const instantiateTpl = (tpl, lang) => tpl.blocks.map(b => resolveBlock(b, lang));
 
 // ── Recipient groups (user data — seeded in German, the app default) ─────────
@@ -142,16 +73,16 @@ const NL_GROUPS = [
 // ── Send history + unsubscribes (mock, matches the stats wireframe) ──────────
 const NL_ITEMS = [
   { id:"n1", name:"Frühjahrs-Update", subject:"Frühjahrs-Update: nachhaltige Vorsorge", groupId:"g1",
-    blocks:instantiateTpl(NL_TEMPLATES[0], "de"), status:"sent", date:"24.06.2026",
+    blocks:instantiateTpl(NL_TEMPLATES_STORE[0], "de"), status:"sent", date:"24.06.2026",
     stats:{ rec:210, deliv:206, opened:84, clicked:23, unsub:3, bounces:4 } },
   { id:"n2", name:"Finanzierung 2026", subject:"Ihre Finanzierung 2026 – Konditionen", groupId:"g3",
-    blocks:instantiateTpl(NL_TEMPLATES[1], "de"), status:"sent", date:"11.06.2026",
+    blocks:instantiateTpl(NL_TEMPLATES_STORE[1], "de"), status:"sent", date:"11.06.2026",
     stats:{ rec:48, deliv:47, opened:21, clicked:9, unsub:1, bounces:1 } },
   { id:"n3", name:"Sommer-Aktion", subject:"Sommer-Aktion Gold-Sparplan", groupId:"g2",
-    blocks:instantiateTpl(NL_TEMPLATES[4], "de"), status:"scheduled", date:"02.07.2026",
+    blocks:instantiateTpl(NL_TEMPLATES_STORE[4], "de"), status:"scheduled", date:"02.07.2026",
     stats:{ rec:142, deliv:0, opened:0, clicked:0, unsub:0, bounces:0 } },
   { id:"n4", name:"Webinar-Einladung", subject:"Webinar-Einladung Altersvorsorge", groupId:"g1",
-    blocks:instantiateTpl(NL_TEMPLATES[2], "de"), status:"draft", date:"—",
+    blocks:instantiateTpl(NL_TEMPLATES_STORE[2], "de"), status:"draft", date:"—",
     stats:{ rec:210, deliv:0, opened:0, clicked:0, unsub:0, bounces:0 } },
 ];
 
@@ -579,7 +510,7 @@ export const NewsletterPage = () => {
   const [tab, setTab]         = useState("templates");     // templates | groups | stats
   const [view, setView]       = useState("list");          // list | editor
   const [items, setItems]     = useState(NL_ITEMS);
-  const [tpls, setTpls]       = useState(NL_TEMPLATES);
+  const [tpls, setTpls]       = useState(NL_TEMPLATES_STORE);
   const [groups, setGroups]   = useState(NL_GROUPS);
   const [toast, setToast]     = useState(null);
   const [groupModal, setGroupModal] = useState(null);      // null | { initial? }
@@ -673,10 +604,14 @@ export const NewsletterPage = () => {
       desc: existing ? pick(existing.desc, lang) : "",
       subject, blocks,
     };
-    setTpls(prev => editId ? prev.map(x=>x.id===editId?entry:x) : [...prev, entry]);
+    const next = editId ? tpls.map(x=>x.id===editId?entry:x) : [...tpls, entry];
+    setTpls(next); setNL_TEMPLATES_STORE(next);
     closeEditor("templates"); showToast(t("nlTemplateSaved"));
   };
-  const deleteTemplate = (id) => { setTpls(prev=>prev.filter(x=>x.id!==id)); showToast(t("nlTemplateDeleted")); };
+  const deleteTemplate = (id) => {
+    const next = tpls.filter(x=>x.id!==id);
+    setTpls(next); setNL_TEMPLATES_STORE(next); showToast(t("nlTemplateDeleted"));
+  };
 
   // ── Block operations ─────────────────────────────────────────────────────
   // spec: { type } for content blocks, { ratios } for layout sections.

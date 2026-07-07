@@ -1,4 +1,6 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useContext } from "react";
+import { NL_TEMPLATES_STORE, pick } from "../../lib/core";
+import { LangContext } from "../../lib/i18n";
 import { C } from "../../theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -307,7 +309,7 @@ const EmailTemplateModal = ({ item, attachmentOptions, onClose, onSave }) => {
 
   const exec = (cmd, val = undefined) => { document.execCommand(cmd, false, val); bodyRef.current?.focus(); setBodyText(bodyRef.current?.innerHTML || ""); };
 
-  const valid = name.trim() && subject.trim() && bodyRef.current?.textContent?.trim();
+  const valid = name.trim() && subject.trim() && bodyText.replace(/<[^>]*>/g, " ").trim();
 
   const save = () => {
     onSave({
@@ -463,7 +465,8 @@ const SystemBadge = () => (
   <span style={{ fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:"#F1F5F9",color:"#64748B",border:"1px solid #CBD5E1",letterSpacing:"0.04em",textTransform:"uppercase" }}>System</span>
 );
 
-export const MVPSettingsPage = ({ role = "superadmin" }) => {
+export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
+  const { lang } = useContext(LangContext);
   const isSA = role === "superadmin" || role === "manager";
   const visibleSections = isSA ? SECTIONS : SECTIONS.filter(s => VD_GP_SECTIONS.has(s.key));
   const [active, setActive]   = useState(() => (isSA ? "products" : "templates"));
@@ -521,6 +524,30 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
   };
   const addFile = (item) => { setData(prev => ({ ...prev, attachments: [item, ...prev.attachments] })); setAddingFile(false); };
   const remove = (id) => setData(prev => ({ ...prev, [active]: prev[active].filter(x => x.id !== id) }));
+
+  // Newsletter templates come from the store shared with the Newsletter page.
+  // Convert flattens the block layout into rich-text HTML and opens the email
+  // template modal prefilled, so the result is reviewed before it is saved.
+  const convertNlTemplate = (tpl) => {
+    const v = (x) => pick(x, lang) || "";
+    const vars = (s) => s.replace(/\{FirstName\}/g, "{{lead_name}}");
+    const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const para = (s) => `<p>${esc(vars(s)).replace(/\n/g, "<br>")}</p>`;
+    const body = (tpl.blocks || []).map(b => {
+      switch (b.type) {
+        case "heading": return v(b.text) && `<p><b>${esc(vars(v(b.text)))}</b></p>`;
+        case "text": case "footer": case "imgtext": return v(b.text) && para(v(b.text));
+        case "button": return v(b.label) && `<p><a href="${b.url && b.url !== "#" ? b.url : "#"}">${esc(v(b.label))}</a></p>`;
+        case "html": return v(b.html);
+        case "cols2": case "section": return (b.cells || [b.left, b.right]).map(v).filter(Boolean).map(para).join("");
+        default: return "";
+      }
+    }).filter(Boolean).join("");
+    setEditing({ item: {
+      name: v(tpl.name), subject: vars(v(tpl.subject)), attachments: [],
+      body, description: v(tpl.desc), visible: true, langs: L("de", "en"),
+    }});
+  };
 
   const isFiles = section.kind === "files";
 
@@ -713,6 +740,49 @@ export const MVPSettingsPage = ({ role = "superadmin" }) => {
               </div>
             )}
           </div>
+          )}
+
+          {/* ── Newsletter templates (shared store with the Newsletter page) ── */}
+          {isTemplates && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>📰 Newsletter Templates</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                    Shared with the Newsletter page — convert one into an email template to reuse its content here.
+                  </div>
+                </div>
+                {navigateTo && (
+                  <button onClick={() => navigateTo("Newsletter")}
+                    style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    Open Newsletter Editor →
+                  </button>
+                )}
+              </div>
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+                {NL_TEMPLATES_STORE.map((tpl, i) => (
+                  <div key={tpl.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px",
+                    borderBottom: i < NL_TEMPLATES_STORE.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{pick(tpl.name, lang)}</div>
+                      <div style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {pick(tpl.desc, lang) || pick(tpl.subject, lang)}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark, whiteSpace: "nowrap" }}>
+                      🧱 {(tpl.blocks || []).length} blocks
+                    </span>
+                    <button onClick={() => convertNlTemplate(tpl)} title="Create an email template from this newsletter"
+                      style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                      ⇢ Convert
+                    </button>
+                  </div>
+                ))}
+                {NL_TEMPLATES_STORE.length === 0 && (
+                  <div style={{ padding: "24px", textAlign: "center", color: C.muted, fontSize: 13 }}>No newsletter templates yet.</div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
