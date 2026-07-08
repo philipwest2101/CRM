@@ -1346,13 +1346,14 @@ export const NL_BUILDER_BLOCKS = [
 ];
 
 
-// ── Newsletter templates (block-based masters, shared store) ─────────────────
+// ── Newsletter template seeds (block-based, both languages) ──────────────────
 // Localised value helper — seed content carries both languages; user edits
-// store plain strings (pick passes them through unchanged).
+// store plain strings (pick passes them through unchanged). The seeds are
+// materialised per language into the unified EMAIL_TEMPLATES_STORE below.
 export const L = (de, en) => ({ de, en });
 export const pick = (v, lang) => (v && typeof v === "object" && v.de !== undefined) ? v[lang] : v;
 
-export const INITIAL_NL_TEMPLATES = [
+const INITIAL_NL_TEMPLATES = [
   { id:"t1", name:L("Monatliches Markt-Update","Monthly Market Update"), desc:L("Regelmäßiger Finanzmarkt-Überblick","Regular financial market digest"),
     subject:L("Ihr monatliches Markt-Update von vion","Your monthly market update from vion"),
     blocks:[
@@ -1418,7 +1419,6 @@ export const INITIAL_NL_TEMPLATES = [
       { type:"footer", text:"vion gmbh · Musterstraße 1 · 80331 München" },
     ]},
 ];
-export let NL_TEMPLATES_STORE = INITIAL_NL_TEMPLATES.map(t=>({...t}));
 
 
 export const EM_STATUS_META = {
@@ -1654,7 +1654,42 @@ export const INITIAL_EMAIL_TEMPLATES = [
 ];
 // Module-level store so edits persist within session
 
-export let EMAIL_TEMPLATES_STORE = INITIAL_EMAIL_TEMPLATES.map(t=>({...t}));
+// ── Unified template store ────────────────────────────────────────────────────
+// Every email template is block-based (same model as the newsletter editor).
+// Plain-text seeds above are wrapped in a single text block; newsletter seeds
+// are materialised per language with the unified {{...}} personalisation
+// tokens, so journeys, manual sends, bulk campaigns and newsletters all draw
+// from one store.
+const swapTokens = (s) => typeof s === "string" ? s.replace(/\{FirstName\}/g, "{{lead_name}}") : s;
+const bodyToBlocks = ({ body, ...t }) => ({ attachments:[], ...t, blocks: t.blocks || [{ type:"text", text: body||"" }] });
+const materializeNlTemplate = (tpl, lang) => ({
+  id:`${tpl.id}-${lang}`, lang, journey:"newsletter", published:true, attachments:[],
+  name:pick(tpl.name, lang), desc:pick(tpl.desc, lang), subject:swapTokens(pick(tpl.subject, lang)),
+  variables:["{{lead_name}}","{{advisor_name}}"],
+  blocks: tpl.blocks.map(b => {
+    const o = { ...b };
+    for (const k of ["text","label","html"]) if (o[k] !== undefined) o[k] = swapTokens(pick(o[k], lang));
+    if (Array.isArray(o.cells)) o.cells = o.cells.map(c => swapTokens(pick(c, lang)));
+    return o;
+  }),
+});
+export let EMAIL_TEMPLATES_STORE: any[] = [
+  ...INITIAL_EMAIL_TEMPLATES.map(bodyToBlocks),
+  ...INITIAL_NL_TEMPLATES.flatMap(t => [materializeNlTemplate(t, "de"), materializeNlTemplate(t, "en")]),
+];
+
+// Flatten a block layout into plain text — used by manual sends, bulk
+// campaigns and list previews. Visual-only blocks (logo, image, divider)
+// carry no text and are dropped.
+export const blocksToText = (blocks) => (blocks||[]).map(b => {
+  switch (b.type) {
+    case "heading": case "text": case "footer": case "imgtext": return b.text || "";
+    case "button": return b.label ? `→ ${b.label}${b.url && b.url !== "#" ? `: ${b.url}` : ""}` : "";
+    case "html":   return (b.html || "").replace(/<[^>]*>/g, "").trim();
+    case "cols2": case "section": return (b.cells || [b.left, b.right]).filter(Boolean).join("\n");
+    default: return "";
+  }
+}).filter(Boolean).join("\n\n");
 
 // ─── Email Template Editor Modal ──────────────────────────────────────────────
 
@@ -1789,7 +1824,6 @@ export const GP_EDU_PROGRESS = {
 // ── Mutable-store setters (replace cross-module reassignment) ────────────────
 export function setLIFECYCLE_STORE(next){ LIFECYCLE_STORE = next; STATUS_META = buildStatusMeta(); }
 export function setEMAIL_TEMPLATES_STORE(next){ EMAIL_TEMPLATES_STORE = next; }
-export function setNL_TEMPLATES_STORE(next){ NL_TEMPLATES_STORE = next; }
 export function setDOCUMENT_TYPES_STORE(next){ DOCUMENT_TYPES_STORE = next; }
 export function setLABELS_STORE(next){ LABELS_STORE = next; }
 export function setATTACHMENTS_STORE(next){ ATTACHMENTS_STORE = next; }

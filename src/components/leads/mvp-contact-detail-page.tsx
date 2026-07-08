@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { LIFECYCLE_STORE } from "../../lib/core";
+import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, JOURNEY_META, LIFECYCLE_STORE, blocksToText } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 
@@ -124,9 +124,35 @@ const ConfirmModal = ({ title, message, confirmLabel = "Delete", onCancel, onCon
 );
 
 // ── Email composer ────────────────────────────────────────────────────────────
-const EmailModal = ({ onClose }) => {
+const EmailModal = ({ contact = null, onClose }) => {
   const [schedule, setSchedule] = useState(true);
+  const [tplId, setTplId] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [attachments, setAttachments] = useState([]);
   const toolBtns = ["B", "I", "U", "⟸", "⟺", "⟹", "≔", "≕", "🖉", "T"];
+
+  const templates = EMAIL_TEMPLATES_STORE.filter(t => t.published !== false);
+  const firstName = (contact?.name || "").replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ")[0] || "there";
+  // Picking a template pre-fills subject + body (block layout flattened to
+  // text, personalisation tokens merged) and brings its attachments along.
+  const applyTemplate = (id) => {
+    setTplId(id);
+    const tpl = templates.find(t => t.id === id);
+    if (!tpl) return;
+    const merge = (s) => (s || "")
+      .replace(/{{lead_name}}/gi, firstName)
+      .replace(/{{advisor_name}}/gi, "Anna Muller")
+      .replace(/{{company_name}}/gi, "vion gmbh");
+    setSubject(merge(tpl.subject));
+    setBody(merge(blocksToText(tpl.blocks)));
+    setAttachments(tpl.attachments || []);
+  };
+  const addAttachment = (id) => {
+    const a = ATTACHMENTS_STORE.find(x => x.id === id);
+    if (a && !attachments.find(x => x.id === a.id)) setAttachments(prev => [...prev, a]);
+  };
+
   return (
     <ModalShell icon="✉️" title="Send an Email" width={640} onClose={onClose}>
       <div style={{ marginBottom: 14 }}>
@@ -135,24 +161,52 @@ const EmailModal = ({ onClose }) => {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
         <div><Label>To *</Label>
-          <select style={placeholderSelect} defaultValue=""><option value="" disabled>Select recipient</option><option>Account/PC Email</option><option>Example@gmail.com</option><option>lana.steiner@email.com</option></select>
+          <select style={placeholderSelect} defaultValue={contact?.email || ""}><option value="" disabled>Select recipient</option>{contact?.email && <option>{contact.email}</option>}<option>Account/PC Email</option><option>Example@gmail.com</option></select>
         </div>
         <div><Label>CC</Label>
           <select style={placeholderSelect} defaultValue=""><option value="" disabled>Select CC</option><option>someone@example.com</option><option>manager@vionworld.com</option></select>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
-        <div><Label>Template</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Template</option><option>Welcome Email</option><option>Follow-up</option></select></div>
-        <div><Label>Attachment</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Attachment</option><option>Product Brochure</option></select></div>
+        <div><Label>Template</Label>
+          <select style={tplId ? fieldStyle : placeholderSelect} value={tplId} onChange={e => applyTemplate(e.target.value)}>
+            <option value="">Select Template</option>
+            {templates.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name} · {JOURNEY_META[t.journey]?.label || t.journey} ({t.lang === "en" ? "EN" : "DE"})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div><Label>Attachment</Label>
+          <select style={placeholderSelect} value="" onChange={e => addAttachment(e.target.value)}>
+            <option value="">Select Attachment</option>
+            {ATTACHMENTS_STORE.filter(a => !attachments.find(x => x.id === a.id)).map(a => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
-      <div style={{ marginBottom: 14 }}><Label>Subject *</Label><input style={fieldStyle} placeholder="Subject" /></div>
+      {attachments.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+          {attachments.map((a, i) => (
+            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600,
+              padding: "4px 10px", borderRadius: 14, background: "#F8FAFC", border: `1px solid ${C.border}`, color: C.slate }}>
+              📎 {a.name}
+              <span onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
+                style={{ cursor: "pointer", color: C.muted, fontWeight: 700 }}>×</span>
+            </span>
+          ))}
+        </div>
+      )}
+      <div style={{ marginBottom: 14 }}><Label>Subject *</Label><input style={fieldStyle} placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} /></div>
       <div style={{ marginBottom: 16 }}>
         <Label>Body *</Label>
         <div style={{ border: `1.5px solid ${C.primary}`, borderRadius: 10, overflow: "hidden" }}>
           <div style={{ display: "flex", gap: 4, padding: "8px 10px", borderBottom: `1px solid ${C.border}`, color: C.slate, flexWrap: "wrap" }}>
             {toolBtns.map((b, i) => <span key={i} style={{ width: 26, height: 26, display: "grid", placeItems: "center", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>{b}</span>)}
           </div>
-          <textarea defaultValue="Email Text" style={{ width: "100%", border: "none", outline: "none", padding: "12px 14px", fontSize: 13, fontFamily: "inherit", minHeight: 90, resize: "vertical", boxSizing: "border-box" }} />
+          <textarea placeholder="Email Text" value={body} onChange={e => setBody(e.target.value)} style={{ width: "100%", border: "none", outline: "none", padding: "12px 14px", fontSize: 13, fontFamily: "inherit", minHeight: 120, resize: "vertical", boxSizing: "border-box", lineHeight: 1.5 }} />
         </div>
       </div>
       <label style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
@@ -1343,7 +1397,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
         </div>
       </div>
 
-      {modal === "email"       && <EmailModal onClose={() => setModal(null)} />}
+      {modal === "email"       && <EmailModal contact={c} onClose={() => setModal(null)} />}
       {modal === "task"        && <CalendarTaskModal onClose={() => setModal(null)} task={{ contact: c.name }} lockContact onSubmit={() => setModal(null)} />}
       {modal === "appointment" && <CalendarAppointmentModal onClose={() => setModal(null)} appt={{ contact: c.name }} role={role} lockContact onSubmit={() => setModal(null)} />}
       {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} />}

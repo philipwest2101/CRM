@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useRef, useEffect, useContext } from "react";
-import { NL_TEMPLATES_STORE, pick } from "../../lib/core";
-import { LangContext } from "../../lib/i18n";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { EMAIL_TEMPLATES_STORE, setEMAIL_TEMPLATES_STORE } from "../../lib/core";
+import { EmailTemplateEditor } from "../email/email-template-editor";
 import { C } from "../../theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -252,150 +252,6 @@ const AttachmentModal = ({ onClose, onSave }) => {
   );
 };
 
-// ── attachments multi-select dropdown ──────────────────────────────────────────
-const AttachmentsMultiSelect = ({ options, value, onChange }) => {
-  const [open, setOpen] = useState(false);
-  const toggle = (id) => onChange(value.includes(id) ? value.filter(v => v !== id) : [...value, id]);
-  const label = value.length === 0 ? "Select attachments" : `${value.length} attachment${value.length > 1 ? "s" : ""} selected`;
-  return (
-    <div style={{ position: "relative" }}>
-      <button type="button" onClick={() => setOpen(o => !o)} style={{ ...fieldStyle, display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left", cursor: "pointer", color: value.length ? C.text : C.muted }}>
-        {label}
-        <span style={{ color: C.muted, fontSize: 11, marginLeft: 8 }}>▾</span>
-      </button>
-      {open && (
-        <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 350 }} />
-          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 360, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "0 12px 32px rgba(0,0,0,0.16)", maxHeight: 220, overflowY: "auto", padding: 6 }}>
-            {options.length === 0 && (
-              <div style={{ padding: "10px 12px", fontSize: 12, color: C.muted, fontStyle: "italic" }}>No attachments available.</div>
-            )}
-            {options.map(o => (
-              <label key={o.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 7, cursor: "pointer", fontSize: 13, color: C.text }}
-                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <input type="checkbox" checked={value.includes(o.id)} onChange={() => toggle(o.id)} />
-                {o.name}
-              </label>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-// ── rich-text body toolbar button ───────────────────────────────────────────────
-const ToolbarBtn = ({ children, onClick, active = false, title }) => (
-  <button type="button" title={title}
-    onMouseDown={e => e.preventDefault()}
-    onClick={onClick}
-    style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: active ? C.primary : "transparent", color: active ? "#fff" : C.slate, fontSize: 13, cursor: "pointer", display: "grid", placeItems: "center" }}>
-    {children}
-  </button>
-);
-
-// ── add / edit email template modal ─────────────────────────────────────────────
-const EmailTemplateModal = ({ item, attachmentOptions, onClose, onSave }) => {
-  const [name, setName] = useState(item?.name || "");
-  const [subject, setSubject] = useState(item?.subject || "");
-  const [attachments, setAttachments] = useState(item?.attachments || []);
-  const [description, setDescription] = useState(item?.description || "");
-  const [visible, setVisible] = useState(item?.visible !== false);
-  const [bodyText, setBodyText] = useState(item?.body || "");
-  const bodyRef = useRef(null);
-
-  useEffect(() => { if (bodyRef.current) bodyRef.current.innerHTML = item?.body || ""; }, []);
-
-  const exec = (cmd, val = undefined) => { document.execCommand(cmd, false, val); bodyRef.current?.focus(); setBodyText(bodyRef.current?.innerHTML || ""); };
-
-  const valid = name.trim() && subject.trim() && bodyText.replace(/<[^>]*>/g, " ").trim();
-
-  const save = () => {
-    onSave({
-      ...item,
-      id: item?.id || `new-${Date.now()}`,
-      name: name.trim(),
-      subject: subject.trim(),
-      attachments,
-      body: bodyRef.current?.innerHTML || "",
-      description,
-      visible,
-      langs: item?.langs || L("de"),
-    });
-  };
-
-  return (
-    <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 640, maxWidth: "94vw", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{item ? "Edit" : "Add"} Email Template</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Name *</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Enter name" style={fieldStyle} autoFocus />
-          </div>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Subject *</label>
-            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Enter subject" style={fieldStyle} />
-          </div>
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Attachments</label>
-          <AttachmentsMultiSelect options={attachmentOptions} value={attachments} onChange={setAttachments} />
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Body *</label>
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "6px 8px", borderBottom: `1px solid ${C.border}`, background: C.light, flexWrap: "wrap" }}>
-              <ToolbarBtn title="Bold" onClick={() => exec("bold")}><b>B</b></ToolbarBtn>
-              <ToolbarBtn title="Italic" onClick={() => exec("italic")}><i>I</i></ToolbarBtn>
-              <ToolbarBtn title="Underline" onClick={() => exec("underline")}><u>U</u></ToolbarBtn>
-              <ToolbarBtn title="Strikethrough" onClick={() => exec("strikeThrough")}><s>S</s></ToolbarBtn>
-              <ToolbarBtn title="Quote" onClick={() => exec("formatBlock", "blockquote")}>"</ToolbarBtn>
-              <ToolbarBtn title="Bullet list" onClick={() => exec("insertUnorderedList")}>•≡</ToolbarBtn>
-              <ToolbarBtn title="Numbered list" onClick={() => exec("insertOrderedList")}>1≡</ToolbarBtn>
-              <ToolbarBtn title="Align left" onClick={() => exec("justifyLeft")}>≡</ToolbarBtn>
-              <ToolbarBtn title="Align center" onClick={() => exec("justifyCenter")}>≡</ToolbarBtn>
-              <ToolbarBtn title="Align right" onClick={() => exec("justifyRight")}>≡</ToolbarBtn>
-              <ToolbarBtn title="Link" onClick={() => { const url = window.prompt("Link URL:"); if (url) exec("createLink", url); }}>🔗</ToolbarBtn>
-            </div>
-            <div ref={bodyRef} contentEditable suppressContentEditableWarning
-              data-placeholder="Enter body"
-              onInput={() => setBodyText(bodyRef.current?.innerHTML || "")}
-              style={{ minHeight: 160, padding: "10px 12px", fontSize: 13, color: C.text, outline: "none" }} />
-          </div>
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 7 }}>Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Enter description"
-            style={{ ...fieldStyle, minHeight: 110, resize: "vertical" }} />
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22 }}>
-          <button type="button" onClick={() => setVisible(v => !v)} style={{ width: 38, height: 22, borderRadius: 11, border: "none", background: visible ? C.primary : C.border, position: "relative", cursor: "pointer", padding: 0 }}>
-            <span style={{ position: "absolute", top: 2, left: visible ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
-          </button>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>Visible</span>
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-          <button disabled={!valid} onClick={save}
-            style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: valid ? C.primary : C.border, color: valid ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Save</button>
-        </div>
-      </div>
-    </>
-  );
-};
-
 // ── seed integrations data ─────────────────────────────────────────────────────
 const INTEGRATIONS_SEED = [
   { id: "google-calendar", provider: "Google", service: "Calendar", icon: "📅", bg: "#FEF9C3", iconBg: "#FEF08A", color: "#854D0E",
@@ -466,11 +322,13 @@ const SystemBadge = () => (
 );
 
 export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
-  const { lang } = useContext(LangContext);
   const isSA = role === "superadmin" || role === "manager";
   const visibleSections = isSA ? SECTIONS : SECTIONS.filter(s => VD_GP_SECTIONS.has(s.key));
   const [active, setActive]   = useState(() => (isSA ? "products" : "templates"));
   const [data, setData]       = useState(SEED);
+  // Email templates live in the unified block-based store shared with the
+  // full Settings page, the Newsletter page, contact detail and campaigns.
+  const [emailTpls, setEmailTpls] = useState(EMAIL_TEMPLATES_STORE);
   const [search, setSearch]   = useState("");
   const [visFilter, setVisFilter] = useState("all"); // templates only: all | visible | hidden
   const [editing, setEditing] = useState(null);   // { item } | { item:null }
@@ -500,8 +358,12 @@ export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
   };
 
   const section = visibleSections.find(s => s.key === active) || visibleSections[0];
-  const items   = data[active] || [];
   const isTemplates = section.key === "templates";
+  // Unified templates are adapted to the generic table shape (langs / visible /
+  // system); org-wide templates are read-only for non-admins like elsewhere.
+  const items   = isTemplates
+    ? emailTpls.map(t => ({ ...t, langs:{ [t.lang]:true }, visible: t.published !== false, system: !t.createdBy || t.createdBy === "superadmin" }))
+    : (data[active] || []);
   const filtered = useMemo(() => items
     .filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
     .filter(i => !isTemplates || visFilter === "all" || (visFilter === "visible" ? i.visible !== false : i.visible === false)),
@@ -509,10 +371,21 @@ export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
 
   const switchSection = (key) => { setActive(key); setSearch(""); setVisFilter("all"); setPage(1); };
 
-  const toggleVisible = (item) => setData(prev => ({
-    ...prev,
-    templates: prev.templates.map(t => t.id === item.id ? { ...t, visible: t.visible === false } : t),
-  }));
+  const toggleVisible = (item) => {
+    const next = emailTpls.map(t => t.id === item.id ? { ...t, published: t.published === false } : t);
+    setEmailTpls(next); setEMAIL_TEMPLATES_STORE(next);
+  };
+
+  const freshTemplate = () => ({
+    id:`et-${Date.now()}`, lang:"de", journey:"welcome", name:"New Template", subject:"",
+    blocks:[{ type:"text", text:"Hallo {{lead_name}},\n\n\n\nFreundliche Grüße,\n{{advisor_name}}" }],
+    attachments:[], variables:["{{lead_name}}","{{advisor_name}}"], published:true,
+  });
+  const saveTemplate = (updated) => {
+    const exists = emailTpls.some(t => t.id === updated.id);
+    const next = exists ? emailTpls.map(t => t.id === updated.id ? updated : t) : [updated, ...emailTpls];
+    setEmailTpls(next); setEMAIL_TEMPLATES_STORE(next); setEditing(null);
+  };
 
   const upsert = (item) => {
     setData(prev => {
@@ -523,30 +396,13 @@ export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
     setEditing(null);
   };
   const addFile = (item) => { setData(prev => ({ ...prev, attachments: [item, ...prev.attachments] })); setAddingFile(false); };
-  const remove = (id) => setData(prev => ({ ...prev, [active]: prev[active].filter(x => x.id !== id) }));
-
-  // Newsletter templates come from the store shared with the Newsletter page.
-  // Convert flattens the block layout into rich-text HTML and opens the email
-  // template modal prefilled, so the result is reviewed before it is saved.
-  const convertNlTemplate = (tpl) => {
-    const v = (x) => pick(x, lang) || "";
-    const vars = (s) => s.replace(/\{FirstName\}/g, "{{lead_name}}");
-    const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const para = (s) => `<p>${esc(vars(s)).replace(/\n/g, "<br>")}</p>`;
-    const body = (tpl.blocks || []).map(b => {
-      switch (b.type) {
-        case "heading": return v(b.text) && `<p><b>${esc(vars(v(b.text)))}</b></p>`;
-        case "text": case "footer": case "imgtext": return v(b.text) && para(v(b.text));
-        case "button": return v(b.label) && `<p><a href="${b.url && b.url !== "#" ? b.url : "#"}">${esc(v(b.label))}</a></p>`;
-        case "html": return v(b.html);
-        case "cols2": case "section": return (b.cells || [b.left, b.right]).map(v).filter(Boolean).map(para).join("");
-        default: return "";
-      }
-    }).filter(Boolean).join("");
-    setEditing({ item: {
-      name: v(tpl.name), subject: vars(v(tpl.subject)), attachments: [],
-      body, description: v(tpl.desc), visible: true, langs: L("de", "en"),
-    }});
+  const remove = (id) => {
+    if (isTemplates) {
+      const next = emailTpls.filter(t => t.id !== id);
+      setEmailTpls(next); setEMAIL_TEMPLATES_STORE(next);
+      return;
+    }
+    setData(prev => ({ ...prev, [active]: prev[active].filter(x => x.id !== id) }));
   };
 
   const isFiles = section.kind === "files";
@@ -584,7 +440,7 @@ export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{section.label}</div>
             {section.kind !== "integrations" && (
-              <button onClick={() => isFiles ? setAddingFile(true) : setEditing({ item: null })} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              <button onClick={() => isFiles ? setAddingFile(true) : setEditing({ item: isTemplates ? freshTemplate() : null })} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                 Add {section.singular}
               </button>
             )}
@@ -742,54 +598,13 @@ export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
           </div>
           )}
 
-          {/* ── Newsletter templates (shared store with the Newsletter page) ── */}
-          {isTemplates && (
-            <div style={{ marginTop: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>📰 Newsletter Templates</div>
-                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                    Shared with the Newsletter page — convert one into an email template to reuse its content here.
-                  </div>
-                </div>
-                {navigateTo && (
-                  <button onClick={() => navigateTo("Newsletter")}
-                    style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                    Open Newsletter Editor →
-                  </button>
-                )}
-              </div>
-              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-                {NL_TEMPLATES_STORE.map((tpl, i) => (
-                  <div key={tpl.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px",
-                    borderBottom: i < NL_TEMPLATES_STORE.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{pick(tpl.name, lang)}</div>
-                      <div style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {pick(tpl.desc, lang) || pick(tpl.subject, lang)}
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark, whiteSpace: "nowrap" }}>
-                      🧱 {(tpl.blocks || []).length} blocks
-                    </span>
-                    <button onClick={() => convertNlTemplate(tpl)} title="Create an email template from this newsletter"
-                      style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-                      ⇢ Convert
-                    </button>
-                  </div>
-                ))}
-                {NL_TEMPLATES_STORE.length === 0 && (
-                  <div style={{ padding: "24px", textAlign: "center", color: C.muted, fontSize: 13 }}>No newsletter templates yet.</div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
       {editing && section.key === "templates" && (
-        <EmailTemplateModal item={editing.item} attachmentOptions={data.attachments}
-          onClose={() => setEditing(null)} onSave={upsert} />
+        <EmailTemplateEditor
+          template={emailTpls.find(t => t.id === editing.item?.id) || editing.item}
+          onSave={saveTemplate} onClose={() => setEditing(null)} />
       )}
       {editing && section.key !== "templates" && (
         <ItemModal section={section} item={editing.item}

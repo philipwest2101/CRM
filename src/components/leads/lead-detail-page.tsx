@@ -6,7 +6,7 @@ import { OutboundCallModal } from "./outbound-call-modal";
 import { Avatar } from "../ui/avatar";
 import { SettingsCard } from "../ui/settings-card";
 import { StatusBadge } from "../ui/status-badge";
-import { ACTIVITIES_STORE, AI_SCORES, EMAIL_TEMPLATES_STORE, LABELS_STORE, LEAD_LABELS_STORE, LEAD_NOTES_STORE, LIFECYCLE_STORE, SCORE_TIER, STATUS_META, VD_GP_PERF } from "../../lib/core";
+import { ACTIVITIES_STORE, AI_SCORES, EMAIL_TEMPLATES_STORE, JOURNEY_META, LABELS_STORE, LEAD_LABELS_STORE, LEAD_NOTES_STORE, LIFECYCLE_STORE, SCORE_TIER, STATUS_META, VD_GP_PERF, blocksToText } from "../../lib/core";
 import { C } from "../../theme";
 
 export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addReminder, runWorkflow }) => {
@@ -49,7 +49,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
 
   const applyEmailTemplate = (tpl, lead) => {
     const myName = role==="gp"?"Anna Klein":role==="vd"?"Thomas Müller":"Super Admin";
-    const merged = (tpl.body||"")
+    const merged = blocksToText(tpl.blocks)
       .replace(/{{lead_name}}/gi, lead.name.split(" ")[0])
       .replace(/{{advisor_name}}/gi, myName)
       .replace(/{{company_name}}/gi, "vion gmbh")
@@ -421,8 +421,18 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
                         <div style={{ flex:1,minWidth:0 }}>
                           <div style={{ fontSize:12,fontWeight:700,color:C.green }}>{emailChosenTpl.name}</div>
                           <div style={{ fontSize:10,color:C.muted,marginTop:1 }}>
-                            {emailChosenTpl.lang==="en"?"🇬🇧 EN":"🇩🇪 DE"} · {emailChosenTpl.journey} · Applied — you can still edit below
+                            {emailChosenTpl.lang==="en"?"🇬🇧 EN":"🇩🇪 DE"} · {JOURNEY_META[emailChosenTpl.journey]?.label||emailChosenTpl.journey} · Applied — you can still edit below
                           </div>
+                          {(emailChosenTpl.attachments||[]).length>0 && (
+                            <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginTop:5 }}>
+                              {emailChosenTpl.attachments.map((a,i)=>(
+                                <span key={i} style={{ fontSize:9.5,fontWeight:600,padding:"2px 8px",borderRadius:10,
+                                  background:"#fff",border:`1px solid ${C.border}`,color:C.slate }}>
+                                  📎 {a.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <button onClick={()=>setEmailTplPickerOpen(v=>!v)}
                           style={{ fontSize:11,color:C.blue,border:"none",background:"none",cursor:"pointer",fontWeight:600 }}>Change</button>
@@ -459,8 +469,8 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
                           )}
                           {availableEmailTpls.map((tpl,i)=>{
                             const isMine = tpl.createdBy && tpl.createdBy!=="superadmin";
-                            const jColor = {welcome:"#3B82F6",followup1:"#8B5CF6",followup2:"#EC4899",reminder:"#6366F1",postnurture:"#10B981",reengagement:"#F59E0B"}[tpl.journey]||C.navy;
-                            const jLabel = {welcome:"Welcome",followup1:"Follow-up #1",followup2:"Follow-up #2",reminder:"Reminder",postnurture:"Post-Appt",reengagement:"Re-Engagement"}[tpl.journey]||tpl.journey;
+                            const jColor = JOURNEY_META[tpl.journey]?.color||C.navy;
+                            const jLabel = JOURNEY_META[tpl.journey]?.label||tpl.journey;
                             return (
                               <div key={tpl.id} onClick={()=>applyEmailTemplate(tpl, lead)}
                                 style={{ padding:"11px 14px",borderBottom:i<availableEmailTpls.length-1?`1px solid ${C.border}`:"none",
@@ -479,6 +489,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
                                 </div>
                                 <div style={{ fontSize:11,color:C.muted,display:"flex",gap:8 }}>
                                   <span style={{ fontWeight:700,color:jColor }}>{jLabel}</span>
+                                  {(tpl.attachments||[]).length>0 && <span>📎 {tpl.attachments.length}</span>}
                                   {tpl.subject && <span>· {tpl.subject.slice(0,44)}{tpl.subject.length>44?"…":""}</span>}
                                 </div>
                               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { BE_SEGMENTS, BULK_EMAIL_CAMPAIGNS, EMAIL_TEMPLATES_STORE, EM_STATUS_META, NL_BUILDER_BLOCKS, NL_CAMPAIGNS_STORE, NL_LISTS, SUPPRESSION_LIST } from "../../lib/core";
+import { BE_SEGMENTS, BULK_EMAIL_CAMPAIGNS, EMAIL_TEMPLATES_STORE, EM_STATUS_META, NL_BUILDER_BLOCKS, NL_CAMPAIGNS_STORE, NL_LISTS, SUPPRESSION_LIST, blocksToText } from "../../lib/core";
 import { C } from "../../theme";
 
 export const EmailMarketingPage = ({ role, navigateTo }) => {
@@ -452,7 +452,7 @@ export const EmailMarketingPage = ({ role, navigateTo }) => {
                       <button onClick={()=>{setCTpl(null);setCBody("");setCSubj("");}} style={{ fontSize:10,color:C.muted,border:"none",background:"none",cursor:"pointer" }}>✕</button>
                     </div>:<div style={{ display:"flex",gap:5,flexWrap:"wrap" }}>
                       {EMAIL_TEMPLATES_STORE.filter(t=>t.published).slice(0,4).map(t=>(
-                        <div key={t.id} onClick={()=>{setCTpl(t);setCBody(t.body||"");if(t.subject)setCSubj(t.subject);}} style={{ padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",cursor:"pointer",fontSize:11,fontWeight:600,color:C.text }}
+                        <div key={t.id} onClick={()=>{setCTpl(t);setCBody(blocksToText(t.blocks));if(t.subject)setCSubj(t.subject);}} style={{ padding:"6px 10px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",cursor:"pointer",fontSize:11,fontWeight:600,color:C.text }}
                           onMouseEnter={e=>{e.currentTarget.style.borderColor=C.navy;e.currentTarget.style.background="#F0F4FF";}}
                           onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background="#fff";}}>
                           {t.name.slice(0,22)}

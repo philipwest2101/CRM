@@ -1,184 +1,190 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ATTACHMENTS_STORE } from "../../lib/core";
+import React, { useState } from "react";
+import { ATTACHMENTS_STORE, JOURNEY_META } from "../../lib/core";
+import { useT } from "../../lib/i18n";
 import { C } from "../../theme";
+import { CANVAS_BG, BlocksPalette, BlockCanvas, DeviceToggle, instantiateTpl, newBlock, newSection } from "./block-editor";
 
-export const EmailTemplateEditor = ({ template, journeyColor, onSave, onClose }) => {
-  const [subject,     setSubject]     = useState(template.subject);
-  const [body,        setBody]        = useState(template.body);
-  const [name,        setName]        = useState(template.name);
-  const [lang,        setLang]        = useState(template.lang||"de");
-  const [copied,      setCopied]      = useState(null);
-  const [attachments, setAttachments] = useState(template.attachments||[]);
-  const [newAttach,   setNewAttach]   = useState("");
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified email template editor — the same block-based editor the Newsletter
+// page uses, plus template metadata: language, journey and attachments.
+// Full-screen overlay; saves the whole template back via onSave.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const insertVar = (v) => {
-    setBody(b => b + v);
-  };
-  const copyVar = (v) => {
-    navigator.clipboard?.writeText(v).catch(()=>{});
-    setCopied(v); setTimeout(()=>setCopied(null),1500);
-  };
-
-  return (
-    <>
-      <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:500 }}/>
-      <div style={{ position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:680,maxHeight:"90vh",background:"#fff",borderRadius:16,boxShadow:"0 24px 60px rgba(0,0,0,0.2)",zIndex:600,display:"flex",flexDirection:"column",fontFamily:"inherit",overflow:"hidden" }}>
-        {/* Header */}
-        <div style={{ padding:"16px 22px",background:`linear-gradient(135deg,${journeyColor},${journeyColor}CC)`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0 }}>
-          <div>
-            <div style={{ fontSize:10,color:"rgba(255,255,255,0.7)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:2 }}>Email Template Editor</div>
-            <div style={{ fontSize:15,fontWeight:800,color:"#fff" }}>✉️ {name}</div>
-          </div>
-          <button onClick={onClose} style={{ background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",fontSize:18,cursor:"pointer",borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center" }}>×</button>
-        </div>
-
-        {/* Body */}
-        <div style={{ flex:1,overflowY:"auto",padding:"20px 22px" }}>
-          {/* Name + Language row */}
-          <div style={{ display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginBottom:14 }}>
-            <div>
-              <label style={{ display:"block",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5 }}>Template Name</label>
-              <input value={name} onChange={e=>setName(e.target.value)}
-                style={{ width:"100%",border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 11px",fontSize:13,fontFamily:"inherit",color:C.text,boxSizing:"border-box" }}/>
-            </div>
-            <div>
-              <label style={{ display:"block",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5 }}>Language</label>
-              <div style={{ display:"flex",gap:6 }}>
-                {[["de","🇩🇪 DE"],["en","🇬🇧 EN"]].map(([k,l])=>(
-                  <button key={k} onClick={()=>{ setLang(k);
-                    // Auto-update body placeholder language hint
-                    if(k==="en" && body.includes("Hallo {{lead_name}}")) setBody(b=>b.replace("Hallo {{lead_name}},\n\n\n\nFreundliche Grüße,\n","Dear {{lead_name}},\n\n\n\nKind regards,\n"));
-                    if(k==="de" && body.includes("Dear {{lead_name}}")) setBody(b=>b.replace("Dear {{lead_name}},\n\n\n\nKind regards,\n","Hallo {{lead_name}},\n\n\n\nFreundliche Grüße,\n"));
-                  }}
-                    style={{ padding:"7px 14px",borderRadius:7,
-                      border:`1.5px solid ${lang===k?(k==="en"?C.blue:C.amber):C.border}`,
-                      background:lang===k?(k==="en"?"#EFF6FF":"#FFF7ED"):"#fff",
-                      color:lang===k?(k==="en"?C.blue:C.amber):C.muted,
-                      fontSize:12,fontWeight:lang===k?700:400,cursor:"pointer",fontFamily:"inherit" }}>{l}</button>
-                ))}
-              </div>
-              <div style={{ fontSize:9,color:C.muted,marginTop:4 }}>
-                {lang==="de"?"Sent to contacts with German preference":"Sent to contacts with English preference"}
-              </div>
-            </div>
-          </div>
-
-          {/* Subject */}
-          <div style={{ marginBottom:14 }}>
-            <label style={{ display:"block",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5 }}>Subject Line</label>
-            <input value={subject} onChange={e=>setSubject(e.target.value)}
-              style={{ width:"100%",border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 11px",fontSize:13,fontFamily:"inherit",color:C.text,boxSizing:"border-box" }}/>
-          </div>
-
-          {/* Variables */}
-          <div style={{ marginBottom:14 }}>
-            <label style={{ display:"block",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6 }}>Available Variables</label>
-            <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
-              {template.variables.map(v=>(
-                <button key={v} onClick={()=>{insertVar(v); copyVar(v);}}
-                  style={{ padding:"3px 10px",borderRadius:6,border:`1px solid ${journeyColor}40`,
-                    background:copied===v?journeyColor+"15":"#F8FAFC",
-                    color:journeyColor,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"monospace" }}>
-                  {copied===v?"✓ Inserted":v}
-                </button>
-              ))}
-            </div>
-            <div style={{ fontSize:10,color:C.muted,marginTop:5 }}>Click a variable to insert it at the end of the body, or type it manually.</div>
-          </div>
-
-          {/* Body */}
-          <div style={{ marginBottom:14 }}>
-            <label style={{ display:"block",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5 }}>Email Body</label>
-            <textarea value={body} onChange={e=>setBody(e.target.value)}
-              style={{ width:"100%",minHeight:240,border:`1px solid ${C.border}`,borderRadius:7,padding:"10px 12px",fontSize:13,fontFamily:"monospace",color:C.text,lineHeight:1.6,resize:"vertical",boxSizing:"border-box" }}/>
-          </div>
-
-
-          {/* Attachments — from central library */}
-          <div style={{ marginBottom:14 }}>
-            <label style={{ display:"block",fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8 }}>📎 Attachments</label>
-            <div style={{ fontSize:11,color:C.muted,marginBottom:10 }}>
-              Select from the <strong>Attachments library</strong> (Settings → Attachments). Files are sent with this template automatically.
-            </div>
-
-            {/* Attached files */}
-            {attachments.length>0 && (
-              <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:10 }}>
-                {attachments.map((a,i)=>{
-                  const tc = {PDF:C.red,DOCX:C.blue,XLSX:C.green,PNG:C.purple,JPG:C.amber}[a.type]||C.muted;
-                  return (
-                    <div key={i} style={{ display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:"#F8FAFC",border:`1px solid ${C.border}` }}>
-                      <span style={{ fontSize:10,fontWeight:800,padding:"2px 7px",borderRadius:5,background:tc+"18",color:tc,flexShrink:0 }}>{a.type||"FILE"}</span>
-                      <span style={{ flex:1,fontSize:12,color:C.text,fontWeight:600 }}>{a.name}</span>
-                      <span style={{ fontSize:11,color:C.muted,flexShrink:0 }}>{a.size}</span>
-                      <button onClick={()=>setAttachments(prev=>prev.filter((_,j)=>j!==i))}
-                        style={{ background:"none",border:"none",cursor:"pointer",color:C.muted,fontSize:14,lineHeight:1,flexShrink:0,padding:"0 2px" }}>×</button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Picker from ATTACHMENTS_STORE */}
-            <div>
-              <div style={{ fontSize:11,fontWeight:700,color:C.muted,marginBottom:6 }}>Available in library:</div>
-              <div style={{ display:"flex",flexDirection:"column",gap:5,maxHeight:160,overflowY:"auto",padding:"2px 0" }}>
-                {ATTACHMENTS_STORE.filter(a=>!attachments.find(x=>x.id===a.id)).length===0 && (
-                  <div style={{ fontSize:11,color:C.muted,fontStyle:"italic",padding:"8px 0" }}>
-                    All library files are already attached, or the library is empty.
-                    <button onClick={()=>alert("Go to Settings → Attachments to upload files.")}
-                      style={{ marginLeft:8,fontSize:11,color:C.blue,border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",textDecoration:"underline" }}>
-                      Upload files →
-                    </button>
-                  </div>
-                )}
-                {ATTACHMENTS_STORE.filter(a=>!attachments.find(x=>x.id===a.id)).map(a=>{
-                  const tc = {PDF:C.red,DOCX:C.blue,XLSX:C.green,PNG:C.purple,JPG:C.amber}[a.type]||C.muted;
-                  return (
-                    <div key={a.id} onClick={()=>setAttachments(prev=>[...prev,a])}
-                      style={{ display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,
-                        background:"#fff",border:`1px solid ${C.border}`,cursor:"pointer" }}
-                      onMouseEnter={e=>{ e.currentTarget.style.background="#F0F4FF"; e.currentTarget.style.borderColor=C.navy; }}
-                      onMouseLeave={e=>{ e.currentTarget.style.background="#fff"; e.currentTarget.style.borderColor=C.border; }}>
-                      <span style={{ fontSize:10,fontWeight:800,padding:"2px 7px",borderRadius:5,background:tc+"18",color:tc,flexShrink:0 }}>{a.type}</span>
-                      <span style={{ flex:1,fontSize:12,color:C.text,fontWeight:600 }}>{a.name}</span>
-                      <span style={{ fontSize:11,color:C.muted,flexShrink:0 }}>{a.size}</span>
-                      <span style={{ fontSize:11,color:a.lang==="en"?C.blue:a.lang==="de"?C.amber:C.green,flexShrink:0 }}>
-                        {a.lang==="en"?"🇬🇧":a.lang==="de"?"🇩🇪":"🌐"}
-                      </span>
-                      <span style={{ fontSize:11,fontWeight:700,color:C.green,flexShrink:0 }}>+ Attach</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Preview */}
-          <div style={{ borderRadius:10,border:`1px solid ${C.border}`,overflow:"hidden" }}>
-            <div style={{ padding:"8px 14px",background:"#F8FAFC",borderBottom:`1px solid ${C.border}`,fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em" }}>📧 Preview (variables replaced with examples)</div>
-            <div style={{ padding:"14px 16px",background:"#fff" }}>
-              <div style={{ fontSize:12,fontWeight:700,color:C.text,marginBottom:8 }}>
-                {subject.replace("{{lead_name}}","Max Müller").replace("{{appt_time}}","14:00").replace("{{advisor_name}}","Anna Klein")}
-              </div>
-              <div style={{ fontSize:12,color:C.slate,whiteSpace:"pre-wrap",lineHeight:1.7 }}>
-                {body.replace(/{{lead_name}}/g,"Max Müller").replace(/{{advisor_name}}/g,"Anna Klein").replace(/{{sender_email}}/g,"anna.klein@personalmail.de").replace(/{{appt_time}}/g,"14:00 Uhr").replace(/{{meeting_link}}/g,"https://zoom.us/j/123456").replace(/{{meeting_location}}/g,"Musterstraße 1, 80331 München")}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding:"14px 22px",borderTop:`1px solid ${C.border}`,display:"flex",gap:10,justifyContent:"flex-end",flexShrink:0 }}>
-          <button onClick={onClose} style={{ padding:"8px 18px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>Cancel</button>
-          <button onClick={()=>onSave({...template,name,subject,body,lang,attachments})}
-            style={{ padding:"8px 20px",borderRadius:7,border:"none",background:journeyColor,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
-            ✓ Save Template
-          </button>
-        </div>
-      </div>
-    </>
-  );
+const labelStyle: React.CSSProperties = {
+  fontSize:10.5, fontWeight:700, color:C.slate, textTransform:"uppercase",
+  letterSpacing:"0.05em", display:"block", marginBottom:4,
+};
+const inputStyle: React.CSSProperties = {
+  width:"100%", padding:"9px 11px", borderRadius:8, border:`1px solid ${C.border}`,
+  fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text,
 };
 
-// ─── Journey Settings Modal ───────────────────────────────────────────────────
+export const EmailTemplateEditor = ({ template, onSave, onClose }) => {
+  const t = useT();
+  const [name,        setName]        = useState(template.name||"");
+  const [subject,     setSubject]     = useState(template.subject||"");
+  const [lang,        setLang]        = useState(template.lang||"de");
+  const [journey,     setJourney]     = useState(template.journey||"welcome");
+  const [attachments, setAttachments] = useState(template.attachments||[]);
+  const [blocks,      setBlocks]      = useState(() => instantiateTpl(template, template.lang||"de"));
+  const [selId,       setSelId]       = useState(null);
+  const [dragType,    setDragType]    = useState(null);
+  const [dropIdx,     setDropIdx]     = useState(null);
+  const [canvasMode,  setCanvasMode]  = useState("desktop");
+  const [panelSec,    setPanelSec]    = useState("blocks");   // blocks | settings
+
+  const selBlock = blocks.find(b=>b.id===selId);
+  const canvasW  = canvasMode==="mobile" ? 375 : 600;
+
+  // ── Block operations (spec: {type} for content, {ratios} for sections) ─────
+  const addBlockAt = (spec, idx=null) => {
+    const b = spec.ratios ? newSection(spec.ratios, lang) : newBlock(spec.type, lang);
+    setBlocks(prev => { const next=[...prev]; next.splice(idx==null?next.length:idx, 0, b); return next; });
+    setSelId(b.id);
+  };
+  const updateBlock = (id, patch) => setBlocks(prev => prev.map(b => b.id===id ? { ...b, ...patch } : b));
+  const removeBlock = (id) => { setBlocks(prev => prev.filter(b=>b.id!==id)); if(selId===id) setSelId(null); };
+  const moveBlock   = (id, dir) => setBlocks(prev => {
+    const i = prev.findIndex(b=>b.id===id), j = i + (dir==="up"?-1:1);
+    if (i<0 || j<0 || j>=prev.length) return prev;
+    const next=[...prev]; [next[i],next[j]]=[next[j],next[i]]; return next;
+  });
+
+  const settingsPanel = (
+    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+      {/* Language */}
+      <div>
+        <label style={labelStyle}>Language</label>
+        <div style={{ display:"flex", gap:6 }}>
+          {[["de","🇩🇪 DE"],["en","🇬🇧 EN"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setLang(k)}
+              style={{ flex:1, padding:"7px 0", borderRadius:7,
+                border:`1.5px solid ${lang===k?(k==="en"?C.blue:C.amber):C.border}`,
+                background:lang===k?(k==="en"?"#EFF6FF":"#FFF7ED"):"#fff",
+                color:lang===k?(k==="en"?C.blue:C.amber):C.muted,
+                fontSize:12, fontWeight:lang===k?700:400, cursor:"pointer", fontFamily:"inherit" }}>{l}</button>
+          ))}
+        </div>
+        <div style={{ fontSize:9.5, color:C.muted, marginTop:4 }}>
+          {lang==="de"?"Sent to contacts with German preference":"Sent to contacts with English preference"}
+        </div>
+      </div>
+
+      {/* Journey */}
+      <div>
+        <label style={labelStyle}>Journey</label>
+        <select value={journey} onChange={e=>setJourney(e.target.value)} style={{ ...inputStyle, cursor:"pointer" }}>
+          {Object.entries(JOURNEY_META).map(([k,m])=><option key={k} value={k}>{m.label}</option>)}
+        </select>
+        <div style={{ fontSize:9.5, color:C.muted, marginTop:4 }}>
+          Journeys drive workflow automation; "Newsletter" templates appear on the Newsletter page.
+        </div>
+      </div>
+
+      {/* Attachments — from the central library (Settings → Attachments) */}
+      <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:11 }}>
+        <label style={labelStyle}>📎 Attachments ({attachments.length})</label>
+        {attachments.length>0 && (
+          <div style={{ display:"flex", flexDirection:"column", gap:5, marginBottom:8 }}>
+            {attachments.map((a,i)=>{
+              const tc = {PDF:C.red,DOCX:C.blue,XLSX:C.green,PNG:C.purple,JPG:C.amber}[a.type]||C.muted;
+              return (
+                <div key={i} style={{ display:"flex", alignItems:"center", gap:7, padding:"6px 9px", borderRadius:8, background:"#F8FAFC", border:`1px solid ${C.border}` }}>
+                  <span style={{ fontSize:9, fontWeight:800, padding:"2px 6px", borderRadius:5, background:tc+"18", color:tc, flexShrink:0 }}>{a.type||"FILE"}</span>
+                  <span style={{ flex:1, fontSize:11, color:C.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</span>
+                  <button onClick={()=>setAttachments(prev=>prev.filter((_,j)=>j!==i))}
+                    style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, fontSize:13, lineHeight:1, flexShrink:0, padding:"0 2px" }}>×</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ fontSize:10, fontWeight:700, color:C.muted, marginBottom:5 }}>Library:</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:4, maxHeight:150, overflowY:"auto" }}>
+          {ATTACHMENTS_STORE.filter(a=>!attachments.find(x=>x.id===a.id)).length===0 && (
+            <div style={{ fontSize:10.5, color:C.muted, fontStyle:"italic", padding:"4px 0" }}>
+              All library files attached, or the library is empty (Settings → Attachments).
+            </div>
+          )}
+          {ATTACHMENTS_STORE.filter(a=>!attachments.find(x=>x.id===a.id)).map(a=>{
+            const tc = {PDF:C.red,DOCX:C.blue,XLSX:C.green,PNG:C.purple,JPG:C.amber}[a.type]||C.muted;
+            return (
+              <div key={a.id} onClick={()=>setAttachments(prev=>[...prev,a])}
+                style={{ display:"flex", alignItems:"center", gap:7, padding:"6px 9px", borderRadius:8,
+                  background:"#fff", border:`1px solid ${C.border}`, cursor:"pointer" }}
+                onMouseEnter={e=>{ e.currentTarget.style.background="#F0F4FF"; e.currentTarget.style.borderColor=C.navy; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background="#fff"; e.currentTarget.style.borderColor=C.border; }}>
+                <span style={{ fontSize:9, fontWeight:800, padding:"2px 6px", borderRadius:5, background:tc+"18", color:tc, flexShrink:0 }}>{a.type}</span>
+                <span style={{ flex:1, fontSize:11, color:C.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</span>
+                <span style={{ fontSize:10, fontWeight:700, color:C.green, flexShrink:0 }}>+ Attach</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:700, display:"flex", flexDirection:"column", background:CANVAS_BG }}>
+      {/* ── Top bar ── */}
+      <div style={{ background:"#fff", borderBottom:`1px solid ${C.border}`, padding:"0 16px", height:52,
+        display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+        <button onClick={onClose}
+          style={{ padding:"6px 12px", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+            border:`1px solid ${C.border}`, background:"#fff", color:C.slate }}>✕ Cancel</button>
+        <span style={{ fontSize:11, fontWeight:800, color:C.indigo, background:C.indigo+"12", padding:"3px 10px", borderRadius:12, flexShrink:0 }}>
+          ✉️ Email Template
+        </span>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Template name"
+          style={{ border:"none", outline:"none", fontSize:15, fontWeight:700, color:C.navy, fontFamily:"inherit",
+            flex:1, background:"transparent" }}/>
+        <DeviceToggle t={t} mode={canvasMode} setMode={setCanvasMode}/>
+        <button onClick={()=>onSave({ ...template, name, subject, lang, journey, attachments, blocks })}
+          style={{ padding:"7px 16px", borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
+            border:"none", background:C.primary, color:"#fff" }}>✓ Save Template</button>
+      </div>
+
+      <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
+        {/* ── Left panel: accordion — Content blocks / Template settings ── */}
+        <div style={{ width:290, background:"#fff", borderRight:`1px solid ${C.border}`, overflowY:"auto", flexShrink:0,
+          display:"flex", flexDirection:"column" }}>
+          {[["blocks","🧱",t("nlContentBlocks")],["settings","⚙️","Template Settings"]].map(([id,icon,label])=>(
+            <React.Fragment key={id}>
+              <button onClick={()=>setPanelSec(id)}
+                style={{ width:"100%", display:"flex", alignItems:"center", gap:8, padding:"12px 14px",
+                  border:"none", borderBottom:`1px solid ${C.border}`, cursor:"pointer", fontFamily:"inherit",
+                  background:panelSec===id?"#fff":C.light, textAlign:"left",
+                  fontSize:12.5, fontWeight:800, color:panelSec===id?C.navy:C.slate, flexShrink:0 }}>
+                <span>{icon}</span><span style={{ flex:1 }}>{label}</span>
+                <span style={{ fontSize:10 }}>{panelSec===id?"▾":"▸"}</span>
+              </button>
+              {panelSec===id && (
+                <div style={{ padding:id==="blocks"?12:"12px 14px", borderBottom:`1px solid ${C.border}` }}>
+                  {id==="blocks"
+                    ? <BlocksPalette t={t} onAdd={addBlockAt}
+                        onDragStart={setDragType} onDragEnd={()=>{ setDragType(null); setDropIdx(null); }}
+                        selBlock={selBlock}
+                        onToken={tk=>updateBlock(selBlock.id, { text:(selBlock.text||"")+" "+tk })}/>
+                    : settingsPanel}
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* ── Center: canvas with subject header ── */}
+        <BlockCanvas t={t} width={canvasW} blocks={blocks} selId={selId} setSelId={setSelId}
+          dragType={dragType} dropIdx={dropIdx} setDropIdx={setDropIdx}
+          onDropAt={idx=>{ addBlockAt(dragType, idx); setDragType(null); setDropIdx(null); }}
+          updateBlock={updateBlock} moveBlock={moveBlock} removeBlock={removeBlock}
+          header={
+            <div style={{ padding:"10px 14px", marginBottom:12, background:"#fff", borderRadius:8, border:`1px solid ${C.border}` }}>
+              <label style={labelStyle}>{t("nlSubjectLine")}</label>
+              <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder={t("nlSubjectPh")} style={inputStyle}/>
+            </div>
+          }/>
+      </div>
+    </div>
+  );
+};
