@@ -1,6 +1,6 @@
 import React, { useState, useContext, useRef } from "react";
 import { C } from "../../theme";
-import { ALL_LEADS, EMAIL_TEMPLATES_STORE, setEMAIL_TEMPLATES_STORE, pick } from "../../lib/core";
+import { ALL_LEADS, EMAIL_TEMPLATES_STORE, LABELS_STORE, LEAD_LABELS_STORE, setEMAIL_TEMPLATES_STORE, pick } from "../../lib/core";
 import { useT, LangContext } from "../../lib/i18n";
 import { CANVAS_BG, BlocksPalette, BlockCanvas, DeviceToggle, EmailFrame, PreviewModal, TemplateThumb, instantiateTpl, newBlock, newSection } from "../email/block-editor";
 
@@ -134,16 +134,22 @@ const GroupModal = ({ t, initial=null, onClose, onSave }) => {
   const [fCamp, setFCamp] = useState("all");
   const [fSrc,  setFSrc]  = useState("all");
   const [fCity, setFCity] = useState("all");
+  const [fLbl,  setFLbl]  = useState("all");
   const [q,     setQ]     = useState("");
   const [sel,   setSel]   = useState(() => Object.fromEntries((initial?.memberIds||[]).map(id=>[id,true])));
 
   const uniq = (key) => [...new Set(ALL_LEADS.map(l=>l[key]).filter(Boolean))].sort();
   const campaigns = uniq("campaign"), sources = uniq("source"), cities = uniq("city");
+  const labels = LABELS_STORE.filter(lb => lb.active !== false);
+  // Labels toggled on the contact detail live in LEAD_LABELS_STORE; the seed
+  // values on the lead itself are the fallback.
+  const leadLabels = (l) => LEAD_LABELS_STORE[l.id] || l.labels || [];
 
   const filtered = ALL_LEADS.filter(l =>
     (fCamp==="all" || l.campaign===fCamp) &&
     (fSrc==="all"  || l.source===fSrc) &&
     (fCity==="all" || l.city===fCity) &&
+    (fLbl==="all"  || leadLabels(l).includes(fLbl)) &&
     (!q || `${l.name} ${l.email}`.toLowerCase().includes(q.toLowerCase()))
   );
   const count = Object.values(sel).filter(Boolean).length;
@@ -159,7 +165,8 @@ const GroupModal = ({ t, initial=null, onClose, onSave }) => {
   const save = () => {
     if (!gName.trim() || (!initial && count===0)) { onSave(null); return; }
     const memberIds = Object.keys(sel).filter(id=>sel[id]);
-    const parts = [fCamp!=="all"&&fCamp, fSrc!=="all"&&fSrc, fCity!=="all"&&fCity].filter(Boolean);
+    const parts = [fCamp!=="all"&&fCamp, fSrc!=="all"&&fSrc, fCity!=="all"&&fCity,
+      fLbl!=="all"&&(labels.find(x=>x.id===fLbl)?.name)].filter(Boolean);
     onSave({
       id: initial?.id || `g${Date.now()}`,
       name: gName.trim(),
@@ -199,6 +206,10 @@ const GroupModal = ({ t, initial=null, onClose, onSave }) => {
             <option value="all">{t("nlAllCities")}</option>
             {cities.map(c=><option key={c} value={c}>{c}</option>)}
           </select>
+          <select value={fLbl} onChange={e=>setFLbl(e.target.value)} style={selStyle}>
+            <option value="all">{t("nlAllLabels")}</option>
+            {labels.map(lb=><option key={lb.id} value={lb.id}>{lb.name}</option>)}
+          </select>
           <input value={q} onChange={e=>setQ(e.target.value)} placeholder={t("nlSearchContacts")}
             style={{ ...inputStyle, padding:"8px 10px", fontSize:12, flex:1, minWidth:160 }}/>
         </div>
@@ -213,7 +224,7 @@ const GroupModal = ({ t, initial=null, onClose, onSave }) => {
               <th style={{ padding:"9px 12px 9px 22px", width:34 }}>
                 <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor:"pointer" }}/>
               </th>
-              {[t("nlContactCol"), t("nlAllCities").replace(/^Alle |^All /,""), "Quelle / Source", "Kampagne / Campaign", t("nlConsentCol")].map((h,i)=>(
+              {[t("nlContactCol"), t("nlAllCities").replace(/^Alle |^All /,""), "Quelle / Source", "Kampagne / Campaign", t("labels"), t("nlConsentCol")].map((h,i)=>(
                 <th key={i} style={{ padding:"9px 10px", textAlign:"left", fontSize:11, fontWeight:700, color:C.navy, whiteSpace:"nowrap" }}>{h}</th>
               ))}
             </tr>
@@ -232,11 +243,23 @@ const GroupModal = ({ t, initial=null, onClose, onSave }) => {
                 <td style={{ padding:"8px 10px", fontSize:12, color:C.slate }}>{l.city}</td>
                 <td style={{ padding:"8px 10px", fontSize:12, color:C.slate }}>{l.source}</td>
                 <td style={{ padding:"8px 10px", fontSize:12, color:C.slate }}>{l.campaign}</td>
+                <td style={{ padding:"8px 10px" }}>
+                  <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+                    {leadLabels(l).map(id => {
+                      const lb = LABELS_STORE.find(x=>x.id===id);
+                      return lb ? (
+                        <span key={id} style={{ fontSize:9.5, fontWeight:700, padding:"2px 7px", borderRadius:10,
+                          background:lb.color+"18", color:lb.color, whiteSpace:"nowrap" }}>{lb.name}</span>
+                      ) : null;
+                    })}
+                    {leadLabels(l).length===0 && <span style={{ fontSize:12, color:C.muted }}>—</span>}
+                  </div>
+                </td>
                 <td style={{ padding:"8px 10px", fontSize:13 }}>{l.consent ? "✅" : "—"}</td>
               </tr>
             ))}
             {filtered.length===0 && (
-              <tr><td colSpan={6} style={{ padding:"28px", textAlign:"center", color:C.muted, fontSize:12.5 }}>—</td></tr>
+              <tr><td colSpan={7} style={{ padding:"28px", textAlign:"center", color:C.muted, fontSize:12.5 }}>—</td></tr>
             )}
           </tbody>
         </table>
