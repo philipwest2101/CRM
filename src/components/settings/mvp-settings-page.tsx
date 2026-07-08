@@ -604,6 +604,7 @@ export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
       {editing && section.key === "templates" && (
         <EmailTemplateEditor
           template={emailTpls.find(t => t.id === editing.item?.id) || editing.item}
+          showJourney={false}
           onSave={saveTemplate} onClose={() => setEditing(null)} />
       )}
       {editing && section.key !== "templates" && (

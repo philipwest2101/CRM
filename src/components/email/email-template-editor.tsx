@@ -19,7 +19,10 @@ const inputStyle: React.CSSProperties = {
   fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text,
 };
 
-export const EmailTemplateEditor = ({ template, onSave, onClose }) => {
+// showJourney=false hides the journey field (MVP settings — the journey/
+// automation concept is not part of the MVP surface); the template keeps its
+// existing journey untouched so newsletters stay newsletters.
+export const EmailTemplateEditor = ({ template, onSave, onClose, showJourney = true }) => {
   const t = useT();
   const [name,        setName]        = useState(template.name||"");
   const [subject,     setSubject]     = useState(template.subject||"");
@@ -71,15 +74,17 @@ export const EmailTemplateEditor = ({ template, onSave, onClose }) => {
       </div>
 
       {/* Journey */}
-      <div>
-        <label style={labelStyle}>Journey</label>
-        <select value={journey} onChange={e=>setJourney(e.target.value)} style={{ ...inputStyle, cursor:"pointer" }}>
-          {Object.entries(JOURNEY_META).map(([k,m])=><option key={k} value={k}>{m.label}</option>)}
-        </select>
-        <div style={{ fontSize:9.5, color:C.muted, marginTop:4 }}>
-          Journeys drive workflow automation; "Newsletter" templates appear on the Newsletter page.
+      {showJourney && (
+        <div>
+          <label style={labelStyle}>Journey</label>
+          <select value={journey} onChange={e=>setJourney(e.target.value)} style={{ ...inputStyle, cursor:"pointer" }}>
+            {Object.entries(JOURNEY_META).map(([k,m])=><option key={k} value={k}>{m.label}</option>)}
+          </select>
+          <div style={{ fontSize:9.5, color:C.muted, marginTop:4 }}>
+            Journeys drive workflow automation; "Newsletter" templates appear on the Newsletter page.
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Attachments — from the central library (Settings → Attachments) */}
       <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:11 }}>

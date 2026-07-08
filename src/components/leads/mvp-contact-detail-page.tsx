@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, JOURNEY_META, LIFECYCLE_STORE, blocksToText } from "../../lib/core";
+import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, LIFECYCLE_STORE, blocksToText } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 
@@ -173,7 +173,7 @@ const EmailModal = ({ contact = null, onClose }) => {
             <option value="">Select Template</option>
             {templates.map(t => (
               <option key={t.id} value={t.id}>
-                {t.name} · {JOURNEY_META[t.journey]?.label || t.journey} ({t.lang === "en" ? "EN" : "DE"})
+                {t.name} ({t.lang === "en" ? "EN" : "DE"})
               </option>
             ))}
           </select>
