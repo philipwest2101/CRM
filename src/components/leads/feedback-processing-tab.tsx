@@ -64,9 +64,11 @@ const STATUS_STEP = {
 export const makeInitialFeedback = (lead, alreadyContact = false) => {
   const status  = lead?.status || "open";
   const current = STATUS_STEP[status] ?? 0;
-  const finished = status === "closed";
+  const finished = status === "closed" || status === "not_reached";
   const calls   = lead?.attempts || 0;
-  const isContact = alreadyContact || current > 0;
+  // Already a contact if opened from a contacts view, or past the appointment
+  // conversion point (appointment booked / deal closed).
+  const isContact = alreadyContact || status === "appointment" || status === "closed";
   const channels = { sms: current > 0 ? 1 : 0, whatsapp: 0, email: 0 };
   const log = [{ text: "Lead assigned → status set to New", time: "12:58:29 PM" }];
   if (current > 0) log.push({ text: "Initial Contact → Sent via SMS", time: "12:59:05 PM" });
@@ -230,7 +232,7 @@ const PhoneAttemptsStep = ({ calls, notReached, onLog }) => (
       <span style={{ fontSize: 22 }}>{notReached ? "🚫" : "📞"}</span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: notReached ? C.red : C.navy }}>{calls} of {MAX_CALL_ATTEMPTS} call attempt{calls !== 1 ? "s" : ""}{notReached ? " · Not Reached" : ""}</div>
-        <div style={{ fontSize: 11.5, color: C.muted }}>{notReached ? "Maximum attempts reached — status set to Not Reached." : "Keep trying until the contact answers."}</div>
+        <div style={{ fontSize: 11.5, color: C.muted }}>{notReached ? "Maximum attempts reached — processing finished as Not Reached." : "Keep trying until the contact answers."}</div>
       </div>
     </div>
     <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
@@ -329,7 +331,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
-  const isApptStage = currentStep.key === "schedule" || currentStep.key === "apptOutcome";
+  // Conversion is offered from the appointment stage onward, and when the lead
+  // ends up Not Reached — so the user can still decide to keep it as a contact.
+  const showConvert = state.notReached || current >= IDX.schedule;
 
   const pushLog = (prev, text) => [...prev.log, { text, time: nowTime() }];
 
@@ -351,12 +355,24 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
     if (prev.notReached) return prev;                          // capped — no more attempts
     const calls = Math.min(prev.calls + 1, MAX_CALL_ATTEMPTS);
     const exhausted = !reached && calls >= MAX_CALL_ATTEMPTS;  // 5th failed attempt → Not Reached
+    if (exhausted) {
+      // Max attempts hit → mark Not Reached and auto-finish the processing.
+      return {
+        ...prev, calls, notReached: true, finished: true,
+        summaries: { ...prev.summaries, phone: `${calls} calls · not reached` },
+        lastAction: { icon: "🚫", label: `Not reached (max ${MAX_CALL_ATTEMPTS} attempts) — processing finished`, date: today() },
+        log: [...prev.log,
+          { text: `Phone Contact Attempts → Not reached (attempt ${calls}) · status set to Not Reached`, time: nowTime() },
+          { text: "Finish Processing → Not Reached (automatic)", time: nowTime() },
+        ],
+      };
+    }
     return {
-      ...prev, calls, reached: reached || prev.reached, notReached: exhausted,
+      ...prev, calls, reached: reached || prev.reached,
       current: reached ? IDX.schedule : prev.current,
-      summaries: { ...prev.summaries, phone: reached ? `${calls} calls · reached` : exhausted ? `${calls} calls · not reached` : `${calls} call${calls !== 1 ? "s" : ""}` },
-      lastAction: { icon: reached ? "📞" : exhausted ? "🚫" : "📞", label: reached ? "Reached by phone" : exhausted ? `Not reached (max ${MAX_CALL_ATTEMPTS} attempts)` : "Call attempt — not reached", date: today() },
-      log: pushLog(prev, reached ? `Phone Contact Attempts → Reached (attempt ${calls})` : `Phone Contact Attempts → Not reached (attempt ${calls})${exhausted ? " · status set to Not Reached" : ""}`),
+      summaries: { ...prev.summaries, phone: reached ? `${calls} calls · reached` : `${calls} call${calls !== 1 ? "s" : ""}` },
+      lastAction: { icon: "📞", label: reached ? "Reached by phone" : "Call attempt — not reached", date: today() },
+      log: pushLog(prev, `Phone Contact Attempts → ${reached ? "Reached" : "Not reached"} (attempt ${calls})`),
     };
   });
 
@@ -414,7 +430,8 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
     }
   };
 
-  const future    = STEPS.slice(current + 1).reverse();
+  // When Not Reached the flow has ended, so the later steps are no longer pending.
+  const future    = state.notReached ? [] : STEPS.slice(current + 1).reverse();
   const completed = STEPS.slice(0, current).reverse();
 
   return (
@@ -427,8 +444,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
 
       <CurrentStepShell index={current} title={currentStep.title}>
         {renderCurrentBody(currentStep)}
-        {/* Lead → Contact conversion is decided here, at the appointment stage. */}
-        {isApptStage && (
+        {/* Lead → Contact conversion — available from the appointment stage onward
+            and whenever the lead is Not Reached. */}
+        {showConvert && (
           <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: C.navy }}>Lead status</div>

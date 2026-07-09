@@ -1379,16 +1379,16 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
   const [feedback, setFeedback] = useState(() => makeInitialFeedback(lead, isMyNetwork));
 
   // "Feedback & Processing" comes first; every other tab (and the identity-rail
-  // quick actions) stays locked until the whole processing flow is finished.
+  // quick actions) stays locked until the lead has been converted to a contact.
   const ACTIVE_TABS = isMyNetwork
     ? [t("feedbackTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
     : [t("feedbackTab"), t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
-  const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.finished;
+  const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
   const [tab, setTab] = useState(() => t("feedbackTab"));
   // Re-initialise when navigating to a different contact.
   React.useEffect(() => { setFeedback(makeInitialFeedback(lead, isMyNetwork)); setTab(t("feedbackTab")); }, [lead?.id]);
   // If the active tab ever becomes disabled, fall back to Feedback.
-  React.useEffect(() => { if (!isTabEnabled(tab)) setTab(t("feedbackTab")); }, [feedback.finished]);
+  React.useEffect(() => { if (!isTabEnabled(tab)) setTab(t("feedbackTab")); }, [feedback.isContact]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
   const currentUserName = role === "gp" ? "Anna Klein" : role === "vd" ? "Thomas Müller" : role === "manager" ? "Julia Bauer" : "Super Admin";
@@ -1419,7 +1419,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18, alignItems: "start" }}>
-        <IdentityRail c={c} actionsDisabled={!feedback.finished} isContact={feedback.isContact}
+        <IdentityRail c={c} actionsDisabled={!feedback.isContact} isContact={feedback.isContact}
           onEmail={() => setModal("email")} onTask={() => setModal("task")} onAppointment={() => setModal("appointment")}
           onLogCall={() => setModal("logcall")} onLogEmail={() => setModal("logemail")}
           onLogAppt={() => setModal("logappt")} onOffline={() => setModal("offline")} />

@@ -99,7 +99,7 @@ export const TRANSLATIONS = {
     apptsByAdvisor: "appointments",
     noAssignedLeads: "No assigned leads yet.",
     noContactsYet: "No contacts yet.",
-    tabLockedHint: "Available once the Feedback & Processing flow is finished.",
+    tabLockedHint: "Available once the lead has been converted to a contact.",
     auditLog: "Audit Log",
     auditLogLink: "Audit Log →",
     // VD dashboard toggle
@@ -600,7 +600,7 @@ export const TRANSLATIONS = {
     apptsByAdvisor: "Termine",
     noAssignedLeads: "Noch keine zugewiesenen Leads.",
     noContactsYet: "Noch keine Kontakte.",
-    tabLockedHint: "Verfügbar, sobald die Feedback & Bearbeitung abgeschlossen ist.",
+    tabLockedHint: "Verfügbar, sobald der Lead in einen Kontakt umgewandelt wurde.",
     auditLog: "Audit-Log",
     auditLogLink: "Audit-Log →",
     // VD-Dashboard-Umschalter
