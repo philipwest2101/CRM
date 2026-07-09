@@ -4,6 +4,7 @@ import { useT } from "../../lib/i18n";
 import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, LIFECYCLE_STORE, blocksToText } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
+import { FeedbackProcessingTab } from "./feedback-processing-tab";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
@@ -1340,10 +1341,13 @@ const DocumentsTab = () => {
 export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => {
   const t = useT();
   const isMyNetwork = sourceView === "my";
+  const openFeedback = sourceView === "feedback";
+  // Once a lead becomes a contact it gains the "Feedback & Processing" tab — the
+  // guided flow that tracks everything after assignment.
   const ACTIVE_TABS = isMyNetwork
-    ? [t("activitiesTab"), t("documentsTab"), t("informationTab")]
-    : [t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
-  const [tab, setTab] = useState(() => ACTIVE_TABS[0]);
+    ? [t("activitiesTab"), t("documentsTab"), t("informationTab"), t("feedbackTab")]
+    : [t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab"), t("feedbackTab")];
+  const [tab, setTab] = useState(() => openFeedback ? t("feedbackTab") : ACTIVE_TABS[0]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
   const currentUserName = role === "gp" ? "Anna Klein" : role === "vd" ? "Thomas Müller" : role === "manager" ? "Julia Bauer" : "Super Admin";
@@ -1394,6 +1398,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
           {tab === t("informationTab") && <InformationTab c={c} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}
+          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} />}
         </div>
       </div>
 

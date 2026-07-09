@@ -1126,6 +1126,39 @@ const BulkAssignModal = ({ contacts, onClose, onAssign }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// TAKE OVER MODAL (VD reassigns pending leads to himself)
+// ─────────────────────────────────────────────────────────────────────────────
+const TakeOverModal = ({ contacts, vdName, onClose, onTakeOver, t }) => (
+  <>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 460, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 26px", fontFamily: "inherit" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{t("takeOverConfirmTitle")}</span>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
+      </div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>
+        {contacts.length} {contacts.length !== 1 ? t("recipients").toLowerCase() : t("nlContactCol").toLowerCase()} {t("takeOverConfirmMsg")}
+      </div>
+      <div style={{ maxHeight: 220, overflowY: "auto", border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 18 }}>
+        {contacts.map(c => (
+          <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+              {c.name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>{c.name}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("cancel")}</button>
+        <button onClick={() => { onTakeOver(contacts.map(c => c.id), vdName); onClose(); }}
+          style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{t("takeOver")}</button>
+      </div>
+    </div>
+  </>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 // Build role-specific system views. System views cannot be deleted.
@@ -1173,6 +1206,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
   const [showImport, setShowImport] = useState(false);
   const [showBulk, setShowBulk]     = useState(false);   // Send Bulk Email modal
   const [showAssign, setShowAssign] = useState(false);   // Bulk Assign modal
+  const [showTakeOver, setShowTakeOver] = useState(false); // VD Take Over modal
   const [editView, setEditView]     = useState(null);    // view being edited / added
   const [selected, setSelected]     = useState(() => new Set());
 
@@ -1291,6 +1325,14 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
           <IconBtn title="Bulk assign" active={selected.size > 0}
             onClick={() => { if (selected.size > 0) setShowAssign(true); }}>👤</IconBtn>
         )}
+        {role === "vd" && activeView === "pendingA" && (
+          <button title={t("takeOver")} onClick={() => { if (selected.size > 0) setShowTakeOver(true); }}
+            style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.navy}`,
+              background: selected.size > 0 ? C.navy : "#fff", color: selected.size > 0 ? "#fff" : C.navy,
+              fontSize: 13, fontWeight: 700, cursor: selected.size > 0 ? "pointer" : "default", fontFamily: "inherit" }}>
+            {t("takeOver")}
+          </button>
+        )}
         {selected.size > 0 && <span style={{ marginLeft: 8, fontSize: 12, color: C.slate, fontWeight: 600 }}>{selected.size} selected</span>}
       </div>
 
@@ -1374,6 +1416,16 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
       {showBulk && <SendBulkEmailModal contacts={contacts.filter(c => selected.has(c.id))} onClose={() => setShowBulk(false)} />}
       {editView && <EditViewModal view={editView} onClose={() => setEditView(null)} onApply={applyView} />}
       {showAssign && <BulkAssignModal contacts={contacts.filter(c => selected.has(c.id))} onClose={() => setShowAssign(false)} onAssign={() => { setSelected(new Set()); }} />}
+      {showTakeOver && (
+        <TakeOverModal
+          contacts={contacts.filter(c => selected.has(c.id))}
+          vdName="Thomas Müller" t={t}
+          onClose={() => setShowTakeOver(false)}
+          onTakeOver={(ids, vdName) => {
+            setContacts(prev => prev.map(c => ids.includes(c.id) ? { ...c, assignee: vdName, assigned: true } : c));
+            setSelected(new Set());
+          }} />
+      )}
     </div>
   );
 };

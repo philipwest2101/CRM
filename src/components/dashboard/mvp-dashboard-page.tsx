@@ -501,6 +501,136 @@ const CallAttemptsTable = ({ title, rowLabel, rows, action, info }) => (
   </Card>
 );
 
+// ── Shared status / feedback maps (VD Team "Assigned Leads" + Contact List) ────
+const STATUS_META = {
+  open:        { label: "New",         color: C.green },
+  in_progress: { label: "In Progress", color: C.blue },
+  attempted:   { label: "Attempted",   color: C.amber },
+  not_reached: { label: "Not Reached", color: C.red },
+  followup:    { label: "Follow-up",   color: C.amber },
+  appointment: { label: "Appointment", color: C.indigo },
+  closed:      { label: "Closed",      color: C.green },
+  no_interest: { label: "No Interest", color: C.slate },
+  dnc:         { label: "Do Not Call", color: C.slate },
+};
+const FEEDBACK_FROM_STATUS = {
+  open:        "Initial Contact",
+  in_progress: "Phone Attempts",
+  attempted:   "Phone Attempts",
+  not_reached: "Phone Attempts",
+  followup:    "Scheduling",
+  appointment: "Appointment",
+  closed:      "Finished",
+  no_interest: "Finished",
+  dnc:         "Finished",
+};
+const StatusPill = ({ status }) => {
+  const m = STATUS_META[status] || STATUS_META.open;
+  return <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: m.color + "16", color: m.color, whiteSpace: "nowrap" }}>{m.label}</span>;
+};
+
+// ── VD Team: Advisor Performance — compact horizontal bar chart by appointments.
+const BAR_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
+const AdvisorApptChart = ({ title, rows, unit, action }) => {
+  const max = Math.max(1, ...rows.map(r => r.appts || 0));
+  return (
+    <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+      <CardHeader title={title} action={action} />
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+        {rows.map((r, i) => {
+          const pct = Math.round(((r.appts || 0) / max) * 100);
+          const color = BAR_COLORS[i % BAR_COLORS.length];
+          return (
+            <div key={r.name}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+                <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: C.navy }}>{r.appts} <span style={{ color: C.muted, fontWeight: 500 }}>{unit}</span></span>
+              </div>
+              <div style={{ height: 8, borderRadius: 6, background: C.light, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 6, transition: "width .3s ease" }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+};
+
+// ── VD Team: Assigned Leads — leads delegated to team advisors, with their
+//    feedback-flow stage, status and last activity. ─────────────────────────────
+const AssignedLeadsTable = ({ title, rows, action, t }) => (
+  <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+    <CardHeader title={title} action={action} />
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.4fr 1.1fr 1.1fr 1fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[t("leadNameCol"), t("advisorNameCol"), t("feedbackStatusCol"), t("status"), t("lastActivityCol")].map((h, i) => (
+        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", textAlign: i === 0 ? "left" : "left" }}>{h}</div>
+      ))}
+    </div>
+    <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
+      {rows.length === 0 ? (
+        <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noAssignedLeads")}</div>
+      ) : rows.map((r, i) => (
+        <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1.1fr 1.1fr 1fr 0.9fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <Avatar name={r.name} size={26} />
+            <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+          </div>
+          <span style={{ fontSize: 12, color: C.slate, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.advisor}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.indigo }}>{r.feedback}</span>
+          <div><StatusPill status={r.status} /></div>
+          <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap" }}>{r.lastActivity}</span>
+        </div>
+      ))}
+    </div>
+  </Card>
+);
+
+// ── GP / VD (My): Contact List — a slice of the advisor's My Network. ──────────
+const ContactListCard = ({ title, rows, action, t }) => (
+  <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+    <CardHeader title={title} action={action} />
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.4fr 1.2fr 1fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[t("name"), t("phone"), t("status"), t("lastActivityCol")].map(h => (
+        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</div>
+      ))}
+    </div>
+    <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
+      {rows.length === 0 ? (
+        <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noContactsYet")}</div>
+      ) : rows.map((c, i) => (
+        <div key={c.id} onClick={c.onOpen} style={{ display: "grid", gridTemplateColumns: "1.4fr 1.2fr 1fr 0.9fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center", cursor: "pointer" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <Avatar name={c.name} size={26} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+              <div style={{ fontSize: 10, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.city} · {c.source}</div>
+            </div>
+          </div>
+          <span style={{ fontSize: 11.5, color: C.slate, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.phone || "—"}</span>
+          <div><StatusPill status={c.status} /></div>
+          <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap" }}>{c.lastActivity}</span>
+        </div>
+      ))}
+    </div>
+  </Card>
+);
+
+// ── VD: Take Over confirmation — VD reassigns a pending lead to himself. ───────
+const TakeOverModal = ({ lead, vdName, onClose, t }) => (
+  <>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
+    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 420, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{t("takeOverConfirmTitle")}</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 22 }}><b>{lead?.name}</b> {t("takeOverConfirmMsg")}</div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("cancel")}</button>
+        <button onClick={onClose} style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{t("takeOver")}</button>
+      </div>
+    </div>
+  </>
+);
+
 export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
 
   const t         = useT();
@@ -652,8 +782,31 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const aggConversion= aggLeads > 0 ? ((aggClosings / aggLeads) * 100).toFixed(1) + "%" : "0%";
   const unassignedAgg= isSA ? 47 : 12;
 
-  // ── Assign modal ────────────────────────────────────────────────────────────
+  // ── Assign / Take Over modals ───────────────────────────────────────────────
   const [assignTarget, setAssignTarget] = useState(null);
+  const [takeOverTarget, setTakeOverTarget] = useState(null);
+
+  // ── VD Team: Assigned Leads — leads this VD delegated to team advisors. ──────
+  const assignedLeadRows = (isVD && teamView)
+    ? allLeads
+        .filter(l => l.assignedVD === userName && l.assignedGP && l.assignedGP !== userName)
+        .slice(0, 12)
+        .map(l => ({
+          id: l.id, name: l.name, advisor: l.assignedGP,
+          feedback: FEEDBACK_FROM_STATUS[l.status] || "Initial Contact",
+          status: l.status,
+          lastActivity: l.created || "—",
+        }))
+    : [];
+
+  // ── GP / VD (My): Contact List — a slice of the advisor's My Network. ────────
+  const contactListRows = personal
+    ? scopedLeads.slice(0, 10).map(l => ({
+        id: l.id, name: l.name, city: l.city, source: l.source, phone: l.phone,
+        status: l.status, lastActivity: l.created || "—",
+        onOpen: () => navigateTo("LeadDetail", l, "my"),
+      }))
+    : [];
 
   // ── Done toggle — writes to the shared activities store so the Calendar stays
   //    in sync. Falls back to local state if no setter is provided. ─────────────
@@ -763,7 +916,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
           {/* ── Leads panel ─────────────────────────────────────────────────── */}
           <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
             <CardHeader
-              title={leadsTitle}
+              title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                {leadsTitle}
+                <span style={{ fontSize: 11, fontWeight: 700, minWidth: 20, textAlign: "center", padding: "1px 7px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{panelLeads.length}</span>
+              </span>}
               action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, leadsViewId)} />}
             />
             <div style={{ flex: 1, overflowY: "auto", padding: "2px 16px 6px" }}>
@@ -789,15 +945,23 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                     </div>
                   </div>
                   {personal ? (
-                    <button onClick={() => navigateTo("Leads")}
-                      style={{ padding:"4px 10px",background:C.primary,color:"#fff",border:"none",borderRadius:6,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontWeight:600 }}>
-                      {t("openContact")}
+                    <button onClick={() => navigateTo("LeadDetail", lead, "feedback")}
+                      style={{ padding:"5px 12px",background:"#fff",color:C.primaryDark,border:`1px solid ${C.primary}`,borderRadius:8,fontSize:11,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap" }}>
+                      {t("detailFeedback")}
                     </button>
                   ) : (
-                    <button onClick={() => setAssignTarget(lead)}
-                      style={{ padding:"4px 10px",background:C.primary,color:"#fff",border:"none",borderRadius:6,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontWeight:600 }}>
-                      {t("assignContact")}
-                    </button>
+                    <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                      <button onClick={() => setAssignTarget(lead)}
+                        style={{ padding:"4px 10px",background:C.primary,color:"#fff",border:"none",borderRadius:6,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontWeight:600 }}>
+                        {t("assignContact")}
+                      </button>
+                      {isVD && (
+                        <button onClick={() => setTakeOverTarget(lead)}
+                          style={{ padding:"4px 10px",background:"#fff",color:C.navy,border:`1px solid ${C.navy}`,borderRadius:6,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontWeight:600 }}>
+                          {t("takeOver")}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
@@ -934,15 +1098,33 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Row 2: SA / VD (Team) → Performance | Call Attempts ─────────── */}
-        {teamView && (
+        {/* ── Row 2: SA → Team Performance | Call Attempts ────────────────── */}
+        {isSA && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-          <PerfTable title={isSA ? t("teamPerformance") : t("advisorPerformance")} rowLabel={perfRowLabel} rows={perfRows}
+          <PerfTable title={t("teamPerformance")} rowLabel={perfRowLabel} rows={perfRows}
             closingCol={t("closingRateCol")} successCol={t("successRateCol")}
             action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
           <CallAttemptsTable title={t("callAttemptsTitle")} rowLabel={perfRowLabel} rows={perfRows}
             info={t("tooltip_callAttemptsTable")}
             action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
+        </div>
+        )}
+
+        {/* ── Row 2: VD (Team) → Advisor Performance (visual) | Assigned Leads ── */}
+        {isVD && teamView && (
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 360px) 1fr", gap: 14, marginBottom: 14 }}>
+          <AdvisorApptChart title={t("advisorPerformance")} rows={perfRows} unit={t("apptsByAdvisor")}
+            action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
+          <AssignedLeadsTable title={t("assignedLeadsTitle")} rows={assignedLeadRows} t={t}
+            action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
+        </div>
+        )}
+
+        {/* ── Row 3: GP / VD (My) → Contact List (from My Network) ────────── */}
+        {personal && (
+        <div style={{ marginBottom: 14 }}>
+          <ContactListCard title={t("contactListTitle")} rows={contactListRows} t={t}
+            action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, "my")} />} />
         </div>
         )}
 
@@ -958,6 +1140,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
       </div>
     </div>
     {assignTarget && <DashAssignModal lead={assignTarget} allowTeams={isSA} onClose={() => setAssignTarget(null)} />}
+    {takeOverTarget && <TakeOverModal lead={takeOverTarget} vdName={userName} t={t} onClose={() => setTakeOverTarget(null)} />}
     </>
   );
 };
