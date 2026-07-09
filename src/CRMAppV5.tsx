@@ -17,6 +17,7 @@ import { MVPContactsPage } from "./components/leads/mvp-contacts-page";
 import { ReportsPage } from "./components/reports/reports-page";
 import { SettingsPage } from "./components/settings/settings-page";
 import { MVPSettingsPage } from "./components/settings/mvp-settings-page";
+import { AuditLogSection } from "./components/settings/audit-log-section";
 import { ACTIVITIES_STORE, APPOINTMENTS, EMAIL_TEMPLATES_STORE, WORKFLOW_RULES_STORE } from "./lib/core";
 import { LangContext, Lang } from "./lib/i18n";
 import { C } from "./theme";
@@ -215,6 +216,16 @@ export default function CRMAppV5() {
       {page==="GPEducation"    && <GPEducationPage      navigateTo={navigateTo} />}
       {page==="Events"         && <EventsPage           role={role} navigateTo={navigateTo} />}
       {page==="Reports"        && <ReportsPage          role={role} navigateTo={navigateTo} />}
+      {page==="AuditLog"       && (
+        <div style={{ flex:1, overflowY:"auto" }}>
+          <div style={{ padding:"24px 28px 40px" }}>
+            <div style={{ marginBottom:16 }}>
+              <button onClick={() => setPage("Dashboard")} style={{ background:"none", border:"none", cursor:"pointer", color:C.slate, fontSize:13, fontWeight:600, padding:0 }}>← {lang==="de" ? "Zurück zum Dashboard" : "Back to Dashboard"}</button>
+            </div>
+            <AuditLogSection />
+          </div>
+        </div>
+      )}
     </div>
     </LangContext.Provider>
   );

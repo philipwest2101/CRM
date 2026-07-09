@@ -524,6 +524,24 @@ const FEEDBACK_FROM_STATUS = {
   no_interest: "Finished",
   dnc:         "Finished",
 };
+// Deterministic "messages sent" figure from the lead id (mock has no real counter).
+const synthSms = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) & 0xffff; return 1 + (h % 3); };
+// Feedback & Processing detail line — surfaces how much outreach has happened
+// (calls placed, messages sent) so the stage isn't just a bare label.
+const feedbackColDetail = (l) => {
+  const calls = l.attempts || 0, sms = synthSms(l.id);
+  const c = `${calls} call${calls !== 1 ? "s" : ""}`;
+  switch (l.status) {
+    case "open":        return `${sms} SMS sent`;
+    case "in_progress":
+    case "attempted":
+    case "not_reached": return `${c} · ${sms} SMS`;
+    case "followup":    return `${c} · appt pending`;
+    case "appointment": return `${c} · 1 appt`;
+    case "closed":      return `${c} · closed`;
+    default:            return `${sms} SMS sent`;
+  }
+};
 const StatusPill = ({ status }) => {
   const m = STATUS_META[status] || STATUS_META.open;
   return <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: m.color + "16", color: m.color, whiteSpace: "nowrap" }}>{m.label}</span>;
@@ -577,7 +595,10 @@ const AssignedLeadsTable = ({ title, rows, action, t }) => (
             <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
           </div>
           <span style={{ fontSize: 12, color: C.slate, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.advisor}</span>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.indigo }}>{r.feedback}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: C.indigo, whiteSpace: "nowrap" }}>{r.feedback}</div>
+            <div style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.detail}</div>
+          </div>
           <div><StatusPill status={r.status} /></div>
           <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap" }}>{r.lastActivity}</span>
         </div>
@@ -794,6 +815,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         .map(l => ({
           id: l.id, name: l.name, advisor: l.assignedGP,
           feedback: FEEDBACK_FROM_STATUS[l.status] || "Initial Contact",
+          detail: feedbackColDetail(l),
           status: l.status,
           lastActivity: l.created || "—",
         }))
@@ -1072,16 +1094,16 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               </div>
           </Card>
 
-          {/* Recent Activity */}
+          {/* Recent Activity — a live window into the full audit log */}
           <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
-            <CardHeader title={t("recentActivity")} />
+            <CardHeader title={t("recentActivity")} action={<LinkBtn label={t("auditLogLink")} onClick={() => navigateTo("AuditLog")} />} />
             <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 10px" }}>
               {recentActivity.length === 0 ? (
                 <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noRecentActivity")}</div>
               ) : recentActivity.map((act) => {
                 const iconBg = { call: C.green, video: C.indigo, email: C.amber, inperson: C.blue, note: C.purple }[act.type] || C.muted;
                 return (
-                  <div key={act.id} style={{ display: "flex", gap: 11, alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${C.border}` }}>
+                  <div key={act.id} onClick={() => navigateTo("AuditLog")} title={t("auditLogLink")} style={{ display: "flex", gap: 11, alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
                     <div style={{ width: 30, height: 30, borderRadius: "50%", background: iconBg + "18", display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>
                       {TYPE_ICON[act.type] || "📋"}
                     </div>

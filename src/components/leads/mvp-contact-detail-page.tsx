@@ -4,7 +4,7 @@ import { useT } from "../../lib/i18n";
 import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, LIFECYCLE_STORE, blocksToText } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
-import { FeedbackProcessingTab } from "./feedback-processing-tab";
+import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
@@ -526,9 +526,26 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
 };
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
-const OverviewTab = ({ showInsights = true }) => {
+// Reflects the live Feedback & Processing result: the Follow-Up card mirrors the
+// call attempts, last action and the next best action for the current stage.
+const NEXT_BEST = {
+  initial:     { icon: "✉️", label: "Send initial contact" },
+  phone:       { icon: "📞", label: "Call the contact" },
+  schedule:    { icon: "📅", label: "Schedule an appointment" },
+  apptOutcome: { icon: "📝", label: "Record the appointment outcome" },
+  bizOutcome:  { icon: "💼", label: "Record the business outcome" },
+  finish:      { icon: "🏁", label: "Finish processing" },
+};
+const OverviewTab = ({ showInsights = true, feedback = null }) => {
   const [addNote, setAddNote] = useState(false);
   const [delId, setDelId] = useState(null);
+  // Derive Follow-Up figures from the processing state (fallback to defaults).
+  const fb          = feedback || { calls: 3, current: 1, finished: false, reached: false, lastAction: null };
+  const callTotal   = Math.max(5, fb.calls || 0);
+  const stepKey     = STEPS[fb.current]?.key || "initial";
+  const nextBest    = fb.finished ? { icon: "✓", label: "Processing complete" } : (NEXT_BEST[stepKey] || NEXT_BEST.initial);
+  const lastAction  = fb.lastAction;
+  const stageLabel  = fb.finished ? "Finished" : (STEPS[fb.current]?.title || "Initial Contact");
   const [notes, setNotes] = useState([
     { id: "n1", stage: "Prospect",   dur: "3 days",  active: true, date: "04.03.2026 - 10:00" },
     { id: "n2", stage: "In Progress",dur: "18 days", done: true,   date: "04.03.2026 - 10:00" },
@@ -543,24 +560,27 @@ const OverviewTab = ({ showInsights = true }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 16, alignItems: "start" }}>
         <Card style={{ padding: "18px 20px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>Follow Up <InfoTip text="Scheduled reminder to reconnect with this contact. Helps ensure no lead falls through the cracks." /></div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>Follow Up <InfoTip text="Reflects the live Feedback & Processing flow — call attempts, last action and the next best action for the current stage." /></span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{stageLabel}</span>
+          </div>
           <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-            <Donut value={3} total={5} />
+            <Donut value={fb.calls || 0} total={callTotal} />
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Last Action</span>
-                <span style={{ fontSize: 12, color: C.muted }}>04.03.2026 - 10:00</span>
+                <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || "—"}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 600, color: C.text }}>
-                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>📞</span>
-                Phone Call - Not Reached
+                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
+                {lastAction?.label || "No action yet"}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Next Best Action</span><AiTag />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.text }}>
-                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>✉️</span>
-                Send an Email
+                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{nextBest.icon}</span>
+                {nextBest.label}
               </div>
             </div>
           </div>
@@ -1341,13 +1361,21 @@ const DocumentsTab = () => {
 export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => {
   const t = useT();
   const isMyNetwork = sourceView === "my";
-  const openFeedback = sourceView === "feedback";
-  // Once a lead becomes a contact it gains the "Feedback & Processing" tab — the
-  // guided flow that tracks everything after assignment.
+  // ── Feedback & Processing state (shared with the Overview tab + tab gating) ──
+  // A lead only "becomes a contact" once the initial outreach has been sent; My
+  // Network entries are already contacts. Every other tab stays disabled until then.
+  const [feedback, setFeedback] = useState(() => makeInitialFeedback(lead, isMyNetwork));
+
+  // "Feedback & Processing" comes first; the rest are gated behind `isContact`.
   const ACTIVE_TABS = isMyNetwork
-    ? [t("activitiesTab"), t("documentsTab"), t("informationTab"), t("feedbackTab")]
-    : [t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab"), t("feedbackTab")];
-  const [tab, setTab] = useState(() => openFeedback ? t("feedbackTab") : ACTIVE_TABS[0]);
+    ? [t("feedbackTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
+    : [t("feedbackTab"), t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
+  const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
+  const [tab, setTab] = useState(() => t("feedbackTab"));
+  // Re-initialise when navigating to a different contact.
+  React.useEffect(() => { setFeedback(makeInitialFeedback(lead, isMyNetwork)); setTab(t("feedbackTab")); }, [lead?.id]);
+  // If the active tab ever becomes disabled (e.g. reopened as a fresh lead), fall back to Feedback.
+  React.useEffect(() => { if (!isTabEnabled(tab)) setTab(t("feedbackTab")); }, [feedback.isContact]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
   const currentUserName = role === "gp" ? "Anna Klein" : role === "vd" ? "Thomas Müller" : role === "manager" ? "Julia Bauer" : "Super Admin";
@@ -1385,20 +1413,27 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
 
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {ACTIVE_TABS.map(tabName => (
-              <button key={tabName} onClick={() => setTab(tabName)} style={{
-                padding: "9px 18px", borderRadius: 10, border: `1px solid ${tab === tabName ? C.primary : C.border}`,
-                background: tab === tabName ? "#fff" : "transparent", cursor: "pointer", fontFamily: "inherit",
-                fontSize: 14, fontWeight: tab === tabName ? 700 : 500, color: tab === tabName ? C.primaryDark : C.slate,
-              }}>{tabName}</button>
-            ))}
+            {ACTIVE_TABS.map(tabName => {
+              const enabled = isTabEnabled(tabName);
+              return (
+                <button key={tabName} onClick={() => enabled && setTab(tabName)} disabled={!enabled}
+                  title={enabled ? undefined : t("tabLockedHint")}
+                  style={{
+                    padding: "9px 18px", borderRadius: 10, border: `1px solid ${tab === tabName ? C.primary : C.border}`,
+                    background: tab === tabName ? "#fff" : "transparent", cursor: enabled ? "pointer" : "not-allowed", fontFamily: "inherit",
+                    fontSize: 14, fontWeight: tab === tabName ? 700 : 500,
+                    color: !enabled ? C.muted : tab === tabName ? C.primaryDark : C.slate, opacity: enabled ? 1 : 0.55,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>{!enabled && <span style={{ fontSize: 11 }}>🔒</span>}{tabName}</button>
+              );
+            })}
           </div>
 
-          {tab === t("overviewTab")     && <OverviewTab showInsights={false} />}
+          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} />}
+          {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
           {tab === t("informationTab") && <InformationTab c={c} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}
-          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} />}
         </div>
       </div>
 

@@ -2,17 +2,23 @@ import React, { useState } from "react";
 import { C } from "../../theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FEEDBACK & PROCESSING TAB
+// FEEDBACK & PROCESSING TAB  (controlled)
 // A guided, bottom-to-top stepper that walks an advisor through everything that
 // happens to a lead after it becomes a contact — from the first outreach to the
 // final processing outcome. Completed steps collapse below the current one; the
 // current step stays closest to the user (just above the automatic status log).
 //
-// Mirrors the reference flow: Initial Contact → Phone Contact Attempts →
-// Schedule Appointment → Appointment Outcome → Business Outcome → Finish.
+// State is owned by the parent (contact detail page) so the Overview tab and the
+// tab-gating (other tabs stay disabled until the lead becomes a contact) can all
+// react to the same processing state.
+//
+// Flow: Initial Contact → Phone Contact Attempts → Schedule Appointment →
+//       Appointment Outcome → Business Outcome → Finish Processing.
+// Choosing "Rescheduled" at the appointment outcome loops back to scheduling —
+// the lead stays at that stage instead of moving forward.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STEPS = [
+export const STEPS = [
   { key: "initial",     title: "Initial Contact" },
   { key: "phone",       title: "Phone Contact Attempts" },
   { key: "schedule",    title: "Schedule Appointment" },
@@ -20,8 +26,9 @@ const STEPS = [
   { key: "bizOutcome",  title: "Business Outcome" },
   { key: "finish",      title: "Finish Processing" },
 ];
+const IDX = Object.fromEntries(STEPS.map((s, i) => [s.key, i]));
 
-// Short label shown as the "Feedback & Processing status" everywhere else.
+// Short label shown as the "Feedback & Processing status" elsewhere.
 export const FEEDBACK_STEP_LABEL = {
   initial:     "Initial Contact",
   phone:       "Phone Attempts",
@@ -31,20 +38,73 @@ export const FEEDBACK_STEP_LABEL = {
   finish:      "Finished",
 };
 
-const card = {
-  background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14,
+const CHANNELS = [
+  { key: "sms",      label: "SMS",      icon: "💬" },
+  { key: "whatsapp", label: "WhatsApp", icon: "📱" },
+  { key: "email",    label: "Email",    icon: "✉️" },
+];
+const channelLabel = (k) => CHANNELS.find(c => c.key === k)?.label || k;
+
+// ── time / seed helpers ───────────────────────────────────────────────────────
+const nowTime = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const today   = () => new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+// Map a lead's mock status → the step it should open on.
+const STATUS_STEP = {
+  open: 0, in_progress: 1, attempted: 1, not_reached: 1,
+  followup: 2, appointment: 3, closed: 5, no_interest: 5, dnc: 5,
 };
+
+// Build the initial processing state from a lead. `alreadyContact` is true when
+// opened from a contacts view (My Network) — those are contacts already.
+export const makeInitialFeedback = (lead, alreadyContact = false) => {
+  const status  = lead?.status || "open";
+  const current = STATUS_STEP[status] ?? 0;
+  const finished = status === "closed";
+  const calls   = lead?.attempts || 0;
+  const isContact = alreadyContact || current > 0;
+  const channels = { sms: current > 0 ? 1 : 0, whatsapp: 0, email: 0 };
+  const log = [{ text: "Lead assigned → status set to New", time: "12:58:29 PM" }];
+  if (current > 0) log.push({ text: "Initial Contact → Sent via SMS", time: "12:59:05 PM" });
+  return {
+    current, finished, isContact, channels, calls,
+    reached: current > 1,
+    appointment: current >= 3 ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
+    apptOutcome: null, bizOutcome: status === "closed" ? "Closed – Won" : null,
+    reschedules: 0,
+    summaries: {},
+    lastAction: current > 0
+      ? { icon: "✉️", label: "Initial contact sent", date: today() }
+      : null,
+    log,
+  };
+};
+
+// Derived one-liner with counts for the current stage (used by Overview).
+export const feedbackDetail = (s) => {
+  const msgs = (s.channels.sms || 0) + (s.channels.whatsapp || 0) + (s.channels.email || 0);
+  const step = STEPS[s.current]?.key;
+  if (s.finished) return "Processing complete";
+  if (step === "initial")  return `${msgs} message${msgs !== 1 ? "s" : ""} sent`;
+  if (step === "phone")    return `${s.calls} call${s.calls !== 1 ? "s" : ""}${s.reached ? " · reached" : ""}`;
+  if (step === "schedule") return s.reschedules ? `Re-scheduling (×${s.reschedules})` : "Booking appointment";
+  if (step === "apptOutcome") return "Awaiting appointment";
+  if (step === "bizOutcome")  return "Awaiting outcome";
+  return "";
+};
+
+const card = { background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14 };
 const fieldStyle = {
   width: "100%", padding: "9px 12px", borderRadius: 8,
   border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit",
   color: C.text, boxSizing: "border-box" as const, outline: "none", background: "#fff",
 };
 
-const PrimaryBtn = ({ children, onClick, icon }: any) => (
-  <button onClick={onClick} style={{
+const PrimaryBtn = ({ children, onClick, icon, disabled }: any) => (
+  <button onClick={onClick} disabled={disabled} style={{
     display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 9,
-    border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700,
-    cursor: "pointer", fontFamily: "inherit",
+    border: "none", background: disabled ? C.border : C.navy, color: disabled ? C.muted : "#fff",
+    fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer", fontFamily: "inherit",
   }}>{icon && <span>{icon}</span>}{children}</button>
 );
 const GhostBtn = ({ children, onClick, icon }: any) => (
@@ -55,7 +115,6 @@ const GhostBtn = ({ children, onClick, icon }: any) => (
   }}>{icon && <span>{icon}</span>}{children}</button>
 );
 
-// A future (locked) step — collapsed row with a lock icon.
 const LockedStep = ({ title }) => (
   <div style={{ ...card, padding: "16px 18px", display: "flex", alignItems: "center", gap: 12, opacity: 0.7 }}>
     <span style={{ width: 22, height: 22, borderRadius: "50%", border: `1.5px solid ${C.border}`, display: "grid", placeItems: "center", fontSize: 11, color: C.muted, flexShrink: 0 }}>🔒</span>
@@ -63,8 +122,7 @@ const LockedStep = ({ title }) => (
   </div>
 );
 
-// A completed step — collapsed row with a check + short summary.
-const DoneStep = ({ index, title, summary, onReopen }) => (
+const DoneStep = ({ title, summary, onReopen }) => (
   <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, background: C.green + "08", borderColor: C.green + "40" }}>
     <span style={{ width: 22, height: 22, borderRadius: "50%", background: C.green, display: "grid", placeItems: "center", fontSize: 12, color: "#fff", flexShrink: 0 }}>✓</span>
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -75,7 +133,6 @@ const DoneStep = ({ index, title, summary, onReopen }) => (
   </div>
 );
 
-// The current step — expanded card with step-specific content.
 const CurrentStepShell = ({ index, title, children }) => (
   <div style={{ ...card, borderColor: C.navy, boxShadow: "0 6px 22px rgba(29,41,57,0.10)" }}>
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: `1px solid ${C.border}` }}>
@@ -90,18 +147,13 @@ const CurrentStepShell = ({ index, title, children }) => (
 );
 
 // ── Step bodies ───────────────────────────────────────────────────────────────
-const CHANNELS = [
-  { key: "sms",      label: "SMS",      icon: "💬" },
-  { key: "whatsapp", label: "WhatsApp", icon: "📱" },
-  { key: "email",    label: "Email",    icon: "✉️" },
-];
 const CHANNEL_TEMPLATE = {
   sms:      "Hi {first}, this is {advisor} from Nordpfeil Finance. Thanks for your interest in a consultation — I'll try to reach you by phone shortly. Feel free to reply with a time that suits you best.",
   whatsapp: "Hello {first}! 👋 {advisor} here from Nordpfeil Finance. Great to connect — when would be a good moment for a short call about your request?",
   email:    "Dear {first},\n\nThank you for your interest in a consultation with Nordpfeil Finance. I'd be glad to walk you through the next steps. When would be a convenient time for a brief call?\n\nBest regards,\n{advisor}",
 };
 
-const InitialContactStep = ({ contact, onComplete }) => {
+const InitialContactStep = ({ contact, sent, onSend }) => {
   const [channels, setChannels] = useState<string[]>(["sms"]);
   const [copied, setCopied] = useState(false);
   const primary = channels[0] || "sms";
@@ -109,10 +161,11 @@ const InitialContactStep = ({ contact, onComplete }) => {
   const advisor = contact?.assignee || "your advisor";
   const template = (CHANNEL_TEMPLATE[primary] || "").replace(/{first}/g, first).replace(/{advisor}/g, advisor);
   const toggle = (k) => setChannels(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
+  const totalSent = (sent.sms || 0) + (sent.whatsapp || 0) + (sent.email || 0);
   return (
     <>
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Choose one or more communication methods and send the prepared template.</div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
         {CHANNELS.map(ch => {
           const on = channels.includes(ch.key);
           return (
@@ -120,60 +173,59 @@ const InitialContactStep = ({ contact, onComplete }) => {
               display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 9,
               border: `1.5px solid ${on ? C.navy : C.border}`, background: on ? C.navy + "0D" : "#fff",
               color: on ? C.navy : C.slate, fontSize: 13, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit",
-            }}>{ch.icon} {ch.label}</button>
+            }}>{ch.icon} {ch.label}{sent[ch.key] > 0 && <span style={{ marginLeft: 2, fontSize: 11, fontWeight: 700, color: C.green }}>·{sent[ch.key]}</span>}</button>
           );
         })}
       </div>
       <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.light, padding: "14px 16px", marginBottom: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted }}>{CHANNELS.find(c => c.key === primary)?.label} Template</span>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted }}>{channelLabel(primary)} Template</span>
           <button onClick={() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: copied ? C.green : C.slate, fontSize: 12, fontWeight: 600 }}>
             {copied ? "✓ Copied" : "⧉ Copy message"}
           </button>
         </div>
         <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{template}</div>
       </div>
-      <div style={{ display: "flex", gap: 10 }}>
-        <GhostBtn icon="➤" onClick={() => onComplete("Sent externally")}>Send externally</GhostBtn>
-        <PrimaryBtn icon="✓" onClick={() => onComplete(`Sent via ${channels.map(c => CHANNELS.find(x => x.key === c)?.label).join(", ")}`)}>Mark as Sent</PrimaryBtn>
-      </div>
-    </>
-  );
-};
-
-const PhoneAttemptsStep = ({ onComplete }) => {
-  const [attempts, setAttempts] = useState<{ n: number; result: string; time: string }[]>([]);
-  const log = (result) => setAttempts(prev => [...prev, { n: prev.length + 1, result, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
-  return (
-    <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Log each call attempt. Mark <b>Reached</b> once the contact answers to continue.</div>
-      {attempts.length > 0 && (
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
-          {attempts.map(a => (
-            <div key={a.n} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${C.border}` }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, width: 60 }}>Attempt {a.n}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: a.result === "Reached" ? C.green : C.slate, flex: 1 }}>{a.result === "Reached" ? "📞 Reached" : "📵 Not reached"}</span>
-              <span style={{ fontSize: 12, color: C.muted }}>{a.time}</span>
-            </div>
-          ))}
+      {totalSent > 0 && (
+        <div style={{ fontSize: 12, color: C.slate, marginBottom: 12 }}>
+          Already sent: {CHANNELS.filter(c => sent[c.key] > 0).map(c => `${sent[c.key]} ${c.label}`).join(" · ")}
         </div>
       )}
       <div style={{ display: "flex", gap: 10 }}>
-        <GhostBtn icon="📵" onClick={() => log("Not reached")}>Log “Not reached”</GhostBtn>
-        <PrimaryBtn icon="📞" onClick={() => { log("Reached"); onComplete(`Reached after ${attempts.length + 1} attempt${attempts.length ? "s" : ""}`); }}>Reached → Continue</PrimaryBtn>
+        <GhostBtn icon="➤" onClick={() => onSend(channels, false)}>Send externally</GhostBtn>
+        <PrimaryBtn icon="✓" onClick={() => onSend(channels, true)} disabled={channels.length === 0}>Mark as Sent → Continue</PrimaryBtn>
       </div>
     </>
   );
 };
 
-const ScheduleStep = ({ onComplete }) => {
+const PhoneAttemptsStep = ({ calls, onLog }) => (
+  <>
+    <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Log each call attempt. Mark <b>Reached</b> once the contact answers to continue.</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 16, background: C.light }}>
+      <span style={{ fontSize: 22 }}>📞</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{calls} call attempt{calls !== 1 ? "s" : ""} logged</div>
+        <div style={{ fontSize: 11.5, color: C.muted }}>Keep trying until the contact answers.</div>
+      </div>
+    </div>
+    <div style={{ display: "flex", gap: 10 }}>
+      <GhostBtn icon="📵" onClick={() => onLog(false)}>Log “Not reached”</GhostBtn>
+      <PrimaryBtn icon="📞" onClick={() => onLog(true)}>Reached → Continue</PrimaryBtn>
+    </div>
+  </>
+);
+
+const ScheduleStep = ({ reschedules, onSchedule }) => {
   const [type, setType] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const ready = type && date && time;
   return (
     <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Book the consultation appointment with the contact.</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>
+        {reschedules > 0 ? `Re-book the consultation appointment (rescheduled ${reschedules}×).` : "Book the consultation appointment with the contact."}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Appointment Type *</label>
@@ -191,7 +243,7 @@ const ScheduleStep = ({ onComplete }) => {
         <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Time *</label>
         <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ ...fieldStyle, color: time ? C.text : C.muted }} />
       </div>
-      <PrimaryBtn icon="📅" onClick={() => ready && onComplete(`${type} · ${date} ${time}`)}>Schedule Appointment</PrimaryBtn>
+      <PrimaryBtn icon="📅" onClick={() => ready && onSchedule({ type, date, time })} disabled={!ready}>Schedule Appointment</PrimaryBtn>
     </>
   );
 };
@@ -212,6 +264,7 @@ const OutcomeStep = ({ stepKey, prompt, onComplete }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const opts = OUTCOME_OPTIONS[stepKey];
+  const sel = opts.find(o => o.v === choice);
   return (
     <>
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{prompt}</div>
@@ -227,11 +280,12 @@ const OutcomeStep = ({ stepKey, prompt, onComplete }) => {
           );
         })}
       </div>
+      {choice === "rescheduled" && (
+        <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>↩ The contact stays at the scheduling stage — you'll re-book a new appointment.</div>
+      )}
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Add a short note (optional)…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
-      <div>
-        <PrimaryBtn icon="✓" onClick={() => choice && onComplete(opts.find(o => o.v === choice)?.label)}>Save & Continue</PrimaryBtn>
-      </div>
+      <PrimaryBtn icon="✓" onClick={() => sel && onComplete(sel.v, sel.label)} disabled={!sel}>Save & Continue</PrimaryBtn>
     </>
   );
 };
@@ -249,7 +303,7 @@ const FinishStep = ({ done, onComplete }) => (
     ) : (
       <>
         <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>Confirm and close out the processing for this contact.</div>
-        <PrimaryBtn icon="🏁" onClick={() => onComplete("Processing finished")}>Finish Processing</PrimaryBtn>
+        <PrimaryBtn icon="🏁" onClick={onComplete}>Finish Processing</PrimaryBtn>
       </>
     )}
   </>
@@ -260,41 +314,87 @@ const OUTCOME_PROMPT = {
   bizOutcome:  "What was the business outcome of the consultation?",
 };
 
-// ── Main tab ────────────────────────────────────────────────────────────────
-export const FeedbackProcessingTab = ({ contact }) => {
-  const [current, setCurrent] = useState(0);              // index into STEPS
-  const [summaries, setSummaries] = useState<Record<string, string>>({});
-  const [finished, setFinished] = useState(false);
-  const [log, setLog] = useState<{ text: string; time: string }[]>([
-    { text: "Lead assigned → status set to New", time: "12:58:29 PM" },
-  ]);
+// ── Main tab (controlled) ─────────────────────────────────────────────────────
+export const FeedbackProcessingTab = ({ contact, state, setState }) => {
+  const current = state.current;
+  const currentStep = STEPS[current];
 
-  const complete = (stepKey, summary) => {
-    setSummaries(prev => ({ ...prev, [stepKey]: summary }));
-    setLog(prev => [...prev, { text: `${STEPS.find(s => s.key === stepKey)?.title} → ${summary}`, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }]);
-    const idx = STEPS.findIndex(s => s.key === stepKey);
-    if (idx === STEPS.length - 1) setFinished(true);
-    else setCurrent(idx + 1);
-  };
-  const reopen = (idx) => setCurrent(idx);
+  const pushLog = (prev, text) => [...prev.log, { text, time: nowTime() }];
+
+  const onSend = (channels, advance) => setState(prev => {
+    const ch = { ...prev.channels };
+    channels.forEach(c => { ch[c] = (ch[c] || 0) + 1; });
+    const summary = `Sent via ${channels.map(channelLabel).join(", ")}`;
+    const total = (ch.sms || 0) + (ch.whatsapp || 0) + (ch.email || 0);
+    return {
+      ...prev, channels: ch, isContact: true,
+      current: advance ? IDX.phone : prev.current,
+      summaries: { ...prev.summaries, initial: `${total} message${total !== 1 ? "s" : ""} sent` },
+      lastAction: { icon: "✉️", label: `Initial contact · ${summary}`, date: today() },
+      log: pushLog(prev, `Initial Contact → ${summary}`),
+    };
+  });
+
+  const onLogCall = (reached) => setState(prev => {
+    const calls = prev.calls + 1;
+    return {
+      ...prev, calls, reached: reached || prev.reached,
+      current: reached ? IDX.schedule : prev.current,
+      summaries: { ...prev.summaries, phone: `${calls} call${calls !== 1 ? "s" : ""}${reached ? " · reached" : ""}` },
+      lastAction: { icon: "📞", label: reached ? "Reached by phone" : "Call attempt — not reached", date: today() },
+      log: pushLog(prev, `Phone Contact Attempts → ${reached ? "Reached" : "Not reached"} (attempt ${calls})`),
+    };
+  });
+
+  const onSchedule = (appt) => setState(prev => ({
+    ...prev, appointment: appt, current: IDX.apptOutcome,
+    summaries: { ...prev.summaries, schedule: `${appt.type} · ${appt.date} ${appt.time}` },
+    lastAction: { icon: "📅", label: `Appointment booked · ${appt.date} ${appt.time}`, date: today() },
+    log: pushLog(prev, `Schedule Appointment → ${appt.type} · ${appt.date} ${appt.time}`),
+  }));
+
+  const onApptOutcome = (choiceV, label) => setState(prev => {
+    const rescheduled = choiceV === "rescheduled";
+    return {
+      ...prev, apptOutcome: label,
+      reschedules: rescheduled ? prev.reschedules + 1 : prev.reschedules,
+      appointment: rescheduled ? null : prev.appointment,
+      current: rescheduled ? IDX.schedule : IDX.bizOutcome,   // loop back to scheduling
+      summaries: { ...prev.summaries, apptOutcome: rescheduled ? "" : label, schedule: rescheduled ? "" : prev.summaries.schedule },
+      lastAction: { icon: rescheduled ? "🔁" : "✅", label: `Appointment: ${label}`, date: today() },
+      log: pushLog(prev, `Appointment Outcome → ${label}${rescheduled ? " (back to scheduling)" : ""}`),
+    };
+  });
+
+  const onBizOutcome = (choiceV, label) => setState(prev => ({
+    ...prev, bizOutcome: label, current: IDX.finish,
+    summaries: { ...prev.summaries, bizOutcome: label },
+    lastAction: { icon: "💼", label: `Business outcome: ${label}`, date: today() },
+    log: pushLog(prev, `Business Outcome → ${label}`),
+  }));
+
+  const onFinish = () => setState(prev => ({
+    ...prev, finished: true,
+    lastAction: { icon: "🏁", label: "Processing finished", date: today() },
+    log: pushLog(prev, "Finish Processing → Completed"),
+  }));
+
+  const reopen = (idx) => setState(prev => ({ ...prev, current: idx, finished: false }));
 
   const renderCurrentBody = (step) => {
     switch (step.key) {
-      case "initial":  return <InitialContactStep contact={contact} onComplete={s => complete("initial", s)} />;
-      case "phone":    return <PhoneAttemptsStep onComplete={s => complete("phone", s)} />;
-      case "schedule": return <ScheduleStep onComplete={s => complete("schedule", s)} />;
-      case "apptOutcome":
-      case "bizOutcome": return <OutcomeStep stepKey={step.key} prompt={OUTCOME_PROMPT[step.key]} onComplete={s => complete(step.key, s)} />;
-      case "finish":   return <FinishStep done={finished} onComplete={s => complete("finish", s)} />;
+      case "initial":  return <InitialContactStep contact={contact} sent={state.channels} onSend={onSend} />;
+      case "phone":    return <PhoneAttemptsStep calls={state.calls} onLog={onLogCall} />;
+      case "schedule": return <ScheduleStep reschedules={state.reschedules} onSchedule={onSchedule} />;
+      case "apptOutcome": return <OutcomeStep stepKey="apptOutcome" prompt={OUTCOME_PROMPT.apptOutcome} onComplete={onApptOutcome} />;
+      case "bizOutcome":  return <OutcomeStep stepKey="bizOutcome" prompt={OUTCOME_PROMPT.bizOutcome} onComplete={onBizOutcome} />;
+      case "finish":   return <FinishStep done={state.finished} onComplete={onFinish} />;
       default:         return null;
     }
   };
 
-  // Future steps (above current, locked) rendered top→bottom; then current; then
-  // completed steps (below), most-recent first; then the automatic status log.
-  const future   = STEPS.slice(current + 1).reverse();
+  const future    = STEPS.slice(current + 1).reverse();
   const completed = STEPS.slice(0, current).reverse();
-  const currentStep = STEPS[current];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -304,14 +404,12 @@ export const FeedbackProcessingTab = ({ contact }) => {
 
       {future.map(s => <LockedStep key={s.key} title={s.title} />)}
 
-      {(!finished || current === STEPS.length - 1) && (
-        <CurrentStepShell index={current} title={currentStep.title}>
-          {renderCurrentBody(currentStep)}
-        </CurrentStepShell>
-      )}
+      <CurrentStepShell index={current} title={currentStep.title}>
+        {renderCurrentBody(currentStep)}
+      </CurrentStepShell>
 
       {completed.map(s => (
-        <DoneStep key={s.key} index={STEPS.findIndex(x => x.key === s.key)} title={s.title} summary={summaries[s.key]} onReopen={() => reopen(STEPS.findIndex(x => x.key === s.key))} />
+        <DoneStep key={s.key} title={s.title} summary={state.summaries[s.key]} onReopen={() => reopen(IDX[s.key])} />
       ))}
 
       {/* Automatic status log */}
@@ -320,7 +418,7 @@ export const FeedbackProcessingTab = ({ contact }) => {
           🕘 Automatic Status Log
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {log.map((l, i) => (
+          {state.log.map((l, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12.5, color: C.text }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.blue, flexShrink: 0 }} />
               <span style={{ flex: 1 }}>{l.text}</span>
