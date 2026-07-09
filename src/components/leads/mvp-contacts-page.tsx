@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { ALL_LEADS } from "../../lib/core";
+import { ALL_LEADS, feedbackStatusLabel } from "../../lib/core";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 
@@ -66,13 +66,6 @@ const synthNationality = (id) => {
   return NATIONALITIES[h % NATIONALITIES.length];
 };
 
-// Feedback & Processing stage label per lead status — mirrors the dashboard.
-const FEEDBACK_LABEL = {
-  open: "Initial Contact", in_progress: "Phone Attempts", attempted: "Phone Attempts",
-  not_reached: "Not Reached", followup: "Scheduling", appointment: "Appointment",
-  closed: "Finished", no_interest: "Not Interested", dnc: "Do Not Call",
-};
-
 const toContact = (l) => {
   const [first, ...rest] = l.name.split(" ");
   const last = rest.join(" ");
@@ -81,7 +74,7 @@ const toContact = (l) => {
     id: l.id, first, last, firstName: first, lastName: last, name: l.name,
     lifecycle: lc.stage, stageStatus: lc.status, tone: lc.tone,
     phone: l.phone, email: l.email, primaryEmail: l.email,
-    feedback: FEEDBACK_LABEL[l.status] || "Initial Contact",
+    feedback: feedbackStatusLabel(l.status),
     lastActivity: l.created || "—",
     campaign: l.campaign || "—",
     dob: synthDob(l.id),

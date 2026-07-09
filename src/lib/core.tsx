@@ -681,6 +681,23 @@ export const PRIORITY_KEYS = ["low","normal","high","urgent"];
 // Statuses that mean a task/reminder is finished (no longer "open").
 export const DONE_STATUSES = ["done","completed","cancelled"];
 
+// ── Feedback & Processing status terminology ────────────────────────────────
+// Single source of truth for how a lead's processing stage is named across the
+// lead list, dashboard tables and anywhere the "Feedback & Processing" status
+// is shown — clearer, action-oriented labels instead of raw step names.
+export const FEEDBACK_STATUS_LABEL = {
+  open:        "Awaiting First Contact",
+  in_progress: "Contact Attempts",
+  attempted:   "Contact Attempts",
+  not_reached: "Not Reached",
+  followup:    "Scheduling Appointment",
+  appointment: "Appointment Booked",
+  closed:      "Processing Complete",
+  no_interest: "Not Interested",
+  dnc:         "Do Not Call",
+};
+export const feedbackStatusLabel = (status) => FEEDBACK_STATUS_LABEL[status] || FEEDBACK_STATUS_LABEL.open;
+
 // Unified ACTIVITIES store — merges appointments + reminders
 // Each activity: id, type, title, lead, leadId, date, time, end, gp, vd,
 //                status, priority, note, recur, channels, entityType, category

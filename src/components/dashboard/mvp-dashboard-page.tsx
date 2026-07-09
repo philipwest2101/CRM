@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
-import { PRIORITY_META, DONE_STATUSES, MEETING_TYPE_META } from "../../lib/core";
+import { PRIORITY_META, DONE_STATUSES, MEETING_TYPE_META, feedbackStatusLabel } from "../../lib/core";
 import { useT } from "../../lib/i18n";
 
 // ── Dashboard assignee list ───────────────────────────────────────────────────
@@ -513,17 +513,6 @@ const STATUS_META = {
   no_interest: { label: "No Interest", color: C.slate },
   dnc:         { label: "Do Not Call", color: C.slate },
 };
-const FEEDBACK_FROM_STATUS = {
-  open:        "Initial Contact",
-  in_progress: "Phone Attempts",
-  attempted:   "Phone Attempts",
-  not_reached: "Phone Attempts",
-  followup:    "Scheduling",
-  appointment: "Appointment",
-  closed:      "Finished",
-  no_interest: "Finished",
-  dnc:         "Finished",
-};
 // Deterministic "messages sent" figure from the lead id (mock has no real counter).
 const synthSms = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) & 0xffff; return 1 + (h % 3); };
 // Feedback & Processing detail line — surfaces how much outreach has happened
@@ -814,7 +803,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         .slice(0, 12)
         .map(l => ({
           id: l.id, name: l.name, advisor: l.assignedGP,
-          feedback: FEEDBACK_FROM_STATUS[l.status] || "Initial Contact",
+          feedback: feedbackStatusLabel(l.status),
           detail: feedbackColDetail(l),
           status: l.status,
           lastActivity: l.created || "—",
@@ -1145,7 +1134,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {/* ── Row 3: GP / VD (My) → Contact List (from My Network) ────────── */}
         {personal && (
         <div style={{ marginBottom: 14 }}>
-          <ContactListCard title={t("contactListTitle")} rows={contactListRows} t={t}
+          <ContactListCard title={t("myNetwork")} rows={contactListRows} t={t}
             action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, "my")} />} />
         </div>
         )}

@@ -18,8 +18,9 @@ import { AppointmentModal } from "../appointments/appointment-modal";
 // · Contact Outcome (after the contact is reached): Appointment Scheduled,
 //   Not Interested, Future Opportunities, Other. The last three end the flow.
 // · Appointment Outcome merges the appointment result (Took Place / Rescheduled)
-//   with the business result (Won / Follow-up / Lost). "Rescheduled" loops back
-//   to scheduling.
+//   with the business result (Won / Follow-up / Lost). "Rescheduled" and a
+//   "Follow-up" both re-open the scheduling pop-up and keep the user on the
+//   Appointment Outcome step to record the next result.
 // · "Convert to Contact" is offered only on result stages (and Not Reached).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,7 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
     apptTookPlace: status === "closed",
     bizOutcome: status === "closed" ? "Took Place · Closed – Won" : null,
     reschedules: 0,
+    followups: 0,
     summaries: {},
     lastAction: current > 0 ? { icon: "✉️", label: "Initial contact sent", date: today() } : null,
     log,
@@ -339,7 +341,7 @@ const BIZ_RESULTS = [
   { v: "followup", label: "Follow-up",     tone: C.amber },
   { v: "lost",     label: "Closed – Lost", tone: C.red },
 ];
-const AppointmentOutcomeStep = ({ onComplete }) => {
+const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
   const [appt, setAppt] = useState("");
   const [biz, setBiz] = useState("");
   const [note, setNote] = useState("");
@@ -347,6 +349,11 @@ const AppointmentOutcomeStep = ({ onComplete }) => {
   const ready = appt === "rescheduled" || (tookPlace && biz);
   return (
     <>
+      {appointment && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 9, background: C.light, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 12.5, color: C.navy, fontWeight: 600 }}>
+          📅 {appointment.type} · {appointment.date} {appointment.time}
+        </div>
+      )}
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 12 }}>Did the appointment take place, and what was the result?</div>
       <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 8 }}>Appointment</label>
       <OptionChips options={APPT_RESULTS} value={appt} onChange={v => { setAppt(v); if (v !== "tookplace") setBiz(""); }} />
@@ -465,6 +472,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
     log: pushLog(prev, "Lead → Contact (converted)"),
   }));
 
+  // Initial scheduling — advances from the Schedule step to Appointment Outcome.
   const onSchedule = (appt) => setState(prev => ({
     ...prev, appointment: appt, current: IDX.appointment,
     summaries: { ...prev.summaries, schedule: `${appt.type} · ${appt.date} ${appt.time}` },
@@ -472,23 +480,44 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
     log: pushLog(prev, `Schedule Appointment → ${appt.type} · ${appt.date} ${appt.time}`),
   }));
 
-  const onAppointmentOutcome = (apptV, bizV, label) => setState(prev => {
+  // Re-book from within Appointment Outcome (reschedule / follow-up) — updates the
+  // appointment but keeps the user on the Appointment Outcome step.
+  const onRebook = (appt) => setState(prev => ({
+    ...prev, appointment: appt,
+    summaries: { ...prev.summaries, schedule: `${appt.type} · ${appt.date} ${appt.time}` },
+    lastAction: { icon: "📅", label: `Re-booked · ${appt.date} ${appt.time}`, date: today() },
+    log: pushLog(prev, `Schedule Appointment → Re-booked · ${appt.type} · ${appt.date} ${appt.time}`),
+  }));
+
+  const onAppointmentOutcome = (apptV, bizV, label) => {
     if (apptV === "rescheduled") {
-      return {
-        ...prev, apptTookPlace: false, reschedules: prev.reschedules + 1, appointment: null,
-        current: IDX.schedule,   // loop back to scheduling
-        summaries: { ...prev.summaries, appointment: "", schedule: "" },
-        lastAction: { icon: "🔁", label: "Appointment rescheduled", date: today() },
-        log: pushLog(prev, "Appointment Outcome → Rescheduled (back to scheduling)"),
-      };
+      // Re-open scheduling and stay on Appointment Outcome.
+      setState(prev => ({
+        ...prev, apptTookPlace: false, reschedules: prev.reschedules + 1,
+        lastAction: { icon: "🔁", label: "Appointment rescheduled — re-book", date: today() },
+        log: pushLog(prev, "Appointment Outcome → Rescheduled — re-opening scheduling"),
+      }));
+      setScheduleModalOpen(true);
+      return;
     }
-    return {
+    if (bizV === "followup") {
+      // Took place but needs another appointment — re-open scheduling, stay here.
+      setState(prev => ({
+        ...prev, apptTookPlace: true, bizOutcome: label, followups: (prev.followups || 0) + 1,
+        lastAction: { icon: "🔁", label: "Follow-up — schedule the next appointment", date: today() },
+        log: pushLog(prev, `Appointment Outcome → ${label} — scheduling a follow-up appointment`),
+      }));
+      setScheduleModalOpen(true);
+      return;
+    }
+    // Won / Lost → finish.
+    setState(prev => ({
       ...prev, apptTookPlace: true, bizOutcome: label, current: IDX.finish,
       summaries: { ...prev.summaries, appointment: label },
       lastAction: { icon: "✅", label: `Appointment: ${label}`, date: today() },
       log: pushLog(prev, `Appointment Outcome → ${label}`),
-    };
-  });
+    }));
+  };
 
   const onFinish = () => setState(prev => ({
     ...prev, finished: true,
@@ -504,7 +533,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
       case "phone":       return <PhoneAttemptsStep calls={state.calls} notReached={state.notReached} onLog={onLogCall} />;
       case "outcome":     return <ContactOutcomeStep terminal={state.terminal} outcomeLabel={state.contactOutcome} onComplete={onContactOutcome} />;
       case "schedule":    return <ScheduleStep reschedules={state.reschedules} onOpenModal={() => setScheduleModalOpen(true)} />;
-      case "appointment": return <AppointmentOutcomeStep onComplete={onAppointmentOutcome} />;
+      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}-${state.followups || 0}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
       case "finish":      return <FinishStep done={state.finished} onComplete={onFinish} />;
       default:            return null;
     }
@@ -554,7 +583,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
           }}
           onClose={() => setScheduleModalOpen(false)}
           onSubmit={(data) => {
-            onSchedule({ type: data.apptType, date: data.date, time: data.time });
+            const appt = { type: data.apptType, date: data.date, time: data.time };
+            // From the Schedule step → advance; from Appointment Outcome → re-book & stay.
+            if (current === IDX.schedule) onSchedule(appt); else onRebook(appt);
             setScheduleModalOpen(false);
           }}
         />
