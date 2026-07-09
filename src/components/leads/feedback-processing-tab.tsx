@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
+import { AppointmentModal } from "../appointments/appointment-modal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FEEDBACK & PROCESSING TAB  (controlled)
@@ -122,14 +123,18 @@ const LockedStep = ({ title }) => (
   </div>
 );
 
-const DoneStep = ({ title, summary, onReopen }) => (
+// Only the most recently completed step is editable (`editable`); older steps
+// are locked so history can't be rewritten out of order.
+const DoneStep = ({ title, summary, onReopen, editable }) => (
   <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, background: C.green + "08", borderColor: C.green + "40" }}>
     <span style={{ width: 22, height: 22, borderRadius: "50%", background: C.green, display: "grid", placeItems: "center", fontSize: 12, color: "#fff", flexShrink: 0 }}>✓</span>
     <div style={{ flex: 1, minWidth: 0 }}>
       <span style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{title}</span>
       {summary && <span style={{ fontSize: 12.5, color: C.slate, marginLeft: 8 }}>· {summary}</span>}
     </div>
-    <button onClick={onReopen} title="Reopen this step" style={{ background: "none", border: "none", cursor: "pointer", color: C.slate, fontSize: 12, fontWeight: 600 }}>Edit</button>
+    {editable
+      ? <button onClick={onReopen} title="Reopen this step" style={{ background: "none", border: "none", cursor: "pointer", color: C.slate, fontSize: 12, fontWeight: 600 }}>Edit</button>
+      : <span title="Only the latest completed step can be edited" style={{ color: C.muted, fontSize: 12 }}>🔒</span>}
   </div>
 );
 
@@ -216,37 +221,15 @@ const PhoneAttemptsStep = ({ calls, onLog }) => (
   </>
 );
 
-const ScheduleStep = ({ reschedules, onSchedule }) => {
-  const [type, setType] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const ready = type && date && time;
-  return (
-    <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>
-        {reschedules > 0 ? `Re-book the consultation appointment (rescheduled ${reschedules}×).` : "Book the consultation appointment with the contact."}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Appointment Type *</label>
-          <select value={type} onChange={e => setType(e.target.value)} style={{ ...fieldStyle, color: type ? C.text : C.muted }}>
-            <option value="">Select type</option>
-            <option>Consultation Appointment</option><option>Investment Talk</option><option>Finance Talk</option><option>Business Opening</option>
-          </select>
-        </div>
-        <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Date *</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ ...fieldStyle, color: date ? C.text : C.muted }} />
-        </div>
-      </div>
-      <div style={{ marginBottom: 18, maxWidth: "calc(50% - 7px)" }}>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Time *</label>
-        <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ ...fieldStyle, color: time ? C.text : C.muted }} />
-      </div>
-      <PrimaryBtn icon="📅" onClick={() => ready && onSchedule({ type, date, time })} disabled={!ready}>Schedule Appointment</PrimaryBtn>
-    </>
-  );
-};
+// Scheduling opens the full Appointment modal (same one used across the app).
+const ScheduleStep = ({ reschedules, onOpenModal }) => (
+  <>
+    <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>
+      {reschedules > 0 ? `Re-book the consultation appointment (rescheduled ${reschedules}×).` : "Book the consultation appointment with the contact."}
+    </div>
+    <PrimaryBtn icon="📅" onClick={onOpenModal}>Open Scheduling</PrimaryBtn>
+  </>
+);
 
 const OUTCOME_OPTIONS = {
   apptOutcome: [
@@ -315,9 +298,10 @@ const OUTCOME_PROMPT = {
 };
 
 // ── Main tab (controlled) ─────────────────────────────────────────────────────
-export const FeedbackProcessingTab = ({ contact, state, setState }) => {
+export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
   const current = state.current;
   const currentStep = STEPS[current];
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   const pushLog = (prev, text) => [...prev.log, { text, time: nowTime() }];
 
@@ -385,7 +369,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState }) => {
     switch (step.key) {
       case "initial":  return <InitialContactStep contact={contact} sent={state.channels} onSend={onSend} />;
       case "phone":    return <PhoneAttemptsStep calls={state.calls} onLog={onLogCall} />;
-      case "schedule": return <ScheduleStep reschedules={state.reschedules} onSchedule={onSchedule} />;
+      case "schedule": return <ScheduleStep reschedules={state.reschedules} onOpenModal={() => setScheduleModalOpen(true)} />;
       case "apptOutcome": return <OutcomeStep stepKey="apptOutcome" prompt={OUTCOME_PROMPT.apptOutcome} onComplete={onApptOutcome} />;
       case "bizOutcome":  return <OutcomeStep stepKey="bizOutcome" prompt={OUTCOME_PROMPT.bizOutcome} onComplete={onBizOutcome} />;
       case "finish":   return <FinishStep done={state.finished} onComplete={onFinish} />;
@@ -408,9 +392,25 @@ export const FeedbackProcessingTab = ({ contact, state, setState }) => {
         {renderCurrentBody(currentStep)}
       </CurrentStepShell>
 
-      {completed.map(s => (
-        <DoneStep key={s.key} title={s.title} summary={state.summaries[s.key]} onReopen={() => reopen(IDX[s.key])} />
+      {completed.map((s, i) => (
+        <DoneStep key={s.key} title={s.title} summary={state.summaries[s.key]} editable={i === 0} onReopen={() => reopen(IDX[s.key])} />
       ))}
+
+      {scheduleModalOpen && (
+        <AppointmentModal
+          mode="create" role={role} lockContact
+          appt={{
+            contact: contact?.name || "",
+            title: `Consultation — ${contact?.name || ""}`.trim(),
+            apptType: "Consultation Appointment",
+          }}
+          onClose={() => setScheduleModalOpen(false)}
+          onSubmit={(data) => {
+            onSchedule({ type: data.apptType, date: data.date, time: data.time });
+            setScheduleModalOpen(false);
+          }}
+        />
+      )}
 
       {/* Automatic status log */}
       <div style={{ ...card, padding: "14px 18px", marginTop: 4 }}>

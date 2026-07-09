@@ -443,7 +443,8 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline }) => {
+const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline, actionsDisabled = false }) => {
+  const t = useT();
   const [gdpr, setGdpr] = useState(true);
   const [rating, setRating] = useState(2);
   const [labels, setLabels] = useState(["Label 1"]);
@@ -453,9 +454,12 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
   const toggle = (l) => setLabels(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
   const addLabel = (l) => { setOptions(prev => prev.includes(l) ? prev : [...prev, l]); setLabels(prev => prev.includes(l) ? prev : [...prev, l]); };
 
-  // Action icons use a single muted tone (kept visually light, per design).
+  // Action icons use a single muted tone (kept visually light, per design). They
+  // stay disabled until the Feedback & Processing flow is finished.
   const Action = ({ icon, title, onClick }) => (
-    <span title={title} onClick={onClick} style={{ cursor: "pointer", color: C.slate, fontSize: 16 }}>{icon}</span>
+    <span title={actionsDisabled ? t("tabLockedHint") : title}
+      onClick={actionsDisabled ? undefined : onClick}
+      style={{ cursor: actionsDisabled ? "not-allowed" : "pointer", color: actionsDisabled ? C.muted : C.slate, fontSize: 16, opacity: actionsDisabled ? 0.5 : 1 }}>{icon}</span>
   );
 
   return (
@@ -486,8 +490,9 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
         <Action icon="📅" title="Schedule an Appointment" onClick={onAppointment} />
         <Action icon="☑️" title="Create a Task" onClick={onTask} />
         <span style={{ position: "relative" }}>
-          <span title="More" onClick={() => setMoreOpen(o => !o)} style={{ cursor: "pointer", color: C.slate, fontSize: 16 }}>⋯</span>
-          {moreOpen && (
+          <span title={actionsDisabled ? t("tabLockedHint") : "More"} onClick={actionsDisabled ? undefined : () => setMoreOpen(o => !o)}
+            style={{ cursor: actionsDisabled ? "not-allowed" : "pointer", color: actionsDisabled ? C.muted : C.slate, fontSize: 16, opacity: actionsDisabled ? 0.5 : 1 }}>⋯</span>
+          {moreOpen && !actionsDisabled && (
             <>
               <div onClick={() => setMoreOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
               <div style={{ position: "absolute", top: 24, left: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 170, padding: "5px 0" }}>
@@ -1366,16 +1371,17 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
   // Network entries are already contacts. Every other tab stays disabled until then.
   const [feedback, setFeedback] = useState(() => makeInitialFeedback(lead, isMyNetwork));
 
-  // "Feedback & Processing" comes first; the rest are gated behind `isContact`.
+  // "Feedback & Processing" comes first; every other tab (and the identity-rail
+  // quick actions) stays locked until the whole processing flow is finished.
   const ACTIVE_TABS = isMyNetwork
     ? [t("feedbackTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
     : [t("feedbackTab"), t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
-  const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
+  const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.finished;
   const [tab, setTab] = useState(() => t("feedbackTab"));
   // Re-initialise when navigating to a different contact.
   React.useEffect(() => { setFeedback(makeInitialFeedback(lead, isMyNetwork)); setTab(t("feedbackTab")); }, [lead?.id]);
-  // If the active tab ever becomes disabled (e.g. reopened as a fresh lead), fall back to Feedback.
-  React.useEffect(() => { if (!isTabEnabled(tab)) setTab(t("feedbackTab")); }, [feedback.isContact]);
+  // If the active tab ever becomes disabled, fall back to Feedback.
+  React.useEffect(() => { if (!isTabEnabled(tab)) setTab(t("feedbackTab")); }, [feedback.finished]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
 
   const currentUserName = role === "gp" ? "Anna Klein" : role === "vd" ? "Thomas Müller" : role === "manager" ? "Julia Bauer" : "Super Admin";
@@ -1406,7 +1412,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18, alignItems: "start" }}>
-        <IdentityRail c={c}
+        <IdentityRail c={c} actionsDisabled={!feedback.finished}
           onEmail={() => setModal("email")} onTask={() => setModal("task")} onAppointment={() => setModal("appointment")}
           onLogCall={() => setModal("logcall")} onLogEmail={() => setModal("logemail")}
           onLogAppt={() => setModal("logappt")} onOffline={() => setModal("offline")} />
@@ -1429,7 +1435,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
             })}
           </div>
 
-          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} />}
+          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
           {tab === t("informationTab") && <InformationTab c={c} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
