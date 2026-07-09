@@ -443,7 +443,7 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline, actionsDisabled = false }) => {
+const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline, actionsDisabled = false, isContact = false }) => {
   const t = useT();
   const [gdpr, setGdpr] = useState(true);
   const [rating, setRating] = useState(2);
@@ -469,7 +469,14 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
           {c.name.split(" ").slice(-2).map(w => w[0]).join("").toUpperCase()}
         </div>
         <div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{c.name}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{c.name}</span>
+            <span title={isContact ? "Converted to a contact" : "Still a lead — convert at the appointment stage"}
+              style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 20,
+                color: isContact ? C.green : C.slate, background: (isContact ? C.green : C.slate) + "16" }}>
+              {isContact ? "Contact" : "Lead"}
+            </span>
+          </div>
           <div style={{ marginTop: 3 }}><Stars n={rating} onChange={setRating} /></div>
         </div>
       </div>
@@ -1412,7 +1419,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18, alignItems: "start" }}>
-        <IdentityRail c={c} actionsDisabled={!feedback.finished}
+        <IdentityRail c={c} actionsDisabled={!feedback.finished} isContact={feedback.isContact}
           onEmail={() => setModal("email")} onTask={() => setModal("task")} onAppointment={() => setModal("appointment")}
           onLogCall={() => setModal("logcall")} onLogEmail={() => setModal("logemail")}
           onLogAppt={() => setModal("logappt")} onOffline={() => setModal("offline")} />

@@ -29,6 +29,9 @@ export const STEPS = [
 ];
 const IDX = Object.fromEntries(STEPS.map((s, i) => [s.key, i]));
 
+// A lead may be called at most 5 times; after that it is marked "Not Reached".
+const MAX_CALL_ATTEMPTS = 5;
+
 // Short label shown as the "Feedback & Processing status" elsewhere.
 export const FEEDBACK_STEP_LABEL = {
   initial:     "Initial Contact",
@@ -70,6 +73,7 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
   return {
     current, finished, isContact, channels, calls,
     reached: current > 1,
+    notReached: status === "not_reached",
     appointment: current >= 3 ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
     apptOutcome: null, bizOutcome: status === "closed" ? "Closed – Won" : null,
     reschedules: 0,
@@ -87,7 +91,7 @@ export const feedbackDetail = (s) => {
   const step = STEPS[s.current]?.key;
   if (s.finished) return "Processing complete";
   if (step === "initial")  return `${msgs} message${msgs !== 1 ? "s" : ""} sent`;
-  if (step === "phone")    return `${s.calls} call${s.calls !== 1 ? "s" : ""}${s.reached ? " · reached" : ""}`;
+  if (step === "phone")    return s.notReached ? `Not reached (${s.calls}/${MAX_CALL_ATTEMPTS})` : `${s.calls} call${s.calls !== 1 ? "s" : ""}${s.reached ? " · reached" : ""}`;
   if (step === "schedule") return s.reschedules ? `Re-scheduling (×${s.reschedules})` : "Booking appointment";
   if (step === "apptOutcome") return "Awaiting appointment";
   if (step === "bizOutcome")  return "Awaiting outcome";
@@ -151,6 +155,21 @@ const CurrentStepShell = ({ index, title, children }) => (
   </div>
 );
 
+// ── Confirmation dialog (lead → contact conversion) ──────────────────────────
+const ConfirmDialog = ({ title, message, confirmLabel, onCancel, onConfirm }) => (
+  <>
+    <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
+    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 430, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 22, lineHeight: 1.5 }}>{message}</div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+        <button onClick={onConfirm} style={{ padding: "9px 24px", borderRadius: 9, border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{confirmLabel}</button>
+      </div>
+    </div>
+  </>
+);
+
 // ── Step bodies ───────────────────────────────────────────────────────────────
 const CHANNEL_TEMPLATE = {
   sms:      "Hi {first}, this is {advisor} from Nordpfeil Finance. Thanks for your interest in a consultation — I'll try to reach you by phone shortly. Feel free to reply with a time that suits you best.",
@@ -204,20 +223,27 @@ const InitialContactStep = ({ contact, sent, onSend }) => {
   );
 };
 
-const PhoneAttemptsStep = ({ calls, onLog }) => (
+const PhoneAttemptsStep = ({ calls, notReached, onLog }) => (
   <>
-    <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Log each call attempt. Mark <b>Reached</b> once the contact answers to continue.</div>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 16, background: C.light }}>
-      <span style={{ fontSize: 22 }}>📞</span>
+    <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Log each call attempt (max {MAX_CALL_ATTEMPTS}). Mark <b>Reached</b> once the contact answers to continue.</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${notReached ? C.red + "55" : C.border}`, borderRadius: 10, marginBottom: 12, background: notReached ? C.red + "0C" : C.light }}>
+      <span style={{ fontSize: 22 }}>{notReached ? "🚫" : "📞"}</span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{calls} call attempt{calls !== 1 ? "s" : ""} logged</div>
-        <div style={{ fontSize: 11.5, color: C.muted }}>Keep trying until the contact answers.</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: notReached ? C.red : C.navy }}>{calls} of {MAX_CALL_ATTEMPTS} call attempt{calls !== 1 ? "s" : ""}{notReached ? " · Not Reached" : ""}</div>
+        <div style={{ fontSize: 11.5, color: C.muted }}>{notReached ? "Maximum attempts reached — status set to Not Reached." : "Keep trying until the contact answers."}</div>
       </div>
     </div>
-    <div style={{ display: "flex", gap: 10 }}>
-      <GhostBtn icon="📵" onClick={() => onLog(false)}>Log “Not reached”</GhostBtn>
-      <PrimaryBtn icon="📞" onClick={() => onLog(true)}>Reached → Continue</PrimaryBtn>
+    <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+      {Array.from({ length: MAX_CALL_ATTEMPTS }).map((_, i) => (
+        <span key={i} style={{ flex: 1, height: 6, borderRadius: 4, background: i < calls ? (notReached ? C.red : C.amber) : C.border }} />
+      ))}
     </div>
+    {!notReached && (
+      <div style={{ display: "flex", gap: 10 }}>
+        <GhostBtn icon="📵" onClick={() => onLog(false)}>Log “Not reached” ({MAX_CALL_ATTEMPTS - calls} left)</GhostBtn>
+        <PrimaryBtn icon="📞" onClick={() => onLog(true)}>Reached → Continue</PrimaryBtn>
+      </div>
+    )}
   </>
 );
 
@@ -302,6 +328,8 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
   const current = state.current;
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const isApptStage = currentStep.key === "schedule" || currentStep.key === "apptOutcome";
 
   const pushLog = (prev, text) => [...prev.log, { text, time: nowTime() }];
 
@@ -311,7 +339,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
     const summary = `Sent via ${channels.map(channelLabel).join(", ")}`;
     const total = (ch.sms || 0) + (ch.whatsapp || 0) + (ch.email || 0);
     return {
-      ...prev, channels: ch, isContact: true,
+      ...prev, channels: ch,
       current: advance ? IDX.phone : prev.current,
       summaries: { ...prev.summaries, initial: `${total} message${total !== 1 ? "s" : ""} sent` },
       lastAction: { icon: "✉️", label: `Initial contact · ${summary}`, date: today() },
@@ -320,15 +348,24 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
   });
 
   const onLogCall = (reached) => setState(prev => {
-    const calls = prev.calls + 1;
+    if (prev.notReached) return prev;                          // capped — no more attempts
+    const calls = Math.min(prev.calls + 1, MAX_CALL_ATTEMPTS);
+    const exhausted = !reached && calls >= MAX_CALL_ATTEMPTS;  // 5th failed attempt → Not Reached
     return {
-      ...prev, calls, reached: reached || prev.reached,
+      ...prev, calls, reached: reached || prev.reached, notReached: exhausted,
       current: reached ? IDX.schedule : prev.current,
-      summaries: { ...prev.summaries, phone: `${calls} call${calls !== 1 ? "s" : ""}${reached ? " · reached" : ""}` },
-      lastAction: { icon: "📞", label: reached ? "Reached by phone" : "Call attempt — not reached", date: today() },
-      log: pushLog(prev, `Phone Contact Attempts → ${reached ? "Reached" : "Not reached"} (attempt ${calls})`),
+      summaries: { ...prev.summaries, phone: reached ? `${calls} calls · reached` : exhausted ? `${calls} calls · not reached` : `${calls} call${calls !== 1 ? "s" : ""}` },
+      lastAction: { icon: reached ? "📞" : exhausted ? "🚫" : "📞", label: reached ? "Reached by phone" : exhausted ? `Not reached (max ${MAX_CALL_ATTEMPTS} attempts)` : "Call attempt — not reached", date: today() },
+      log: pushLog(prev, reached ? `Phone Contact Attempts → Reached (attempt ${calls})` : `Phone Contact Attempts → Not reached (attempt ${calls})${exhausted ? " · status set to Not Reached" : ""}`),
     };
   });
+
+  // Convert a lead into a contact (explicit action at the appointment stage).
+  const onConvert = () => setState(prev => ({
+    ...prev, isContact: true,
+    lastAction: { icon: "⇪", label: "Lead converted to contact", date: today() },
+    log: pushLog(prev, "Lead → Contact (converted)"),
+  }));
 
   const onSchedule = (appt) => setState(prev => ({
     ...prev, appointment: appt, current: IDX.apptOutcome,
@@ -368,7 +405,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
   const renderCurrentBody = (step) => {
     switch (step.key) {
       case "initial":  return <InitialContactStep contact={contact} sent={state.channels} onSend={onSend} />;
-      case "phone":    return <PhoneAttemptsStep calls={state.calls} onLog={onLogCall} />;
+      case "phone":    return <PhoneAttemptsStep calls={state.calls} notReached={state.notReached} onLog={onLogCall} />;
       case "schedule": return <ScheduleStep reschedules={state.reschedules} onOpenModal={() => setScheduleModalOpen(true)} />;
       case "apptOutcome": return <OutcomeStep stepKey="apptOutcome" prompt={OUTCOME_PROMPT.apptOutcome} onComplete={onApptOutcome} />;
       case "bizOutcome":  return <OutcomeStep stepKey="bizOutcome" prompt={OUTCOME_PROMPT.bizOutcome} onComplete={onBizOutcome} />;
@@ -390,6 +427,18 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
 
       <CurrentStepShell index={current} title={currentStep.title}>
         {renderCurrentBody(currentStep)}
+        {/* Lead → Contact conversion is decided here, at the appointment stage. */}
+        {isApptStage && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: C.navy }}>Lead status</div>
+              <div style={{ fontSize: 11.5, color: C.muted }}>{state.isContact ? "This lead has been converted to a contact." : "Convert this lead into a contact once it's qualified."}</div>
+            </div>
+            {state.isContact
+              ? <span style={{ fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "6px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Contact</span>
+              : <button onClick={() => setConvertOpen(true)} style={{ padding: "8px 16px", borderRadius: 9, border: `1.5px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>⇪ Convert to Contact</button>}
+          </div>
+        )}
       </CurrentStepShell>
 
       {completed.map((s, i) => (
@@ -409,6 +458,16 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
             onSchedule({ type: data.apptType, date: data.date, time: data.time });
             setScheduleModalOpen(false);
           }}
+        />
+      )}
+
+      {convertOpen && (
+        <ConfirmDialog
+          title="Convert Lead to Contact"
+          message={<>Convert <b>{contact?.name}</b> from a lead into a contact? They'll be marked as an active contact in your network.</>}
+          confirmLabel="Convert to Contact"
+          onCancel={() => setConvertOpen(false)}
+          onConfirm={() => { onConvert(); setConvertOpen(false); }}
         />
       )}
 
