@@ -66,6 +66,13 @@ const synthNationality = (id) => {
   return NATIONALITIES[h % NATIONALITIES.length];
 };
 
+// Feedback & Processing stage label per lead status — mirrors the dashboard.
+const FEEDBACK_LABEL = {
+  open: "Initial Contact", in_progress: "Phone Attempts", attempted: "Phone Attempts",
+  not_reached: "Not Reached", followup: "Scheduling", appointment: "Appointment",
+  closed: "Finished", no_interest: "Not Interested", dnc: "Do Not Call",
+};
+
 const toContact = (l) => {
   const [first, ...rest] = l.name.split(" ");
   const last = rest.join(" ");
@@ -74,6 +81,8 @@ const toContact = (l) => {
     id: l.id, first, last, firstName: first, lastName: last, name: l.name,
     lifecycle: lc.stage, stageStatus: lc.status, tone: lc.tone,
     phone: l.phone, email: l.email, primaryEmail: l.email,
+    feedback: FEEDBACK_LABEL[l.status] || "Initial Contact",
+    lastActivity: l.created || "—",
     campaign: l.campaign || "—",
     dob: synthDob(l.id),
     gender: synthGender(l.id),
@@ -107,6 +116,8 @@ const COLUMNS = {
   assignee:      { label: "Assignee",            locked: false, filter: null,        group: "Main Information" },
   lifecycle:     { label: "Lifecycle Stage",     locked: false, filter: "lifecycle", group: "Main Information" },
   stageStatus:   { label: "Stage Status",        locked: false, filter: "status",    group: "Main Information" },
+  feedback:      { label: "Feedback & Processing",locked: false, filter: "text",      group: "Main Information" },
+  lastActivity:  { label: "Last Activity",       locked: false, filter: null,        group: "Main Information" },
   create:        { label: "Create Date",         locked: false, filter: null,        group: "Main Information" },
   registration:  { label: "Registration Number", locked: false, filter: null,        group: "Main Information" },
   linkedin:      { label: "LinkedIn",            locked: false, filter: null,        group: "Main Information" },
@@ -1164,11 +1175,16 @@ const TakeOverModal = ({ contacts, vdName, onClose, onTakeOver, t }) => (
 // Build role-specific system views. System views cannot be deleted.
 const getSystemViews = (role, t?: (key: any) => string) => {
   const n = (key: string, fallback: string) => t ? t(key) : fallback;
-  const myNetwork     = { id: "my",       name: n("myNetwork", "My Network"),                filter: "all",      columns: DEFAULT_COLS, system: true };
-  const unassigned    = { id: "pending",  name: n("unassignedLeads", "Unassigned Leads"),    filter: "pending",  columns: DEFAULT_COLS, system: true };
-  const myLeads       = { id: "myleads",  name: n("myLeads", "My Leads"),                   filter: "myleads",  columns: DEFAULT_COLS, system: true };
-  const assignedLeads = { id: "assigned", name: n("assignedLeads", "Assigned Leads"),        filter: "assigned", columns: DEFAULT_COLS, system: true };
-  const pendingAssign = { id: "pendingA", name: n("pendingAssignmentsView", "Pending Assignments"), filter: "pending", columns: DEFAULT_COLS, system: true };
+  // Columns mirror the matching dashboard sections so the two stay aligned.
+  const MY_NETWORK_COLS = ["name", "phone", "stageStatus", "lastActivity"];              // dashboard "Contact List"
+  const MY_LEADS_COLS   = ["name", "accountSource", "feedback", "stageStatus", "lastActivity"];
+  const ASSIGNED_COLS   = ["name", "assignee", "feedback", "stageStatus", "lastActivity"]; // dashboard "Assigned Leads"
+  const PENDING_COLS    = ["name", "accountSource", "campaign", "lastActivity"];
+  const myNetwork     = { id: "my",       name: n("myNetwork", "My Network"),                filter: "all",      columns: MY_NETWORK_COLS, system: true };
+  const unassigned    = { id: "pending",  name: n("unassignedLeads", "Unassigned Leads"),    filter: "pending",  columns: PENDING_COLS,    system: true };
+  const myLeads       = { id: "myleads",  name: n("myLeads", "My Leads"),                   filter: "myleads",  columns: MY_LEADS_COLS,   system: true };
+  const assignedLeads = { id: "assigned", name: n("assignedLeads", "Assigned Leads"),        filter: "assigned", columns: ASSIGNED_COLS,   system: true };
+  const pendingAssign = { id: "pendingA", name: n("pendingAssignmentsView", "Pending Assignments"), filter: "pending", columns: PENDING_COLS, system: true };
 
   if (role === "superadmin") return [assignedLeads, unassigned];
   if (role === "vd")         return [myNetwork, myLeads, assignedLeads, pendingAssign];
@@ -1352,6 +1368,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
                     email: "email", phone: "phone", gender: "gender",
                     nationality: "nationality", assignee: "assignee",
                     lifecycle: "lifecycleStage", stageStatus: "stageStatus",
+                    feedback: "feedbackStatusCol", lastActivity: "lastActivityCol",
                     create: "createDate", registration: "registrationNumber",
                     linkedin: "linkedIn", accountSource: "accountSource",
                     website: "website",
