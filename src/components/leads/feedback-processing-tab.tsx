@@ -11,17 +11,20 @@ import { AppointmentModal } from "../appointments/appointment-modal";
 //
 // Flow:
 //   1 Initial Contact  →  2 Phone Contact Attempts  →  3 Contact Outcome
-//   →  4 Schedule Appointment  →  5 Appointment Outcome  →  6 Finish Processing
+//   →  4 Schedule Appointment  →  5 Appointment Outcome  →  6 Finalize
 //
-// · Phone attempts are capped at 5; the 5th failed attempt auto-finishes the
-//   lead as "Not Reached".
-// · Contact Outcome (after the contact is reached): Appointment Scheduled,
-//   Not Interested, Future Opportunities, Other. The last three end the flow.
-// · Appointment Outcome merges the appointment result (Took Place / Rescheduled)
-//   with the business result (Won / Follow-up / Lost). "Rescheduled" and a
-//   "Follow-up" both re-open the scheduling pop-up and keep the user on the
-//   Appointment Outcome step to record the next result.
-// · "Convert to Contact" is offered only on result stages (and Not Reached).
+// · Phone attempts are capped at 5; the 5th failed attempt sends the lead to
+//   Finalize as "Not Reached".
+// · Contact Outcome: Appointment Scheduled, Not Interested, Currently Not
+//   Interested, Difficult Case. Anything but "Appointment Scheduled" skips
+//   straight to Finalize.
+// · Appointment Outcome: Qualified, Reschedule, Attending Event, Not Interested,
+//   Currently Not Interested, Difficult Case. "Reschedule" re-opens the
+//   scheduling pop-up and stays on the step; everything else goes to Finalize.
+// · If a negative outcome (Not Interested / Currently Not Interested / Difficult
+//   Case) was chosen, the Finalize step shows a persistent "Do Not Contact"
+//   toggle — so DNC is set here, not on the convert modal.
+// · Every step commits only on "Continue"; selections are correctable first.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const STEPS = [
@@ -30,13 +33,15 @@ export const STEPS = [
   { key: "outcome",     title: "Contact Outcome" },
   { key: "schedule",    title: "Schedule Appointment" },
   { key: "appointment", title: "Appointment Outcome" },
-  { key: "finish",      title: "Finish Processing" },
+  { key: "finish",      title: "Finalize Process" },
 ];
 const IDX = Object.fromEntries(STEPS.map((s, i) => [s.key, i]));
 const stepNo = (key) => IDX[key] + 1;
 
 // Result stages only (not actions) — where the convert-to-contact CTA appears.
 const RESULT_STEPS = new Set(["outcome", "appointment", "finish"]);
+// Negative outcomes that end processing and enable the Do-Not-Contact toggle.
+const NEGATIVE = new Set(["notinterested", "currentlynot", "difficult"]);
 
 // A lead may be called at most 5 times; after that it is marked "Not Reached".
 const MAX_CALL_ATTEMPTS = 5;
@@ -48,7 +53,7 @@ export const FEEDBACK_STEP_LABEL = {
   outcome:     "Contact Outcome",
   schedule:    "Scheduling",
   appointment: "Appointment",
-  finish:      "Finished",
+  finish:      "Finalized",
 };
 
 const CHANNELS = [
@@ -64,8 +69,8 @@ const today   = () => new Date().toLocaleDateString("en-GB", { day: "2-digit", m
 
 // Map a lead's mock status → the step it should open on.
 const STATUS_STEP = {
-  open: 0, in_progress: 1, attempted: 1, not_reached: 1,
-  followup: 2, appointment: 4, closed: 5, no_interest: 2, dnc: 1,
+  open: 0, in_progress: 1, attempted: 1, not_reached: 5,
+  followup: 2, appointment: 4, closed: 5, no_interest: 5, dnc: 5,
 };
 
 // Build the initial processing state from a lead. `alreadyContact` is true when
@@ -73,25 +78,27 @@ const STATUS_STEP = {
 export const makeInitialFeedback = (lead, alreadyContact = false) => {
   const status  = lead?.status || "open";
   const current = STATUS_STEP[status] ?? 0;
-  const finished = status === "closed" || status === "not_reached";
+  const notReached = status === "not_reached";
+  const negative = status === "no_interest" || status === "dnc";
+  const finished = status === "closed";
   const calls   = lead?.attempts || 0;
-  // Already a contact if opened from a contacts view, or past the appointment
-  // conversion point (appointment booked / deal closed).
   const isContact = alreadyContact || status === "appointment" || status === "closed";
   const channels = { sms: current > 0 ? 1 : 0, whatsapp: 0, email: 0 };
+  // Which steps have actually been visited (drives the collapsed "done" rows).
+  const doneSteps = notReached ? ["initial", "phone"]
+    : negative ? ["initial", "phone", "outcome"]
+    : STEPS.slice(0, current).map(s => s.key);
   const log = [{ text: "Lead assigned → status set to New", time: "12:58:29 PM" }];
   if (current > 0) log.push({ text: "Initial Contact → Sent via SMS", time: "12:59:05 PM" });
   return {
     current, finished, isContact, channels, calls,
-    reached: current > 1,
-    notReached: status === "not_reached",
-    terminal: status === "not_reached",
-    contactOutcome: null,
-    appointment: current >= IDX.appointment ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
-    apptTookPlace: status === "closed",
-    bizOutcome: status === "closed" ? "Took Place · Closed – Won" : null,
+    reached: current >= IDX.outcome && !notReached,
+    notReached,
+    contactOutcome: null, apptOutcome: null,
+    negativeOutcome: negative, dnc: status === "dnc",
+    appointment: current >= IDX.appointment && !notReached ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
     reschedules: 0,
-    followups: 0,
+    doneSteps,
     summaries: {},
     lastAction: current > 0 ? { icon: "✉️", label: "Initial contact sent", date: today() } : null,
     log,
@@ -103,13 +110,13 @@ export const feedbackDetail = (s) => {
   const msgs = (s.channels.sms || 0) + (s.channels.whatsapp || 0) + (s.channels.email || 0);
   const step = STEPS[s.current]?.key;
   if (s.notReached) return `Not reached (${s.calls}/${MAX_CALL_ATTEMPTS})`;
-  if (s.terminal)   return s.contactOutcome || "Processing finished";
-  if (s.finished)   return s.bizOutcome || "Processing complete";
+  if (s.finished)   return s.apptOutcome || s.contactOutcome || "Processing complete";
   if (step === "initial")     return `${msgs} message${msgs !== 1 ? "s" : ""} sent`;
   if (step === "phone")       return `${s.calls} call${s.calls !== 1 ? "s" : ""}${s.reached ? " · reached" : ""}`;
   if (step === "outcome")     return "Recording outcome";
   if (step === "schedule")    return s.reschedules ? `Re-scheduling (×${s.reschedules})` : "Booking appointment";
   if (step === "appointment") return "Awaiting appointment result";
+  if (step === "finish")      return s.contactOutcome || "Finalizing";
   return "";
 };
 
@@ -125,13 +132,6 @@ const PrimaryBtn = ({ children, onClick, icon, disabled }: any) => (
     display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 9,
     border: "none", background: disabled ? C.border : C.navy, color: disabled ? C.muted : "#fff",
     fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer", fontFamily: "inherit",
-  }}>{icon && <span>{icon}</span>}{children}</button>
-);
-const GhostBtn = ({ children, onClick, icon }: any) => (
-  <button onClick={onClick} style={{
-    display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 9,
-    border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 13, fontWeight: 600,
-    cursor: "pointer", fontFamily: "inherit",
   }}>{icon && <span>{icon}</span>}{children}</button>
 );
 
@@ -190,6 +190,16 @@ const ConfirmDialog = ({ title, message, confirmLabel, onCancel, onConfirm }) =>
       </div>
     </div>
   </>
+);
+
+// Labelled on/off switch (used for the Do-Not-Contact flag).
+const Toggle = ({ on, onChange, danger = false }) => (
+  <button role="switch" aria-checked={on} onClick={onChange} style={{
+    position: "relative", width: 42, height: 24, borderRadius: 20, border: "none", cursor: "pointer", flexShrink: 0,
+    background: on ? (danger ? C.red : C.green) : C.border, transition: "background .15s", padding: 0,
+  }}>
+    <span style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
+  </button>
 );
 
 // Reusable option-chip row.
@@ -253,7 +263,7 @@ const InitialContactStep = ({ contact, sent, onSend }) => {
           Already sent: {CHANNELS.filter(c => sent[c.key] > 0).map(c => `${sent[c.key]} ${c.label}`).join(" · ")}
         </div>
       )}
-      <PrimaryBtn icon="✓" onClick={() => onSend(channels, true)} disabled={channels.length === 0}>Continue</PrimaryBtn>
+      <PrimaryBtn icon="✓" onClick={() => onSend(channels)} disabled={channels.length === 0}>Continue</PrimaryBtn>
     </>
   );
 };
@@ -272,7 +282,7 @@ const PhoneAttemptsStep = ({ calls, notReached, onLog }) => {
         <span style={{ fontSize: 22 }}>{notReached ? "🚫" : "📞"}</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: notReached ? C.red : C.navy }}>{calls} of {MAX_CALL_ATTEMPTS} call attempt{calls !== 1 ? "s" : ""}{notReached ? " · Not Reached" : ""}</div>
-          <div style={{ fontSize: 11.5, color: C.muted }}>{notReached ? "Maximum attempts reached — processing finished as Not Reached." : "Keep trying until the contact answers."}</div>
+          <div style={{ fontSize: 11.5, color: C.muted }}>{notReached ? "Maximum attempts reached — sent to Finalize as Not Reached." : "Keep trying until the contact answers."}</div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
@@ -290,36 +300,39 @@ const PhoneAttemptsStep = ({ calls, notReached, onLog }) => {
   );
 };
 
-// Contact Outcome — recorded once the contact has been reached.
+// Contact Outcome (after the contact is reached).
 const CONTACT_OUTCOMES = [
-  { v: "appointment",   label: "Appointment Scheduled", tone: C.green,  advance: true },
-  { v: "notinterested", label: "Not Interested",        tone: C.red },
-  { v: "future",        label: "Future Opportunities",  tone: C.indigo },
-  { v: "other",         label: "Other",                 tone: C.slate },
+  { v: "appointment",  label: "Appointment Scheduled",    tone: C.green },
+  { v: "notinterested",label: "Not Interested",           tone: C.red },
+  { v: "currentlynot", label: "Currently Not Interested", tone: C.amber },
+  { v: "difficult",    label: "Difficult Case",           tone: C.slate },
 ];
-const ContactOutcomeStep = ({ terminal, outcomeLabel, onComplete }) => {
+// Appointment Outcome (flat, single-select).
+const APPT_OUTCOMES = [
+  { v: "qualified",    label: "Qualified",                tone: C.green },
+  { v: "reschedule",   label: "Reschedule",               tone: C.amber },
+  { v: "attending",    label: "Attending Event",          tone: C.indigo },
+  { v: "notinterested",label: "Not Interested",           tone: C.red },
+  { v: "currentlynot", label: "Currently Not Interested", tone: C.amber },
+  { v: "difficult",    label: "Difficult Case",           tone: C.slate },
+];
+
+const OutcomeSelectStep = ({ prompt, options, headerInfo, onComplete }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
-  const sel = CONTACT_OUTCOMES.find(o => o.v === choice);
-  if (terminal) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.slate + "18", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0 }}>🏁</span>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>Outcome: {outcomeLabel}</div>
-          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>Processing finished — no appointment scheduled.</div>
-        </div>
-      </div>
-    );
-  }
+  const sel = options.find(o => o.v === choice);
+  const hint = choice === "reschedule"
+    ? "↩ Re-opens scheduling — you'll re-book a new appointment and stay on this step."
+    : NEGATIVE.has(choice)
+      ? "↩ Ends processing — you can set Do Not Contact in the Finalize step."
+      : null;
   return (
     <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>The contact was reached. What's the outcome of the conversation?</div>
-      <OptionChips options={CONTACT_OUTCOMES} value={choice} onChange={setChoice} />
-      {sel && !sel.advance && (
-        <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>↩ This closes the processing without an appointment.</div>
-      )}
-      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Add a short note (optional)…"
+      {headerInfo}
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{prompt}</div>
+      <OptionChips options={options} value={choice} onChange={setChoice} />
+      {hint && <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
+      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Briefly describe the outcome (optional)…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <PrimaryBtn icon="✓" onClick={() => sel && onComplete(sel.v, sel.label)} disabled={!sel}>Continue</PrimaryBtn>
     </>
@@ -336,66 +349,29 @@ const ScheduleStep = ({ reschedules, onOpenModal }) => (
   </>
 );
 
-// Merged Appointment + Business outcome.
-const APPT_RESULTS = [
-  { v: "tookplace",   label: "Took Place",   tone: C.green },
-  { v: "rescheduled", label: "Rescheduled", tone: C.amber },
-];
-const BIZ_RESULTS = [
-  { v: "won",      label: "Closed – Won",  tone: C.green },
-  { v: "followup", label: "Follow-up",     tone: C.amber },
-  { v: "lost",     label: "Closed – Lost", tone: C.red },
-];
-const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
-  const [appt, setAppt] = useState("");
-  const [biz, setBiz] = useState("");
-  const [note, setNote] = useState("");
-  const tookPlace = appt === "tookplace";
-  const ready = appt === "rescheduled" || (tookPlace && biz);
-  return (
-    <>
-      {appointment && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 9, background: C.light, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 12.5, color: C.navy, fontWeight: 600 }}>
-          📅 {appointment.type} · {appointment.date} {appointment.time}
-        </div>
-      )}
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 12 }}>Did the appointment take place, and what was the result?</div>
-      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 8 }}>Appointment</label>
-      <OptionChips options={APPT_RESULTS} value={appt} onChange={v => { setAppt(v); if (v !== "tookplace") setBiz(""); }} />
-      {tookPlace && (
-        <>
-          <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 8 }}>Business outcome</label>
-          <OptionChips options={BIZ_RESULTS} value={biz} onChange={setBiz} />
-        </>
-      )}
-      {appt === "rescheduled" && (
-        <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>↩ The contact stays at the scheduling stage — you'll re-book a new appointment.</div>
-      )}
-      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Add a short note (optional)…"
-        style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
-      <PrimaryBtn icon="✓" disabled={!ready} onClick={() => {
-        if (appt === "rescheduled") { onComplete("rescheduled", null, "Rescheduled"); return; }
-        const b = BIZ_RESULTS.find(x => x.v === biz);
-        onComplete("tookplace", b.v, `Took Place · ${b.label}`);
-      }}>Continue</PrimaryBtn>
-    </>
-  );
-};
-
-const FinishStep = ({ done, onComplete }) => (
+const FinalizeStep = ({ done, negativeOutcome, dnc, onToggleDnc, onComplete }) => (
   <>
+    {negativeOutcome && (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderRadius: 10, border: `1px solid ${dnc ? C.red + "55" : C.border}`, background: dnc ? C.red + "0C" : C.light, marginBottom: 16 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: dnc ? C.red : C.navy }}>Do Not Contact (DNC)</div>
+          <div style={{ fontSize: 11.5, color: C.muted }}>Flag this lead so no further outreach is attempted.</div>
+        </div>
+        <Toggle on={dnc} onChange={onToggleDnc} danger />
+      </div>
+    )}
     {done ? (
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 0" }}>
         <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.green, display: "grid", placeItems: "center", fontSize: 16, color: "#fff", flexShrink: 0 }}>✓</span>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>Processing complete</div>
-          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>This contact has moved through the full feedback flow.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>Lead ready — processed</div>
+          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>Feedback has been fed into the campaign statistics.{dnc ? " Marked Do Not Contact." : ""}</div>
         </div>
       </div>
     ) : (
       <>
-        <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>Confirm and close out the processing for this contact.</div>
-        <PrimaryBtn icon="🏁" onClick={onComplete}>Finish Processing</PrimaryBtn>
+        <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>Mark the lead as fully processed. Your feedback feeds into the campaign statistics.</div>
+        <PrimaryBtn icon="🏁" onClick={onComplete}>Mark lead as processed</PrimaryBtn>
       </>
     )}
   </>
@@ -407,11 +383,11 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
-  // Convert-to-Contact is offered only on result stages (and Not Reached), never
-  // on an action stage (initial contact / calling / scheduling).
-  const showConvert = state.notReached || RESULT_STEPS.has(currentStep.key);
+  // Convert-to-Contact is offered only on result stages, never on an action stage.
+  const showConvert = RESULT_STEPS.has(currentStep.key);
 
   const pushLog = (prev, text) => [...prev.log, { text, time: nowTime() }];
+  const withDone = (prev, key) => prev.doneSteps.includes(key) ? prev.doneSteps : [...prev.doneSteps, key];
 
   const onSend = (channels) => setState(prev => {
     const ch = { ...prev.channels };
@@ -419,7 +395,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
     const summary = `Sent via ${channels.map(channelLabel).join(", ")}`;
     const total = (ch.sms || 0) + (ch.whatsapp || 0) + (ch.email || 0);
     return {
-      ...prev, channels: ch, current: IDX.phone,
+      ...prev, channels: ch, current: IDX.phone, doneSteps: withDone(prev, "initial"),
       summaries: { ...prev.summaries, initial: `${total} message${total !== 1 ? "s" : ""} sent` },
       lastAction: { icon: "✉️", label: `Initial contact · ${summary}`, date: today() },
       log: pushLog(prev, `Initial Contact → ${summary}`),
@@ -427,66 +403,60 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
   });
 
   const onLogCall = (reached) => setState(prev => {
-    if (prev.notReached) return prev;                          // capped — no more attempts
+    if (prev.notReached) return prev;
     const calls = Math.min(prev.calls + 1, MAX_CALL_ATTEMPTS);
-    const exhausted = !reached && calls >= MAX_CALL_ATTEMPTS;  // 5th failed attempt → Not Reached
+    if (reached) {
+      return {
+        ...prev, calls, reached: true, current: IDX.outcome, doneSteps: withDone(prev, "phone"),
+        summaries: { ...prev.summaries, phone: `${calls} calls · reached` },
+        lastAction: { icon: "📞", label: "Reached by phone", date: today() },
+        log: pushLog(prev, `Phone Contact Attempts → Reached (attempt ${calls})`),
+      };
+    }
+    const exhausted = calls >= MAX_CALL_ATTEMPTS;
     if (exhausted) {
       return {
-        ...prev, calls, notReached: true, terminal: true, finished: true,
+        ...prev, calls, notReached: true, current: IDX.finish, doneSteps: withDone(prev, "phone"),
         summaries: { ...prev.summaries, phone: `${calls} calls · not reached` },
-        lastAction: { icon: "🚫", label: `Not reached (max ${MAX_CALL_ATTEMPTS} attempts) — processing finished`, date: today() },
-        log: [...prev.log,
-          { text: `Phone Contact Attempts → Not reached (attempt ${calls}) · status set to Not Reached`, time: nowTime() },
-          { text: "Finish Processing → Not Reached (automatic)", time: nowTime() },
-        ],
+        lastAction: { icon: "🚫", label: `Not reached (max ${MAX_CALL_ATTEMPTS} attempts)`, date: today() },
+        log: pushLog(prev, `Phone Contact Attempts → Not reached (attempt ${calls}) · sent to Finalize`),
       };
     }
     return {
-      ...prev, calls, reached: reached || prev.reached,
-      current: reached ? IDX.outcome : prev.current,
-      summaries: { ...prev.summaries, phone: reached ? `${calls} calls · reached` : `${calls} call${calls !== 1 ? "s" : ""}` },
-      lastAction: { icon: "📞", label: reached ? "Reached by phone" : "Call attempt — not reached", date: today() },
-      log: pushLog(prev, `Phone Contact Attempts → ${reached ? "Reached" : "Not reached"} (attempt ${calls})`),
+      ...prev, calls,
+      summaries: { ...prev.summaries, phone: `${calls} call${calls !== 1 ? "s" : ""}` },
+      lastAction: { icon: "📞", label: "Call attempt — not reached", date: today() },
+      log: pushLog(prev, `Phone Contact Attempts → Not reached (attempt ${calls})`),
     };
   });
 
   const onContactOutcome = (v, label) => setState(prev => {
+    const done = withDone(prev, "outcome");
     if (v === "appointment") {
       return {
-        ...prev, contactOutcome: label, current: IDX.schedule,
+        ...prev, contactOutcome: label, current: IDX.schedule, doneSteps: done,
         summaries: { ...prev.summaries, outcome: label },
         lastAction: { icon: "📅", label: `Outcome: ${label}`, date: today() },
         log: pushLog(prev, `Contact Outcome → ${label}`),
       };
     }
-    // Terminal outcomes end the processing (no appointment).
+    // Negative outcome → skip to Finalize.
     return {
-      ...prev, contactOutcome: label, terminal: true, finished: true,
+      ...prev, contactOutcome: label, negativeOutcome: true, current: IDX.finish, doneSteps: done,
       summaries: { ...prev.summaries, outcome: label },
-      lastAction: { icon: "🏁", label: `Outcome: ${label} — finished`, date: today() },
-      log: [...prev.log,
-        { text: `Contact Outcome → ${label}`, time: nowTime() },
-        { text: `Finish Processing → ${label} (automatic)`, time: nowTime() },
-      ],
+      lastAction: { icon: "🏁", label: `Outcome: ${label}`, date: today() },
+      log: pushLog(prev, `Contact Outcome → ${label} · sent to Finalize`),
     };
   });
 
-  const onConvert = () => setState(prev => ({
-    ...prev, isContact: true,
-    lastAction: { icon: "⇪", label: "Lead converted to contact", date: today() },
-    log: pushLog(prev, "Lead → Contact (converted)"),
-  }));
-
-  // Initial scheduling — advances from the Schedule step to Appointment Outcome.
   const onSchedule = (appt) => setState(prev => ({
-    ...prev, appointment: appt, current: IDX.appointment,
+    ...prev, appointment: appt, current: IDX.appointment, doneSteps: withDone(prev, "schedule"),
     summaries: { ...prev.summaries, schedule: `${appt.type} · ${appt.date} ${appt.time}` },
     lastAction: { icon: "📅", label: `Appointment booked · ${appt.date} ${appt.time}`, date: today() },
     log: pushLog(prev, `Schedule Appointment → ${appt.type} · ${appt.date} ${appt.time}`),
   }));
 
-  // Re-book from within Appointment Outcome (reschedule / follow-up) — updates the
-  // appointment but keeps the user on the Appointment Outcome step.
+  // Re-book from within Appointment Outcome (reschedule) — keeps the current step.
   const onRebook = (appt) => setState(prev => ({
     ...prev, appointment: appt,
     summaries: { ...prev.summaries, schedule: `${appt.type} · ${appt.date} ${appt.time}` },
@@ -494,59 +464,64 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
     log: pushLog(prev, `Schedule Appointment → Re-booked · ${appt.type} · ${appt.date} ${appt.time}`),
   }));
 
-  const onAppointmentOutcome = (apptV, bizV, label) => {
-    if (apptV === "rescheduled") {
-      // Re-open scheduling and stay on Appointment Outcome.
+  const onAppointmentOutcome = (v, label) => {
+    if (v === "reschedule") {
       setState(prev => ({
-        ...prev, apptTookPlace: false, reschedules: prev.reschedules + 1,
+        ...prev, reschedules: prev.reschedules + 1,
         lastAction: { icon: "🔁", label: "Appointment rescheduled — re-book", date: today() },
-        log: pushLog(prev, "Appointment Outcome → Rescheduled — re-opening scheduling"),
+        log: pushLog(prev, "Appointment Outcome → Reschedule — re-opening scheduling"),
       }));
       setScheduleModalOpen(true);
       return;
     }
-    if (bizV === "followup") {
-      // Took place but needs another appointment — re-open scheduling, stay here.
-      setState(prev => ({
-        ...prev, apptTookPlace: true, bizOutcome: label, followups: (prev.followups || 0) + 1,
-        lastAction: { icon: "🔁", label: "Follow-up — schedule the next appointment", date: today() },
-        log: pushLog(prev, `Appointment Outcome → ${label} — scheduling a follow-up appointment`),
-      }));
-      setScheduleModalOpen(true);
-      return;
-    }
-    // Won / Lost → finish.
     setState(prev => ({
-      ...prev, apptTookPlace: true, bizOutcome: label, current: IDX.finish,
+      ...prev, apptOutcome: label, current: IDX.finish, doneSteps: withDone(prev, "appointment"),
+      negativeOutcome: NEGATIVE.has(v) ? true : prev.negativeOutcome,
       summaries: { ...prev.summaries, appointment: label },
-      lastAction: { icon: "✅", label: `Appointment: ${label}`, date: today() },
+      lastAction: { icon: NEGATIVE.has(v) ? "🏁" : "✅", label: `Appointment: ${label}`, date: today() },
       log: pushLog(prev, `Appointment Outcome → ${label}`),
     }));
   };
 
+  const onToggleDnc = () => setState(prev => {
+    const dnc = !prev.dnc;
+    return { ...prev, dnc, log: pushLog(prev, `Do Not Contact → ${dnc ? "ON" : "OFF"}`) };
+  });
+
   const onFinish = () => setState(prev => ({
     ...prev, finished: true,
-    lastAction: { icon: "🏁", label: "Processing finished", date: today() },
-    log: pushLog(prev, "Finish Processing → Completed"),
+    lastAction: { icon: "🏁", label: "Lead processed", date: today() },
+    log: pushLog(prev, `Finalize Process → Processed${prev.dnc ? " · Do Not Contact" : ""}`),
   }));
+
+  const onConvert = () => setState(prev => ({
+    ...prev, isContact: true,
+    lastAction: { icon: "⇪", label: "Lead converted to contact", date: today() },
+    log: pushLog(prev, "Lead → Contact (converted)"),
+  }));
+
+  const apptInfo = state.appointment && (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 9, background: C.light, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 12.5, color: C.navy, fontWeight: 600 }}>
+      📅 {state.appointment.type} · {state.appointment.date} {state.appointment.time}
+    </div>
+  );
 
   const renderCurrentBody = (step) => {
     switch (step.key) {
       case "initial":     return <InitialContactStep contact={contact} sent={state.channels} onSend={onSend} />;
       case "phone":       return <PhoneAttemptsStep key={`ph-${state.calls}`} calls={state.calls} notReached={state.notReached} onLog={onLogCall} />;
-      case "outcome":     return <ContactOutcomeStep terminal={state.terminal} outcomeLabel={state.contactOutcome} onComplete={onContactOutcome} />;
+      case "outcome":     return <OutcomeSelectStep prompt="The contact was reached. What's the outcome of the conversation?" options={CONTACT_OUTCOMES} onComplete={onContactOutcome} />;
       case "schedule":    return <ScheduleStep reschedules={state.reschedules} onOpenModal={() => setScheduleModalOpen(true)} />;
-      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}-${state.followups || 0}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
-      case "finish":      return <FinishStep done={state.finished} onComplete={onFinish} />;
+      case "appointment": return <OutcomeSelectStep key={`ao-${state.reschedules}`} prompt="Record the outcome of the scheduled appointment." options={APPT_OUTCOMES} headerInfo={apptInfo} onComplete={onAppointmentOutcome} />;
+      case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} onToggleDnc={onToggleDnc} onComplete={onFinish} />;
       default:            return null;
     }
   };
 
-  // When the flow ended early (Not Reached / a terminal outcome) the later steps
-  // are no longer pending.
-  const ended     = state.notReached || state.terminal;
-  const future    = ended ? [] : STEPS.slice(current + 1).reverse();
-  const completed = STEPS.slice(0, current).reverse();
+  // Locked (future) steps: those after the current one — empty once we've jumped
+  // to Finalize. Completed rows come from the actually-visited steps.
+  const future    = STEPS.slice(current + 1);
+  const completed = state.doneSteps.map(k => STEPS.find(s => s.key === k)).filter(Boolean).reverse();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -554,11 +529,11 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
         Steps run from bottom to top — completed steps collapse below, the current step stays closest to you.
       </div>
 
-      {future.map(s => <LockedStep key={s.key} num={stepNo(s.key)} title={s.title} />)}
+      {future.slice().reverse().map(s => <LockedStep key={s.key} num={stepNo(s.key)} title={s.title} />)}
 
       <CurrentStepShell num={stepNo(currentStep.key)} title={currentStep.title}>
         {renderCurrentBody(currentStep)}
-        {/* Lead → Contact conversion — offered only on result stages / Not Reached. */}
+        {/* Lead → Contact conversion — offered only on result stages. */}
         {showConvert && (
           <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
