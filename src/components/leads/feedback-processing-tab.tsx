@@ -210,6 +210,15 @@ const Toggle = ({ on, onChange, danger = false }) => (
   </button>
 );
 
+// "Create a Task" — opens the shared task modal (callback reminders etc.).
+const CreateTaskBtn = ({ onClick }) => (
+  <button onClick={onClick} style={{
+    display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 8,
+    border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 12.5, fontWeight: 600,
+    cursor: "pointer", fontFamily: "inherit",
+  }}>☑️ Create a Task</button>
+);
+
 // Reusable option-chip row.
 const OptionChips = ({ options, value, onChange }) => (
   <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
@@ -269,11 +278,14 @@ const CALL_RESULTS = [
   { v: "reached",    label: "Reached",     tone: C.green },
 ];
 // Select the result of a call attempt (correctable), then Save & Continue.
-const CallAttemptsStep = ({ calls, notReached, onLog }) => {
+const CallAttemptsStep = ({ calls, notReached, onLog, onCreateTask }) => {
   const [sel, setSel] = useState("");
   return (
     <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Make a call attempt (max {MAX_CALL_ATTEMPTS}), pick the result and press <b>Save &amp; Continue</b>.</div>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+        <div style={{ fontSize: 13, color: C.slate }}>Make a call attempt (max {MAX_CALL_ATTEMPTS}), pick the result and press <b>Save &amp; Continue</b>.</div>
+        <CreateTaskBtn onClick={onCreateTask} />
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${notReached ? C.red + "55" : C.border}`, borderRadius: 10, marginBottom: 12, background: notReached ? C.red + "0C" : C.light }}>
         <span style={{ fontSize: 22 }}>{notReached ? "🚫" : "📞"}</span>
         <div style={{ flex: 1 }}>
@@ -303,14 +315,17 @@ const CALL_OUTCOMES = [
   { v: "currentlynot", label: "Currently Not Interested", tone: C.amber },
   { v: "difficult",    label: "Difficult Case",           tone: C.slate },
 ];
-const CallOutcomeStep = ({ onComplete }) => {
+const CallOutcomeStep = ({ onComplete, onCreateTask }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const sel = CALL_OUTCOMES.find(o => o.v === choice);
   const isAppt = choice === "appointment";
   return (
     <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>The contact was reached. Select the outcome of the conversation to continue processing the lead.</div>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+        <div style={{ fontSize: 13, color: C.slate }}>The contact was reached. Select the outcome of the conversation to continue processing the lead.</div>
+        <CreateTaskBtn onClick={onCreateTask} />
+      </div>
       <OptionChips options={CALL_OUTCOMES} value={choice} onChange={setChoice} />
       {sel && NEGATIVE.has(choice) && (
         <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>↩ Ends processing — you can set Do Not Contact in Finalize.</div>
@@ -394,7 +409,7 @@ const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, on
 );
 
 // ── Main tab (controlled) ─────────────────────────────────────────────────────
-export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo }) => {
+export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask }) => {
   const current = state.current;
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -515,8 +530,8 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const renderCurrentBody = (step) => {
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} onSend={onSend} />;
-      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} calls={state.calls} notReached={state.notReached} onLog={onLogCall} />;
-      case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} />;
+      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onCreateTask={onCreateTask} />;
+      case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} onCreateTask={onCreateTask} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
       case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
