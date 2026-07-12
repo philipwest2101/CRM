@@ -686,15 +686,15 @@ export const DONE_STATUSES = ["done","completed","cancelled"];
 // lead list, dashboard tables and anywhere the "Feedback & Processing" status
 // is shown — clearer, action-oriented labels instead of raw step names.
 export const FEEDBACK_STATUS_LABEL = {
-  open:        "Awaiting First Contact",
-  in_progress: "Contact Attempts",
-  attempted:   "Contact Attempts",
+  open:        "New",
+  in_progress: "In Contact",
+  attempted:   "In Contact",
   not_reached: "Not Reached",
-  followup:    "Scheduling Appointment",
-  appointment: "Appointment Booked",
-  closed:      "Processing Complete",
+  followup:    "Follow Up",
+  appointment: "Appointment",
+  closed:      "Qualified",
   no_interest: "Not Interested",
-  dnc:         "Do Not Call",
+  dnc:         "Do Not Contact",
 };
 export const feedbackStatusLabel = (status) => FEEDBACK_STATUS_LABEL[status] || FEEDBACK_STATUS_LABEL.open;
 

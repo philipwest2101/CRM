@@ -443,7 +443,7 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline, actionsDisabled = false, isContact = false }) => {
+const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline, actionsDisabled = false, isContact = false, networkStatus = null }) => {
   const t = useT();
   const [gdpr, setGdpr] = useState(true);
   const [rating, setRating] = useState(2);
@@ -471,10 +471,10 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{c.name}</span>
-            <span title={isContact ? "Converted to a contact" : "Still a lead — convert at the appointment stage"}
+            <span title={isContact ? "In My Network" : "Still a lead — add to My Network in the Finalize step"}
               style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 20,
                 color: isContact ? C.green : C.slate, background: (isContact ? C.green : C.slate) + "16" }}>
-              {isContact ? "Contact" : "Lead"}
+              {isContact ? (networkStatus || "Network") : "Lead"}
             </span>
           </div>
           <div style={{ marginTop: 3 }}><Stars n={rating} onChange={setRating} /></div>
@@ -541,12 +541,11 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
 // Reflects the live Feedback & Processing result: the Follow-Up card mirrors the
 // call attempts, last action and the next best action for the current stage.
 const NEXT_BEST = {
-  initial:     { icon: "✉️", label: "Send initial contact" },
-  phone:       { icon: "📞", label: "Call the contact" },
-  schedule:    { icon: "📅", label: "Schedule an appointment" },
-  apptOutcome: { icon: "📝", label: "Record the appointment outcome" },
-  bizOutcome:  { icon: "💼", label: "Record the business outcome" },
-  finish:      { icon: "🏁", label: "Finish processing" },
+  initial:     { icon: "✉️", label: "Send the initial message" },
+  phone:       { icon: "📞", label: "Call the lead" },
+  outcome:     { icon: "📝", label: "Record the call outcome" },
+  appointment: { icon: "📅", label: "Record the appointment outcome" },
+  finish:      { icon: "🏁", label: "Finalize the process" },
 };
 const OverviewTab = ({ showInsights = true, feedback = null }) => {
   const [addNote, setAddNote] = useState(false);
@@ -1419,7 +1418,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18, alignItems: "start" }}>
-        <IdentityRail c={c} actionsDisabled={!feedback.isContact} isContact={feedback.isContact}
+        <IdentityRail c={c} actionsDisabled={!feedback.isContact} isContact={feedback.isContact} networkStatus={feedback.networkStatus}
           onEmail={() => setModal("email")} onTask={() => setModal("task")} onAppointment={() => setModal("appointment")}
           onLogCall={() => setModal("logcall")} onLogEmail={() => setModal("logemail")}
           onLogAppt={() => setModal("logappt")} onOffline={() => setModal("offline")} />
@@ -1442,7 +1441,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
             })}
           </div>
 
-          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} />}
+          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
           {tab === t("informationTab") && <InformationTab c={c} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
