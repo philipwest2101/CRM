@@ -315,17 +315,14 @@ const CALL_OUTCOMES = [
   { v: "currentlynot", label: "Currently Not Interested", tone: C.amber },
   { v: "difficult",    label: "Difficult Case",           tone: C.slate },
 ];
-const CallOutcomeStep = ({ onComplete, onCreateTask }) => {
+const CallOutcomeStep = ({ onComplete }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const sel = CALL_OUTCOMES.find(o => o.v === choice);
   const isAppt = choice === "appointment";
   return (
     <>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
-        <div style={{ fontSize: 13, color: C.slate }}>The contact was reached. Select the outcome of the conversation to continue processing the lead.</div>
-        <CreateTaskBtn onClick={onCreateTask} />
-      </div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>The contact was reached. Select the outcome of the conversation to continue processing the lead.</div>
       <OptionChips options={CALL_OUTCOMES} value={choice} onChange={setChoice} />
       {sel && NEGATIVE.has(choice) && (
         <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>↩ Ends processing — you can set Do Not Contact in Finalize.</div>
@@ -531,7 +528,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} onSend={onSend} />;
       case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onCreateTask={onCreateTask} />;
-      case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} onCreateTask={onCreateTask} />;
+      case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
       case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
