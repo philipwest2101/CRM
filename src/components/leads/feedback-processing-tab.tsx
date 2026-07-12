@@ -151,9 +151,9 @@ const LockedStep = ({ num, title }) => (
   </div>
 );
 
-// Only the most recently completed step is editable (`editable`); older steps
-// are locked so history can't be rewritten out of order.
-const DoneStep = ({ num, title, summary, onReopen, editable }) => (
+// Completed steps are committed — corrections are made in-step before pressing
+// Continue, so there's no per-step Edit affordance.
+const DoneStep = ({ num, title, summary }) => (
   <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, background: C.green + "08", borderColor: C.green + "40" }}>
     <StepDot n={num} bg={C.green} color="#fff" />
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -161,9 +161,6 @@ const DoneStep = ({ num, title, summary, onReopen, editable }) => (
       {summary && <span style={{ fontSize: 12.5, color: C.slate, marginLeft: 8 }}>· {summary}</span>}
     </div>
     <span style={{ color: C.green, fontSize: 13 }}>✓</span>
-    {editable
-      ? <button onClick={onReopen} title="Reopen this step" style={{ background: "none", border: "none", cursor: "pointer", color: C.slate, fontSize: 12, fontWeight: 600 }}>Edit</button>
-      : <span title="Only the latest completed step can be edited" style={{ color: C.muted, fontSize: 12 }}>🔒</span>}
   </div>
 );
 
@@ -256,34 +253,42 @@ const InitialContactStep = ({ contact, sent, onSend }) => {
           Already sent: {CHANNELS.filter(c => sent[c.key] > 0).map(c => `${sent[c.key]} ${c.label}`).join(" · ")}
         </div>
       )}
-      <PrimaryBtn icon="✓" onClick={() => onSend(channels, true)} disabled={channels.length === 0}>Mark as Sent → Continue</PrimaryBtn>
+      <PrimaryBtn icon="✓" onClick={() => onSend(channels, true)} disabled={channels.length === 0}>Continue</PrimaryBtn>
     </>
   );
 };
 
-const PhoneAttemptsStep = ({ calls, notReached, onLog }) => (
-  <>
-    <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Log each call attempt (max {MAX_CALL_ATTEMPTS}). Mark <b>Reached</b> once the contact answers to continue.</div>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${notReached ? C.red + "55" : C.border}`, borderRadius: 10, marginBottom: 12, background: notReached ? C.red + "0C" : C.light }}>
-      <span style={{ fontSize: 22 }}>{notReached ? "🚫" : "📞"}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: notReached ? C.red : C.navy }}>{calls} of {MAX_CALL_ATTEMPTS} call attempt{calls !== 1 ? "s" : ""}{notReached ? " · Not Reached" : ""}</div>
-        <div style={{ fontSize: 11.5, color: C.muted }}>{notReached ? "Maximum attempts reached — processing finished as Not Reached." : "Keep trying until the contact answers."}</div>
+const CALL_RESULTS = [
+  { v: "notreached", label: "Not Reached", tone: C.red },
+  { v: "reached",    label: "Reached",     tone: C.green },
+];
+// Select the result of a call attempt (correctable), then Continue to commit it.
+const PhoneAttemptsStep = ({ calls, notReached, onLog }) => {
+  const [sel, setSel] = useState("");
+  return (
+    <>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Make a call attempt (max {MAX_CALL_ATTEMPTS}), pick the result and press <b>Continue</b>.</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${notReached ? C.red + "55" : C.border}`, borderRadius: 10, marginBottom: 12, background: notReached ? C.red + "0C" : C.light }}>
+        <span style={{ fontSize: 22 }}>{notReached ? "🚫" : "📞"}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: notReached ? C.red : C.navy }}>{calls} of {MAX_CALL_ATTEMPTS} call attempt{calls !== 1 ? "s" : ""}{notReached ? " · Not Reached" : ""}</div>
+          <div style={{ fontSize: 11.5, color: C.muted }}>{notReached ? "Maximum attempts reached — processing finished as Not Reached." : "Keep trying until the contact answers."}</div>
+        </div>
       </div>
-    </div>
-    <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-      {Array.from({ length: MAX_CALL_ATTEMPTS }).map((_, i) => (
-        <span key={i} style={{ flex: 1, height: 6, borderRadius: 4, background: i < calls ? (notReached ? C.red : C.amber) : C.border }} />
-      ))}
-    </div>
-    {!notReached && (
-      <div style={{ display: "flex", gap: 10 }}>
-        <GhostBtn icon="📵" onClick={() => onLog(false)}>Log “Not reached” ({MAX_CALL_ATTEMPTS - calls} left)</GhostBtn>
-        <PrimaryBtn icon="📞" onClick={() => onLog(true)}>Reached → Continue</PrimaryBtn>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {Array.from({ length: MAX_CALL_ATTEMPTS }).map((_, i) => (
+          <span key={i} style={{ flex: 1, height: 6, borderRadius: 4, background: i < calls ? (notReached ? C.red : C.amber) : C.border }} />
+        ))}
       </div>
-    )}
-  </>
-);
+      {!notReached && (
+        <>
+          <OptionChips options={CALL_RESULTS} value={sel} onChange={setSel} />
+          <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Continue</PrimaryBtn>
+        </>
+      )}
+    </>
+  );
+};
 
 // Contact Outcome — recorded once the contact has been reached.
 const CONTACT_OUTCOMES = [
@@ -316,7 +321,7 @@ const ContactOutcomeStep = ({ terminal, outcomeLabel, onComplete }) => {
       )}
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Add a short note (optional)…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
-      <PrimaryBtn icon="✓" onClick={() => sel && onComplete(sel.v, sel.label)} disabled={!sel}>Save & Continue</PrimaryBtn>
+      <PrimaryBtn icon="✓" onClick={() => sel && onComplete(sel.v, sel.label)} disabled={!sel}>Continue</PrimaryBtn>
     </>
   );
 };
@@ -372,7 +377,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
         if (appt === "rescheduled") { onComplete("rescheduled", null, "Rescheduled"); return; }
         const b = BIZ_RESULTS.find(x => x.v === biz);
         onComplete("tookplace", b.v, `Took Place · ${b.label}`);
-      }}>Save & Continue</PrimaryBtn>
+      }}>Continue</PrimaryBtn>
     </>
   );
 };
@@ -525,12 +530,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
     log: pushLog(prev, "Finish Processing → Completed"),
   }));
 
-  const reopen = (idx) => setState(prev => ({ ...prev, current: idx, finished: false, terminal: false }));
-
   const renderCurrentBody = (step) => {
     switch (step.key) {
       case "initial":     return <InitialContactStep contact={contact} sent={state.channels} onSend={onSend} />;
-      case "phone":       return <PhoneAttemptsStep calls={state.calls} notReached={state.notReached} onLog={onLogCall} />;
+      case "phone":       return <PhoneAttemptsStep key={`ph-${state.calls}`} calls={state.calls} notReached={state.notReached} onLog={onLogCall} />;
       case "outcome":     return <ContactOutcomeStep terminal={state.terminal} outcomeLabel={state.contactOutcome} onComplete={onContactOutcome} />;
       case "schedule":    return <ScheduleStep reschedules={state.reschedules} onOpenModal={() => setScheduleModalOpen(true)} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}-${state.followups || 0}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
@@ -569,8 +572,8 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role }) => {
         )}
       </CurrentStepShell>
 
-      {completed.map((s, i) => (
-        <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]} editable={i === 0} onReopen={() => reopen(IDX[s.key])} />
+      {completed.map(s => (
+        <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]} />
       ))}
 
       {scheduleModalOpen && (
