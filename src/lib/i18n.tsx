@@ -386,6 +386,25 @@ export const TRANSLATIONS = {
     displaying: "Displaying",
     records: "records",
 
+    // GP (Advisor) dashboard
+    gpHello: "Hello",
+    importContacts: "Import Contacts",
+    gpProcess: "Process",
+    gpStatusNew: "New",
+    gpStatusTodo: "To Do",
+    gpStatusNA: "N/A",
+    gpActLead: "Lead",
+    gpActOpportunity: "Opportunity",
+    gpActNA: "N/A",
+    gpApptConsultation: "Consultation",
+    gpApptRecruiting: "Recruiting",
+    gpApptBusinessOpening: "Business Opening",
+    gpApptInvestmentTalk: "Investment Talk",
+    gpApptFinanceTalk: "Finance Talk",
+    gpTaskEmail: "Email",
+    gpTaskGdpr: "GDPR Renewal",
+    gpTaskFollowUp: "Follow Up Call",
+
     // Newsletter
     nlTemplates: "Templates",
     nlGroups: "Groups",
@@ -886,6 +905,25 @@ export const TRANSLATIONS = {
     page: "Seite",
     displaying: "Anzeige",
     records: "Einträge",
+
+    // GP (Advisor) dashboard
+    gpHello: "Hallo",
+    importContacts: "Kontakte importieren",
+    gpProcess: "Bearbeiten",
+    gpStatusNew: "Neu",
+    gpStatusTodo: "Zu erledigen",
+    gpStatusNA: "K. A.",
+    gpActLead: "Lead",
+    gpActOpportunity: "Chance",
+    gpActNA: "K. A.",
+    gpApptConsultation: "Beratung",
+    gpApptRecruiting: "Recruiting",
+    gpApptBusinessOpening: "Geschäftseröffnung",
+    gpApptInvestmentTalk: "Investmentgespräch",
+    gpApptFinanceTalk: "Finanzgespräch",
+    gpTaskEmail: "E-Mail",
+    gpTaskGdpr: "DSGVO-Verlängerung",
+    gpTaskFollowUp: "Nachfassanruf",
 
     // Newsletter
     nlTemplates: "Vorlagen",

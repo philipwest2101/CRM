@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useContext } from "react";
 import { C } from "../../theme";
+import { useT, LangContext } from "../../lib/i18n";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const IconNetwork = ({ c }) => (
@@ -62,17 +63,25 @@ const SoftAvatar = ({ name, color }) => {
 const AV_PALETTE = [C.primary, C.blue, C.indigo, C.green, C.amber, C.purple];
 const avColor = (name) => AV_PALETTE[name.charCodeAt(0) % AV_PALETTE.length];
 
-export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
+export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, setGpChecks }) => {
+  const t = useT();
+  const { lang } = useContext(LangContext);
+  const firstName = (userName || "").split(" ")[0];
+
   const [period, setPeriod] = useState("today");
   const [page,   setPage]   = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // Localised header date (kept at the mockup's reference day, formatted per locale).
+  const headerDate = new Date(2026, 6, 7).toLocaleDateString(lang === "de" ? "de-DE" : "en-US",
+    { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const kpis = [
-    { label:"My Network",   value:248, Icon:IconNetwork,   color:C.primary },
-    { label:"My Leads",     value:30,  Icon:IconTarget,    color:C.green   },
-    { label:"Appointments", value:3,   Icon:IconHandshake, color:C.blue    },
-    { label:"Open Tasks",   value:5,   Icon:IconTasks,     color:C.amber   },
+    { label:t("myNetwork"),     value:248, Icon:IconNetwork,   color:C.primary },
+    { label:t("myLeads"),       value:30,  Icon:IconTarget,    color:C.green   },
+    { label:t("appointments"),  value:3,   Icon:IconHandshake, color:C.blue    },
+    { label:t("openTasks"),     value:5,   Icon:IconTasks,     color:C.amber   },
   ];
 
   // ── My Leads ────────────────────────────────────────────────────────────────
@@ -86,40 +95,49 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
 
   // ── Appointments ──────────────────────────────────────────────────────────────
   const APPTS = [
-    { time:"10:00", date:"07.07.2026", name:"Sandra Ritcher", sub:"Consultation"      },
-    { time:"10:00", date:"07.07.2026", name:"Sandra Ritcher", sub:"Recruiting"        },
-    { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", sub:"Business Opening"  },
-    { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", sub:"Investment Talk"   },
-    { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", sub:"Finance Talk"      },
+    { time:"10:00", date:"07.07.2026", name:"Sandra Ritcher", typeKey:"gpApptConsultation"     },
+    { time:"10:00", date:"07.07.2026", name:"Sandra Ritcher", typeKey:"gpApptRecruiting"       },
+    { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", typeKey:"gpApptBusinessOpening"  },
+    { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", typeKey:"gpApptInvestmentTalk"   },
+    { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", typeKey:"gpApptFinanceTalk"      },
   ];
 
-  // ── Open Tasks (checkbox state persisted in gpChecks) ─────────────────────────
+  // ── Open Tasks ────────────────────────────────────────────────────────────────
   const TASKS = [
-    { title:"Email - Petra Müller",              date:"09.07.2026, 14:00", Icon:IconMail,  color:C.primary },
-    { title:"GDPR Renewal - Lars Dietrich",      date:"07.07.2026, 12:00", Icon:IconDoc,   color:C.slate   },
-    { title:"Email - Petra Müller",              date:"09.07.2026, 14:00", Icon:IconMail,  color:C.primary },
-    { title:"Follow Up Call - Sandra Ritcher…",  date:"09.07.2026, 14:00", Icon:IconPhone, color:C.green   },
-    { title:"Follow Up Call - Sandra Ritcher…",  date:"07.07.2026, 10:00", Icon:IconPhone, color:C.green   },
+    { labelKey:"gpTaskEmail",    who:"Petra Müller",   date:"09.07.2026, 14:00", Icon:IconMail,  color:C.primary },
+    { labelKey:"gpTaskGdpr",     who:"Lars Dietrich",  date:"07.07.2026, 12:00", Icon:IconDoc,   color:C.slate   },
+    { labelKey:"gpTaskEmail",    who:"Petra Müller",   date:"09.07.2026, 14:00", Icon:IconMail,  color:C.primary },
+    { labelKey:"gpTaskFollowUp", who:"Sandra Ritcher", date:"09.07.2026, 14:00", Icon:IconPhone, color:C.green   },
+    { labelKey:"gpTaskFollowUp", who:"Sandra Ritcher", date:"07.07.2026, 10:00", Icon:IconPhone, color:C.green   },
   ];
-  const checks = gpChecks && gpChecks.length === TASKS.length ? gpChecks : TASKS.map(() => false);
-  const toggleTask = (i) => setGpChecks && setGpChecks(prev => {
-    const base = prev && prev.length === TASKS.length ? prev : TASKS.map(() => false);
-    return base.map((c, j) => j === i ? !c : c);
-  });
+  // Works both when the parent supplies gpChecks/setGpChecks and when the
+  // component is rendered standalone (falls back to its own local state).
+  const [localChecks, setLocalChecks] = useState(
+    () => (gpChecks && gpChecks.length === TASKS.length ? gpChecks : [false, false, false, true, true])
+  );
+  const checks = gpChecks && gpChecks.length === TASKS.length ? gpChecks : localChecks;
+  const toggleTask = (i) => {
+    setLocalChecks(prev => prev.map((c, j) => j === i ? !c : c));
+    if (setGpChecks) setGpChecks(prev => {
+      const base = prev && prev.length === TASKS.length ? prev : TASKS.map(() => false);
+      return base.map((c, j) => j === i ? !c : c);
+    });
+  };
 
   // ── My Network — 57 mock records, paginated ───────────────────────────────────
+  const STATUS_KEYS   = ["gpStatusNA","gpStatusNew","gpStatusNew","gpStatusTodo","gpStatusTodo","gpStatusTodo","gpStatusTodo","gpStatusNew","gpStatusTodo","gpStatusNA"];
+  const ACTIVITY_KEYS = ["gpActNA","gpActLead","gpActOpportunity","gpActLead","gpActLead","gpActLead","gpActLead","gpActOpportunity","gpActLead","gpActNA"];
+  const STATUS_COLOR  = { gpStatusNew:C.green, gpStatusTodo:C.amber, gpStatusNA:C.muted };
   const NETWORK = useMemo(() => {
     const names = ["Michael Stein","Anna Bergmann","Tobias Fischer","Sandra Ritcher","Petra Müller",
       "Lars Dietrich","Julia Weiss","Klaus Wagner","Maria Huber","Felix Hartmann","Katrin Weber","Sophia Richter"];
-    const statuses   = ["N/A","New","New","To Do","To Do","To Do","To Do","New","To Do","N/A"];
-    const activities = ["N/A","Lead","Opportunity","Lead","Lead","Lead","Lead","Opportunity","Lead","N/A"];
     return Array.from({ length: 57 }, (_, i) => ({
       id: i,
       name: names[i % names.length],
       phone: "+41 1234 5678",
       email: "someone@example.com",
-      status: statuses[i % statuses.length],
-      activity: activities[i % activities.length],
+      statusKey: STATUS_KEYS[i % STATUS_KEYS.length],
+      activityKey: ACTIVITY_KEYS[i % ACTIVITY_KEYS.length],
     }));
   }, []);
 
@@ -127,8 +145,6 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
   const curPage    = Math.min(page, totalPages);
   const start      = (curPage - 1) * pageSize;
   const rows       = NETWORK.slice(start, start + pageSize);
-
-  const statusColor = { "New":C.green, "To Do":C.amber, "N/A":C.muted };
 
   // ── Shared bits ───────────────────────────────────────────────────────────────
   const cardStyle   = { background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden" };
@@ -141,21 +157,21 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
       {/* ── Page Head ──────────────────────────────────────────────────────── */}
       <div style={{ padding:"26px 0 20px",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:24 }}>
         <div>
-          <div style={{ fontSize:12,color:C.muted,marginBottom:6 }}>Tuesday, July 07, 2026</div>
+          <div style={{ fontSize:12,color:C.muted,marginBottom:6,textTransform:"capitalize" }}>{headerDate}</div>
           <h1 style={{ fontSize:34,fontWeight:600,letterSpacing:"-0.02em",color:C.navy,margin:0 }}>
-            Hello, Jane<span style={{ color:C.primary }}>.</span>
+            {t("gpHello")}, {firstName}<span style={{ color:C.primary }}>.</span>
           </h1>
         </div>
         <div style={{ display:"flex",gap:10 }}>
           <button onClick={()=>navigateTo("Leads")}
             style={{ display:"inline-flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:9,border:"none",
               background:C.primary,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>
-            <IconPlus/> Add Contact
+            <IconPlus/> {t("addContact")}
           </button>
           <button onClick={()=>navigateTo("LeadCapture")}
             style={{ display:"inline-flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:9,
               border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>
-            <IconImport/> Import Contacts
+            <IconImport/> {t("importContacts")}
           </button>
         </div>
       </div>
@@ -163,13 +179,13 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
       {/* ── Period Selector ────────────────────────────────────────────────── */}
       <div style={{ display:"flex",justifyContent:"flex-end",marginBottom:20 }}>
         <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden" }}>
-          {["Today","Week","Month","Quarter","Year"].map((p,i)=>{
-            const active = period===p.toLowerCase();
+          {["today","week","month","quarter","year"].map((p,i)=>{
+            const active = period===p;
             return (
-              <button key={p} onClick={()=>setPeriod(p.toLowerCase())}
+              <button key={p} onClick={()=>setPeriod(p)}
                 style={{ padding:"7px 16px",border:"none",borderLeft:i===0?"none":`1px solid ${C.border}`,
                   background:active?C.primarySoft:"#fff",color:active?C.primary:C.muted,
-                  fontSize:12.5,fontWeight:active?600:500,cursor:"pointer",fontFamily:"inherit" }}>{p}</button>
+                  fontSize:12.5,fontWeight:active?600:500,cursor:"pointer",fontFamily:"inherit" }}>{t(`period_${p}` as any)}</button>
             );
           })}
         </div>
@@ -196,8 +212,8 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
         {/* My Leads */}
         <div style={cardStyle}>
           <div style={panelHeadStyle}>
-            <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>My Leads</div>
-            <span onClick={()=>navigateTo("Leads")} style={linkStyle}>All →</span>
+            <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>{t("myLeads")}</div>
+            <span onClick={()=>navigateTo("Leads")} style={linkStyle}>{t("allLink")}</span>
           </div>
           <div style={{ padding:"6px 12px 12px" }}>
             {LEADS.map((l,i)=>(
@@ -211,7 +227,7 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
                 <button onClick={()=>navigateTo("Leads")}
                   style={{ padding:"6px 14px",borderRadius:8,border:`1px solid ${C.primary}`,background:"#fff",
                     color:C.primary,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",flexShrink:0 }}>
-                  Process
+                  {t("gpProcess")}
                 </button>
               </div>
             ))}
@@ -221,8 +237,8 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
         {/* Appointments */}
         <div style={cardStyle}>
           <div style={panelHeadStyle}>
-            <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>Appointments</div>
-            <span onClick={()=>navigateTo("Calendar")} style={linkStyle}>Calendar →</span>
+            <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>{t("appointments")}</div>
+            <span onClick={()=>navigateTo("Calendar")} style={linkStyle}>{t("calendarLink")}</span>
           </div>
           <div style={{ padding:"6px 12px 12px" }}>
             {APPTS.map((a,i)=>(
@@ -234,7 +250,7 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
                 </div>
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontSize:13.5,fontWeight:600,color:C.navy }}>{a.name}</div>
-                  <div style={{ fontSize:11.5,color:C.muted,marginTop:2 }}>{a.sub}</div>
+                  <div style={{ fontSize:11.5,color:C.muted,marginTop:2 }}>{t(a.typeKey as any)}</div>
                 </div>
               </div>
             ))}
@@ -244,11 +260,11 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
         {/* Open Tasks */}
         <div style={cardStyle}>
           <div style={panelHeadStyle}>
-            <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>Open Tasks</div>
-            <span onClick={()=>navigateTo("Calendar")} style={linkStyle}>Calendar →</span>
+            <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>{t("openTasks")}</div>
+            <span onClick={()=>navigateTo("Calendar")} style={linkStyle}>{t("calendarLink")}</span>
           </div>
           <div style={{ padding:"6px 12px 12px" }}>
-            {TASKS.map((t,i)=>{
+            {TASKS.map((tk,i)=>{
               const done = checks[i];
               return (
                 <div key={i} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 8px",
@@ -259,10 +275,10 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
                       color:"#fff",fontSize:11,fontWeight:700 }}>{done?"✓":""}</div>
                   <div style={{ flex:1,minWidth:0 }}>
                     <div style={{ fontSize:13,fontWeight:600,color:done?C.muted:C.navy,
-                      textDecoration:done?"line-through":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{t.title}</div>
-                    <div style={{ fontSize:11,color:C.muted,marginTop:2 }}>{t.date}</div>
+                      textDecoration:done?"line-through":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{t(tk.labelKey as any)} - {tk.who}</div>
+                    <div style={{ fontSize:11,color:C.muted,marginTop:2 }}>{tk.date}</div>
                   </div>
-                  <t.Icon c={t.color}/>
+                  <tk.Icon c={tk.color}/>
                 </div>
               );
             })}
@@ -273,15 +289,15 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
       {/* ── My Network Table ───────────────────────────────────────────────── */}
       <div style={cardStyle}>
         <div style={panelHeadStyle}>
-          <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>My Network</div>
-          <span onClick={()=>navigateTo("Leads")} style={linkStyle}>All →</span>
+          <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>{t("myNetwork")}</div>
+          <span onClick={()=>navigateTo("Leads")} style={linkStyle}>{t("allLink")}</span>
         </div>
         <div style={{ overflowX:"auto" }}>
           <div style={{ minWidth:720 }}>
             {/* Header row */}
             <div style={{ display:"grid",gridTemplateColumns:"1.6fr 1.2fr 1.6fr 1fr 1fr",gap:12,
               padding:"12px 22px",borderBottom:`1px solid ${C.border}`,background:C.light }}>
-              {["Name","Phone Number","Email","Status","Last Activity"].map(h=>(
+              {[t("name"),t("phone"),t("email"),t("status"),t("lastActivityCol")].map(h=>(
                 <div key={h} style={{ fontSize:11,fontWeight:600,color:C.muted,display:"flex",alignItems:"center",gap:5 }}>
                   {h}<span style={{ fontSize:9,opacity:0.6 }}>⇅</span>
                 </div>
@@ -299,8 +315,8 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
                 </div>
                 <div style={{ fontSize:12.5,color:C.slate,whiteSpace:"nowrap" }}>{r.phone}</div>
                 <div style={{ fontSize:12.5,color:C.slate,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{r.email}</div>
-                <div style={{ fontSize:12.5,fontWeight:600,color:statusColor[r.status]||C.slate }}>{r.status}</div>
-                <div style={{ fontSize:12.5,color:C.slate }}>{r.activity}</div>
+                <div style={{ fontSize:12.5,fontWeight:600,color:STATUS_COLOR[r.statusKey]||C.slate }}>{t(r.statusKey as any)}</div>
+                <div style={{ fontSize:12.5,color:C.slate }}>{t(r.activityKey as any)}</div>
               </div>
             ))}
           </div>
@@ -309,7 +325,7 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
         <div style={{ padding:"14px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",
           borderTop:`1px solid ${C.border}`,flexWrap:"wrap",gap:12 }}>
           <div style={{ display:"flex",alignItems:"center",gap:10 }}>
-            <span style={{ fontSize:12.5,color:C.slate }}>Page {curPage} of {totalPages}</span>
+            <span style={{ fontSize:12.5,color:C.slate }}>{t("page")} {curPage} {t("of")} {totalPages}</span>
             <button disabled={curPage<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}
               style={{ width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",
                 color:curPage<=1?C.border:C.slate,cursor:curPage<=1?"default":"pointer",fontSize:14 }}>‹</button>
@@ -324,7 +340,7 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
               {[10,25,50].map(n=><option key={n} value={n}>{n}</option>)}
             </select>
             <span style={{ fontSize:12.5,color:C.slate }}>
-              Displaying {NETWORK.length===0?0:start+1}–{Math.min(start+pageSize,NETWORK.length)} of {NETWORK.length} records
+              {t("displaying")} {NETWORK.length===0?0:start+1}–{Math.min(start+pageSize,NETWORK.length)} {t("of")} {NETWORK.length} {t("records")}
             </span>
           </div>
         </div>
