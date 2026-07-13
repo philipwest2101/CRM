@@ -205,6 +205,21 @@ const ConvertLeadModal = ({ contact, onCancel, onApply }) => {
   );
 };
 
+// Confirmation dialog (used before a reopen discards later steps).
+const ConfirmDialog = ({ title, message, confirmLabel, danger = false, onCancel, onConfirm }) => (
+  <>
+    <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
+    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 22, lineHeight: 1.5 }}>{message}</div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+        <button onClick={onConfirm} style={{ padding: "9px 22px", borderRadius: 9, border: "none", background: danger ? C.red : C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{confirmLabel}</button>
+      </div>
+    </div>
+  </>
+);
+
 // Labelled on/off switch (used for the Do-Not-Contact flag).
 const Toggle = ({ on, onChange, danger = false }) => (
   <button role="switch" aria-checked={on} onClick={onChange} style={{
@@ -416,6 +431,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [reopenTarget, setReopenTarget] = useState<string | null>(null);
 
   const pushLog = (prev, text) => [...prev.log, { text, time: nowTime() }];
   const withDone = (prev, key) => prev.doneSteps.includes(key) ? prev.doneSteps : [...prev.doneSteps, key];
@@ -578,7 +594,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
 
       {completed.map((s, i) => (
         <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]}
-          editable={i === 0} onReopen={() => reopen(s.key)} />
+          editable={i === 0} onReopen={() => setReopenTarget(s.key)} />
       ))}
 
       {scheduleModalOpen && (
@@ -604,6 +620,17 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
           contact={contact}
           onCancel={() => setConvertOpen(false)}
           onApply={(status) => { onApplyConvert(status); setConvertOpen(false); }}
+        />
+      )}
+
+      {reopenTarget && (
+        <ConfirmDialog
+          title="Reopen this step?"
+          message={<>Reopening <b>{STEPS[IDX[reopenTarget]].title}</b> discards the steps after it and their recorded outcomes — you'll re-do them from here.</>}
+          confirmLabel="Reopen & Discard"
+          danger
+          onCancel={() => setReopenTarget(null)}
+          onConfirm={() => { reopen(reopenTarget); setReopenTarget(null); }}
         />
       )}
 
