@@ -101,11 +101,19 @@ export const GPDashboard = ({ navigateTo, gpChecks, setGpChecks }) => {
     { title:"Follow Up Call - Sandra Ritcher…",  date:"09.07.2026, 14:00", Icon:IconPhone, color:C.green   },
     { title:"Follow Up Call - Sandra Ritcher…",  date:"07.07.2026, 10:00", Icon:IconPhone, color:C.green   },
   ];
-  const checks = gpChecks && gpChecks.length === TASKS.length ? gpChecks : TASKS.map(() => false);
-  const toggleTask = (i) => setGpChecks && setGpChecks(prev => {
-    const base = prev && prev.length === TASKS.length ? prev : TASKS.map(() => false);
-    return base.map((c, j) => j === i ? !c : c);
-  });
+  // Works both when the parent supplies gpChecks/setGpChecks and when the
+  // component is rendered standalone (falls back to its own local state).
+  const [localChecks, setLocalChecks] = useState(
+    () => (gpChecks && gpChecks.length === TASKS.length ? gpChecks : [false, false, false, true, true])
+  );
+  const checks = gpChecks && gpChecks.length === TASKS.length ? gpChecks : localChecks;
+  const toggleTask = (i) => {
+    setLocalChecks(prev => prev.map((c, j) => j === i ? !c : c));
+    if (setGpChecks) setGpChecks(prev => {
+      const base = prev && prev.length === TASKS.length ? prev : TASKS.map(() => false);
+      return base.map((c, j) => j === i ? !c : c);
+    });
+  };
 
   // ── My Network — 57 mock records, paginated ───────────────────────────────────
   const NETWORK = useMemo(() => {
