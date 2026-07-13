@@ -10,7 +10,7 @@ import { SA_EVENTS_DATA, SA_GOALS_DATA, SA_SOURCE_DATA, SA_VD_STATS, VD_GP_PERF,
 import { C } from "../../theme";
 
 export const FullDashboardPage = ({ role, navigateTo }) => {
-  const [gpChecks, setGpChecks] = useState([false,false,false,false,true]);
+  const [gpChecks, setGpChecks] = useState([false,false,false,true,true]);
   const MGR_COLOR = "#0891B2";
 
   // ── MGR KPIs & data ─────────────────────────────────────────────────────────
