@@ -29,6 +29,7 @@ export default function CRMAppV5() {
   const [lang, setLang]               = useState<Lang>("de");
   const [currentLead, setCurrentLead] = useState(null);
   const [sourceView, setSourceView]   = useState(null);
+  const [sourceAction, setSourceAction] = useState(null);
 
   // ── Shared state ────────────────────────────────────────────────────────────
   const [appointments, setAppointments] = useState(APPOINTMENTS);
@@ -185,9 +186,10 @@ export default function CRMAppV5() {
     );
   };
 
-  const navigateTo = (dest, lead=null, view=null) => {
+  const navigateTo = (dest, lead=null, view=null, action=null) => {
     if (lead) setCurrentLead(lead);
     if (view !== null) setSourceView(view);
+    if (action !== null) setSourceAction(action);
     setPage(dest);
   };
 
@@ -197,7 +199,7 @@ export default function CRMAppV5() {
       <TopNav page={page} setPage={setPage} role={role} setRole={setRole} version={version} setVersion={setVersion} pushRef={pushRef} lang={lang} setLang={setLang} />
       {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} version={version} activities={activities} setActivities={setActivities} appointments={appointments} />}
       {page==="Leads"           && (version==="mvp"
-                                      ? <MVPContactsPage  role={role} navigateTo={navigateTo} initialView={sourceView} clearInitialView={() => setSourceView(null)} />
+                                      ? <MVPContactsPage  role={role} navigateTo={navigateTo} initialView={sourceView} clearInitialView={() => setSourceView(null)} initialAction={sourceAction} clearInitialAction={() => setSourceAction(null)} />
                                       : <LeadsPage        role={role} navigateTo={navigateTo} />)}
       {page==="LeadDetail"      && (version==="mvp"
                                       ? <MVPContactDetailPage role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} />

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useContext } from "react";
 import { C } from "../../theme";
 import { useT, LangContext } from "../../lib/i18n";
+import { ALL_LEADS } from "../../lib/core";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const IconNetwork = ({ c }) => (
@@ -52,16 +53,25 @@ const IconImport = () => (
 );
 
 // ── Soft avatar (light tint background, coloured initials) ─────────────────────
-const SoftAvatar = ({ name, color }) => {
+const SoftAvatar = ({ name, color, size = 36 }) => {
   const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <div style={{ width:36,height:36,borderRadius:"50%",background:color+"1F",color,
-      display:"grid",placeItems:"center",fontSize:12.5,fontWeight:700,flexShrink:0 }}>{initials}</div>
+    <div style={{ width:size,height:size,borderRadius:"50%",background:color+"1F",color,
+      display:"grid",placeItems:"center",fontSize:size*0.35,fontWeight:700,flexShrink:0 }}>{initials}</div>
   );
 };
 
 const AV_PALETTE = [C.primary, C.blue, C.indigo, C.green, C.amber, C.purple];
 const avColor = (name) => AV_PALETTE[name.charCodeAt(0) % AV_PALETTE.length];
+
+// Period → mock figures, so the Today/Week/…/Year selector visibly changes the data.
+const PERIOD_DATA = {
+  today:   { network:248, leads:30,   appts:3,   tasks:5,  records:57   },
+  week:    { network:263, leads:112,  appts:5,   tasks:14, records:184  },
+  month:   { network:305, leads:340,  appts:14,  tasks:22, records:642  },
+  quarter: { network:418, leads:940,  appts:41,  tasks:37, records:1730 },
+  year:    { network:612, leads:3480, appts:168, tasks:63, records:5840 },
+};
 
 export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, setGpChecks }) => {
   const t = useT();
@@ -72,46 +82,45 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
   const [page,   setPage]   = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Localised header date (kept at the mockup's reference day, formatted per locale).
-  const headerDate = new Date(2026, 6, 7).toLocaleDateString(lang === "de" ? "de-DE" : "en-US",
-    { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const data = PERIOD_DATA[period] || PERIOD_DATA.today;
 
-  // ── KPIs ──────────────────────────────────────────────────────────────────
+  // Time-based greeting + localised current date (like the rest of the app).
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? t("greeting_morning") : hour < 17 ? t("greeting_afternoon") : t("greeting_evening");
+  const headerDate = new Date().toLocaleDateString(lang === "de" ? "de-DE" : "en-US",
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  // ── KPIs (period-driven) ──────────────────────────────────────────────────
   const kpis = [
-    { label:t("myNetwork"),     value:248, Icon:IconNetwork,   color:C.primary },
-    { label:t("myLeads"),       value:30,  Icon:IconTarget,    color:C.green   },
-    { label:t("appointments"),  value:3,   Icon:IconHandshake, color:C.blue    },
-    { label:t("openTasks"),     value:5,   Icon:IconTasks,     color:C.amber   },
+    { label:t("myNetwork"),     value:data.network, Icon:IconNetwork,   color:C.primary },
+    { label:t("myLeads"),       value:data.leads,   Icon:IconTarget,    color:C.green   },
+    { label:t("appointments"),  value:data.appts,   Icon:IconHandshake, color:C.blue    },
+    { label:t("openTasks"),     value:data.tasks,   Icon:IconTasks,     color:C.amber   },
   ];
 
-  // ── My Leads ────────────────────────────────────────────────────────────────
-  const LEADS = [
-    { name:"Tobias Fischer", sub:"München · Event"      },
-    { name:"Tobias Fischer", sub:"München · Google Ads" },
-    { name:"Tobias Fischer", sub:"München · Referral"   },
-    { name:"Anna Bergmann",  sub:"Hamburg · Meta Ads"   },
-    { name:"Michael Stein",  sub:"Hamburg · Meta Ads"   },
-  ];
+  // ── My Leads — the advisor's real assigned leads ─────────────────────────────
+  const myLeads = useMemo(() => ALL_LEADS.filter(l => l.assignedGP === userName), [userName]);
+  const leadRows = myLeads.slice(0, 5);
 
-  // ── Appointments ──────────────────────────────────────────────────────────────
+  // ── Appointments (list previews the selected period) ─────────────────────────
   const APPTS = [
-    { time:"10:00", date:"07.07.2026", name:"Sandra Ritcher", typeKey:"gpApptConsultation"     },
-    { time:"10:00", date:"07.07.2026", name:"Sandra Ritcher", typeKey:"gpApptRecruiting"       },
+    { time:"10:00", date:"07.07.2026", name:"Sandra Richter", typeKey:"gpApptConsultation"     },
+    { time:"10:00", date:"07.07.2026", name:"Sandra Richter", typeKey:"gpApptRecruiting"       },
     { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", typeKey:"gpApptBusinessOpening"  },
     { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", typeKey:"gpApptInvestmentTalk"   },
     { time:"10:00", date:"07.07.2026", name:"Tobias Fischer", typeKey:"gpApptFinanceTalk"      },
   ];
+  const apptRows = APPTS.slice(0, Math.min(data.appts, APPTS.length));
 
   // ── Open Tasks ────────────────────────────────────────────────────────────────
   const TASKS = [
     { labelKey:"gpTaskEmail",    who:"Petra Müller",   date:"09.07.2026, 14:00", Icon:IconMail,  color:C.primary },
     { labelKey:"gpTaskGdpr",     who:"Lars Dietrich",  date:"07.07.2026, 12:00", Icon:IconDoc,   color:C.slate   },
     { labelKey:"gpTaskEmail",    who:"Petra Müller",   date:"09.07.2026, 14:00", Icon:IconMail,  color:C.primary },
-    { labelKey:"gpTaskFollowUp", who:"Sandra Ritcher", date:"09.07.2026, 14:00", Icon:IconPhone, color:C.green   },
-    { labelKey:"gpTaskFollowUp", who:"Sandra Ritcher", date:"07.07.2026, 10:00", Icon:IconPhone, color:C.green   },
+    { labelKey:"gpTaskFollowUp", who:"Sandra Richter", date:"09.07.2026, 14:00", Icon:IconPhone, color:C.green   },
+    { labelKey:"gpTaskFollowUp", who:"Sandra Richter", date:"07.07.2026, 10:00", Icon:IconPhone, color:C.green   },
   ];
-  // Works both when the parent supplies gpChecks/setGpChecks and when the
-  // component is rendered standalone (falls back to its own local state).
+  // Works both when the parent supplies gpChecks/setGpChecks and standalone.
   const [localChecks, setLocalChecks] = useState(
     () => (gpChecks && gpChecks.length === TASKS.length ? gpChecks : [false, false, false, true, true])
   );
@@ -124,14 +133,14 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
     });
   };
 
-  // ── My Network — 57 mock records, paginated ───────────────────────────────────
+  // ── My Network — mock records, count driven by the selected period ────────────
   const STATUS_KEYS   = ["gpStatusNA","gpStatusNew","gpStatusNew","gpStatusTodo","gpStatusTodo","gpStatusTodo","gpStatusTodo","gpStatusNew","gpStatusTodo","gpStatusNA"];
   const ACTIVITY_KEYS = ["gpActNA","gpActLead","gpActOpportunity","gpActLead","gpActLead","gpActLead","gpActLead","gpActOpportunity","gpActLead","gpActNA"];
   const STATUS_COLOR  = { gpStatusNew:C.green, gpStatusTodo:C.amber, gpStatusNA:C.muted };
   const NETWORK = useMemo(() => {
-    const names = ["Michael Stein","Anna Bergmann","Tobias Fischer","Sandra Ritcher","Petra Müller",
+    const names = ["Michael Stein","Anna Bergmann","Tobias Fischer","Sandra Richter","Petra Müller",
       "Lars Dietrich","Julia Weiss","Klaus Wagner","Maria Huber","Felix Hartmann","Katrin Weber","Sophia Richter"];
-    return Array.from({ length: 57 }, (_, i) => ({
+    return Array.from({ length: data.records }, (_, i) => ({
       id: i,
       name: names[i % names.length],
       phone: "+41 1234 5678",
@@ -139,7 +148,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
       statusKey: STATUS_KEYS[i % STATUS_KEYS.length],
       activityKey: ACTIVITY_KEYS[i % ACTIVITY_KEYS.length],
     }));
-  }, []);
+  }, [data.records]);
 
   const totalPages = Math.max(1, Math.ceil(NETWORK.length / pageSize));
   const curPage    = Math.min(page, totalPages);
@@ -156,22 +165,30 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
 
       {/* ── Page Head ──────────────────────────────────────────────────────── */}
       <div style={{ padding:"26px 0 20px",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:24 }}>
-        <div>
-          <div style={{ fontSize:12,color:C.muted,marginBottom:6,textTransform:"capitalize" }}>{headerDate}</div>
-          <h1 style={{ fontSize:34,fontWeight:600,letterSpacing:"-0.02em",color:C.navy,margin:0 }}>
-            {t("gpHello")}, {firstName}<span style={{ color:C.primary }}>.</span>
-          </h1>
+        <div style={{ display:"flex",alignItems:"center",gap:16 }}>
+          <div style={{ width:52,height:52,borderRadius:"50%",background:C.green,color:"#fff",
+            display:"grid",placeItems:"center",fontSize:19,fontWeight:700,flexShrink:0 }}>
+            {firstName ? userName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase() : "?"}
+          </div>
+          <div>
+            <h1 style={{ fontSize:30,fontWeight:500,letterSpacing:"-0.02em",color:C.navy,margin:0 }}>
+              {greeting}, {firstName}<span style={{ color:C.primary }}>.</span>
+            </h1>
+            <div style={{ marginTop:5,fontSize:12,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase" }}>
+              {t("advisor")} · {headerDate}
+            </div>
+          </div>
         </div>
         <div style={{ display:"flex",gap:10 }}>
-          <button onClick={()=>navigateTo("Leads")}
+          <button onClick={()=>navigateTo("Leads", null, "my", "add")}
             style={{ display:"inline-flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:9,border:"none",
               background:C.primary,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>
             <IconPlus/> {t("addContact")}
           </button>
-          <button onClick={()=>navigateTo("LeadCapture")}
+          <button onClick={()=>navigateTo("Leads", null, "my", "import")}
             style={{ display:"inline-flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:9,
               border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>
-            <IconImport/> {t("importContacts")}
+            <IconImport/> {t("import")}
           </button>
         </div>
       </div>
@@ -182,7 +199,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
           {["today","week","month","quarter","year"].map((p,i)=>{
             const active = period===p;
             return (
-              <button key={p} onClick={()=>setPeriod(p)}
+              <button key={p} onClick={()=>{ setPeriod(p); setPage(1); }}
                 style={{ padding:"7px 16px",border:"none",borderLeft:i===0?"none":`1px solid ${C.border}`,
                   background:active?C.primarySoft:"#fff",color:active?C.primary:C.muted,
                   fontSize:12.5,fontWeight:active?600:500,cursor:"pointer",fontFamily:"inherit" }}>{t(`period_${p}` as any)}</button>
@@ -200,7 +217,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
             </div>
             <div>
               <div style={{ fontSize:12.5,color:C.muted,fontWeight:500,marginBottom:2 }}>{k.label}</div>
-              <div style={{ fontSize:32,fontWeight:700,letterSpacing:"-0.02em",lineHeight:1.1,color:C.navy }}>{k.value}</div>
+              <div style={{ fontSize:32,fontWeight:700,letterSpacing:"-0.02em",lineHeight:1.1,color:C.navy }}>{k.value.toLocaleString(lang==="de"?"de-DE":"en-US")}</div>
             </div>
           </div>
         ))}
@@ -213,18 +230,18 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
         <div style={cardStyle}>
           <div style={panelHeadStyle}>
             <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>{t("myLeads")}</div>
-            <span onClick={()=>navigateTo("Leads")} style={linkStyle}>{t("allLink")}</span>
+            <span onClick={()=>navigateTo("Leads", null, "myleads")} style={linkStyle}>{t("allLink")}</span>
           </div>
           <div style={{ padding:"6px 12px 12px" }}>
-            {LEADS.map((l,i)=>(
-              <div key={i} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 8px",
-                borderBottom:i<LEADS.length-1?`1px solid ${C.border}`:"none" }}>
+            {leadRows.map((l,i)=>(
+              <div key={l.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 8px",
+                borderBottom:i<leadRows.length-1?`1px solid ${C.border}`:"none" }}>
                 <SoftAvatar name={l.name} color={avColor(l.name)}/>
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontSize:13.5,fontWeight:600,color:C.navy }}>{l.name}</div>
-                  <div style={{ fontSize:11.5,color:C.muted,marginTop:2 }}>{l.sub}</div>
+                  <div style={{ fontSize:11.5,color:C.muted,marginTop:2 }}>{l.city} · {l.source}</div>
                 </div>
-                <button onClick={()=>navigateTo("Leads")}
+                <button onClick={()=>navigateTo("LeadDetail", l, "myleads")}
                   style={{ padding:"6px 14px",borderRadius:8,border:`1px solid ${C.primary}`,background:"#fff",
                     color:C.primary,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",flexShrink:0 }}>
                   {t("gpProcess")}
@@ -241,9 +258,9 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
             <span onClick={()=>navigateTo("Calendar")} style={linkStyle}>{t("calendarLink")}</span>
           </div>
           <div style={{ padding:"6px 12px 12px" }}>
-            {APPTS.map((a,i)=>(
+            {apptRows.map((a,i)=>(
               <div key={i} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 8px",
-                borderBottom:i<APPTS.length-1?`1px solid ${C.border}`:"none" }}>
+                borderBottom:i<apptRows.length-1?`1px solid ${C.border}`:"none" }}>
                 <div style={{ flexShrink:0,width:64 }}>
                   <div style={{ fontSize:13.5,fontWeight:700,color:C.navy }}>{a.time}</div>
                   <div style={{ fontSize:11,color:C.muted,marginTop:2 }}>{a.date}</div>
@@ -290,7 +307,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
       <div style={cardStyle}>
         <div style={panelHeadStyle}>
           <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>{t("myNetwork")}</div>
-          <span onClick={()=>navigateTo("Leads")} style={linkStyle}>{t("allLink")}</span>
+          <span onClick={()=>navigateTo("Leads", null, "my")} style={linkStyle}>{t("allLink")}</span>
         </div>
         <div style={{ overflowX:"auto" }}>
           <div style={{ minWidth:720 }}>
@@ -305,12 +322,12 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
             </div>
             {/* Body rows */}
             {rows.map((r,i)=>(
-              <div key={r.id} style={{ display:"grid",gridTemplateColumns:"1.6fr 1.2fr 1.6fr 1fr 1fr",gap:12,
+              <div key={r.id} onClick={()=>navigateTo("Leads", null, "my")}
+                style={{ display:"grid",gridTemplateColumns:"1.6fr 1.2fr 1.6fr 1fr 1fr",gap:12,cursor:"pointer",
                 padding:"12px 22px",borderBottom:i<rows.length-1?`1px solid ${C.border}`:"none",alignItems:"center" }}>
                 <div style={{ display:"flex",alignItems:"center",gap:10,minWidth:0 }}>
                   <SoftAvatar name={r.name} color={avColor(r.name)}/>
-                  <span onClick={()=>navigateTo("LeadDetail")}
-                    style={{ fontSize:13,fontWeight:600,color:C.navy,textDecoration:"underline",cursor:"pointer",
+                  <span style={{ fontSize:13,fontWeight:600,color:C.navy,textDecoration:"underline",
                       whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{r.name}</span>
                 </div>
                 <div style={{ fontSize:12.5,color:C.slate,whiteSpace:"nowrap" }}>{r.phone}</div>
@@ -340,7 +357,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
               {[10,25,50].map(n=><option key={n} value={n}>{n}</option>)}
             </select>
             <span style={{ fontSize:12.5,color:C.slate }}>
-              {t("displaying")} {NETWORK.length===0?0:start+1}–{Math.min(start+pageSize,NETWORK.length)} {t("of")} {NETWORK.length} {t("records")}
+              {t("displaying")} {NETWORK.length===0?0:start+1}–{Math.min(start+pageSize,NETWORK.length)} {t("of")} {NETWORK.length.toLocaleString(lang==="de"?"de-DE":"en-US")} {t("records")}
             </span>
           </div>
         </div>

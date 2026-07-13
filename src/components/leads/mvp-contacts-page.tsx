@@ -1190,7 +1190,117 @@ const CUSTOM_VIEWS = [
   { id: "cv2", name: "Custom View 2", filter: "custom2", columns: ["name", "lifecycle", "accountSource", "create"] },
 ];
 
-export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialView }) => {
+// ── My Leads view (advisor) — processing-focused table matching the dashboard ──
+const ML_AV = [C.primary, C.blue, C.indigo, C.green, C.amber, C.purple];
+const mlAvColor = (name) => ML_AV[name.charCodeAt(0) % ML_AV.length];
+const ML_STATUS = {
+  open:        { key: "new",         label: "mlStNew",         color: C.blue  },
+  in_progress: { key: "inprogress",  label: "mlStInProgress",  color: C.amber },
+  attempted:   { key: "inprogress",  label: "mlStInProgress",  color: C.amber },
+  followup:    { key: "inprogress",  label: "mlStInProgress",  color: C.amber },
+  appointment: { key: "appointment", label: "mlStAppointment", color: C.green },
+  not_reached: { key: "notreached",  label: "mlStNotReached",  color: C.red   },
+  closed:      { key: "appointment", label: "mlStAppointment", color: C.green },
+};
+const ML_DOT = { sms: { c: C.green, sq: true }, miss: { c: C.amber, sq: false }, reached: { c: C.green, sq: false }, open: { c: "#D0D5DD", sq: false } };
+const mlProcessing = (l, t) => {
+  const a = l.attempts || 0; const dots: string[] = []; let text;
+  if (l.status === "open" && a === 0) { text = t("mlNotContacted"); }
+  else if (l.status === "appointment") { text = t("mlApptScheduled"); dots.push("sms", "reached"); }
+  else if (a === 0) { text = t("mlSmsSent"); dots.push("sms"); }
+  else { text = `${a} ${a === 1 ? t("mlCall") : t("mlCalls")} · ${t("mlNotReachedLc")}`; dots.push("sms"); for (let i = 0; i < a; i++) dots.push("miss"); }
+  while (dots.length < 6) dots.push("open");
+  return { text, dots: dots.slice(0, 6) };
+};
+const mlNextStep = (l, t) => {
+  const a = l.attempts || 0;
+  switch (l.status) {
+    case "open":        return { dot: C.amber, text: t("mlSendSmsCall"),  badge: t("mlToday"),     tone: C.amber };
+    case "appointment": return { dot: C.green, text: t("mlConsultation"), badge: "02.07. · 11:00", tone: C.green };
+    case "not_reached": return { dot: C.red,   text: `${a + 1}. ${t("mlCall")} · ${t("mlFollowUp")}`, badge: t("mlOverdue"), tone: C.red };
+    case "followup":    return { dot: C.blue,  text: t("mlFollowUpCall"), badge: t("mlTomorrow"),  tone: C.blue };
+    default:            return a >= 2 ? { dot: C.blue,  text: t("mlSecondCallFollow"), badge: t("mlTomorrow"), tone: C.blue }
+                                      : { dot: C.amber, text: t("mlFirstCall"),        badge: t("mlToday"),    tone: C.amber };
+  }
+};
+const MyLeadsView = ({ leads, navigateTo, t }) => {
+  const [filter, setFilter] = useState("all");
+  const chips = [["all", "mlAll"], ["new", "mlStNew"], ["inprogress", "mlStInProgress"], ["appointment", "mlStAppointment"], ["notreached", "mlStNotReached"]];
+  const shown = leads.filter(l => filter === "all" || (ML_STATUS[l.status]?.key === filter));
+  const GRID = "1.5fr 1.4fr 0.9fr 1.4fr 1.5fr auto";
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+      {/* Status filter chips */}
+      <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", gap: 8, borderBottom: `1px solid ${C.border}`, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: C.muted, display: "flex", alignItems: "center", gap: 5, marginRight: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>▽ {t("status")}</span>
+        {chips.map(([id, label]) => {
+          const active = filter === id;
+          return <button key={id} onClick={() => setFilter(id)} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${active ? C.navy : C.border}`, background: active ? C.navy : "#fff", color: active ? "#fff" : C.slate, fontSize: 12.5, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>{t(label as any)}</button>;
+        })}
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: 920 }}>
+          {/* Header */}
+          <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 14, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, background: C.light }}>
+            {[t("mlColLead"), t("mlColContact"), t("status"), t("mlColProcessing"), t("mlColNextStep"), ""].map((h, i) => (
+              <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</div>
+            ))}
+          </div>
+          {shown.map((l, i) => {
+            const st = ML_STATUS[l.status] || ML_STATUS.open;
+            const proc = mlProcessing(l, t); const ns = mlNextStep(l, t);
+            return (
+              <div key={l.id} style={{ display: "grid", gridTemplateColumns: GRID, gap: 14, padding: "14px 20px", borderBottom: i < shown.length - 1 ? `1px solid ${C.border}` : "none", alignItems: "center" }}>
+                {/* LEAD */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: mlAvColor(l.name) + "1F", color: mlAvColor(l.name), display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{l.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.name}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{l.campaign}</div>
+                  </div>
+                </div>
+                {/* CONTACT */}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, color: C.text, fontFamily: "monospace", whiteSpace: "nowrap" }}>{l.phone}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{l.city} · {l.source}</div>
+                </div>
+                {/* STATUS */}
+                <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: st.color + "18", color: st.color, whiteSpace: "nowrap" }}>{t(st.label as any)}</span></div>
+                {/* PROCESSING */}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{proc.text}</div>
+                  <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
+                    {proc.dots.map((d, di) => { const dot = ML_DOT[d]; return <span key={di} style={{ width: 9, height: 9, borderRadius: dot.sq ? 2 : "50%", background: dot.c, display: "inline-block" }} />; })}
+                  </div>
+                </div>
+                {/* NEXT STEP */}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: C.navy, display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap" }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: ns.dot, flexShrink: 0 }} />{ns.text}
+                  </div>
+                  <span style={{ display: "inline-block", marginTop: 5, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: ns.tone + "18", color: ns.tone }}>{ns.badge}</span>
+                </div>
+                {/* OPEN */}
+                <button onClick={() => navigateTo("LeadDetail", l, "myleads")} style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.navy, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>{t("openContact")} ›</button>
+              </div>
+            );
+          })}
+          {shown.length === 0 && <div style={{ padding: "32px", textAlign: "center", color: C.muted, fontSize: 13 }}>—</div>}
+        </div>
+      </div>
+      {/* Legend */}
+      <div style={{ padding: "12px 20px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 20, flexWrap: "wrap" }}>
+        {[["sms", "mlSmsSent"], ["miss", "mlLegMiss"], ["reached", "mlLegReached"], ["open", "mlLegOpen"]].map(([d, label]) => { const dot = ML_DOT[d]; return (
+          <span key={d} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: C.slate }}>
+            <span style={{ width: 9, height: 9, borderRadius: dot.sq ? 2 : "50%", background: dot.c, display: "inline-block" }} />{t(label as any)}
+          </span>
+        ); })}
+      </div>
+    </div>
+  );
+};
+
+export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialView, initialAction, clearInitialAction }) => {
   const t = useT();
   const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
   // System views are derived from role so they update whenever the role switcher changes.
@@ -1213,6 +1323,14 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
   }, [role]);
   const [mode, setMode]         = useState("list");   // list | add
   const [showImport, setShowImport] = useState(false);
+
+  // Consume a one-shot action requested by the caller (e.g. the dashboard's
+  // "Add Contact" / "Import" buttons) so they behave like this page's own buttons.
+  React.useEffect(() => {
+    if (initialAction === "add")    setMode("add");
+    if (initialAction === "import") setShowImport(true);
+    if (initialAction) clearInitialAction && clearInitialAction();
+  }, []);
   const [showBulk, setShowBulk]     = useState(false);   // Send Bulk Email modal
   const [showAssign, setShowAssign] = useState(false);   // Bulk Assign modal
   const [showTakeOver, setShowTakeOver] = useState(false); // VD Take Over modal
@@ -1235,6 +1353,14 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
   const bulkAssignViews = role === "superadmin" ? ["assigned","pending"]
     : role === "vd" ? ["assigned","pendingA"] : [];
   const showBulkAssignBtn = bulkAssignViews.includes(activeView);
+
+  // My Leads view: the current advisor's own assigned leads (raw records so the
+  // processing/next-step columns have status + attempts available).
+  const advisorName = role === "vd" ? "Thomas Müller" : "Anna Klein";
+  const myLeadsData = useMemo(
+    () => ALL_LEADS.filter(l => l.assignedGP === advisorName),
+    [advisorName]
+  );
 
   const counts = useMemo(() => Object.fromEntries(
     views.map(v => [v.id, contacts.filter(VIEW_FILTERS[v.filter] || (() => true)).length])
@@ -1346,6 +1472,9 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
       </div>
 
       {/* Table */}
+      {activeView === "myleads" ? (
+        <MyLeadsView leads={myLeadsData} navigateTo={navigateTo} t={t} />
+      ) : (
       <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1421,6 +1550,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
           </div>
         </div>
       </div>
+      )}
 
       {showImport && <ImportContactsModal onClose={() => setShowImport(false)} role={role} />}
       {showBulk && <SendBulkEmailModal contacts={contacts.filter(c => selected.has(c.id))} onClose={() => setShowBulk(false)} />}
