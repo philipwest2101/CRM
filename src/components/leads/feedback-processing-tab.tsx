@@ -153,7 +153,9 @@ const LockedStep = ({ num, title }) => (
   </div>
 );
 
-const DoneStep = ({ num, title, summary }) => (
+// Only the most recently completed step is editable — reopening it discards the
+// uncommitted current step; older steps stay locked so a branch can't be orphaned.
+const DoneStep = ({ num, title, summary, editable, onReopen }) => (
   <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, background: C.green + "08", borderColor: C.green + "40" }}>
     <StepDot n={num} bg={C.green} color="#fff" />
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -161,6 +163,9 @@ const DoneStep = ({ num, title, summary }) => (
       {summary && <span style={{ fontSize: 12.5, color: C.slate, marginLeft: 8 }}>· {summary}</span>}
     </div>
     <span style={{ color: C.green, fontSize: 13 }}>✓</span>
+    {editable
+      ? <button onClick={onReopen} title="Reopen this step to correct it" style={{ background: "none", border: "none", cursor: "pointer", color: C.slate, fontSize: 12, fontWeight: 600 }}>Edit</button>
+      : <span title="Only the latest completed step can be edited" style={{ color: C.muted, fontSize: 12 }}>🔒</span>}
   </div>
 );
 
@@ -524,6 +529,25 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     log: pushLog(prev, `Convert Lead → Added to My Network as ${status}`),
   }));
 
+  // Reopen the most-recently-completed step for correction. The current step is
+  // uncommitted, so nothing downstream is orphaned — we just clear the flags this
+  // step (and later) produced and re-enter it, appending an audit line.
+  const reopen = (stepKey) => setState(prev => {
+    const idx = IDX[stepKey];
+    const patch: any = {
+      ...prev,
+      current: idx,
+      doneSteps: prev.doneSteps.filter(k => IDX[k] < idx),
+      finished: false,
+    };
+    if (idx <= IDX.phone)       { patch.reached = false; patch.notReached = false; patch.calls = Math.max(0, prev.calls - 1); }
+    if (idx <= IDX.outcome)     { patch.contactOutcome = null; patch.appointment = null; }
+    if (idx <= IDX.appointment) { patch.apptOutcome = null; patch.negativeOutcome = false; patch.dnc = false; }
+    patch.lastAction = { icon: "↩", label: `Reopened "${STEPS[idx].title}"`, date: today() };
+    patch.log = pushLog(prev, `↩ Reopened "${STEPS[idx].title}" for correction`);
+    return patch;
+  });
+
   const renderCurrentBody = (step) => {
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} onSend={onSend} />;
@@ -552,8 +576,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
         {renderCurrentBody(currentStep)}
       </CurrentStepShell>
 
-      {completed.map(s => (
-        <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]} />
+      {completed.map((s, i) => (
+        <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]}
+          editable={i === 0} onReopen={() => reopen(s.key)} />
       ))}
 
       {scheduleModalOpen && (
