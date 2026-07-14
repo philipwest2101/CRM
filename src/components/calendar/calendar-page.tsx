@@ -248,17 +248,6 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
   const fmtDateObj = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
-  // Year filter options — a window around the currently displayed year.
-  const YEARS = useMemo(() => {
-    const base = currentDate.getFullYear();
-    const set = new Set([2024,2025,2026,2027,2028, base]);
-    return [...set].sort((a,b)=>a-b);
-  }, [currentDate]);
-  const setYear = (y) => {
-    const d = new Date(currentDate); d.setFullYear(y);
-    setCurrentDate(d); setMiniDate(new Date(y, d.getMonth(), 1));
-  };
-
   const DE_DOW = ["MO","DI","MI","DO","FR","SA","SO"];
 
   // Select a day (from grid or mini-calendar) and keep both calendars in sync.
@@ -333,15 +322,14 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     </div>
   );
 
-  const CalCheck = ({checked, onChange, color, label, icon}) => (
+  const CalCheck = ({checked, onChange, label}) => (
     <label style={{ display:"flex",alignItems:"center",gap:9,cursor:"pointer",padding:"3px 0",fontSize:13,color:C.text,fontWeight:600 }}>
       <span onClick={(e)=>{e.preventDefault();onChange();}}
         style={{ width:18,height:18,borderRadius:5,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
-          background:checked?color:"#fff",border:`1.5px solid ${checked?color:C.border}`,color:"#fff",fontSize:12,fontWeight:800 }}>
+          background:checked?C.primary:"#fff",border:`1.5px solid ${checked?C.primary:C.border}`,color:"#fff",fontSize:12,fontWeight:800 }}>
         {checked?"✓":""}
       </span>
-      <span style={{ width:10,height:10,borderRadius:"50%",background:color,flexShrink:0 }}/>
-      <span style={{ flex:1 }}>{icon?`${icon} `:""}{label}</span>
+      <span style={{ flex:1 }}>{label}</span>
     </label>
   );
 
@@ -353,21 +341,10 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
         display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",flexShrink:0 }}>
         <h1 style={{ margin:0,fontSize:18,fontWeight:800,color:C.navy }}>📅 {t("calendarTitle")||"Calendar"}</h1>
 
-        {/* Year filter */}
-        <div style={{ position:"relative" }}>
-          <select value={currentDate.getFullYear()} onChange={e=>setYear(Number(e.target.value))}
-            title="Filter by year"
-            style={{ padding:"6px 28px 6px 10px",borderRadius:8,border:`1px solid ${C.border}`,
-              background:"#fff",color:C.slate,fontSize:12,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none" }}>
-            {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
-          </select>
-          <div style={{ position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:9,color:C.muted }}>▼</div>
-        </div>
-
         <div style={{ marginLeft:"auto",display:"flex",gap:8,alignItems:"center" }}>
           {/* View switcher */}
           <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden",flexShrink:0 }}>
-            {["month","week","day"].map(v=>(
+            {["month","week","day","year"].map(v=>(
               <button key={v} onClick={()=>setView(v)}
                 style={{ padding:"6px 12px",border:"none",background:view===v?C.primary:"#fff",
                   color:view===v?"#fff":C.slate,fontSize:11,fontWeight:view===v?700:400,
@@ -379,17 +356,20 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           <button onClick={()=>{ const d=new Date(currentDate);
             if(view==="month") d.setMonth(d.getMonth()-1);
             else if(view==="week") d.setDate(d.getDate()-7);
+            else if(view==="year") d.setFullYear(d.getFullYear()-1);
             else d.setDate(d.getDate()-1);
             setCurrentDate(d); setMiniDate(new Date(d.getFullYear(),d.getMonth(),1)); }}
             style={{ width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>‹</button>
           <span style={{ fontSize:13,fontWeight:700,color:C.text,minWidth:130,textAlign:"center" }}>
             {view==="month" ? `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
              : view==="week" ? `${weekDays[0].getDate()} – ${weekDays[6].getDate()} ${MONTHS[weekDays[6].getMonth()]}`
+             : view==="year" ? `${currentDate.getFullYear()}`
              : currentDate.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}
           </span>
           <button onClick={()=>{ const d=new Date(currentDate);
             if(view==="month") d.setMonth(d.getMonth()+1);
             else if(view==="week") d.setDate(d.getDate()+7);
+            else if(view==="year") d.setFullYear(d.getFullYear()+1);
             else d.setDate(d.getDate()+1);
             setCurrentDate(d); setMiniDate(new Date(d.getFullYear(),d.getMonth(),1)); }}
             style={{ width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>›</button>
@@ -431,8 +411,8 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           <SideSection><MiniCal/></SideSection>
 
           <SideSection title="My Calendars">
-            <CalCheck checked={showCRM}    onChange={()=>setShowCRM(v=>!v)}    color={C.primary} label="CRM events"/>
-            <CalCheck checked={showGoogle} onChange={()=>setShowGoogle(v=>!v)} color={C.blue}    label="Google events"/>
+            <CalCheck checked={showCRM}    onChange={()=>setShowCRM(v=>!v)}    label="CRM events"/>
+            <CalCheck checked={showGoogle} onChange={()=>setShowGoogle(v=>!v)} label="Google events"/>
           </SideSection>
 
           <SideSection title="Event Types">
@@ -477,7 +457,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                   const isSel   = dateStr === selectedDate;
                   const dayActs = byDate[dateStr] || [];
                   return (
-                    <div key={idx} onClick={()=>isValid&&selectDay(dateStr)}
+                    <div key={idx} onClick={(e)=>{ if(isValid){ selectDay(dateStr); openCellMenu(e, dateStr); } }}
                       style={{ minHeight:96,padding:"6px 7px",borderBottom:`1px solid ${C.border}`,
                         borderRight:(idx%7!==6)?`1px solid ${C.border}`:"none",
                         background:isSel?"#FFF9F0":!isValid?"#FAFAFA":"#fff",
@@ -626,6 +606,62 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
               </div>
             );
           })()}
+
+          {/* ── YEAR VIEW ───────────────────────────────────────────────────── */}
+          {view==="year" && (
+            <div style={{ flex:1,overflow:"auto",padding:"14px",display:"grid",
+              gridTemplateColumns:"repeat(4,1fr)",gap:14,alignContent:"start" }}>
+              {MONTHS.map((mName,mi)=>{
+                const my = currentDate.getFullYear();
+                const mFirst = new Date(my, mi, 1).getDay();
+                const mOffset = mFirst === 0 ? 6 : mFirst - 1;
+                const mDays = new Date(my, mi+1, 0).getDate();
+                const cells = [];
+                for (let i=0;i<mOffset;i++) cells.push(null);
+                for (let d=1;d<=mDays;d++) cells.push(d);
+                while (cells.length % 7 !== 0) cells.push(null);
+                return (
+                  <div key={mi} style={{ border:`1px solid ${C.border}`,borderRadius:10,background:"#fff",padding:"10px 11px" }}>
+                    <div onClick={()=>{ const d=new Date(my,mi,1); setCurrentDate(d); setMiniDate(d); setView("month"); }}
+                      style={{ fontSize:12,fontWeight:800,color:C.navy,marginBottom:7,cursor:"pointer" }}
+                      title={`Open ${mName} ${my}`}>{mName}</div>
+                    <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:2 }}>
+                      {["M","D","M","D","F","S","S"].map((d,i)=>(
+                        <div key={i} style={{ textAlign:"center",fontSize:8,fontWeight:700,color:i>=5?C.red:C.muted }}>{d}</div>
+                      ))}
+                    </div>
+                    <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1 }}>
+                      {cells.map((d,i)=>{
+                        if (d==null) return <div key={i} />;
+                        const ds = fmtDate(my,mi,d);
+                        const isToday = ds===TODAY;
+                        const isSel   = ds===selectedDate;
+                        const dayActs = byDate[ds] || [];
+                        const dots = [...new Set(dayActs.map(a=>metaOf(a).color))].slice(0,3);
+                        return (
+                          <button key={i}
+                            onClick={()=>{ const dt=new Date(my,mi,d); setSelectedDate(ds); setCurrentDate(dt); setMiniDate(new Date(my,mi,1)); setView("day"); }}
+                            title={dayActs.length?`${dayActs.length} event(s)`:""}
+                            style={{ position:"relative",border:"none",cursor:"pointer",borderRadius:5,
+                              padding:"3px 0 6px",fontFamily:"inherit",
+                              background:isToday?C.primary:isSel?C.primarySoft:"transparent",
+                              color:isToday?"#fff":isSel?C.primaryDark:C.text,
+                              fontSize:9,fontWeight:isToday||isSel?800:500 }}>
+                            {d}
+                            {dayActs.length>0 && (
+                              <div style={{ position:"absolute",bottom:1,left:0,right:0,display:"flex",justifyContent:"center",gap:1.5 }}>
+                                {dots.map((c,di)=><span key={di} style={{ width:3,height:3,borderRadius:"50%",background:isToday?"#fff":c }}/>)}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Footer summary */}
           <div style={{ padding:"6px 16px",borderTop:`1px solid ${C.border}`,background:"#FAFAFA",
