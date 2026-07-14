@@ -172,8 +172,8 @@ export const TRANSLATIONS = {
     documentsTab: "Documents",
 
     // Tooltip texts
-    tooltip_lifecycle: "Shows where this contact stands in the sales journey: from initial Lead through active Opportunity to a closed Customer.",
-    tooltip_status: "The specific step within the current lifecycle stage — e.g. Open, In Progress, Appointment, or Not Interested.",
+    tooltip_lifecycle: "The contact's business state: Lead while being qualified, Network once converted. A Lead can become a Network, never the reverse.",
+    tooltip_status: "The specific step of progress within the lifecycle — e.g. New, In Progress, Follow-up, Appointment, or Not Reached. Independent of Lifecycle.",
     tooltip_followup: "Number of contact attempts made and a record of follow-up actions. Use this to track outreach history and plan your next step.",
     tooltip_myNetwork: "Your private contacts. Hidden from others.",
     tooltip_myLeads: "Leads assigned to you. Fully editable and reportable.",
@@ -721,8 +721,8 @@ export const TRANSLATIONS = {
     documentsTab: "Dokumente",
 
     // Tooltip texts
-    tooltip_lifecycle: "Zeigt, wo sich der Kontakt in der Vertriebsreise befindet: vom ersten Lead über eine aktive Chance bis zum abgeschlossenen Kunden.",
-    tooltip_status: "Der konkrete Schritt innerhalb der aktuellen Lebenszyklusphase – z. B. Offen, In Bearbeitung, Termin oder Kein Interesse.",
+    tooltip_lifecycle: "Der Geschäftsstatus des Kontakts: Lead während der Qualifizierung, Netzwerk nach der Umwandlung. Ein Lead kann zum Netzwerk werden, nie umgekehrt.",
+    tooltip_status: "Der konkrete Fortschritt innerhalb des Lebenszyklus – z. B. Neu, In Bearbeitung, Wiedervorlage, Termin oder Nicht erreicht. Unabhängig vom Lebenszyklus.",
     tooltip_followup: "Anzahl der bisherigen Kontaktversuche und Nachverfolgungsaktionen. Hilft, die Kontakthistorie nachzuvollziehen und den nächsten Schritt zu planen.",
     tooltip_myNetwork: "Ihre privaten Kontakte. Für andere nicht sichtbar.",
     tooltip_myLeads: "Ihnen zugewiesene Leads. Vollständig bearbeitbar und auswertbar.",

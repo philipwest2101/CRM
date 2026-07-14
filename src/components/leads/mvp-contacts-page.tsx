@@ -30,21 +30,32 @@ const InfoTip = ({ text }) => {
 //  · full tabbed Add Contact page
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── status → lifecycle / stage mapping ───────────────────────────────────────
-const LIFECYCLE = {
-  open:        { stage: "Lead",        status: "New",   tone: C.green },
-  in_progress: { stage: "Lead",        status: "To Do", tone: C.slate },
-  attempted:   { stage: "Lead",        status: "To Do", tone: C.slate },
-  not_reached: { stage: "Lead",        status: "To Do", tone: C.slate },
-  followup:    { stage: "Lead",        status: "To Do", tone: C.slate },
-  appointment: { stage: "Opportunity", status: "New",   tone: C.green },
-  closed:      { stage: "Customer",    status: "Won",   tone: C.green },
-  no_interest: { stage: "N/A",         status: "N/A",   tone: null    },
-  dnc:         { stage: "N/A",         status: "N/A",   tone: null    },
+// ── status → Stage Status mapping ────────────────────────────────────────────
+// Per the "Network vs. Lead" business rules, Lifecycle is a two-value field
+// (Lead → Network, one-directional) and is INDEPENDENT of Stage Status, which
+// tracks progress *within* the lifecycle. `closed` records represent Leads that
+// completed the process and were converted to (always User-owned) Network
+// contacts.
+const STAGE_STATUS = {
+  open:        { status: "New",            tone: C.green },
+  in_progress: { status: "In Progress",    tone: C.slate },
+  attempted:   { status: "Attempted",      tone: C.slate },
+  not_reached: { status: "Not Reached",    tone: C.red   },
+  followup:    { status: "Follow-up",      tone: C.slate },
+  appointment: { status: "Appointment",    tone: C.green },
+  closed:      { status: "Closed",         tone: C.green },
+  no_interest: { status: "Not Interested", tone: null    },
+  dnc:         { status: "Do Not Contact", tone: null    },
 };
 
-const LIFECYCLE_OPTIONS = ["Lead", "Opportunity", "Customer", "N/A"];
-const STATUS_OPTIONS     = ["New", "To Do", "Won", "N/A"];
+// A seeded contact becomes a Network once it has completed the process.
+const isNetworkStatus = (status) => status === "closed";
+
+// Lifecycle is strictly Lead → Network. Ownership is Company or User; Network is
+// always User-owned (Business Definition 5) and excluded from company reporting.
+const LIFECYCLE_OPTIONS  = ["Lead", "Network"];
+const OWNERSHIP_OPTIONS   = ["Company", "User"];
+const STATUS_OPTIONS      = ["New", "In Progress", "Attempted", "Not Reached", "Follow-up", "Appointment", "Closed"];
 
 // deterministic DOB from id so the column has plausible values
 const synthDob = (id) => {
@@ -69,10 +80,15 @@ const synthNationality = (id) => {
 const toContact = (l) => {
   const [first, ...rest] = l.name.split(" ");
   const last = rest.join(" ");
-  const lc = LIFECYCLE[l.status] || LIFECYCLE.no_interest;
+  const ss = STAGE_STATUS[l.status] || STAGE_STATUS.no_interest;
+  const network = isNetworkStatus(l.status);
+  // Network is always User-owned; seeded pipeline Leads are Company-owned so they
+  // surface in company reporting and the Unassigned/Assigned views.
+  const ownership = network ? "User" : "Company";
   return {
     id: l.id, first, last, firstName: first, lastName: last, name: l.name,
-    lifecycle: lc.stage, stageStatus: lc.status, tone: lc.tone,
+    lifecycle: network ? "Network" : "Lead", stageStatus: ss.status, tone: ss.tone,
+    ownership, isCompanyOwned: ownership === "Company",
     phone: l.phone, email: l.email, primaryEmail: l.email,
     feedback: feedbackStatusLabel(l.status),
     lastActivity: l.created || "—",
@@ -91,6 +107,28 @@ const toContact = (l) => {
   };
 };
 
+// A handful of User-owned Network contacts so the "My Network" view (user-owned
+// Network contacts assigned to the current user) is populated for the demo. The
+// current advisor is "Anna Klein" (GP) or "Thomas Müller" (VD).
+const NETWORK_SEED = [
+  { id: "NW-1", name: "Michael Braun",  phone: "+43 660 1234567", email: "m.braun@email.at",   assignee: "Anna Klein",    stageStatus: "Follow-up" },
+  { id: "NW-2", name: "Sabine Hofer",   phone: "+43 664 2345678", email: "s.hofer@email.at",   assignee: "Anna Klein",    stageStatus: "Appointment" },
+  { id: "NW-3", name: "Georg Steiner",  phone: "+43 699 3456789", email: "g.steiner@email.at", assignee: "Anna Klein",    stageStatus: "New" },
+  { id: "NW-4", name: "Petra Wagner",   phone: "+43 650 4567890", email: "p.wagner@email.at",  assignee: "Thomas Müller", stageStatus: "Follow-up" },
+  { id: "NW-5", name: "Klaus Berger",   phone: "+43 676 5678901", email: "k.berger@email.at",  assignee: "Thomas Müller", stageStatus: "New" },
+].map(n => {
+  const [first, ...rest] = n.name.split(" ");
+  const last = rest.join(" ");
+  return {
+    ...n, first, last, firstName: first, lastName: last,
+    primaryEmail: n.email, lifecycle: "Network", ownership: "User", isCompanyOwned: false,
+    tone: n.stageStatus === "New" || n.stageStatus === "Appointment" ? C.green : C.slate,
+    feedback: "—", campaign: "—", dob: synthDob(n.id), gender: synthGender(n.id),
+    nationality: synthNationality(n.id), website: "—", create: "—", registration: "—",
+    linkedin: "—", accountSource: "Referral", lastActivity: "2026-07-10", assigned: true, gdpr: false,
+  };
+});
+
 // ── column registry ───────────────────────────────────────────────────────────
 // filter: "text" | "lifecycle" | "status" | null   ·   locked columns are always
 // present in every view and cannot be removed in the Edit View dialog.
@@ -107,7 +145,8 @@ const COLUMNS = {
   nationality:   { label: "Nationality",         locked: false, filter: "text",      group: "Main Information" },
   website:       { label: "Website",             locked: false, filter: null,        group: "Main Information" },
   assignee:      { label: "Assignee",            locked: false, filter: null,        group: "Main Information" },
-  lifecycle:     { label: "Lifecycle Stage",     locked: false, filter: "lifecycle", group: "Main Information" },
+  ownership:     { label: "Ownership",           locked: false, filter: "ownership", group: "Main Information" },
+  lifecycle:     { label: "Lifecycle",           locked: false, filter: "lifecycle", group: "Main Information" },
   stageStatus:   { label: "Stage Status",        locked: false, filter: "status",    group: "Main Information" },
   feedback:      { label: "Feedback & Processing",locked: false, filter: "text",      group: "Main Information" },
   lastActivity:  { label: "Last Activity",       locked: false, filter: null,        group: "Main Information" },
@@ -120,14 +159,21 @@ const COLUMN_KEYS = Object.keys(COLUMNS);
 const DEFAULT_COLS = ["name", "primaryEmail", "phone", "dob", "gender", "nationality"];
 const LINK_COL = "name";   // frozen Name column links to contact detail
 
-const VIEW_FILTERS = {
+// View filters follow the "System Views" scenario matrix. Ownership + assignee
+// decide visibility, so the filters are built for the current user.
+const makeViewFilters = (me: string) => ({
   all:      () => true,
-  pending:  (c) => !c.assigned,
-  assigned: (c) => c.assigned,
+  // My Network: user-owned Network contacts assigned to the current user.
+  my:       (c) => c.lifecycle === "Network" && c.ownership === "User" && c.assignee === me,
+  // My Leads: Leads assigned to the current user.
+  myleads:  (c) => c.lifecycle === "Lead" && c.assignee === me,
+  // Unassigned / Pending: Company Leads with no active assignee.
+  pending:  (c) => c.lifecycle === "Lead" && c.isCompanyOwned && !c.assigned,
+  // Assigned Leads: Company Leads assigned to an active user.
+  assigned: (c) => c.lifecycle === "Lead" && c.isCompanyOwned && c.assigned,
   custom1:  (c) => c.lifecycle === "Lead",
-  custom2:  (c) => c.lifecycle === "Opportunity",
-  myleads:  (c) => c.lifecycle === "Lead",
-};
+  custom2:  (c) => c.lifecycle === "Network",
+});
 
 const fieldStyle = {
   width: "100%", padding: "9px 12px", borderRadius: 8,
@@ -150,7 +196,8 @@ const StagePill = ({ label, tone }) => {
 
 const renderCell = (key, c, isLink?: boolean) => {
   if (key === "name" || key === LINK_COL) return <span style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: isLink ? "underline" : "none", textUnderlineOffset: 2 }}>{c[key]}</span>;
-  if (key === "lifecycle")   return <span style={{ fontSize: 13, color: c.lifecycle === "N/A" ? C.muted : C.text }}>{c.lifecycle}</span>;
+  if (key === "lifecycle")   return <StagePill label={c.lifecycle} tone={c.lifecycle === "Network" ? C.green : C.slate} />;
+  if (key === "ownership")   return <span style={{ fontSize: 13, color: c.ownership === "Company" ? C.text : C.slate }}>{c.ownership}</span>;
   if (key === "stageStatus") return <StagePill label={c.stageStatus} tone={c.tone} />;
   return <span style={{ fontSize: 13, color: C.slate }}>{c[key] ?? "—"}</span>;
 };
@@ -560,8 +607,10 @@ const Field = ({ label, children }) => (
 const TextInput = (p) => <input {...p} style={{ ...fieldStyle, padding: "11px 13px" }} />;
 const Select = ({ children, ...p }) => <select {...p} style={{ ...fieldStyle, padding: "11px 13px", color: p.value ? C.text : C.muted }}>{children}</select>;
 
-const AddContactPage = ({ onCancel, onSave }) => {
+const AddContactPage = ({ role, onCancel, onSave }) => {
   const t = useT();
+  // SA cannot create Network contacts (Rule 16) — restrict the Lifecycle choices.
+  const lifecycleOpts = role === "superadmin" ? ["Lead"] : LIFECYCLE_OPTIONS;
   const [tab, setTab] = useState("Basic");
   const [f, setF] = useState({
     first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
@@ -621,7 +670,7 @@ const AddContactPage = ({ onCancel, onSave }) => {
             <Field label="Primary Phone"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
           </Grid>
           <Grid>
-            <Field label="Lifecycle Stage"><Select value={f.lifecycle} onChange={set("lifecycle")}>{LIFECYCLE_OPTIONS.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            <Field label="Lifecycle"><Select value={f.lifecycle} onChange={set("lifecycle")}>{lifecycleOpts.map(o => <option key={o}>{o}</option>)}</Select></Field>
             <Field label="Stage Status"><Select value={f.stageStatus} onChange={set("stageStatus")}>{STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}</Select></Field>
           </Grid>
           <Grid>
@@ -1173,7 +1222,7 @@ const getSystemViews = (role, t?: (key: any) => string) => {
   const MY_LEADS_COLS   = ["name", "accountSource", "feedback", "stageStatus", "lastActivity"];
   const ASSIGNED_COLS   = ["name", "assignee", "feedback", "stageStatus", "lastActivity"]; // dashboard "Assigned Leads"
   const PENDING_COLS    = ["name", "accountSource", "campaign", "lastActivity"];
-  const myNetwork     = { id: "my",       name: n("myNetwork", "My Network"),                filter: "all",      columns: MY_NETWORK_COLS, system: true };
+  const myNetwork     = { id: "my",       name: n("myNetwork", "My Network"),                filter: "my",       columns: MY_NETWORK_COLS, system: true };
   const unassigned    = { id: "pending",  name: n("unassignedLeads", "Unassigned Leads"),    filter: "pending",  columns: PENDING_COLS,    system: true };
   const myLeads       = { id: "myleads",  name: n("myLeads", "My Leads"),                   filter: "myleads",  columns: MY_LEADS_COLS,   system: true };
   const assignedLeads = { id: "assigned", name: n("assignedLeads", "Assigned Leads"),        filter: "assigned", columns: ASSIGNED_COLS,   system: true };
@@ -1302,7 +1351,7 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
 
 export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialView, initialAction, clearInitialAction }) => {
   const t = useT();
-  const [contacts, setContacts] = useState(() => ALL_LEADS.map(toContact));
+  const [contacts, setContacts] = useState(() => [...NETWORK_SEED, ...ALL_LEADS.map(toContact)]);
   // System views are derived from role so they update whenever the role switcher changes.
   // Custom views live in state so users can add/edit/delete them independently.
   const systemViews = useMemo(() => getSystemViews(role, t), [role, t]);
@@ -1357,26 +1406,30 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
   // My Leads view: the current advisor's own assigned leads (raw records so the
   // processing/next-step columns have status + attempts available).
   const advisorName = role === "vd" ? "Thomas Müller" : "Anna Klein";
+  // Current user's display name — used both for self-assignment and for the
+  // "assigned to me" system-view filters.
+  const currentUserName = role === "vd" ? "Thomas Müller" : role === "gp" ? "Anna Klein" : "Super Admin";
+  const viewFilters = useMemo(() => makeViewFilters(currentUserName), [currentUserName]);
   const myLeadsData = useMemo(
     () => ALL_LEADS.filter(l => l.assignedGP === advisorName),
     [advisorName]
   );
 
   const counts = useMemo(() => Object.fromEntries(
-    views.map(v => [v.id, contacts.filter(VIEW_FILTERS[v.filter] || (() => true)).length])
-  ), [views, contacts]);
+    views.map(v => [v.id, contacts.filter(viewFilters[v.filter] || (() => true)).length])
+  ), [views, contacts, viewFilters]);
 
   const rows = useMemo(() => {
-    const base = contacts.filter(VIEW_FILTERS[view.filter] || (() => true));
+    const base = contacts.filter(viewFilters[view.filter] || (() => true));
     return base.filter(c => Object.entries(filters).every(([k, val]) => {
       if (!val) return true;
       const ft = COLUMNS[k]?.filter;
       const cell = (c[k] ?? "").toString();
-      if (ft === "lifecycle" || ft === "status") return c[k] === val;
+      if (ft === "lifecycle" || ft === "status" || ft === "ownership") return c[k] === val;
       if (ft === "date") return cell.includes(val.replace(/-/g, "/"));
       return cell.toLowerCase().replace(/\s/g, "").includes(val.toString().toLowerCase().replace(/\s/g, ""));
     }));
-  }, [contacts, view, filters]);
+  }, [contacts, view, filters, viewFilters]);
 
   const allChecked = rows.length > 0 && rows.every(r => selected.has(r.id));
   const toggleAll = () => setSelected(prev => {
@@ -1387,14 +1440,22 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
   const toggleOne = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const addContact = (f) => {
+    // Creation scenario matrix: SA Add Lead → Company / Unassigned; VD & GP add
+    // Leads and Networks as User-owned and self-assigned. Network is always
+    // User-owned (SA cannot create Network — enforced by the Add Contact form).
+    const isNetwork = f.lifecycle === "Network";
+    const ownership = (!isNetwork && role === "superadmin") ? "Company" : "User";
+    const assignee  = (role === "superadmin" && !isNetwork) ? "Unassigned" : currentUserName;
     setContacts(prev => [{
       id: `NEW-${Date.now()}`, first: f.first, last: f.last, firstName: f.first, lastName: f.last, name: `${f.first} ${f.last}`.trim(),
       lifecycle: f.lifecycle, stageStatus: f.stageStatus,
-      tone: f.stageStatus === "Won" || f.stageStatus === "New" ? C.green : f.stageStatus === "N/A" ? null : C.slate,
+      ownership, isCompanyOwned: ownership === "Company",
+      tone: f.stageStatus === "New" || f.stageStatus === "Appointment" || f.stageStatus === "Closed" ? C.green
+          : f.stageStatus === "Not Interested" || f.stageStatus === "Do Not Contact" ? null : C.slate,
       phone: f.phone || "—", email: f.email || "—", primaryEmail: f.email || "—",
       campaign: f.campaign || "—", dob: f.dob || "—",
-      website: "—", assignee: "Unassigned", create: "Today",
-      registration: "—", linkedin: "—", accountSource: f.source || "—", assigned: false, gdpr: false,
+      website: "—", assignee, create: "Today",
+      registration: "—", linkedin: "—", accountSource: f.source || "—", assigned: assignee !== "Unassigned", gdpr: false,
     }, ...prev]);
   };
 
@@ -1412,7 +1473,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
 
   // ── Add Contact full page ───────────────────────────────────────────────────
   if (mode === "add") {
-    return <AddContactPage onCancel={() => setMode("list")} onSave={addContact} />;
+    return <AddContactPage role={role} onCancel={() => setMode("list")} onSave={addContact} />;
   }
 
   const PLACEHOLDER = { firstName: "First name", lastName: "Last name", primaryEmail: "Email", campaign: "Campaign", phone: "Phone number", name: "Contact", email: "Email" };
@@ -1428,6 +1489,11 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
     if (ft === "status") return (
       <select value={val} onChange={e => setF(key, e.target.value)} style={{ ...base, color: val ? C.text : C.muted }}>
         <option value="">Select status</option>{STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+    if (ft === "ownership") return (
+      <select value={val} onChange={e => setF(key, e.target.value)} style={{ ...base, color: val ? C.text : C.muted }}>
+        <option value="">Select ownership</option>{OWNERSHIP_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     );
     if (ft === "date") return <input type="date" value={val} onChange={e => setF(key, e.target.value)} style={{ ...base, color: val ? C.text : C.muted }} />;

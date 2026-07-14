@@ -57,7 +57,6 @@ const CHANNELS = [
 ];
 const channelLabel = (k) => CHANNELS.find(c => c.key === k)?.label || k;
 
-const NETWORK_STATUSES = ["Customer", "Prospect", "Partner"];
 
 // ── time / seed helpers ───────────────────────────────────────────────────────
 const nowTime = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -91,7 +90,7 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
     notReached,
     contactOutcome: null, apptOutcome: null,
     negativeOutcome: negative, dnc: status === "dnc",
-    networkStatus: alreadyContact ? "Customer" : null,
+    networkStatus: alreadyContact ? "Network" : null,
     appointment: current >= IDX.appointment && !notReached ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
     reschedules: 0,
     doneSteps,
@@ -183,27 +182,24 @@ const CurrentStepShell = ({ num, title, children }) => (
 );
 
 // ── Convert Lead modal ────────────────────────────────────────────────────────
-const ConvertLeadModal = ({ contact, onCancel, onApply }) => {
-  const [status, setStatus] = useState("");
-  return (
-    <>
-      <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Convert Lead</div>
-        <div style={{ fontSize: 13, color: C.slate, marginBottom: 18, lineHeight: 1.5 }}>Move the lead to My Network list; organizational reporting remains unchanged.</div>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Network Status *</label>
-        <select value={status} onChange={e => setStatus(e.target.value)} style={{ ...fieldStyle, color: status ? C.text : C.muted, marginBottom: 22 }}>
-          <option value="">Select status…</option>
-          {NETWORK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-          <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-          <button disabled={!status} onClick={() => onApply(status)} style={{ padding: "9px 26px", borderRadius: 9, border: "none", background: status ? C.navy : C.border, color: status ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: status ? "pointer" : "default" }}>Apply</button>
-        </div>
+// Conversion sets Lifecycle = Network. Per the business rules, Ownership is
+// UNCHANGED and the contact's information, activities and history are preserved.
+const ConvertLeadModal = ({ contact, onCancel, onApply }) => (
+  <>
+    <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
+    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Convert Lead → Network</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 22, lineHeight: 1.5 }}>
+        Move <b>{contact?.name || "this lead"}</b> to your Network. Ownership stays unchanged and all contact
+        information, activities and history are preserved. This cannot be reversed — a Network cannot be converted back to a Lead.
       </div>
-    </>
-  );
-};
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+        <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+        <button onClick={() => onApply("Network")} style={{ padding: "9px 26px", borderRadius: 9, border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Convert</button>
+      </div>
+    </div>
+  </>
+);
 
 // Confirmation dialog (used before a reopen discards later steps).
 const ConfirmDialog = ({ title, message, confirmLabel, danger = false, onCancel, onConfirm }) => (
@@ -389,7 +385,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
   );
 };
 
-const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, onToggleDnc, onProcess, onAddToNetwork, onBackToDashboard }) => (
+const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, canConvert = true, onToggleDnc, onProcess, onAddToNetwork, onBackToDashboard }) => (
   <>
     {negativeOutcome && (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderRadius: 10, border: `1px solid ${dnc ? C.red + "55" : C.border}`, background: dnc ? C.red + "0C" : C.light, marginBottom: 16 }}>
@@ -412,8 +408,10 @@ const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, on
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <GhostBtn icon="←" onClick={onBackToDashboard}>Back to Dashboard</GhostBtn>
           {isContact
-            ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ In My Network · {networkStatus}</span>
-            : <PrimaryBtn icon="⇪" onClick={onAddToNetwork}>Add to My Network</PrimaryBtn>}
+            ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ In My Network</span>
+            : canConvert
+              ? <PrimaryBtn icon="⇪" onClick={onAddToNetwork}>Add to My Network</PrimaryBtn>
+              : <span title="Super Admins cannot convert leads to Network" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: C.light, border: `1px solid ${C.border}`, padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>Conversion not permitted for your role</span>}
         </div>
       </>
     ) : (
@@ -570,7 +568,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onCreateTask={onCreateTask} />;
       case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
-      case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
+      case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
   };

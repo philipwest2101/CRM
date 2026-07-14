@@ -6,6 +6,12 @@ import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
 
+// Stage Status is the progress *within* the lifecycle (independent of Lead vs
+// Network). Labels come from the Super-Admin configured statuses.
+const STATUS_LABEL: Record<string, string> = {};
+LIFECYCLE_STORE.forEach(s => s.statuses.forEach(st => { if (st.key) STATUS_LABEL[st.key] = st.nameEn; }));
+const stageStatusLabel = (status?: string) => (status && STATUS_LABEL[status]) || "New / Open";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
 // Left identity rail (shared) + tabbed content: Overview / Information /
@@ -516,7 +522,8 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
       <InfoRow icon="✉" label="Email" value={c.email} />
       <InfoRow icon="📞" label="Phone" value={c.phone} />
       <InfoRow icon="👤" label="Assignee" value={c.assignee} />
-      <InfoRow icon="📈" label="Lifecycle Stage" value={c.lifecycle} />
+      <InfoRow icon="🏷" label="Ownership" value={c.ownership} />
+      <InfoRow icon="📈" label="Lifecycle" value={c.lifecycle} />
       <InfoRow icon="◎" label="Stage Status" value={c.stageStatus} />
       <InfoRow icon="🔗" label="Lead Source" value={c.source} />
       <InfoRow icon="📣" label="Campaign Assignment" value={c.campaign} />
@@ -735,7 +742,7 @@ const EditField = ({ label, value, onChange, editing, type = "text", children = 
   </div>
 );
 
-const InformationTab = ({ c }) => {
+const InformationTab = ({ c, role }: any) => {
   const t = useT();
   const [subIdx, setSubIdx] = useState(0);
   const SUBS = [t("basicTab"), t("personalTab"), t("addressTab"), t("businessTab"), t("financialTab")];
@@ -815,20 +822,24 @@ const InformationTab = ({ c }) => {
           <EditField label={t("email")} value={draft.email} onChange={set("email")} editing={editing} type="email" />
           <EditField label={t("phone")} value={draft.phone} onChange={set("phone")} editing={editing} />
           <EditField label={<>{t("lifecycleStage")} <InfoTip text={t("tooltip_lifecycle")} /></>} value={draft.lifecycle} editing={editing} onChange={set("lifecycle")}>
-            {editing && <select value={draft.lifecycle} onChange={e => set("lifecycle")(e.target.value)} style={editSelectStyle}>
-              {["Lead","Opportunity","Customer","N/A"].map(o => <option key={o}>{o}</option>)}
-            </select>}
+            {editing && (draft.lifecycle === "Network"
+              // A Network cannot be converted back to a Lead (one-directional).
+              ? <select value="Network" disabled style={editSelectStyle}><option>Network</option></select>
+              : <select value={draft.lifecycle} onChange={e => set("lifecycle")(e.target.value)} style={editSelectStyle}>
+                  {(role === "superadmin" ? ["Lead"] : ["Lead","Network"]).map(o => <option key={o}>{o}</option>)}
+                </select>)}
           </EditField>
           <EditField label={<>{t("stageStatus")} <InfoTip text={t("tooltip_status")} /></>} value={draft.stageStatus} editing={editing} onChange={set("stageStatus")}>
             {editing && <select value={draft.stageStatus} onChange={e => set("stageStatus")(e.target.value)} style={editSelectStyle}>
-              {["New","To Do","Won","N/A"].map(o => <option key={o}>{o}</option>)}
+              {["New","In Progress","Attempted","Not Reached","Follow-up","Appointment","Closed"].map(o => <option key={o}>{o}</option>)}
             </select>}
           </EditField>
           <EditField label={t("assignee")} value={draft.assignee} onChange={set("assignee")} editing={false} />
           <div />
           <EditField label={t("product")} value={draft.product} onChange={set("product")} editing={editing} />
           <EditField label={t("productProvider")} value={draft.productProvider} onChange={set("productProvider")} editing={editing} />
-          <EditField label={t("leadSource")} value={draft.source} onChange={set("source")} editing={editing} />
+          {/* Source is immutable after creation (Business Rule 7). */}
+          <EditField label={t("leadSource")} value={draft.source} onChange={set("source")} editing={false} />
           <EditField label={t("campaignAssignment")} value={draft.campaign} onChange={set("campaign")} editing={editing} />
           {/* GDPR */}
           <div style={{ marginBottom: 22 }}>
@@ -1402,8 +1413,11 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
     email: lead?.email || "lana.steiner@email.com",
     phone: lead?.phone || "+43 1111 11 11",
     assignee: assigneeOverride !== undefined ? assigneeOverride : (lead?.assignedGP || "Anna Muller"),
-    lifecycle: "Lifecycle Stage 1",
-    stageStatus: "Status 1",
+    // Lifecycle is Lead until the process is finalized and the lead is converted.
+    lifecycle: feedback.isContact ? "Network" : "Lead",
+    // Network is always User-owned; company reporting only sees Ownership = Company.
+    ownership: feedback.isContact ? "User" : "Company",
+    stageStatus: stageStatusLabel(lead?.status),
     source: lead?.source || "Landing Page",
     campaign: lead?.campaign || "Webinar – Q1 2026",
   };
@@ -1443,7 +1457,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
 
           {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
-          {tab === t("informationTab") && <InformationTab c={c} />}
+          {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}
         </div>
