@@ -7,30 +7,68 @@ import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYP
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 
-// Tasks are coloured by priority; appointments and events (which have no
-// priority) each get one fixed colour.
-const PRIORITY_COLOR   = { urgent:"#B42318", high:"#F04438", medium:"#F79009", normal:"#F79009", low:"#667085" };
-const APPOINTMENT_COLOR = "#0E9384";   // teal
-const EVENT_COLOR       = "#2563EB";   // blue
-const PRIORITY_LEGEND  = [["urgent","Urgent"],["high","High"],["medium","Medium"],["low","Low"]];
+// ── Unified calendar taxonomy ────────────────────────────────────────────────
+// One entry per "state" the user can see on the calendar: 6 appointment/event
+// types, 3 task types and Google. Colour is a SECONDARY cue only — every chip
+// also carries an icon and a text label, so the 10 states stay distinguishable
+// even where two hues are close (see the colour note in the day-view legend and
+// the PR description). Types are grouped into two "calendars" (CRM vs Google)
+// that can be toggled independently, plus per-type visibility toggles.
+const TYPE_META = {
+  // CRM · appointments / events (cool + jewel tones)
+  consultation: { label:"Consultation",     icon:"💼", color:"#0E9384", group:"appointment", calendar:"crm" },
+  recruiting:   { label:"Recruiting",        icon:"🧑‍💼", color:"#6366F1", group:"appointment", calendar:"crm" },
+  business:     { label:"Business Opening",  icon:"🏢", color:"#7C3AED", group:"appointment", calendar:"crm" },
+  investment:   { label:"Investment",        icon:"📈", color:"#2563EB", group:"appointment", calendar:"crm" },
+  finance:      { label:"Finance",           icon:"💰", color:"#DB2777", group:"appointment", calendar:"crm" },
+  other:        { label:"Other",             icon:"📌", color:"#0891B2", group:"appointment", calendar:"crm" },
+  // CRM · tasks (warm + neutral tones)
+  call:         { label:"Call",              icon:"📞", color:"#F79009", group:"task", calendar:"crm" },
+  email:        { label:"Email",             icon:"✉️", color:"#B54708", group:"task", calendar:"crm" },
+  note:         { label:"To-Do",             icon:"📝", color:"#667085", group:"task", calendar:"crm" },
+  // Google
+  google:       { label:"Google Event",      icon:"🗓️", color:"#12B76A", group:"google", calendar:"google" },
+};
+const TYPE_KEYS = Object.keys(TYPE_META);
+
+// A few sample Google-calendar entries so the "Google events" toggle is
+// meaningful (there is no live Google sync in this mock).
+const GOOGLE_EVENTS = [
+  { id:"g1", title:"Mittagessen Team",  date:"2026-06-29", time:"12:30", end:"13:30" },
+  { id:"g2", title:"Messe Finanzforum", date:"2026-06-30", time:"10:00", end:"16:00" },
+  { id:"g3", title:"Video-Call",        date:"2026-06-30", time:"14:00", end:"14:30" },
+  { id:"g4", title:"Zahnarzt",          date:"2026-07-01", time:"11:00", end:"11:45" },
+  { id:"g5", title:"Team-Meeting",      date:"2026-07-02", time:"15:00", end:"16:00" },
+  { id:"g6", title:"Video-Beratung",    date:"2026-07-04", time:"10:00", end:"11:00" },
+];
 
 export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder }) => {
   const t = useT();
-  const TODAY    = "2026-02-24";
+  const TODAY    = "2026-06-29";
   const MONTHS   = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-  const [currentDate, setCurrentDate] = useState(new Date(2026,1,24));
+  const [currentDate, setCurrentDate] = useState(new Date(2026,5,29));
   const [calFilter,   setCalFilter]   = useState("mine");   // each role sees only its own calendar
-  const [typeFilter,  setTypeFilter]  = useState("all");
   const [view,        setView]        = useState("month"); // month | week | day
   const [showNew,     setShowNew]     = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [editActivity,setEditActivity]= useState(null);
   const [selected,    setSelected]    = useState(null);    // activity detail modal
-  const [selectedDate,setSelectedDate]= useState(TODAY);  // date whose list shows below
+  const [selectedDate,setSelectedDate]= useState(TODAY);  // highlighted day
   const [taskModal,   setTaskModal]   = useState(null);    // { mode, data }
   const [apptModal,   setApptModal]   = useState(null);    // { mode, data }
   const [outcomeAppt, setOutcomeAppt] = useState(null);
   const [cellMenu,    setCellMenu]    = useState(null);    // { x, y, date, time } — create-here popover
+  const [miniDate,    setMiniDate]    = useState(new Date(2026,5,29)); // month shown by the sidebar mini-calendar
+
+  // "My calendars" toggles (CRM vs Google) + per-type visibility.
+  const [showCRM,     setShowCRM]     = useState(true);
+  const [showGoogle,  setShowGoogle]  = useState(true);
+  const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
+  const toggleType = (k) => setHiddenTypes(prev => {
+    const next = new Set(prev);
+    next.has(k) ? next.delete(k) : next.add(k);
+    return next;
+  });
 
   // Week/Day cell click → select the date and offer to create something in
   // that slot (task or appointment, date + hour prefilled).
@@ -47,12 +85,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
   const myGP = "Anna Klein"; const myVD = "Thomas Müller";
 
-  // Every role sees only its own calendar (calFilter is locked to "mine")
-
   // ── Events on the calendar ────────────────────────────────────────────────
-  // Events have no priority, so each one carries its own colour (defined in
-  // EVENTS_LIST). We flatten every event date into a calendar entry that keeps
-  // its event colour, and surface a colour legend so they stay distinguishable.
   const MONTH_IDX = { january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11 };
   const parseEventDate = (label) => {
     const mt = String(label||"").match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
@@ -67,30 +100,60 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
       id:`ev_${d.id}`, type:"event", title:ev.name, lead:null,
       date:parseEventDate(d.label), time:start||"", end:end||"", location:d.location,
       status:d.status==="past"?"done":"upcoming", recur:"Once", priority:null,
-      isEvent:true, eventId:ev.id, eventColor:ev.color, eventIcon:ev.icon,
+      isEvent:true, eventId:ev.id, eventType:ev.type, eventColor:ev.color, eventIcon:ev.icon,
       entityType:"event", category:"event",
     };
   })).filter(x => x.date), []);
 
-  // Effective type meta for an activity — colour depends on category: tasks by
-  // priority, appointments one colour, events one colour. Type drives the icon.
-  const metaOf = (a) => {
-    const base = ACTIVITY_TYPES[a?.type] || ACTIVITY_TYPES.note;
-    const col = a?.isEvent ? EVENT_COLOR
-      : base.category === "task" ? (PRIORITY_COLOR[a?.priority] || PRIORITY_COLOR.medium)
-      : APPOINTMENT_COLOR;
-    return { ...base, color:col, bg:col+"18" };
+  // Google events → activity shape.
+  const googleActivities = useMemo(() => GOOGLE_EVENTS.map(g => ({
+    ...g, type:"google", lead:null, priority:null, recur:"Once",
+    status:"upcoming", source:"google", calendar:"google",
+    entityType:"google", category:"google", gp:myGP,
+  })), []);
+
+  // Map any activity onto one of the 10 canonical calendar types.
+  const typeKeyOf = (a) => {
+    if (a?.source==="google" || a?.calendar==="google" || a?.type==="google") return "google";
+    if (a?.isEvent) {
+      const t = `${a.eventType||""} ${a.title||""}`.toLowerCase();
+      if (t.includes("business")) return "business";
+      if (t.includes("investment")) return "investment";
+      if (t.includes("finance") || t.includes("gold")) return "finance";
+      return "other";
+    }
+    const ty = a?.type;
+    if (["consultation","recruiting","business","other"].includes(ty)) return ty;
+    if (ty==="inperson") return "consultation";
+    if (ty==="video") return "other";
+    if (ty==="call") return "call";
+    if (ty==="email") return "email";
+    if (["note","whatsapp","document"].includes(ty)) return "note";
+    return a?.category==="appointment" ? "consultation" : "note";
   };
 
-  const baseActs = [...activities, ...eventActivities];
+  // Effective meta (colour + icon + label) for an activity.
+  const metaOf = (a) => {
+    const key = typeKeyOf(a);
+    const tm  = TYPE_META[key] || TYPE_META.note;
+    return { key, ...tm, bg: tm.color+"18" };
+  };
 
-  // Filter activities
+  const baseActs = [...activities, ...eventActivities, ...googleActivities];
+
+  // Filter activities: calendar (CRM/Google) → per-type → owner.
   const visible = baseActs.filter(a => {
-    if (typeFilter !== "all" && a.type !== typeFilter) return false;
-    // "mine" filter: show activities belonging to current GP, OR activities with no gp set (unowned)
-    if (calFilter === "mine" && a.gp && a.gp !== myGP) return false;
-    if (calFilter === "team" && a.vd && a.vd !== myVD) return false;
-    if (calFilter !== "all" && calFilter !== "mine" && calFilter !== "team" && a.gp && a.gp !== calFilter) return false;
+    const key = typeKeyOf(a);
+    const cal = TYPE_META[key]?.calendar || "crm";
+    if (cal==="google" && !showGoogle) return false;
+    if (cal==="crm"    && !showCRM)    return false;
+    if (hiddenTypes.has(key)) return false;
+    if (cal==="crm") {
+      // "mine" filter: current GP's items, or unowned items
+      if (calFilter === "mine" && a.gp && a.gp !== myGP) return false;
+      if (calFilter === "team" && a.vd && a.vd !== myVD) return false;
+      if (calFilter !== "all" && calFilter !== "mine" && calFilter !== "team" && a.gp && a.gp !== calFilter) return false;
+    }
     return true;
   });
 
@@ -104,10 +167,10 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   // ── Task / Appointment modal helpers ──────────────────────────────────────
   const NOW_TIME  = "12:00";
   const isAppt = (a) => APPOINTMENT_TYPE_KEYS.includes(a?.type) || a?.entityType==="appointment" || a?.category==="appointment";
-  const focusDate = (d) => { if(!d) return; setCurrentDate(new Date(d+"T12:00")); setSelectedDate(d); };
+  const focusDate = (d) => { if(!d) return; const dt=new Date(d+"T12:00"); setCurrentDate(dt); setMiniDate(dt); setSelectedDate(d); };
 
   const openActivity = (a) => {
-    if (a.isEvent) { setSelected(a); return; }   // events are read-only → detail panel
+    if (a.isEvent || a.source==="google") { setSelected(a); return; }   // events + Google are read-only → detail panel
     if (isAppt(a)) {
       setApptModal({ mode:"view", data:{
         id:a.id, title:a.title, contact:a.lead, apptType:a.apptType||"Consultation Appointment",
@@ -171,6 +234,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
   const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+  const totalRows  = totalCells / 7;
 
   const fmtDate = (y,m,d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
@@ -184,24 +248,102 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
   const fmtDateObj = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
-  const NavBtn = ({onClick,children}) => (
-    <button onClick={onClick} style={{ padding:"6px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:13,cursor:"pointer",fontFamily:"inherit" }}>{children}</button>
-  );
+  // Year filter options — a window around the currently displayed year.
+  const YEARS = useMemo(() => {
+    const base = currentDate.getFullYear();
+    const set = new Set([2024,2025,2026,2027,2028, base]);
+    return [...set].sort((a,b)=>a-b);
+  }, [currentDate]);
+  const setYear = (y) => {
+    const d = new Date(currentDate); d.setFullYear(y);
+    setCurrentDate(d); setMiniDate(new Date(y, d.getMonth(), 1));
+  };
 
-  const ActivityChip = ({a, compact=false}) => {
-    const at = metaOf(a);
+  const DE_DOW = ["MO","DI","MI","DO","FR","SA","SO"];
+
+  // Select a day (from grid or mini-calendar) and keep both calendars in sync.
+  const selectDay = (dateStr) => {
+    if (!dateStr) return;
+    setSelectedDate(dateStr);
+    const d = new Date(dateStr+"T12:00");
+    setCurrentDate(d);
+    setMiniDate(new Date(d.getFullYear(), d.getMonth(), 1));
+  };
+
+  // ── Sidebar mini-calendar ──────────────────────────────────────────────────
+  const MiniCal = () => {
+    const my = miniDate.getFullYear();
+    const mm = miniDate.getMonth();
+    const mFirst = new Date(my, mm, 1).getDay();
+    const mOffset = mFirst === 0 ? 6 : mFirst - 1;
+    const mDays = new Date(my, mm+1, 0).getDate();
+    const cells = [];
+    for (let i=0;i<mOffset;i++) cells.push(null);
+    for (let d=1;d<=mDays;d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    const go = (delta) => setMiniDate(new Date(my, mm+delta, 1));
     return (
-      <div onClick={e=>{e.stopPropagation();setSelected(a);}}
-        style={{ display:"flex",alignItems:"center",gap:4,padding:compact?"2px 5px":"2px 6px",
-          borderRadius:5,background:at.bg,border:`1px solid ${at.color}30`,
-          cursor:"pointer",overflow:"hidden",marginBottom:2,
-          fontSize:compact?9:11,color:at.color,fontWeight:600 }}>
-        <span style={{ flexShrink:0,fontSize:compact?9:11 }}>{at.icon}</span>
-        <span style={{ overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1 }}>{a.title}</span>
-        {!compact && a.time && <span style={{ flexShrink:0,fontSize:9,color:C.muted,fontWeight:400 }}>{a.time}</span>}
+      <div>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
+          <button onClick={()=>go(-1)} aria-label="Previous month"
+            style={{ border:"none",background:"none",cursor:"pointer",color:C.muted,fontSize:12,fontWeight:700,padding:2 }}>◀</button>
+          <span style={{ fontSize:12,fontWeight:800,color:C.navy }}>{MONTHS[mm]} {my}</span>
+          <button onClick={()=>go(1)} aria-label="Next month"
+            style={{ border:"none",background:"none",cursor:"pointer",color:C.muted,fontSize:12,fontWeight:700,padding:2 }}>▶</button>
+        </div>
+        <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:3 }}>
+          {["M","D","M","D","F","S","S"].map((d,i)=>(
+            <div key={i} style={{ textAlign:"center",fontSize:9,fontWeight:700,color:i>=5?C.red:C.muted,padding:"2px 0" }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1 }}>
+          {cells.map((d,i)=>{
+            if (d==null) return <div key={i} />;
+            const ds = fmtDate(my,mm,d);
+            const isToday = ds===TODAY;
+            const isSel   = ds===selectedDate;
+            const dayActs = byDate[ds] || [];
+            const dots = [...new Set(dayActs.map(a=>metaOf(a).color))].slice(0,3);
+            return (
+              <button key={i} onClick={()=>selectDay(ds)} title={dayActs.length?`${dayActs.length} event(s)`:""}
+                style={{ position:"relative",border:"none",cursor:"pointer",borderRadius:6,
+                  padding:"4px 0 6px",fontFamily:"inherit",
+                  background:isToday?C.primary:isSel?C.primarySoft:"transparent",
+                  color:isToday?"#fff":isSel?C.primaryDark:C.text,
+                  fontSize:10,fontWeight:isToday||isSel?800:500 }}>
+                {d}
+                {dayActs.length>0 && (
+                  <div style={{ position:"absolute",bottom:1,left:0,right:0,display:"flex",justifyContent:"center",gap:2 }}>
+                    {dots.map((c,di)=><span key={di} style={{ width:4,height:4,borderRadius:"50%",background:isToday?"#fff":c }}/>)}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   };
+
+  // Sidebar section wrapper
+  const SideSection = ({title, children}) => (
+    <div style={{ border:`1px solid ${C.border}`,borderRadius:12,background:"#fff",padding:"12px 14px" }}>
+      {title && <div style={{ fontSize:10,fontWeight:800,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10 }}>{title}</div>}
+      {children}
+    </div>
+  );
+
+  const CalCheck = ({checked, onChange, color, label, icon}) => (
+    <label style={{ display:"flex",alignItems:"center",gap:9,cursor:"pointer",padding:"3px 0",fontSize:13,color:C.text,fontWeight:600 }}>
+      <span onClick={(e)=>{e.preventDefault();onChange();}}
+        style={{ width:18,height:18,borderRadius:5,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+          background:checked?color:"#fff",border:`1.5px solid ${checked?color:C.border}`,color:"#fff",fontSize:12,fontWeight:800 }}>
+        {checked?"✓":""}
+      </span>
+      <span style={{ width:10,height:10,borderRadius:"50%",background:color,flexShrink:0 }}/>
+      <span style={{ flex:1 }}>{icon?`${icon} `:""}{label}</span>
+    </label>
+  );
 
   return (
     <div style={{ display:"flex",flexDirection:"column",height:"100%",fontFamily:"inherit",overflow:"hidden" }}>
@@ -209,17 +351,15 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <div style={{ padding:"12px 20px",borderBottom:`1px solid ${C.border}`,background:"#fff",
         display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",flexShrink:0 }}>
-        <h1 style={{ margin:0,fontSize:18,fontWeight:800,color:C.navy }}>📅 {t("calendarTitle")}</h1>
+        <h1 style={{ margin:0,fontSize:18,fontWeight:800,color:C.navy }}>📅 {t("calendarTitle")||"Calendar"}</h1>
 
-        {/* Type filter */}
+        {/* Year filter */}
         <div style={{ position:"relative" }}>
-          <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}
+          <select value={currentDate.getFullYear()} onChange={e=>setYear(Number(e.target.value))}
+            title="Filter by year"
             style={{ padding:"6px 28px 6px 10px",borderRadius:8,border:`1px solid ${C.border}`,
               background:"#fff",color:C.slate,fontSize:12,fontFamily:"inherit",appearance:"none",cursor:"pointer",outline:"none" }}>
-            <option value="all">All types</option>
-            <option value="task">Tasks</option>
-            <option value="appointment">Appointments</option>
-            <option value="event">Events</option>
+            {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
           </select>
           <div style={{ position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:9,color:C.muted }}>▼</div>
         </div>
@@ -240,7 +380,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             if(view==="month") d.setMonth(d.getMonth()-1);
             else if(view==="week") d.setDate(d.getDate()-7);
             else d.setDate(d.getDate()-1);
-            setCurrentDate(d); }}
+            setCurrentDate(d); setMiniDate(new Date(d.getFullYear(),d.getMonth(),1)); }}
             style={{ width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>‹</button>
           <span style={{ fontSize:13,fontWeight:700,color:C.text,minWidth:130,textAlign:"center" }}>
             {view==="month" ? `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
@@ -251,8 +391,11 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
             if(view==="month") d.setMonth(d.getMonth()+1);
             else if(view==="week") d.setDate(d.getDate()+7);
             else d.setDate(d.getDate()+1);
-            setCurrentDate(d); }}
+            setCurrentDate(d); setMiniDate(new Date(d.getFullYear(),d.getMonth(),1)); }}
             style={{ width:28,height:28,borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>›</button>
+
+          <button onClick={()=>focusDate(TODAY)}
+            style={{ padding:"6px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>Today</button>
 
           {/* + Add ▾ — Create Task / Schedule Appointment */}
           <div style={{ position:"relative" }}>
@@ -264,7 +407,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
               <div onClick={()=>setShowAddMenu(false)} style={{ position:"fixed",inset:0,zIndex:200 }}/>
               <div style={{ position:"absolute",top:"calc(100% + 4px)",right:0,zIndex:201,background:"#fff",borderRadius:12,
                 boxShadow:"0 8px 32px rgba(0,0,0,0.15)",border:`1px solid ${C.border}`,minWidth:220,padding:"6px 0" }}>
-                {[[`✅ ${t("createTask")}`,()=>setTaskModal({mode:"create"})],[`📅 ${t("scheduleAppointment")}`,()=>setApptModal({mode:"create"})]].map(([label,fn])=>(
+                {[[`✅ ${t("createTask")||"Create Task"}`,()=>setTaskModal({mode:"create"})],[`📅 ${t("scheduleAppointment")||"Schedule Appointment"}`,()=>setApptModal({mode:"create"})]].map(([label,fn])=>(
                   <div key={label} onClick={()=>{ setShowAddMenu(false); fn(); }}
                     style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",fontSize:13,fontWeight:600,color:C.text }}
                     onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
@@ -278,85 +421,117 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
         </div>
       </div>
 
-      {/* ── Main body: calendar top, day list bottom ─────────────────────────── */}
-      <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+      {/* ── Main body: sidebar + calendar ─────────────────────────────────── */}
+      <div style={{ flex:1,display:"flex",overflow:"hidden",background:"#F9FAFB" }}>
 
-        {/* ── Calendar grid (Month / Week / Day views) ─────────────────────── */}
-        <div style={{ flexShrink:0,borderBottom:`1px solid ${C.border}`,display:"flex",flexDirection:"column" }}>
+        {/* ── Left sidebar ─────────────────────────────────────────────────── */}
+        <div style={{ width:250,flexShrink:0,borderRight:`1px solid ${C.border}`,background:"#F9FAFB",
+          padding:"14px",display:"flex",flexDirection:"column",gap:14,overflowY:"auto" }}>
+
+          <SideSection><MiniCal/></SideSection>
+
+          <SideSection title="My Calendars">
+            <CalCheck checked={showCRM}    onChange={()=>setShowCRM(v=>!v)}    color={C.primary} label="CRM events"/>
+            <CalCheck checked={showGoogle} onChange={()=>setShowGoogle(v=>!v)} color={C.blue}    label="Google events"/>
+          </SideSection>
+
+          <SideSection title="Event Types">
+            <div style={{ fontSize:10,color:C.muted,marginBottom:8,lineHeight:1.4 }}>
+              Tap a type to show / hide it. Every event also carries an icon, so colours stay a secondary cue.
+            </div>
+            {TYPE_KEYS.map(k=>{
+              const tm = TYPE_META[k];
+              const off = hiddenTypes.has(k);
+              return (
+                <div key={k} onClick={()=>toggleType(k)}
+                  style={{ display:"flex",alignItems:"center",gap:8,padding:"4px 2px",cursor:"pointer",
+                    fontSize:12,fontWeight:600,color:off?C.muted:C.text,opacity:off?0.5:1 }}>
+                  <span style={{ width:11,height:11,borderRadius:3,background:tm.color,flexShrink:0 }}/>
+                  <span style={{ flexShrink:0 }}>{tm.icon}</span>
+                  <span style={{ flex:1,textDecoration:off?"line-through":"none" }}>{tm.label}</span>
+                </div>
+              );
+            })}
+          </SideSection>
+        </div>
+
+        {/* ── Calendar area ────────────────────────────────────────────────── */}
+        <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#fff" }}>
 
           {/* ── MONTH VIEW ──────────────────────────────────────────────────── */}
-          {view==="month" && (<>
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)" }}>
-              {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d,i)=>(
-                <div key={i} style={{ padding:"8px 0",textAlign:"center",fontSize:11,fontWeight:700,
-                  color:i>=5?C.red:C.muted,background:"#FAFAFA",borderBottom:`1px solid ${C.border}` }}>{d}</div>
-              ))}
-            </div>
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)" }}>
-              {Array.from({length:totalCells}).map((_,idx)=>{
-                const dayNum  = idx - startOffset + 1;
-                const isValid = dayNum >= 1 && dayNum <= daysInMonth;
-                const dateStr = isValid ? fmtDate(year,month,dayNum) : "";
-                const isToday = dateStr === TODAY;
-                const isSel   = dateStr === selectedDate;
-                const dayActs = byDate[dateStr] || [];
-                const typeColors = [...new Set(dayActs.map(a=>metaOf(a).color))].slice(0,3);
-                return (
-                  <div key={idx} onClick={()=>isValid&&setSelectedDate(dateStr)}
-                    style={{ minHeight:72,padding:"5px 4px",borderBottom:`1px solid ${C.border}`,
-                      borderRight:`1px solid ${C.border}`,
-                      background:isSel?"#EFF6FF":isToday?"#F0FDF4":!isValid?"#FAFAFA":"#fff",
-                      cursor:isValid?"pointer":"default" }}>
-                    {isValid && (<>
-                      <div style={{ display:"flex",justifyContent:"center",marginBottom:3 }}>
-                        <div style={{ width:22,height:22,borderRadius:"50%",fontSize:11,fontWeight:isToday||isSel?800:500,
-                          background:isToday?C.green:isSel?C.accent:"transparent",
-                          color:isToday||isSel?"#fff":C.text,
-                          display:"flex",alignItems:"center",justifyContent:"center" }}>{dayNum}</div>
-                      </div>
-                      {dayActs.slice(0,2).map(a=>{ const at=metaOf(a); return (
-                        <div key={a.id} title={a.title}
-                          style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
-                            borderLeft:`2px solid ${at.color}`,padding:"2px 5px",
-                            borderRadius:"0 4px 4px 0",marginBottom:2,
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",lineHeight:1.4 }}>
-                          {at.icon} {a.time&&a.time.slice(0,5)} {a.title}
+          {view==="month" && (
+            <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)",flexShrink:0 }}>
+                {DE_DOW.map((d,i)=>(
+                  <div key={i} style={{ padding:"9px 12px",textAlign:"right",fontSize:11,fontWeight:700,
+                    color:i>=5?C.red:C.muted,letterSpacing:"0.05em",borderBottom:`1px solid ${C.border}` }}>{d}</div>
+                ))}
+              </div>
+              <div style={{ flex:1,display:"grid",gridTemplateColumns:"repeat(7,1fr)",
+                gridTemplateRows:`repeat(${totalRows},1fr)`,overflow:"auto" }}>
+                {Array.from({length:totalCells}).map((_,idx)=>{
+                  const dayNum  = idx - startOffset + 1;
+                  const isValid = dayNum >= 1 && dayNum <= daysInMonth;
+                  const dateStr = isValid ? fmtDate(year,month,dayNum) : "";
+                  const isToday = dateStr === TODAY;
+                  const isSel   = dateStr === selectedDate;
+                  const dayActs = byDate[dateStr] || [];
+                  return (
+                    <div key={idx} onClick={()=>isValid&&selectDay(dateStr)}
+                      style={{ minHeight:96,padding:"6px 7px",borderBottom:`1px solid ${C.border}`,
+                        borderRight:(idx%7!==6)?`1px solid ${C.border}`:"none",
+                        background:isSel?"#FFF9F0":!isValid?"#FAFAFA":"#fff",
+                        cursor:isValid?"pointer":"default",overflow:"hidden" }}>
+                      {isValid && (<>
+                        <div style={{ display:"flex",justifyContent:"flex-start",marginBottom:4 }}>
+                          <div style={{ minWidth:22,height:22,padding:"0 6px",borderRadius:isToday?11:6,fontSize:12,
+                            fontWeight:isToday||isSel?800:600,
+                            background:isToday?C.primary:isSel?C.primarySoft:"transparent",
+                            color:isToday?"#fff":isSel?C.primaryDark:(idx%7>=5?C.red:C.text),
+                            display:"flex",alignItems:"center",justifyContent:"center" }}>{dayNum}</div>
                         </div>
-                      );})}
-                      {dayActs.length>2&&<div style={{ fontSize:9,fontWeight:700,color:C.slate,background:C.muted+"18",border:`1px solid ${C.muted}30`,borderRadius:10,padding:"1px 7px",display:"inline-block",marginTop:1 }}>+{dayActs.length-2} more</div>}
-                      {dayActs.length>0&&(
-                        <div style={{ display:"flex",justifyContent:"center",gap:3,marginTop:2 }}>
-                          {typeColors.map((c,i)=><div key={i} style={{ width:5,height:5,borderRadius:"50%",background:c }}/>)}
-                        </div>
-                      )}
-                    </>)}
-                  </div>
-                );
-              })}
+                        {dayActs.slice(0,3).map(a=>{ const at=metaOf(a); return (
+                          <div key={a.id} title={a.title}
+                            onClick={e=>{e.stopPropagation(); setSelectedDate(dateStr); openActivity(a);}}
+                            style={{ display:"flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:600,
+                              color:at.color,background:at.bg,
+                              borderLeft:`3px solid ${at.color}`,padding:"2px 6px",
+                              borderRadius:"0 4px 4px 0",marginBottom:3,
+                              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",lineHeight:1.4 }}>
+                            <span style={{ flexShrink:0 }}>{at.icon}</span>
+                            <span style={{ overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{a.title}</span>
+                          </div>
+                        );})}
+                        {dayActs.length>3&&<div style={{ fontSize:9,fontWeight:700,color:C.slate,padding:"1px 4px" }}>+{dayActs.length-3} more</div>}
+                      </>)}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </>)}
+          )}
 
           {/* ── WEEK VIEW ───────────────────────────────────────────────────── */}
           {view==="week" && (
-            <div style={{ overflowY:"auto",maxHeight:420 }}>
+            <div style={{ flex:1,overflowY:"auto" }}>
               {/* Week day headers */}
               <div style={{ display:"grid",gridTemplateColumns:"52px repeat(7,1fr)",position:"sticky",top:0,zIndex:2,background:"#fff",borderBottom:`1px solid ${C.border}` }}>
                 <div style={{ background:"#FAFAFA" }}/>
                 {weekDays.map((d,i)=>{
                   const ds=fmtDateObj(d); const isT=ds===TODAY; const isSel=ds===selectedDate;
                   return (
-                    <div key={i} onClick={()=>setSelectedDate(ds)}
+                    <div key={i} onClick={()=>selectDay(ds)}
                       style={{ padding:"6px 0",textAlign:"center",cursor:"pointer",
-                        background:isSel?"#EFF6FF":isT?"#F0FDF4":"#FAFAFA",
+                        background:isSel?"#FFF9F0":"#FAFAFA",
                         borderLeft:`1px solid ${C.border}` }}>
                       <div style={{ fontSize:10,fontWeight:700,color:i>=5?C.red:C.muted,textTransform:"uppercase" }}>
-                        {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i]}
+                        {DE_DOW[i]}
                       </div>
                       <div style={{ width:26,height:26,borderRadius:"50%",margin:"2px auto 0",
-                        background:isT?C.green:isSel?C.accent:"transparent",
+                        background:isT?C.primary:isSel?C.primarySoft:"transparent",
                         display:"flex",alignItems:"center",justifyContent:"center",
                         fontSize:13,fontWeight:isT||isSel?800:500,
-                        color:isT||isSel?"#fff":C.text }}>{d.getDate()}</div>
+                        color:isT?"#fff":isSel?C.primaryDark:C.text }}>{d.getDate()}</div>
                     </div>
                   );
                 })}
@@ -374,40 +549,24 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                     return (
                       <div key={di} onClick={(e)=>openCellMenu(e, ds, h)}
                         style={{ borderBottom:`1px solid ${C.border}`,borderLeft:`1px solid ${C.border}`,
-                          padding:"2px",cursor:"pointer",background:ds===selectedDate?"#EFF6FF20":"#fff",
+                          padding:"2px",cursor:"pointer",background:ds===selectedDate?"#FFF9F080":"#fff",
                           position:"relative",minHeight:52 }}>
-                        {slotActs.length===0 ? null :
-                         slotActs.length===1 ? (()=>{ const a=slotActs[0]; const at=metaOf(a); return (
-                           <div title={`${a.title} ${a.time||""}`}
-                             onClick={e=>{ e.stopPropagation(); setSelectedDate(ds); setSelected(a); }}
-                             style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
-                               borderLeft:`2px solid ${at.color}`,padding:"2px 5px",borderRadius:"0 4px 4px 0",
-                               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",margin:1,lineHeight:1.4 }}>
-                             {at.icon} {a.time&&a.time.slice(0,5)} {a.title}
-                           </div>
-                         );})() :
-                         /* EDGE CASE: multiple activities in same slot */
-                         (
-                           <div style={{ position:"relative" }}>
-                             {slotActs.slice(0,2).map((a,ai)=>{ const at=metaOf(a); return (
-                               <div key={a.id} title={`${a.title} ${a.time||""}`}
-                                 onClick={e=>{ e.stopPropagation(); setSelectedDate(ds); setSelected(a); }}
-                                 style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
-                                   borderLeft:`2px solid ${at.color}`,padding:"2px 5px",
-                                   borderRadius:"0 4px 4px 0",overflow:"hidden",
-                                   textOverflow:"ellipsis",whiteSpace:"nowrap",margin:"1px",
-                                   lineHeight:1.4,opacity:1-ai*0.15 }}>
-                                 {at.icon} {a.title.slice(0,10)}{a.title.length>10?"…":""}
-                               </div>
-                             );})}
-                             {slotActs.length>2&&(
-                               <div style={{ fontSize:9,fontWeight:700,color:C.slate,background:C.muted+"18",border:`1px solid ${C.muted}30`,borderRadius:10,padding:"1px 6px",display:"inline-block",margin:"1px 2px" }}>
-                                 +{slotActs.length-2} more
-                               </div>
-                             )}
-                           </div>
-                         )
-                        }
+                        {slotActs.slice(0,2).map((a,ai)=>{ const at=metaOf(a); return (
+                          <div key={a.id} title={`${a.title} ${a.time||""}`}
+                            onClick={e=>{ e.stopPropagation(); setSelectedDate(ds); openActivity(a); }}
+                            style={{ fontSize:10,fontWeight:600,color:at.color,background:at.bg,
+                              borderLeft:`2px solid ${at.color}`,padding:"2px 5px",
+                              borderRadius:"0 4px 4px 0",overflow:"hidden",
+                              textOverflow:"ellipsis",whiteSpace:"nowrap",margin:"1px",
+                              lineHeight:1.4 }}>
+                            {at.icon} {a.time&&a.time.slice(0,5)} {a.title}
+                          </div>
+                        );})}
+                        {slotActs.length>2&&(
+                          <div style={{ fontSize:9,fontWeight:700,color:C.slate,padding:"1px 5px" }}>
+                            +{slotActs.length-2} more
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -420,10 +579,8 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           {view==="day" && (()=>{
             const ds = fmtDateObj(currentDate);
             const dayActs = byDate[ds]||[];
-            // Sync selectedDate with day view
-            if(selectedDate!==ds) setSelectedDate(ds);
             return (
-              <div style={{ overflowY:"auto",maxHeight:380 }}>
+              <div style={{ flex:1,overflowY:"auto" }}>
                 {HOURS.map(h=>{
                   const slotActs = dayActs.filter(a=>a.time&&parseInt(a.time)===h);
                   const hasConflict = slotActs.length>1;
@@ -431,17 +588,15 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                     <div key={h} onClick={(e)=>openCellMenu(e, ds, h)}
                       style={{ display:"flex",gap:0,minHeight:56,cursor:"pointer",
                       borderBottom:`1px solid ${C.border}`,background:hasConflict?"#FFF7ED":"#fff" }}>
-                      {/* Time label */}
                       <div style={{ width:60,flexShrink:0,padding:"6px 8px 0",
                         fontSize:11,color:C.muted,textAlign:"right",borderRight:`1px solid ${C.border}`,
                         background:"#FAFAFA" }}>
                         {String(h).padStart(2,"0")}:00
                         {hasConflict&&<div style={{ fontSize:8,color:C.amber,fontWeight:700 }}>⚠ conflict</div>}
                       </div>
-                      {/* Activity slots */}
                       <div style={{ flex:1,padding:"4px 8px",display:"flex",
                         flexDirection:hasConflict?"row":"column",gap:4,flexWrap:"wrap" }}>
-                        {slotActs.length===0 ? null : slotActs.map((a,ai)=>{
+                        {slotActs.map((a,ai)=>{
                           const at=metaOf(a);
                           return (
                             <div key={a.id}
@@ -449,7 +604,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                                 padding:"6px 10px",borderRadius:7,background:at.bg,
                                 borderLeft:`3px solid ${at.color}`,cursor:"pointer",
                                 outline:hasConflict&&ai>0?`1px dashed ${at.color}40`:"none" }}
-                              onClick={(e)=>{ e.stopPropagation(); setSelected(a); }}>
+                              onClick={(e)=>{ e.stopPropagation(); openActivity(a); }}>
                               <div style={{ fontSize:11,fontWeight:700,color:at.color }}>
                                 {at.icon} {a.time}{a.end?` – ${a.end}`:""} {hasConflict&&<span style={{ fontSize:9,background:C.amber+"20",color:C.amber,padding:"1px 5px",borderRadius:8,marginLeft:4 }}>overlap</span>}
                               </div>
@@ -465,153 +620,26 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 {dayActs.length===0&&(
                   <div style={{ padding:"32px 20px",textAlign:"center",color:C.muted }}>
                     <div style={{ fontSize:28,marginBottom:8 }}>📭</div>
-                    <div style={{ fontSize:13 }}>No activities today</div>
+                    <div style={{ fontSize:13 }}>No activities on this day</div>
                   </div>
                 )}
               </div>
             );
           })()}
 
-          {/* Legend — tasks by priority; appointments + events one colour each */}
-          <div style={{ padding:"6px 12px",borderTop:`1px solid ${C.border}`,background:"#FAFAFA",
-            display:"flex",gap:12,flexWrap:"wrap",alignItems:"center" }}>
-            <span style={{ fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em" }}>Tasks</span>
-            {PRIORITY_LEGEND.map(([k,l])=>(
-              <div key={k} style={{ display:"flex",alignItems:"center",gap:4 }}>
-                <div style={{ width:8,height:8,borderRadius:3,background:PRIORITY_COLOR[k] }}/>
-                <span style={{ fontSize:9,color:C.slate }}>{l}</span>
-              </div>
-            ))}
-            <div style={{ display:"flex",alignItems:"center",gap:4,paddingLeft:6,borderLeft:`1px solid ${C.border}` }}>
-              <div style={{ width:8,height:8,borderRadius:3,background:APPOINTMENT_COLOR }}/>
-              <span style={{ fontSize:9,color:C.slate }}>Appointments</span>
-            </div>
-            <div style={{ display:"flex",alignItems:"center",gap:4 }}>
-                <div style={{ width:8,height:8,borderRadius:3,background:EVENT_COLOR }}/>
-                <span style={{ fontSize:9,color:C.slate }}>Events</span>
-              </div>
-            <span style={{ marginLeft:"auto",fontSize:9,color:C.muted }}>{visible.length} activities total</span>
-          </div>
-        </div>
-
-        {/* ── Day list panel ─────────────────────────────────────────────── */}
-        <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
-
-          {/* Day header */}
-          <div style={{ padding:"12px 20px",borderBottom:`1px solid ${C.border}`,background:"#fff",
-            display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0 }}>
-            <div>
-              <div style={{ fontSize:16,fontWeight:800,color:C.navy }}>
-                {selectedDate===TODAY?"📅 Today":new Date(selectedDate+"T12:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}
-              </div>
-              <div style={{ fontSize:12,color:C.muted,marginTop:2 }}>
-                {(byDate[selectedDate]||[]).length} {(byDate[selectedDate]||[]).length===1?"activity":"activities"}
-              </div>
-            </div>
-          </div>
-
-          {/* Activity list for selected date — grouped Overdue / Upcoming, two columns */}
-          <div style={{ flex:1,overflowY:"auto",padding:"12px 16px" }}>
-            {(()=>{
-              const dayItems = (byDate[selectedDate]||[]);
-
-              if(dayItems.length===0) return (
-                <div style={{ padding:"40px 20px",textAlign:"center",color:C.muted }}>
-                  <div style={{ fontSize:32,marginBottom:10 }}>📭</div>
-                  <div style={{ fontSize:13,fontWeight:600 }}>No activities on this day</div>
-                  <div style={{ fontSize:12,marginTop:4 }}>Use "+ Add" to create a task or schedule an appointment</div>
-                  <div style={{ display:"flex",gap:8,justifyContent:"center",marginTop:16 }}>
-                    <button onClick={()=>setTaskModal({mode:"create"})}
-                      style={{ padding:"8px 16px",borderRadius:8,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>✅ Create Task</button>
-                    <button onClick={()=>setApptModal({mode:"create"})}
-                      style={{ padding:"8px 16px",borderRadius:8,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>📅 Schedule Appointment</button>
-                  </div>
-                </div>
-              );
-
-              const done    = (a) => DONE_STATUSES.includes(a.status);
-              const isOverdue = (a) => !done(a) && (selectedDate < TODAY || (selectedDate===TODAY && (a.time||"99:99") < NOW_TIME));
-              const sortFn = (a,b) => (a.time||"").localeCompare(b.time||"");
-              const overdue   = dayItems.filter(a=>isOverdue(a)).sort(sortFn);
-              const upcoming  = dayItems.filter(a=>!isOverdue(a)&&!done(a)).sort(sortFn);
-              const doneItems = dayItems.filter(done).sort(sortFn);
-
-              const card = (a) => {
-                const at = metaOf(a);
-                const isDone = done(a);
-                const prioCol = (PRIORITY_META[a.priority]||PRIORITY_META.normal).color;
-                const prioLabel = (PRIORITY_META[a.priority]||PRIORITY_META.normal).label;
-                const accentColor = isDone ? C.muted : at.color;
-                return (
-                  <div key={a.id} onClick={()=>openActivity(a)}
-                    style={{ cursor:"pointer",borderRadius:9,overflow:"hidden",
-                      background:isDone?"#F8FAFC":"#fff",
-                      border:`1px solid ${C.border}`,
-                      boxShadow:`0 1px 3px ${accentColor}18`,
-                      opacity:isDone?0.78:1,minWidth:0 }}>
-                    {/* Color accent bar + icon + title */}
-                    <div style={{ display:"flex",alignItems:"center",gap:7,
-                      padding:"7px 9px 5px",borderLeft:`3px solid ${accentColor}` }}>
-                      <span style={{ fontSize:14,lineHeight:1,flexShrink:0 }}>{isDone?"✅":at.icon}</span>
-                      <span style={{ fontSize:12,fontWeight:700,color:isDone?C.muted:C.navy,
-                        textDecoration:isDone?"line-through":"none",
-                        flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
-                        {a.title}
-                      </span>
-                      <button onClick={(e)=>{ e.stopPropagation(); openActivity(a); }}
-                        style={{ border:"none",background:"none",color:C.muted,fontSize:13,cursor:"pointer",lineHeight:1,padding:"0 2px",flexShrink:0,marginTop:-1 }}>⋯</button>
-                    </div>
-                    {/* Meta row */}
-                    <div style={{ display:"flex",alignItems:"center",gap:5,padding:"0 9px 6px 30px",flexWrap:"wrap" }}>
-                      {a.time && (
-                        <span style={{ fontSize:10,fontWeight:700,color:"#fff",background:accentColor,
-                          borderRadius:5,padding:"1px 6px",letterSpacing:"0.01em" }}>
-                          {a.time.slice(0,5)}{a.end?` – ${a.end}`:""}
-                        </span>
-                      )}
-                      {a.lead && (
-                        <span style={{ fontSize:10,color:C.slate,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0 }}>
-                          👤 {a.lead}
-                        </span>
-                      )}
-                      <div style={{ display:"flex",alignItems:"center",gap:3,marginLeft:"auto",flexShrink:0 }}>
-                        {a.recur&&a.recur!=="Once" && <span style={{ fontSize:9,color:C.muted }}>🔁</span>}
-                        <span style={{ width:7,height:7,borderRadius:"50%",background:prioCol,flexShrink:0 }} title={prioLabel}/>
-                      </div>
-                    </div>
-                  </div>
-                );
-              };
-
-              const group = (title,col,items) => items.length===0 ? null : (
-                <div style={{ marginBottom:12 }}>
-                  <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:7 }}>
-                    <div style={{ width:3,height:14,borderRadius:2,background:col,flexShrink:0 }}/>
-                    <span style={{ fontSize:10,fontWeight:800,color:col,textTransform:"uppercase",letterSpacing:"0.07em" }}>
-                      {title}
-                    </span>
-                    <span style={{ fontSize:10,fontWeight:600,color:C.muted,background:C.muted+"15",borderRadius:8,padding:"0 6px" }}>
-                      {items.length}
-                    </span>
-                  </div>
-                  <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,alignItems:"start" }}>
-                    {items.map(card)}
-                  </div>
-                </div>
-              );
-
-              return (
-                <>
-                  {group("Overdue",C.red,overdue)}
-                  {group("Upcoming",C.green,upcoming)}
-                  {group("Done",C.muted,doneItems)}
-                </>
-              );
-            })()}
+          {/* Footer summary */}
+          <div style={{ padding:"6px 16px",borderTop:`1px solid ${C.border}`,background:"#FAFAFA",
+            display:"flex",gap:12,alignItems:"center",flexShrink:0 }}>
+            <span style={{ fontSize:11,fontWeight:700,color:C.navy }}>
+              {selectedDate===TODAY?"Today":new Date(selectedDate+"T12:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}
+            </span>
+            <span style={{ fontSize:11,color:C.muted }}>
+              {(byDate[selectedDate]||[]).length} on this day
+            </span>
+            <span style={{ marginLeft:"auto",fontSize:11,color:C.muted }}>{visible.length} shown</span>
           </div>
         </div>
       </div>
-
 
       {/* ── Activity detail modal ──────────────────────────────────────────── */}
       {selected && (()=>{
@@ -631,14 +659,16 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 </div>
                 <button onClick={()=>setSelected(null)} style={{ width:26,height:26,borderRadius:"50%",border:`1px solid ${C.border}`,background:"#F8FAFC",color:C.muted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>×</button>
               </div>
-              {[["📅","Date & Time",`${selected.date}${selected.time?` · ${selected.time}`:""}${selected.end?` – ${selected.end}`:""}`],["👤","Contact",selected.lead||"—"],["🔁","Recurrence",selected.recur||"Once"],["⚡","Status",sm.label]].filter(([,l,v])=>v&&v!=="—").map(([ic,l,v])=>(
+              {[["📅","Date & Time",`${selected.date}${selected.time?` · ${selected.time}`:""}${selected.end?` – ${selected.end}`:""}`],["📍","Location",selected.location||"—"],["👤","Contact",selected.lead||"—"],["🔁","Recurrence",selected.recur||"Once"],["⚡","Status",sm.label]].filter(([,l,v])=>v&&v!=="—").map(([ic,l,v])=>(
                 <div key={l} style={{ display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:12 }}>
-                  <span style={{ color:C.muted }}>{ic} {l}</span><span style={{ color:C.text,fontWeight:600 }}>{v}</span>
+                  <span style={{ color:C.muted }}>{ic} {l}</span><span style={{ color:C.text,fontWeight:600,maxWidth:240,textAlign:"right" }}>{v}</span>
                 </div>
               ))}
               <div style={{ display:"flex",gap:8,marginTop:14 }}>
-                <button onClick={()=>{ setEditActivity(selected); setSelected(null); setShowNew(true); }}
-                  style={{ flex:1,padding:"9px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>✏️ Edit</button>
+                {!selected.isEvent && selected.source!=="google" && (
+                  <button onClick={()=>{ setEditActivity(selected); setSelected(null); setShowNew(true); }}
+                    style={{ flex:1,padding:"9px",borderRadius:9,border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:12,fontWeight:600,cursor:"pointer" }}>✏️ Edit</button>
+                )}
                 <button onClick={()=>setSelected(null)} style={{ flex:1,padding:"9px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Close</button>
               </div>
             </div>
@@ -655,8 +685,8 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           <div style={{ padding:"7px 16px 6px",borderBottom:`1px solid ${C.border}`,fontSize:11,fontWeight:700,color:C.muted }}>
             📅 {new Date(cellMenu.date+"T12:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})} · {cellMenu.time}
           </div>
-          {[[`✅ ${t("createTask")}`,()=>setTaskModal({mode:"create",data:{date:cellMenu.date,time:cellMenu.time}})],
-            [`📅 ${t("scheduleAppointment")}`,()=>setApptModal({mode:"create",data:{date:cellMenu.date,time:cellMenu.time}})]].map(([label,fn])=>(
+          {[[`✅ ${t("createTask")||"Create Task"}`,()=>setTaskModal({mode:"create",data:{date:cellMenu.date,time:cellMenu.time}})],
+            [`📅 ${t("scheduleAppointment")||"Schedule Appointment"}`,()=>setApptModal({mode:"create",data:{date:cellMenu.date,time:cellMenu.time}})]].map(([label,fn])=>(
             <div key={label} onClick={()=>{ setCellMenu(null); fn(); }}
               style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",fontSize:13,fontWeight:600,color:C.text }}
               onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
@@ -693,12 +723,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           }
           setShowNew(false);
           setEditActivity(null);
-          // Navigate calendar to the new activity's date so it's immediately visible
-          if(act.date){
-            const d = new Date(act.date+"T12:00");
-            setCurrentDate(d);
-            setSelectedDate(act.date);
-          }
+          if(act.date){ focusDate(act.date); }
         }}/>}
 
       {/* ── Task modal (create / edit / view) ──────────────────────────────── */}
@@ -735,4 +760,3 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     </div>
   );
 };
-
