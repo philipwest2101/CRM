@@ -94,7 +94,7 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
     current, finished, isContact, channels, calls,
     reached: current >= IDX.outcome && !notReached,
     notReached,
-    contactOutcome: null, apptOutcome: null,
+    contactOutcome: null, apptOutcome: null, contactNote: null, apptNote: null,
     negativeOutcome: negative, dnc: status === "dnc",
     networkStatus: alreadyContact ? "Customer" : null,
     appointment: current >= IDX.appointment && !notReached ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
@@ -397,9 +397,10 @@ const CallOutcomeStep = ({ onComplete }) => {
       {sel && NEGATIVE.has(choice) && (
         <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>↩ Ends processing — you can set Do Not Contact in Finalize.</div>
       )}
-      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Briefly describe the conversation outcome…"
+      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>Note (optional)</label>
+      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — briefly describe the conversation outcome…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
-      <PrimaryBtn icon={isAppt ? "📅" : "✓"} disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label)}>
+      <PrimaryBtn icon={isAppt ? "📅" : "✓"} disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>
         {isAppt ? "Schedule & Continue" : "Save & Continue"}
       </PrimaryBtn>
     </>
@@ -546,33 +547,38 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     };
   });
 
-  const onCallOutcome = (v, label) => {
+  const onCallOutcome = (v, label, note = "") => {
+    const noteSuffix = note ? ` — ${note}` : "";
     if (v === "appointment") {
       // "Schedule & Continue" — open the scheduling modal; advance on submit.
+      // The note is carried on state and folded into the outcome summary once booked.
       setState(prev => ({
-        ...prev, contactOutcome: label,
+        ...prev, contactOutcome: label, contactNote: note || null,
         lastAction: { icon: "📅", label: `Call outcome: ${label}`, date: today() },
-        log: pushLog(prev, `Call Outcome → ${label}`),
+        log: pushLog(prev, `Call Outcome → ${label}${noteSuffix}`),
       }));
       setScheduleModalOpen(true);
       return;
     }
     // Negative outcome → skip to Finalize.
     setState(prev => ({
-      ...prev, contactOutcome: label, negativeOutcome: true, current: IDX.finish, doneSteps: withDone(prev, "outcome"),
-      summaries: { ...prev.summaries, outcome: label },
+      ...prev, contactOutcome: label, contactNote: note || null, negativeOutcome: true, current: IDX.finish, doneSteps: withDone(prev, "outcome"),
+      summaries: { ...prev.summaries, outcome: `${label}${noteSuffix}` },
       lastAction: { icon: "🏁", label: `Call outcome: ${label}`, date: today() },
-      log: pushLog(prev, `Call Outcome → ${label} · sent to Finalize`),
+      log: pushLog(prev, `Call Outcome → ${label}${noteSuffix} · sent to Finalize`),
     }));
   };
 
   // From Call Outcome (Appointment Scheduled) → book and advance to Appointment Outcome.
-  const onScheduleFromOutcome = (appt) => setState(prev => ({
-    ...prev, appointment: appt, current: IDX.appointment, doneSteps: withDone(prev, "outcome"),
-    summaries: { ...prev.summaries, outcome: prev.contactOutcome || "Appointment Scheduled" },
-    lastAction: { icon: "📅", label: `Appointment booked · ${appt.date} ${appt.time}`, date: today() },
-    log: pushLog(prev, `Appointment Scheduled → ${appt.type} · ${appt.date} ${appt.time}`),
-  }));
+  const onScheduleFromOutcome = (appt) => setState(prev => {
+    const noteSuffix = prev.contactNote ? ` — ${prev.contactNote}` : "";
+    return {
+      ...prev, appointment: appt, current: IDX.appointment, doneSteps: withDone(prev, "outcome"),
+      summaries: { ...prev.summaries, outcome: `${prev.contactOutcome || "Appointment Scheduled"}${noteSuffix}` },
+      lastAction: { icon: "📅", label: `Appointment booked · ${appt.date} ${appt.time}`, date: today() },
+      log: pushLog(prev, `Appointment Scheduled → ${appt.type} · ${appt.date} ${appt.time}`),
+    };
+  });
 
   // Re-book from within Appointment Outcome (reschedule) — keeps the current step.
   const onRebook = (appt) => setState(prev => ({
@@ -630,8 +636,8 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       finished: false,
     };
     if (idx <= IDX.phone)       { patch.reached = false; patch.notReached = false; patch.calls = Math.max(0, prev.calls - 1); }
-    if (idx <= IDX.outcome)     { patch.contactOutcome = null; patch.appointment = null; }
-    if (idx <= IDX.appointment) { patch.apptOutcome = null; patch.negativeOutcome = false; patch.dnc = false; }
+    if (idx <= IDX.outcome)     { patch.contactOutcome = null; patch.contactNote = null; patch.appointment = null; }
+    if (idx <= IDX.appointment) { patch.apptOutcome = null; patch.apptNote = null; patch.negativeOutcome = false; patch.dnc = false; }
     patch.lastAction = { icon: "↩", label: `Reopened "${STEPS[idx].title}"`, date: today() };
     patch.log = pushLog(prev, `↩ Reopened "${STEPS[idx].title}" for correction`);
     return patch;
