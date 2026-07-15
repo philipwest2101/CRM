@@ -861,7 +861,9 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
       <div style={{ padding: "0 28px 36px" }}>
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        <div style={{ padding: "20px 0 16px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        {/* Row 1: greeting + role-aware Add/Import (kept in the same top-right
+            slot as the GP dashboard so the actions sit consistently). */}
+        <div style={{ padding: "20px 0 0", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.025em", color: C.text, margin: 0 }}>
               {greeting}, {user.firstName}<span style={{ color: C.primary }}>.</span>
@@ -870,27 +872,28 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               {roleLabel} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {/* Role-aware Add / Import (SA: Company Leads only; VD: Lead or Network). */}
-            <ContactActions role={role} navigateTo={navigateTo} view={leadsViewId} />
-            {isVD && (
-              <div title={t("tooltip_vdToggle")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
-                {[["my", t("myDashboard")], ["team", t("teamDashboard")]].map(([key, label], i) => (
-                  <button key={key} onClick={() => setVdView(key)} style={{
-                    padding: "7px 14px", border: "none",
-                    borderLeft: i === 0 ? "none" : `1px solid ${C.border}`,
-                    background: vdView === key ? C.navy : "#fff",
-                    color: vdView === key ? "#fff" : C.muted,
-                    fontSize: 12, fontWeight: vdView === key ? 700 : 500,
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <PeriodTabs period={period} setPeriod={setPeriod} t={t} />
-          </div>
+          {/* Role-aware Add / Import (SA: Company Leads only; VD: Lead or Network). */}
+          <ContactActions role={role} navigateTo={navigateTo} view={leadsViewId} />
+        </div>
+        {/* Row 2: My/Team toggle (VD) + period selector, right-aligned. */}
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, margin: "16px 0", flexWrap: "wrap" }}>
+          {isVD && (
+            <div title={t("tooltip_vdToggle")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
+              {[["my", t("myDashboard")], ["team", t("teamDashboard")]].map(([key, label], i) => (
+                <button key={key} onClick={() => setVdView(key)} style={{
+                  padding: "7px 14px", border: "none",
+                  borderLeft: i === 0 ? "none" : `1px solid ${C.border}`,
+                  background: vdView === key ? C.navy : "#fff",
+                  color: vdView === key ? "#fff" : C.muted,
+                  fontSize: 12, fontWeight: vdView === key ? 700 : 500,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          <PeriodTabs period={period} setPeriod={setPeriod} t={t} />
         </div>
 
         {/* ── KPI row — same KpiCard everywhere so all three roles line up ─── */}
