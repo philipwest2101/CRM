@@ -4,22 +4,27 @@ import { AppointmentModal } from "../appointments/appointment-modal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FEEDBACK & PROCESSING TAB  (controlled)
-// A guided, bottom-to-top stepper that walks an advisor through everything that
+// A guided, top-to-bottom stepper that walks an advisor through everything that
 // happens to a lead — from the first outreach to the final processing outcome.
-// Completed steps collapse below the current one; the current step stays closest
-// to the user (just above the automatic status log).
+// Completed steps stay at the top; the current step follows below them, and the
+// remaining (locked) steps sit underneath.
 //
 // Flow:
 //   1 Send Initial Message  →  2 Call Attempts  →  3 Call Outcome
 //   →  4 Appointment Outcome  →  5 Finalize Process
 //
+// · Send Initial Message is optional — advisors who prefer to call directly can
+//   skip it and go straight to Call Attempts.
 // · Call attempts are capped at 5; the 5th failed attempt sends the lead to
-//   Finalize as "Not Reached".
+//   Finalize as "Not Reached". Advisors are not forced to use all 5 — after the
+//   first attempt they can finalize early ("no further attempts"). If a lead is
+//   unreachable, a ready-made "missed call" message can be copied.
 // · Call Outcome: Appointment Scheduled, Not Interested, Currently Not
 //   Interested, Difficult Case. "Appointment Scheduled" opens the scheduling
 //   modal ("Schedule & Continue"); the negative outcomes skip to Finalize.
 // · Appointment Outcome: Qualified, Reschedule, Attending Event, Not Interested,
 //   Currently Not Interested, Difficult Case. "Reschedule" re-opens scheduling.
+//   An optional note captures details (e.g. a no-show without notice).
 // · Negative outcomes enable a persistent Do-Not-Contact toggle in Finalize.
 // · Conversion happens in Finalize: "Add to My Network" opens the Convert Lead
 //   modal (Network Status: Customer / Prospect / Partner).
@@ -50,10 +55,11 @@ export const FEEDBACK_STEP_LABEL = {
   finish:      "Finalized",
 };
 
+// SMS and WhatsApp share one identical template, so they are offered as a single
+// "SMS / WhatsApp" channel. Email keeps its own (longer) template.
 const CHANNELS = [
-  { key: "sms",      label: "SMS",      button: "Copy & Send as SMS" },
-  { key: "whatsapp", label: "WhatsApp", button: "Copy & Send on WhatsApp" },
-  { key: "email",    label: "Email",    button: "Copy & Send on Email" },
+  { key: "text",  label: "SMS / WhatsApp", button: "Copy for SMS / WhatsApp" },
+  { key: "email", label: "Email",          button: "Copy & Send on Email" },
 ];
 const channelLabel = (k) => CHANNELS.find(c => c.key === k)?.label || k;
 
@@ -78,12 +84,12 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
   const finished = status === "closed";
   const calls   = lead?.attempts || 0;
   const isContact = alreadyContact || status === "appointment" || status === "closed";
-  const channels = { sms: current > 0 ? 1 : 0, whatsapp: 0, email: 0 };
+  const channels = { text: current > 0 ? 1 : 0, email: 0 };
   const doneSteps = notReached ? ["initial", "phone"]
     : negative ? ["initial", "phone", "outcome"]
     : STEPS.slice(0, current).map(s => s.key);
   const log = [{ text: "Lead assigned → status set to New", time: "12:58:29 PM" }];
-  if (current > 0) log.push({ text: "Send Initial Message → Sent via SMS", time: "12:59:05 PM" });
+  if (current > 0) log.push({ text: "Send Initial Message → Sent via SMS / WhatsApp", time: "12:59:05 PM" });
   return {
     current, finished, isContact, channels, calls,
     reached: current >= IDX.outcome && !notReached,
@@ -102,7 +108,7 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
 
 // Derived one-liner for the current stage (used by Overview).
 export const feedbackDetail = (s) => {
-  const msgs = (s.channels.sms || 0) + (s.channels.whatsapp || 0) + (s.channels.email || 0);
+  const msgs = (s.channels.text || 0) + (s.channels.email || 0);
   const step = STEPS[s.current]?.key;
   if (s.notReached) return `Not reached (${s.calls}/${MAX_CALL_ATTEMPTS})`;
   if (s.finished)   return s.apptOutcome || s.contactOutcome || "Processed";
@@ -264,13 +270,17 @@ const OptionChips = ({ options, value, onChange }) => (
 
 // ── Step bodies ───────────────────────────────────────────────────────────────
 const CHANNEL_TEMPLATE = {
-  sms:      "Hi {first}, this is {advisor} from Nordpfeil Finance. Thanks for your interest in a consultation — I'll try to reach you by phone shortly. Feel free to reply with a time that suits you best.",
-  whatsapp: "Hello {first}! 👋 {advisor} here from Nordpfeil Finance. Great to connect — when would be a good moment for a short call about your request?",
-  email:    "Dear {first},\n\nThank you for your interest in a consultation with Nordpfeil Finance. I'd be glad to walk you through the next steps. When would be a convenient time for a brief call?\n\nBest regards,\n{advisor}",
+  // SMS and WhatsApp use one and the same text.
+  text:  "Hi {first}, this is {advisor} from Nordpfeil Finance. Thanks for your interest in a consultation — I'll try to reach you by phone shortly. Feel free to reply with a time that suits you best.",
+  email: "Dear {first},\n\nThank you for your interest in a consultation with Nordpfeil Finance. I'd be glad to walk you through the next steps. When would be a convenient time for a brief call?\n\nBest regards,\n{advisor}",
 };
 
-const SendInitialMessageStep = ({ contact, onSend }) => {
-  const [channel, setChannel] = useState("sms");
+// Ready-made message an advisor can send after failing to reach a lead by phone.
+const MISSED_CALL_TEMPLATE =
+  "Hi {first}, this is {advisor} from Nordpfeil Finance. I tried to call you but couldn't reach you. I'll try again tomorrow — or feel free to reply with a time that suits you best.";
+
+const SendInitialMessageStep = ({ contact, onSend, onSkip }) => {
+  const [channel, setChannel] = useState("text");
   const [copied, setCopied] = useState("");
   const first = (contact?.name || "there").replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ")[0];
   const advisor = contact?.assignee || "your advisor";
@@ -295,7 +305,13 @@ const SendInitialMessageStep = ({ contact, onSend }) => {
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Message Template</div>
         <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{template}</div>
       </div>
-      <PrimaryBtn icon="✓" onClick={() => onSend(channel)}>Mark as Sent &amp; Continue</PrimaryBtn>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <PrimaryBtn icon="✓" onClick={() => onSend(channel)}>Mark as Sent &amp; Continue</PrimaryBtn>
+        <GhostBtn icon="⏭" onClick={onSkip}>Skip — call directly</GhostBtn>
+      </div>
+      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
+        Optional — some advisors prefer to skip the message and call the lead straight away.
+      </div>
     </>
   );
 };
@@ -305,8 +321,13 @@ const CALL_RESULTS = [
   { v: "reached",    label: "Reached",     tone: C.green },
 ];
 // Select the result of a call attempt (correctable), then Save & Continue.
-const CallAttemptsStep = ({ calls, notReached, onLog, onCreateTask }) => {
+const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeEarly, onCreateTask }) => {
   const [sel, setSel] = useState("");
+  const [copied, setCopied] = useState(false);
+  const first = (contact?.name || "there").replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ")[0];
+  const advisor = contact?.assignee || "your advisor";
+  const missedCall = MISSED_CALL_TEMPLATE.replace(/{first}/g, first).replace(/{advisor}/g, advisor);
+  const copyMissed = () => { try { navigator?.clipboard?.writeText?.(missedCall); } catch {} setCopied(true); setTimeout(() => setCopied(false), 1500); };
   return (
     <>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
@@ -327,8 +348,30 @@ const CallAttemptsStep = ({ calls, notReached, onLog, onCreateTask }) => {
       </div>
       {!notReached && (
         <>
+          {/* Couldn't reach the lead? Copy a ready-made "missed call" message. */}
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.light, padding: "12px 14px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted }}>Missed-call message</div>
+              <button onClick={copyMissed} style={{
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                border: `1px solid ${C.border}`, background: "#fff", color: copied ? C.green : C.slate,
+                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              }}>{copied ? "✓ Copied" : "📋 Copy for SMS / WhatsApp"}</button>
+            </div>
+            <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.5 }}>{missedCall}</div>
+          </div>
           <OptionChips options={CALL_RESULTS} value={sel} onChange={setSel} />
-          <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
+            {calls >= 1 && (
+              <GhostBtn icon="🏁" onClick={onFinalizeEarly}>Finalize now — no further attempts</GhostBtn>
+            )}
+          </div>
+          {calls >= 1 && (
+            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
+              You don't have to use all {MAX_CALL_ATTEMPTS} attempts — finalize early if further calls aren't worthwhile.
+            </div>
+          )}
         </>
       )}
     </>
@@ -389,9 +432,10 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Record the outcome of the scheduled appointment.</div>
       <OptionChips options={APPT_OUTCOMES} value={choice} onChange={setChoice} />
       {hint && <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
-      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Briefly describe the appointment outcome…"
+      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>Note (optional)</label>
+      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — e.g. client was a no-show without notice…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
-      <PrimaryBtn icon="✓" disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label)}>Save &amp; Continue</PrimaryBtn>
+      <PrimaryBtn icon="✓" disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>Save &amp; Continue</PrimaryBtn>
     </>
   );
 };
@@ -452,6 +496,25 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       summaries: { ...prev.summaries, initial: "Initial message sent" },
       lastAction: { icon: "✉️", label: `Initial message · ${channelLabel(channel)}`, date: today() },
       log: pushLog(prev, `Send Initial Message → Sent via ${channelLabel(channel)}`),
+    };
+  });
+
+  // Send Initial Message is optional — skip straight to Call Attempts.
+  const onSkipInitial = () => setState(prev => ({
+    ...prev, current: IDX.phone, doneSteps: withDone(prev, "initial"),
+    summaries: { ...prev.summaries, initial: "Skipped — calling directly" },
+    lastAction: { icon: "⏭", label: "Initial message skipped", date: today() },
+    log: pushLog(prev, "Send Initial Message → Skipped (calling directly)"),
+  }));
+
+  // Finalize after any call attempt without exhausting all 5 tries.
+  const onFinalizeEarly = () => setState(prev => {
+    if (prev.notReached || prev.calls < 1) return prev;
+    return {
+      ...prev, notReached: true, current: IDX.finish, doneSteps: withDone(prev, "phone"),
+      summaries: { ...prev.summaries, phone: `Finalized early after ${prev.calls} call attempt${prev.calls !== 1 ? "s" : ""}` },
+      lastAction: { icon: "🏁", label: "Finalized early — no further attempts", date: today() },
+      log: pushLog(prev, `Call Attempts → Finalized early after ${prev.calls} call attempt${prev.calls !== 1 ? "s" : ""} · sent to Finalize`),
     };
   });
 
@@ -518,22 +581,23 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     log: pushLog(prev, `Appointment Scheduled → Re-booked · ${appt.type} · ${appt.date} ${appt.time}`),
   }));
 
-  const onAppointmentOutcome = (v, label) => {
+  const onAppointmentOutcome = (v, label, note = "") => {
     if (v === "reschedule") {
       setState(prev => ({
         ...prev, reschedules: prev.reschedules + 1,
         lastAction: { icon: "🔁", label: "Appointment rescheduled — re-book", date: today() },
-        log: pushLog(prev, "Appointment Outcome → Reschedule — re-opening scheduling"),
+        log: pushLog(prev, `Appointment Outcome → Reschedule — re-opening scheduling${note ? ` · ${note}` : ""}`),
       }));
       setScheduleModalOpen(true);
       return;
     }
+    const noteSuffix = note ? ` — ${note}` : "";
     setState(prev => ({
-      ...prev, apptOutcome: label, current: IDX.finish, doneSteps: withDone(prev, "appointment"),
+      ...prev, apptOutcome: label, apptNote: note || null, current: IDX.finish, doneSteps: withDone(prev, "appointment"),
       negativeOutcome: NEGATIVE.has(v) ? true : prev.negativeOutcome,
-      summaries: { ...prev.summaries, appointment: label },
+      summaries: { ...prev.summaries, appointment: `${label}${noteSuffix}` },
       lastAction: { icon: NEGATIVE.has(v) ? "🏁" : "✅", label: `Appointment: ${label}`, date: today() },
-      log: pushLog(prev, `Appointment Outcome → ${label}`),
+      log: pushLog(prev, `Appointment Outcome → ${label}${noteSuffix}`),
     }));
   };
 
@@ -575,8 +639,8 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
 
   const renderCurrentBody = (step) => {
     switch (step.key) {
-      case "initial":     return <SendInitialMessageStep contact={contact} onSend={onSend} />;
-      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onCreateTask={onCreateTask} />;
+      case "initial":     return <SendInitialMessageStep contact={contact} onSend={onSend} onSkip={onSkipInitial} />;
+      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onFinalizeEarly={onFinalizeEarly} onCreateTask={onCreateTask} />;
       case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
       case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
@@ -587,24 +651,24 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   // Locked (future) steps: those after the current one — empty once we've jumped
   // to Finalize. Completed rows come from the actually-visited steps.
   const future    = STEPS.slice(current + 1);
-  const completed = state.doneSteps.map(k => STEPS.find(s => s.key === k)).filter(Boolean).reverse();
+  const completed = state.doneSteps.map(k => STEPS.find(s => s.key === k)).filter(Boolean);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 2 }}>
-        Steps run from bottom to top — completed steps collapse below, the current step stays closest to you.
+        Steps run from top to bottom — completed steps stay above, the current step follows, and locked steps wait below.
       </div>
 
-      {future.slice().reverse().map(s => <LockedStep key={s.key} num={stepNo(s.key)} title={s.title} />)}
+      {completed.map((s, i) => (
+        <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]}
+          editable={i === completed.length - 1} onReopen={() => setReopenTarget(s.key)} />
+      ))}
 
       <CurrentStepShell num={stepNo(currentStep.key)} title={currentStep.title}>
         {renderCurrentBody(currentStep)}
       </CurrentStepShell>
 
-      {completed.map((s, i) => (
-        <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]}
-          editable={i === 0} onReopen={() => setReopenTarget(s.key)} />
-      ))}
+      {future.map(s => <LockedStep key={s.key} num={stepNo(s.key)} title={s.title} />)}
 
       {scheduleModalOpen && (
         <AppointmentModal
