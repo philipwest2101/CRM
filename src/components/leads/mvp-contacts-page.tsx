@@ -51,9 +51,10 @@ const STAGE_STATUS = {
 // A seeded contact becomes a Network once it has completed the process.
 const isNetworkStatus = (status) => status === "closed";
 
-// Lifecycle is strictly Lead → Network. Ownership is Company or User; Network is
-// always User-owned (Business Definition 5) and excluded from company reporting.
-const LIFECYCLE_OPTIONS  = ["Lead", "Network"];
+// Lifecycle is strictly Lead → Network and is system-managed: it powers the
+// My Network vs. My Leads views and Convert, but is never shown or set in the UI.
+// Ownership is Company or User; Network is always User-owned and excluded from
+// company reporting.
 const OWNERSHIP_OPTIONS  = ["Company", "User"];
 // Stage Status vocabulary is system-defined (not configurable) and depends on
 // the Lifecycle: Lead statuses vs. Network statuses.
@@ -150,7 +151,6 @@ const COLUMNS = {
   website:       { label: "Website",             locked: false, filter: null,        group: "Main Information" },
   assignee:      { label: "Assignee",            locked: false, filter: null,        group: "Main Information" },
   ownership:     { label: "Ownership",           locked: false, filter: "ownership", group: "Main Information" },
-  lifecycle:     { label: "Lifecycle",           locked: false, filter: "lifecycle", group: "Main Information" },
   stageStatus:   { label: "Stage Status",        locked: false, filter: "status",    group: "Main Information" },
   feedback:      { label: "Feedback & Processing",locked: false, filter: "text",      group: "Main Information" },
   lastActivity:  { label: "Last Activity",       locked: false, filter: null,        group: "Main Information" },
@@ -200,7 +200,6 @@ const StagePill = ({ label, tone }) => {
 
 const renderCell = (key, c, isLink?: boolean) => {
   if (key === "name" || key === LINK_COL) return <span style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: isLink ? "underline" : "none", textUnderlineOffset: 2 }}>{c[key]}</span>;
-  if (key === "lifecycle")   return <StagePill label={c.lifecycle} tone={c.lifecycle === "Network" ? C.green : C.slate} />;
   if (key === "ownership")   return <span style={{ fontSize: 13, color: c.ownership === "Company" ? C.text : C.slate }}>{c.ownership}</span>;
   if (key === "stageStatus") return <StagePill label={c.stageStatus} tone={c.tone} />;
   return <span style={{ fontSize: 13, color: C.slate }}>{c[key] ?? "—"}</span>;
@@ -1241,7 +1240,7 @@ const getSystemViews = (role, t?: (key: any) => string) => {
 
 const CUSTOM_VIEWS = [
   { id: "cv1", name: "Custom View 1", filter: "custom1", columns: ["name", "email", "phone", "stageStatus"] },
-  { id: "cv2", name: "Custom View 2", filter: "custom2", columns: ["name", "lifecycle", "accountSource", "create"] },
+  { id: "cv2", name: "Custom View 2", filter: "custom2", columns: ["name", "accountSource", "create"] },
 ];
 
 // ── My Leads view (advisor) — processing-focused table matching the dashboard ──
@@ -1430,7 +1429,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
       if (!val) return true;
       const ft = COLUMNS[k]?.filter;
       const cell = (c[k] ?? "").toString();
-      if (ft === "lifecycle" || ft === "status" || ft === "ownership") return c[k] === val;
+      if (ft === "status" || ft === "ownership") return c[k] === val;
       if (ft === "date") return cell.includes(val.replace(/-/g, "/"));
       return cell.toLowerCase().replace(/\s/g, "").includes(val.toString().toLowerCase().replace(/\s/g, ""));
     }));
@@ -1486,11 +1485,6 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
     const ft = COLUMNS[key].filter;
     const val = filters[key] || "";
     const base = { ...fieldStyle, padding: "7px 10px", fontSize: 12 };
-    if (ft === "lifecycle") return (
-      <select value={val} onChange={e => setF(key, e.target.value)} style={{ ...base, color: val ? C.text : C.muted }}>
-        <option value="">Select lifecycle...</option>{LIFECYCLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    );
     if (ft === "status") return (
       <select value={val} onChange={e => setF(key, e.target.value)} style={{ ...base, color: val ? C.text : C.muted }}>
         <option value="">Select status</option>{STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}

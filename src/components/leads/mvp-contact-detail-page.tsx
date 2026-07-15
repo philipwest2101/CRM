@@ -471,11 +471,6 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{c.name}</span>
-            <span title={isContact ? "In My Network" : "Still a lead — add to My Network in the Finalize step"}
-              style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 20,
-                color: isContact ? C.green : C.slate, background: (isContact ? C.green : C.slate) + "16" }}>
-              {isContact ? (networkStatus || "Network") : "Lead"}
-            </span>
           </div>
           <div style={{ marginTop: 3 }}><Stars n={rating} onChange={setRating} /></div>
         </div>
@@ -517,7 +512,6 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
       <InfoRow icon="📞" label="Phone" value={c.phone} />
       <InfoRow icon="👤" label="Assignee" value={c.assignee} />
       <InfoRow icon="🏷" label="Ownership" value={c.ownership} />
-      <InfoRow icon="📈" label="Lifecycle" value={c.lifecycle} />
       <InfoRow icon="◎" label="Stage Status" value={c.stageStatus} />
       <InfoRow icon="🔗" label="Source" value={c.source} />
       <InfoRow icon="📣" label="Campaign Assignment" value={c.campaign} />
@@ -815,10 +809,8 @@ const InformationTab = ({ c, role }: any) => {
           <EditField label={t("lastName")} value={draft.lastName} onChange={set("lastName")} editing={editing} />
           <EditField label={t("email")} value={draft.email} onChange={set("email")} editing={editing} type="email" />
           <EditField label={t("phone")} value={draft.phone} onChange={set("phone")} editing={editing} />
-          {/* Lifecycle & Stage Status are disabled on the Edit form for all roles.
-              Lifecycle changes only via the Convert action; Stage Status changes
-              are recorded through activities, never edited here. */}
-          <EditField label={<>{t("lifecycleStage")} <InfoTip text={t("tooltip_lifecycle")} /></>} value={draft.lifecycle} editing={false} />
+          {/* Lifecycle is system-managed and not shown. Stage Status is read-only
+              here — it changes through activities, never on this form. */}
           <EditField label={<>{t("stageStatus")} <InfoTip text={t("tooltip_status")} /></>} value={draft.stageStatus} editing={false} />
           <EditField label={t("assignee")} value={draft.assignee} onChange={set("assignee")} editing={false} />
           <div />
