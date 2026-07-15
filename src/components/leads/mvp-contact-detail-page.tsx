@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, LEAD_STAGE_STATUSES, blocksToText } from "../../lib/core";
+import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, stageStatusOptions, blocksToText } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
@@ -66,17 +66,20 @@ const Label = ({ children }) => (
   <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>{children}</label>
 );
 
-// Activities record the Stage Status only. Lifecycle is system-managed (it
-// changes solely via the Convert action), so there is no Lifecycle picker here.
-const StageStatusRow = () => {
+// Activities record the Status only. Lifecycle is system-managed (it changes
+// solely via the Convert action), so there is no Lifecycle picker here. The
+// Status options follow the contact's lifecycle: Network contacts offer the
+// Network vocabulary (Customer / Partner / Prospect), Leads offer Lead statuses.
+const StageStatusRow = ({ lifecycle = "Lead" }) => {
   const [status, setStatus] = useState("");
+  const options = stageStatusOptions(lifecycle);
   return (
     <div style={{ marginBottom: 18 }}>
-      <Label>Stage Status</Label>
+      <Label>Status</Label>
       <select style={status ? fieldStyle : placeholderSelect} value={status}
         onChange={e => setStatus(e.target.value)}>
         <option value="">Select status</option>
-        {LEAD_STAGE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+        {options.map(s => <option key={s} value={s}>{s}</option>)}
       </select>
     </div>
   );
@@ -221,7 +224,7 @@ const EmailModal = ({ contact = null, onClose }) => {
         </div>
       </>)}
       {/* Lifecycle / Status at the bottom of the modal */}
-      <StageStatusRow />
+      <StageStatusRow lifecycle={contact?.lifecycle} />
       <FooterBtns onClose={onClose} label="Send" />
     </ModalShell>
   );
@@ -233,7 +236,7 @@ const EmailModal = ({ contact = null, onClose }) => {
 const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other"];
 
 // ── Log a Call ────────────────────────────────────────────────────────────────
-const LogCallModal = ({ onClose }) => (
+const LogCallModal = ({ onClose, lifecycle }) => (
   <ModalShell icon="📞" title="Log a Call" width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Contact Name/Number *</Label>
@@ -261,13 +264,13 @@ const LogCallModal = ({ onClose }) => (
       <Label>Report Of Call *</Label>
       <textarea defaultValue="Report of call" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
     </div>
-    <StageStatusRow />
+    <StageStatusRow lifecycle={lifecycle} />
     <FooterBtns onClose={onClose} label="Save" />
   </ModalShell>
 );
 
 // ── Log an Email ──────────────────────────────────────────────────────────────
-const LogEmailModal = ({ onClose }) => (
+const LogEmailModal = ({ onClose, lifecycle }) => (
   <ModalShell icon="✉️" title="Log an Email" width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Direction *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Direction</option><option>Sent</option><option>Received</option></select></div>
@@ -279,13 +282,13 @@ const LogEmailModal = ({ onClose }) => (
       <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
     </div>
     <div style={{ marginBottom: 16 }}><Label>Email Report *</Label><textarea placeholder="What was discussed…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} /></div>
-    <StageStatusRow />
+    <StageStatusRow lifecycle={lifecycle} />
     <FooterBtns onClose={onClose} label="Save" />
   </ModalShell>
 );
 
 // ── Log on Appointment ────────────────────────────────────────────────────────
-const LogAppointmentModal = ({ onClose }) => (
+const LogAppointmentModal = ({ onClose, lifecycle }) => (
   <ModalShell icon="📅" title="Log on Appointment" width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Meeting Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Type</option>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select></div>
@@ -297,13 +300,13 @@ const LogAppointmentModal = ({ onClose }) => (
       <div><Label>End *</Label><input type="time" style={placeholderSelect} /></div>
     </div>
     <div style={{ marginBottom: 16 }}><Label>Meeting Report *</Label><textarea placeholder="Meeting report…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} /></div>
-    <StageStatusRow />
+    <StageStatusRow lifecycle={lifecycle} />
     <FooterBtns onClose={onClose} label="Save" />
   </ModalShell>
 );
 
 // ── Offline Log ───────────────────────────────────────────────────────────────
-const OfflineLogModal = ({ onClose }) => (
+const OfflineLogModal = ({ onClose, lifecycle }) => (
   <ModalShell icon="ⓘ" title="Offline Log" width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
@@ -313,7 +316,7 @@ const OfflineLogModal = ({ onClose }) => (
       <Label>Note *</Label>
       <textarea placeholder="Note" style={{ ...fieldStyle, minHeight: 110, resize: "vertical", lineHeight: 1.5 }} />
     </div>
-    <StageStatusRow />
+    <StageStatusRow lifecycle={lifecycle} />
     <FooterBtns onClose={onClose} label="Save" />
   </ModalShell>
 );
@@ -512,7 +515,7 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
       <InfoRow icon="📞" label="Phone" value={c.phone} />
       <InfoRow icon="👤" label="Assignee" value={c.assignee} />
       <InfoRow icon="🏷" label="Ownership" value={c.ownership} />
-      <InfoRow icon="◎" label="Stage Status" value={c.stageStatus} />
+      <InfoRow icon="◎" label="Status" value={c.stageStatus} />
       <InfoRow icon="🔗" label="Source" value={c.source} />
       <InfoRow icon="📣" label="Campaign Assignment" value={c.campaign} />
 
@@ -1444,10 +1447,10 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
       {modal === "email"       && <EmailModal contact={c} onClose={() => setModal(null)} />}
       {modal === "task"        && <CalendarTaskModal onClose={() => setModal(null)} task={{ contact: c.name }} lockContact onSubmit={() => setModal(null)} />}
       {modal === "appointment" && <CalendarAppointmentModal onClose={() => setModal(null)} appt={{ contact: c.name }} role={role} lockContact onSubmit={() => setModal(null)} />}
-      {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} />}
-      {modal === "logemail"    && <LogEmailModal onClose={() => setModal(null)} />}
-      {modal === "logappt"     && <LogAppointmentModal onClose={() => setModal(null)} />}
-      {modal === "offline"     && <OfflineLogModal onClose={() => setModal(null)} />}
+      {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} lifecycle={c.lifecycle} />}
+      {modal === "logemail"    && <LogEmailModal onClose={() => setModal(null)} lifecycle={c.lifecycle} />}
+      {modal === "logappt"     && <LogAppointmentModal onClose={() => setModal(null)} lifecycle={c.lifecycle} />}
+      {modal === "offline"     && <OfflineLogModal onClose={() => setModal(null)} lifecycle={c.lifecycle} />}
     </div>
   );
 };

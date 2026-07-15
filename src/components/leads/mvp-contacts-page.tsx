@@ -151,7 +151,7 @@ const COLUMNS = {
   website:       { label: "Website",             locked: false, filter: null,        group: "Main Information" },
   assignee:      { label: "Assignee",            locked: false, filter: null,        group: "Main Information" },
   ownership:     { label: "Ownership",           locked: false, filter: "ownership", group: "Main Information" },
-  stageStatus:   { label: "Stage Status",        locked: false, filter: "status",    group: "Main Information" },
+  stageStatus:   { label: "Status",              locked: false, filter: "status",    group: "Main Information" },
   feedback:      { label: "Feedback & Processing",locked: false, filter: "text",      group: "Main Information" },
   lastActivity:  { label: "Last Activity",       locked: false, filter: null,        group: "Main Information" },
   create:        { label: "Create Date",         locked: false, filter: null,        group: "Main Information" },
@@ -521,7 +521,7 @@ export const ImportContactsModal = ({ onClose, role, importType = "Lead" }) => {
             <li>Dropdown values (e.g., Gender) must match the predefined options.</li>
             <li>Date fields must use the format YYYY-MM-DD.</li>
             <li>First Name and Last Name are required.</li>
-            <li>Lifecycle Stage, Stage Status, Ownership, Source and Assignee are system-set and are not importable columns — any such columns are ignored.</li>
+            <li>Lifecycle Stage, Status, Ownership, Source and Assignee are system-set and are not importable columns — any such columns are ignored.</li>
           </ul>
         </div>
         <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, marginBottom: 8 }}>Upload your Excel file</div>
@@ -673,7 +673,7 @@ const AddContactPage = ({ role, contactType = "Lead", onCancel, onSave }) => {
             <Field label="Primary Phone"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
           </Grid>
           <Grid>
-            <Field label="Stage Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{typeStatuses.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            <Field label="Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{typeStatuses.map(o => <option key={o}>{o}</option>)}</Select></Field>
             <div />
           </Grid>
           <Grid>

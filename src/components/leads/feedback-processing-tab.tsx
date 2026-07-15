@@ -205,7 +205,7 @@ const ConvertLeadModal = ({ contact, onCancel, onApply }) => {
           Move <b>{contact?.name || "this lead"}</b> to your Network. Ownership stays unchanged and all contact
           information, activities and history are preserved. This cannot be reversed — a Network cannot be converted back to a Lead.
         </div>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Stage Status *</label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Status *</label>
         <select value={status} onChange={e => setStatus(e.target.value)} style={{ ...fieldStyle, color: C.text, marginBottom: 22 }}>
           {NETWORK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>

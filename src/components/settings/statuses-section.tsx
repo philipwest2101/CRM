@@ -94,7 +94,7 @@ export const StatusesSection = ({ role }) => {
     <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8 }}>
       <div>
         <div style={{ fontSize:20,fontWeight:800,color:C.navy,marginBottom:4 }}>🔄 Statuses</div>
-        <div style={{ fontSize:12,color:C.muted }}>Define the lead pipeline: Lifecycle Stages and the Stage Statuses grouped under them.</div>
+        <div style={{ fontSize:12,color:C.muted }}>Define the lead pipeline: Lifecycle Stages and the Statuses grouped under them.</div>
       </div>
       <button onClick={()=>{setShowNewStage(v=>!v);setStageDraft({nameDe:"",nameEn:""});}}
         style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0 }}>

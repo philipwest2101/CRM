@@ -51,7 +51,7 @@ export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
         </div>
 
         <div style={{ marginBottom:18 }}>
-          <label style={lbl}>Stage Status *</label>
+          <label style={lbl}>Status *</label>
           <select value={sStatus} onChange={e=>setSStatus(e.target.value)} style={input}>
             {NETWORK_STAGE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
