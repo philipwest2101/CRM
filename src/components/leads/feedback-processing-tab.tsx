@@ -90,7 +90,7 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
     notReached,
     contactOutcome: null, apptOutcome: null,
     negativeOutcome: negative, dnc: status === "dnc",
-    networkStatus: alreadyContact ? "Network" : null,
+    networkStatus: alreadyContact ? "Customer" : null,
     appointment: current >= IDX.appointment && !notReached ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
     reschedules: 0,
     doneSteps,
@@ -181,25 +181,36 @@ const CurrentStepShell = ({ num, title, children }) => (
   </div>
 );
 
+// Network Stage Status values (system-defined). Lead → Network conversion
+// defaults to the initial value, Customer.
+const NETWORK_STATUSES = ["Customer", "Partner", "Prospect"];
+
 // ── Convert Lead modal ────────────────────────────────────────────────────────
 // Conversion sets Lifecycle = Network. Per the business rules, Ownership is
 // UNCHANGED and the contact's information, activities and history are preserved.
-const ConvertLeadModal = ({ contact, onCancel, onApply }) => (
-  <>
-    <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
-    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
-      <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Convert Lead → Network</div>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 22, lineHeight: 1.5 }}>
-        Move <b>{contact?.name || "this lead"}</b> to your Network. Ownership stays unchanged and all contact
-        information, activities and history are preserved. This cannot be reversed — a Network cannot be converted back to a Lead.
+const ConvertLeadModal = ({ contact, onCancel, onApply }) => {
+  const [status, setStatus] = useState(NETWORK_STATUSES[0]);   // default: Customer
+  return (
+    <>
+      <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Convert Lead → Network</div>
+        <div style={{ fontSize: 13, color: C.slate, marginBottom: 18, lineHeight: 1.5 }}>
+          Move <b>{contact?.name || "this lead"}</b> to your Network. Ownership stays unchanged and all contact
+          information, activities and history are preserved. This cannot be reversed — a Network cannot be converted back to a Lead.
+        </div>
+        <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Stage Status *</label>
+        <select value={status} onChange={e => setStatus(e.target.value)} style={{ ...fieldStyle, color: C.text, marginBottom: 22 }}>
+          {NETWORK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button onClick={() => onApply(status)} style={{ padding: "9px 26px", borderRadius: 9, border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Convert</button>
+        </div>
       </div>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-        <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-        <button onClick={() => onApply("Network")} style={{ padding: "9px 26px", borderRadius: 9, border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Convert</button>
-      </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 // Confirmation dialog (used before a reopen discards later steps).
 const ConfirmDialog = ({ title, message, confirmLabel, danger = false, onCancel, onConfirm }) => (
@@ -408,7 +419,7 @@ const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, ca
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <GhostBtn icon="←" onClick={onBackToDashboard}>Back to Dashboard</GhostBtn>
           {isContact
-            ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ In My Network</span>
+            ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ In My Network · {networkStatus}</span>
             : canConvert
               ? <PrimaryBtn icon="⇪" onClick={onAddToNetwork}>Add to My Network</PrimaryBtn>
               : <span title="Super Admins cannot convert leads to Network" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: C.light, border: `1px solid ${C.border}`, padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>Conversion not permitted for your role</span>}

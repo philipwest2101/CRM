@@ -525,7 +525,7 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
       <InfoRow icon="🏷" label="Ownership" value={c.ownership} />
       <InfoRow icon="📈" label="Lifecycle" value={c.lifecycle} />
       <InfoRow icon="◎" label="Stage Status" value={c.stageStatus} />
-      <InfoRow icon="🔗" label="Lead Source" value={c.source} />
+      <InfoRow icon="🔗" label="Source" value={c.source} />
       <InfoRow icon="📣" label="Campaign Assignment" value={c.campaign} />
 
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
@@ -672,7 +672,7 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
                       <span style={{ fontSize: 12, color: C.muted }}>{n.date}</span>
                     </div>
                     <div style={{ display: "flex", gap: 40 }}>
-                      {[["Created by", n.created], ["Lead Source", n.source], ["Campaign Assignment", n.campaign]].map(([k, v]) => (
+                      {[["Created by", n.created], ["Source", n.source], ["Campaign Assignment", n.campaign]].map(([k, v]) => (
                         <div key={k}>
                           <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{k}</div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{v}</div>
@@ -821,19 +821,11 @@ const InformationTab = ({ c, role }: any) => {
           <EditField label={t("lastName")} value={draft.lastName} onChange={set("lastName")} editing={editing} />
           <EditField label={t("email")} value={draft.email} onChange={set("email")} editing={editing} type="email" />
           <EditField label={t("phone")} value={draft.phone} onChange={set("phone")} editing={editing} />
-          <EditField label={<>{t("lifecycleStage")} <InfoTip text={t("tooltip_lifecycle")} /></>} value={draft.lifecycle} editing={editing} onChange={set("lifecycle")}>
-            {editing && (draft.lifecycle === "Network"
-              // A Network cannot be converted back to a Lead (one-directional).
-              ? <select value="Network" disabled style={editSelectStyle}><option>Network</option></select>
-              : <select value={draft.lifecycle} onChange={e => set("lifecycle")(e.target.value)} style={editSelectStyle}>
-                  {(role === "superadmin" ? ["Lead"] : ["Lead","Network"]).map(o => <option key={o}>{o}</option>)}
-                </select>)}
-          </EditField>
-          <EditField label={<>{t("stageStatus")} <InfoTip text={t("tooltip_status")} /></>} value={draft.stageStatus} editing={editing} onChange={set("stageStatus")}>
-            {editing && <select value={draft.stageStatus} onChange={e => set("stageStatus")(e.target.value)} style={editSelectStyle}>
-              {["New","In Progress","Attempted","Not Reached","Follow-up","Appointment","Closed"].map(o => <option key={o}>{o}</option>)}
-            </select>}
-          </EditField>
+          {/* Lifecycle & Stage Status are disabled on the Edit form for all roles.
+              Lifecycle changes only via the Convert action; Stage Status changes
+              are recorded through activities, never edited here. */}
+          <EditField label={<>{t("lifecycleStage")} <InfoTip text={t("tooltip_lifecycle")} /></>} value={draft.lifecycle} editing={false} />
+          <EditField label={<>{t("stageStatus")} <InfoTip text={t("tooltip_status")} /></>} value={draft.stageStatus} editing={false} />
           <EditField label={t("assignee")} value={draft.assignee} onChange={set("assignee")} editing={false} />
           <div />
           <EditField label={t("product")} value={draft.product} onChange={set("product")} editing={editing} />
@@ -1417,7 +1409,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
     lifecycle: feedback.isContact ? "Network" : "Lead",
     // Network is always User-owned; company reporting only sees Ownership = Company.
     ownership: feedback.isContact ? "User" : "Company",
-    stageStatus: stageStatusLabel(lead?.status),
+    stageStatus: feedback.isContact ? (feedback.networkStatus || "Customer") : stageStatusLabel(lead?.status),
     source: lead?.source || "Landing Page",
     campaign: lead?.campaign || "Webinar – Q1 2026",
   };

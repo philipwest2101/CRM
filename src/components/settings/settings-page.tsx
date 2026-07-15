@@ -48,7 +48,7 @@ export const SettingsPage = ({ role, navigateTo }) => {
   const SECTIONS = [
     { key:"Profile",              icon:"👤" },
     { key:"Labels",               icon:"🏷️" },
-    { key:"Statuses",             icon:"🔄", saOnly:true },
+    // Stage Status / Lifecycle are now system-defined; the config page is removed.
     { key:"Attachments",          icon:"📎" },
     { key:"Notifications",        icon:"🔔" },
     { key:"Email Automation",     icon:"✉️" },

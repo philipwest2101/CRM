@@ -38,14 +38,14 @@ const InfoTip = ({ text }) => {
 // contacts.
 const STAGE_STATUS = {
   open:        { status: "New",            tone: C.green },
-  in_progress: { status: "In Progress",    tone: C.slate },
-  attempted:   { status: "Attempted",      tone: C.slate },
+  in_progress: { status: "In Contact",     tone: C.slate },
+  attempted:   { status: "In Contact",     tone: C.slate },
   not_reached: { status: "Not Reached",    tone: C.red   },
-  followup:    { status: "Follow-up",      tone: C.slate },
+  followup:    { status: "Follow Up",      tone: C.slate },
   appointment: { status: "Appointment",    tone: C.green },
-  closed:      { status: "Closed",         tone: C.green },
+  closed:      { status: "Customer",       tone: C.green },   // converted → Network
   no_interest: { status: "Not Interested", tone: null    },
-  dnc:         { status: "Do Not Contact", tone: null    },
+  dnc:         { status: "Not Interested", tone: null    },
 };
 
 // A seeded contact becomes a Network once it has completed the process.
@@ -54,8 +54,13 @@ const isNetworkStatus = (status) => status === "closed";
 // Lifecycle is strictly Lead → Network. Ownership is Company or User; Network is
 // always User-owned (Business Definition 5) and excluded from company reporting.
 const LIFECYCLE_OPTIONS  = ["Lead", "Network"];
-const OWNERSHIP_OPTIONS   = ["Company", "User"];
-const STATUS_OPTIONS      = ["New", "In Progress", "Attempted", "Not Reached", "Follow-up", "Appointment", "Closed"];
+const OWNERSHIP_OPTIONS  = ["Company", "User"];
+// Stage Status vocabulary is system-defined (not configurable) and depends on
+// the Lifecycle: Lead statuses vs. Network statuses.
+const LEAD_STATUSES    = ["New", "In Contact", "Not Reached", "Not Interested", "Currently Not Interested", "Difficult Case", "Appointment", "Follow Up", "Qualified"];
+const NETWORK_STATUSES = ["Customer", "Partner", "Prospect"];
+const statusOptionsFor = (lifecycle) => (lifecycle === "Network" ? NETWORK_STATUSES : LEAD_STATUSES);
+const STATUS_OPTIONS   = [...LEAD_STATUSES, ...NETWORK_STATUSES];
 
 // deterministic DOB from id so the column has plausible values
 const synthDob = (id) => {
@@ -111,18 +116,18 @@ const toContact = (l) => {
 // Network contacts assigned to the current user) is populated for the demo. The
 // current advisor is "Anna Klein" (GP) or "Thomas Müller" (VD).
 const NETWORK_SEED = [
-  { id: "NW-1", name: "Michael Braun",  phone: "+43 660 1234567", email: "m.braun@email.at",   assignee: "Anna Klein",    stageStatus: "Follow-up" },
-  { id: "NW-2", name: "Sabine Hofer",   phone: "+43 664 2345678", email: "s.hofer@email.at",   assignee: "Anna Klein",    stageStatus: "Appointment" },
-  { id: "NW-3", name: "Georg Steiner",  phone: "+43 699 3456789", email: "g.steiner@email.at", assignee: "Anna Klein",    stageStatus: "New" },
-  { id: "NW-4", name: "Petra Wagner",   phone: "+43 650 4567890", email: "p.wagner@email.at",  assignee: "Thomas Müller", stageStatus: "Follow-up" },
-  { id: "NW-5", name: "Klaus Berger",   phone: "+43 676 5678901", email: "k.berger@email.at",  assignee: "Thomas Müller", stageStatus: "New" },
+  { id: "NW-1", name: "Michael Braun",  phone: "+43 660 1234567", email: "m.braun@email.at",   assignee: "Anna Klein",    stageStatus: "Customer" },
+  { id: "NW-2", name: "Sabine Hofer",   phone: "+43 664 2345678", email: "s.hofer@email.at",   assignee: "Anna Klein",    stageStatus: "Partner" },
+  { id: "NW-3", name: "Georg Steiner",  phone: "+43 699 3456789", email: "g.steiner@email.at", assignee: "Anna Klein",    stageStatus: "Prospect" },
+  { id: "NW-4", name: "Petra Wagner",   phone: "+43 650 4567890", email: "p.wagner@email.at",  assignee: "Thomas Müller", stageStatus: "Customer" },
+  { id: "NW-5", name: "Klaus Berger",   phone: "+43 676 5678901", email: "k.berger@email.at",  assignee: "Thomas Müller", stageStatus: "Prospect" },
 ].map(n => {
   const [first, ...rest] = n.name.split(" ");
   const last = rest.join(" ");
   return {
     ...n, first, last, firstName: first, lastName: last,
     primaryEmail: n.email, lifecycle: "Network", ownership: "User", isCompanyOwned: false,
-    tone: n.stageStatus === "New" || n.stageStatus === "Appointment" ? C.green : C.slate,
+    tone: n.stageStatus === "Customer" ? C.green : C.slate,
     feedback: "—", campaign: "—", dob: synthDob(n.id), gender: synthGender(n.id),
     nationality: synthNationality(n.id), website: "—", create: "—", registration: "—",
     linkedin: "—", accountSource: "Referral", lastActivity: "2026-07-10", assigned: true, gdpr: false,
@@ -153,7 +158,7 @@ const COLUMNS = {
   create:        { label: "Create Date",         locked: false, filter: null,        group: "Main Information" },
   registration:  { label: "Registration Number", locked: false, filter: null,        group: "Main Information" },
   linkedin:      { label: "LinkedIn",            locked: false, filter: null,        group: "Main Information" },
-  accountSource: { label: "Account Source",      locked: false, filter: null,        group: "Main Information" },
+  accountSource: { label: "Source",              locked: false, filter: null,        group: "Main Information" },
 };
 const COLUMN_KEYS = Object.keys(COLUMNS);
 const DEFAULT_COLS = ["name", "primaryEmail", "phone", "dob", "gender", "nationality"];
@@ -441,6 +446,10 @@ const EditViewModal = ({ view, onClose, onApply }) => {
 export const ImportContactsModal = ({ onClose, role }) => {
   const [step, setStep]       = useState("source");
   const [progress, setProgress] = useState(0);
+  // Imported rows all take this Lifecycle. GP/VD default to Network and may
+  // change it; SA imports Leads only (disabled/fixed). Ownership, Assignee,
+  // Source and Stage Status are all system-set from role + chosen Lifecycle.
+  const [importLifecycle, setImportLifecycle] = useState(role === "superadmin" ? "Lead" : "Network");
   const timerRef = useRef(null);
 
   const runImport = () => {
@@ -515,6 +524,7 @@ export const ImportContactsModal = ({ onClose, role }) => {
             <li>Dropdown values (e.g., Gender) must match the predefined options.</li>
             <li>Date fields must use the format YYYY-MM-DD.</li>
             <li>First Name and Last Name are required.</li>
+            <li>Lifecycle Stage, Stage Status, Ownership, Source and Assignee are system-set and are not importable columns — any such columns are ignored.</li>
           </ul>
         </div>
         <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, marginBottom: 8 }}>Upload your Excel file</div>
@@ -533,9 +543,11 @@ export const ImportContactsModal = ({ onClose, role }) => {
             <select style={fieldStyle} defaultValue="Worksheet_1"><option>Worksheet_1</option><option>Worksheet_2</option></select>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Contacts View *</label>
-            <select style={fieldStyle}>
-              {getSystemViews(role).filter(v => v.id !== "assigned" && v.id !== "myleads").map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Lifecycle Stage *</label>
+            <select value={importLifecycle} onChange={e => setImportLifecycle(e.target.value)}
+              disabled={role === "superadmin"}
+              style={{ ...fieldStyle, ...(role === "superadmin" ? { background: C.light, color: C.muted } : {}) }}>
+              {(role === "superadmin" ? ["Lead"] : LIFECYCLE_OPTIONS).map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
         </div>
@@ -609,12 +621,17 @@ const Select = ({ children, ...p }) => <select {...p} style={{ ...fieldStyle, pa
 
 const AddContactPage = ({ role, onCancel, onSave }) => {
   const t = useT();
-  // SA cannot create Network contacts (Rule 16) — restrict the Lifecycle choices.
-  const lifecycleOpts = role === "superadmin" ? ["Lead"] : LIFECYCLE_OPTIONS;
+  // SA can create Leads only → Lifecycle + Stage Status are disabled and fixed to
+  // Lead/New. GP/VD default to Network/Customer (both editable). Source is
+  // system-set to the creation method (Manual Entry) and is not editable.
+  const isSA = role === "superadmin";
+  const lifecycleOpts = isSA ? ["Lead"] : LIFECYCLE_OPTIONS;
+  const defLifecycle = isSA ? "Lead" : "Network";
+  const defStatus = statusOptionsFor(defLifecycle)[0];   // Lead → New, Network → Customer
   const [tab, setTab] = useState("Basic");
   const [f, setF] = useState({
-    first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
-    assignee: "", product: "", productProvider: "", source: "", campaign: "",
+    first: "", last: "", email: "", phone: "", lifecycle: defLifecycle, stageStatus: defStatus,
+    assignee: "", product: "", productProvider: "", source: "Manual Entry", campaign: "",
     gdprConsent: false, gdprDate: "", newsletter: false, newsletterDate: "",
     salutation: "None", addressForm: "Formal", title: "", postTitle: "",
     dob: "", gender: "N/A", maritalStatus: "", numberOfChildren: "",
@@ -670,15 +687,18 @@ const AddContactPage = ({ role, onCancel, onSave }) => {
             <Field label="Primary Phone"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
           </Grid>
           <Grid>
-            <Field label="Lifecycle"><Select value={f.lifecycle} onChange={set("lifecycle")}>{lifecycleOpts.map(o => <option key={o}>{o}</option>)}</Select></Field>
-            <Field label="Stage Status"><Select value={f.stageStatus} onChange={set("stageStatus")}>{STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            <Field label="Lifecycle"><Select value={f.lifecycle} disabled={isSA}
+              onChange={e => { const lc = e.target.value; setF(p => ({ ...p, lifecycle: lc, stageStatus: statusOptionsFor(lc)[0] })); }}>
+              {lifecycleOpts.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            <Field label="Stage Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{statusOptionsFor(f.lifecycle).map(o => <option key={o}>{o}</option>)}</Select></Field>
           </Grid>
           <Grid>
             <Field label="Product"><TextInput value={f.product} onChange={set("product")} placeholder="Product name" /></Field>
             <Field label="Product Provider"><TextInput value={f.productProvider} onChange={set("productProvider")} placeholder="Provider" /></Field>
           </Grid>
           <Grid>
-            <Field label="Lead Source"><TextInput value={f.source} onChange={set("source")} placeholder="e.g. Referral" /></Field>
+            {/* Source is system-set to the creation method and is not editable. */}
+            <Field label="Source"><TextInput value={f.source} disabled readOnly style={{ ...fieldStyle, padding: "11px 13px", background: C.light, color: C.muted }} /></Field>
             <Field label="Campaign Assignment"><TextInput value={f.campaign} onChange={set("campaign")} placeholder="Campaign" /></Field>
           </Grid>
           <Grid>
@@ -1217,18 +1237,20 @@ const TakeOverModal = ({ contacts, vdName, onClose, onTakeOver, t }) => (
 // Build role-specific system views. System views cannot be deleted.
 const getSystemViews = (role, t?: (key: any) => string) => {
   const n = (key: string, fallback: string) => t ? t(key) : fallback;
-  // Columns mirror the matching dashboard sections so the two stay aligned.
-  const MY_NETWORK_COLS = ["name", "phone", "stageStatus", "lastActivity"];              // dashboard "Contact List"
-  const MY_LEADS_COLS   = ["name", "accountSource", "feedback", "stageStatus", "lastActivity"];
-  const ASSIGNED_COLS   = ["name", "assignee", "feedback", "stageStatus", "lastActivity"]; // dashboard "Assigned Leads"
-  const PENDING_COLS    = ["name", "accountSource", "campaign", "lastActivity"];
-  const myNetwork     = { id: "my",       name: n("myNetwork", "My Network"),                filter: "my",       columns: MY_NETWORK_COLS, system: true };
-  const unassigned    = { id: "pending",  name: n("unassignedLeads", "Unassigned Leads"),    filter: "pending",  columns: PENDING_COLS,    system: true };
-  const myLeads       = { id: "myleads",  name: n("myLeads", "My Leads"),                   filter: "myleads",  columns: MY_LEADS_COLS,   system: true };
-  const assignedLeads = { id: "assigned", name: n("assignedLeads", "Assigned Leads"),        filter: "assigned", columns: ASSIGNED_COLS,   system: true };
+  // Column sets follow the "System Views – Revisions & Definitions" spec.
+  const MY_NETWORK_COLS   = ["name", "primaryEmail", "phone", "stageStatus", "lastActivity"];
+  const MY_LEADS_COLS     = ["name", "primaryEmail", "phone", "stageStatus", "feedback"];
+  const ASSIGNED_COLS     = ["name", "assignee", "stageStatus", "feedback", "lastActivity"];
+  const PENDING_COLS      = ["name", "primaryEmail", "phone", "accountSource", "campaign"];        // VD Pending Assignments
+  const SA_UNASSIGNED_COLS = ["name", "primaryEmail", "phone", "assignee", "accountSource", "campaign"]; // SA Unassigned (shows Assignee)
+  const myNetwork     = { id: "my",       name: n("myNetwork", "My Network"),                filter: "my",       columns: MY_NETWORK_COLS,    system: true };
+  const unassigned    = { id: "pending",  name: n("unassignedLeads", "Unassigned Leads"),    filter: "pending",  columns: SA_UNASSIGNED_COLS, system: true };
+  const myLeads       = { id: "myleads",  name: n("myLeads", "My Leads"),                   filter: "myleads",  columns: MY_LEADS_COLS,      system: true };
+  const assignedLeads = { id: "assigned", name: n("assignedLeads", "Assigned Leads"),        filter: "assigned", columns: ASSIGNED_COLS,      system: true };
   const pendingAssign = { id: "pendingA", name: n("pendingAssignmentsView", "Pending Assignments"), filter: "pending", columns: PENDING_COLS, system: true };
 
-  if (role === "superadmin") return [assignedLeads, unassigned];
+  // Default active view on load: SA → Unassigned Leads; GP/VD → My Network.
+  if (role === "superadmin") return [unassigned, assignedLeads];
   if (role === "vd")         return [myNetwork, myLeads, assignedLeads, pendingAssign];
   // gp
   return [myNetwork, myLeads];

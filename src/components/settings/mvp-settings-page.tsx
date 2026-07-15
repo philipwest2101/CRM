@@ -88,15 +88,15 @@ const SEED = {
   ],
 };
 
+// Source, Lifecycle Stage and Stage Status are now system-defined (no longer
+// configurable), so their admin config pages have been removed. The underlying
+// backend/database structure is unchanged.
 const SECTIONS = [
   { key: "products",     label: "Products",        singular: "Product",        kind: "lang"         },
-  { key: "sources",      label: "Lead Sources",    singular: "Lead Source",    kind: "lang"         },
   { key: "campaigns",    label: "Campaigns",       singular: "Campaign",       kind: "lang"         },
   { key: "templates",    label: "Email Templates", singular: "Email Template", kind: "lang"         },
   { key: "attachments",  label: "Attachements",    singular: "Attachement",    kind: "files"        },
   { key: "labels",       label: "Labels",          singular: "Label",          kind: "lang"         },
-  { key: "lifecycle",    label: "Lifecycle Stages",singular: "Lifecycle Stage",kind: "lang"         },
-  { key: "statuses",     label: "Stage Statuses",  singular: "Stage Status",   kind: "lang", parent: true },
   { key: "integrations", label: "Integrations",    singular: "Integration",    kind: "integrations" },
 ];
 
