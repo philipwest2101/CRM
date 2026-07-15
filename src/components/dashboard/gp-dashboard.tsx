@@ -2,6 +2,7 @@ import React, { useState, useMemo, useContext } from "react";
 import { C } from "../../theme";
 import { useT, LangContext } from "../../lib/i18n";
 import { ALL_LEADS } from "../../lib/core";
+import { ContactActions } from "../ui/contact-actions";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const IconNetwork = ({ c }) => (
@@ -73,7 +74,7 @@ const PERIOD_DATA = {
   year:    { network:612, leads:3480, appts:168, tasks:63, records:5840 },
 };
 
-export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks = null, setGpChecks = null, roleLabel = null, toggle = null }) => {
+export const GPDashboard = ({ navigateTo, userName = "Anna Klein", role = "gp", gpChecks = null, setGpChecks = null, roleLabel = null, toggle = null }) => {
   const t = useT();
   const { lang } = useContext(LangContext);
   const firstName = (userName || "").split(" ")[0];
@@ -179,18 +180,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks = nu
             </div>
           </div>
         </div>
-        <div style={{ display:"flex",gap:10 }}>
-          <button onClick={()=>navigateTo("Leads", null, "my", "add")}
-            style={{ display:"inline-flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:9,border:"none",
-              background:C.primary,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>
-            <IconPlus/> {t("addContact")}
-          </button>
-          <button onClick={()=>navigateTo("Leads", null, "my", "import")}
-            style={{ display:"inline-flex",alignItems:"center",gap:7,padding:"9px 16px",borderRadius:9,
-              border:`1px solid ${C.border}`,background:"#fff",color:C.slate,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit" }}>
-            <IconImport/> {t("import")}
-          </button>
-        </div>
+        <ContactActions role={role} navigateTo={navigateTo} view="my" />
       </div>
 
       {/* ── Period Selector (+ optional My/Team toggle for VD) ─────────────── */}

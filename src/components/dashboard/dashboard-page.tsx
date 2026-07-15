@@ -19,7 +19,7 @@ export const DashboardPage = ({
   setActivities,
   appointments = APPOINTMENTS,
 }) => {
-  if (role === "gp") return <GPDashboard navigateTo={navigateTo} userName={ROLE_NAME.gp} />;
+  if (role === "gp") return <GPDashboard navigateTo={navigateTo} userName={ROLE_NAME.gp} role="gp" />;
   return version === "mvp"
     ? <MVPDashboardPage role={role} navigateTo={navigateTo} leads={leads} activities={activities} setActivities={setActivities} appointments={appointments} />
     : <FullDashboardPage role={role} navigateTo={navigateTo} />;

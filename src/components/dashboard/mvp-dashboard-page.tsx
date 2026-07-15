@@ -3,6 +3,7 @@ import { C } from "../../theme";
 import { PRIORITY_META, DONE_STATUSES, MEETING_TYPE_META, feedbackStatusLabel } from "../../lib/core";
 import { useT } from "../../lib/i18n";
 import { GPDashboard } from "./gp-dashboard";
+import { ContactActions } from "../ui/contact-actions";
 
 // ── Dashboard assignee list ───────────────────────────────────────────────────
 const DASH_USERS = [
@@ -851,7 +852,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     </div>
   );
   if (isVD && vdView === "my") {
-    return <GPDashboard navigateTo={navigateTo} userName={userName} roleLabel={t("salesDirector")} toggle={vdToggle} />;
+    return <GPDashboard navigateTo={navigateTo} userName={userName} role="vd" roleLabel={t("salesDirector")} toggle={vdToggle} />;
   }
 
   return (
@@ -870,6 +871,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {/* Role-aware Add / Import (SA: Company Leads only; VD: Lead or Network). */}
+            <ContactActions role={role} navigateTo={navigateTo} view={leadsViewId} />
             {isVD && (
               <div title={t("tooltip_vdToggle")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
                 {[["my", t("myDashboard")], ["team", t("teamDashboard")]].map(([key, label], i) => (

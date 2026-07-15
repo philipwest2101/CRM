@@ -1385,12 +1385,17 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
   const startAdd = (type) => { setAddType(type); setAddMenuOpen(false); setMode("add"); };
   const startImport = (type) => { setImportType(type); setImportMenuOpen(false); setShowImport(true); };
 
-  // Consume a one-shot action requested by the caller (e.g. the dashboard's
-  // "Add Contact" / "Import" buttons) so they behave like this page's own buttons.
+  // Consume a one-shot action requested by the caller (e.g. a dashboard's
+  // "Add Lead" / "Import Network" buttons) so they behave like this page's own
+  // buttons. The action encodes the chosen type: "add:Lead" / "import:Network".
+  // SA can create Leads only, so any type is clamped to Lead for that role.
   React.useEffect(() => {
-    if (initialAction === "add")    setMode("add");
-    if (initialAction === "import") setShowImport(true);
-    if (initialAction) clearInitialAction && clearInitialAction();
+    if (!initialAction) return;
+    const [act, rawType] = String(initialAction).split(":");
+    const type = (role === "superadmin" || role === "manager") ? "Lead" : (rawType || "Lead");
+    if (act === "add")    { setAddType(type); setMode("add"); }
+    if (act === "import") { setImportType(type); setShowImport(true); }
+    clearInitialAction && clearInitialAction();
   }, []);
   const [showBulk, setShowBulk]     = useState(false);   // Send Bulk Email modal
   const [showAssign, setShowAssign] = useState(false);   // Bulk Assign modal
