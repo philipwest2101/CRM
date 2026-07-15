@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, LIFECYCLE_OPTIONS, stageStatusOptions, blocksToText } from "../../lib/core";
+import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, LEAD_STAGE_STATUSES, blocksToText } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
@@ -66,31 +66,18 @@ const Label = ({ children }) => (
   <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>{children}</label>
 );
 
-// Lifecycle and Stage Status are system-defined (Lead → Network, with
-// lifecycle-dependent Stage Status). The Stage Status options follow the
-// selected Lifecycle.
+// Activities record the Stage Status only. Lifecycle is system-managed (it
+// changes solely via the Convert action), so there is no Lifecycle picker here.
 const StageStatusRow = () => {
-  const [lifecycle, setLifecycle] = useState("");
   const [status, setStatus] = useState("");
-  const statuses = stageStatusOptions(lifecycle);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
-      <div>
-        <Label>Lifecycle</Label>
-        <select style={lifecycle ? fieldStyle : placeholderSelect} value={lifecycle}
-          onChange={e => { setLifecycle(e.target.value); setStatus(""); }}>
-          <option value="">Select Lifecycle</option>
-          {LIFECYCLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-      </div>
-      <div>
-        <Label>Stage Status</Label>
-        <select style={status ? fieldStyle : placeholderSelect} value={status} disabled={!lifecycle}
-          onChange={e => setStatus(e.target.value)}>
-          <option value="">Select status</option>
-          {(lifecycle ? statuses : []).map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </div>
+    <div style={{ marginBottom: 18 }}>
+      <Label>Stage Status</Label>
+      <select style={status ? fieldStyle : placeholderSelect} value={status}
+        onChange={e => setStatus(e.target.value)}>
+        <option value="">Select status</option>
+        {LEAD_STAGE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+      </select>
     </div>
   );
 };

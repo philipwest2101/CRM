@@ -59,7 +59,6 @@ const OWNERSHIP_OPTIONS  = ["Company", "User"];
 // the Lifecycle: Lead statuses vs. Network statuses.
 const LEAD_STATUSES    = ["New", "In Contact", "Not Reached", "Not Interested", "Currently Not Interested", "Difficult Case", "Appointment", "Follow Up", "Qualified"];
 const NETWORK_STATUSES = ["Customer", "Partner", "Prospect"];
-const statusOptionsFor = (lifecycle) => (lifecycle === "Network" ? NETWORK_STATUSES : LEAD_STATUSES);
 const STATUS_OPTIONS   = [...LEAD_STATUSES, ...NETWORK_STATUSES];
 
 // deterministic DOB from id so the column has plausible values
@@ -446,10 +445,9 @@ const EditViewModal = ({ view, onClose, onApply }) => {
 export const ImportContactsModal = ({ onClose, role }) => {
   const [step, setStep]       = useState("source");
   const [progress, setProgress] = useState(0);
-  // Imported rows all take this Lifecycle. GP/VD default to Network and may
-  // change it; SA imports Leads only (disabled/fixed). Ownership, Assignee,
-  // Source and Stage Status are all system-set from role + chosen Lifecycle.
-  const [importLifecycle, setImportLifecycle] = useState(role === "superadmin" ? "Lead" : "Network");
+  // Imported rows are always created as Leads (Lifecycle is system-managed and
+  // only changes to Network via Convert). Ownership, Assignee, Source and Stage
+  // Status are all system-set.
   const timerRef = useRef(null);
 
   const runImport = () => {
@@ -537,19 +535,9 @@ export const ImportContactsModal = ({ onClose, role }) => {
           <span style={{ fontSize: 12, fontWeight: 600, color: C.green, display: "flex", alignItems: "center", gap: 5 }}>✓ Ready to Import</span>
           <button onClick={() => setStep("source")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: C.muted }}>×</button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 8 }}>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Worksheet *</label>
-            <select style={fieldStyle} defaultValue="Worksheet_1"><option>Worksheet_1</option><option>Worksheet_2</option></select>
-          </div>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Lifecycle Stage *</label>
-            <select value={importLifecycle} onChange={e => setImportLifecycle(e.target.value)}
-              disabled={role === "superadmin"}
-              style={{ ...fieldStyle, ...(role === "superadmin" ? { background: C.light, color: C.muted } : {}) }}>
-              {(role === "superadmin" ? ["Lead"] : LIFECYCLE_OPTIONS).map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>Worksheet *</label>
+          <select style={fieldStyle} defaultValue="Worksheet_1"><option>Worksheet_1</option><option>Worksheet_2</option></select>
         </div>
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 22 }}>Columns detected: 5 &nbsp;|&nbsp; Rows detected: 1,000</div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
@@ -621,16 +609,13 @@ const Select = ({ children, ...p }) => <select {...p} style={{ ...fieldStyle, pa
 
 const AddContactPage = ({ role, onCancel, onSave }) => {
   const t = useT();
-  // SA can create Leads only → Lifecycle + Stage Status are disabled and fixed to
-  // Lead/New. GP/VD default to Network/Customer (both editable). Source is
-  // system-set to the creation method (Manual Entry) and is not editable.
+  // Lifecycle is system-managed: every new contact is created as a Lead and only
+  // becomes a Network through the Convert action, so there is no Lifecycle picker
+  // here. Stage Status uses the Lead vocabulary; SA creates Leads fixed to New.
   const isSA = role === "superadmin";
-  const lifecycleOpts = isSA ? ["Lead"] : LIFECYCLE_OPTIONS;
-  const defLifecycle = isSA ? "Lead" : "Network";
-  const defStatus = statusOptionsFor(defLifecycle)[0];   // Lead → New, Network → Customer
   const [tab, setTab] = useState("Basic");
   const [f, setF] = useState({
-    first: "", last: "", email: "", phone: "", lifecycle: defLifecycle, stageStatus: defStatus,
+    first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
     assignee: "", product: "", productProvider: "", source: "Manual Entry", campaign: "",
     gdprConsent: false, gdprDate: "", newsletter: false, newsletterDate: "",
     salutation: "None", addressForm: "Formal", title: "", postTitle: "",
@@ -687,10 +672,8 @@ const AddContactPage = ({ role, onCancel, onSave }) => {
             <Field label="Primary Phone"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
           </Grid>
           <Grid>
-            <Field label="Lifecycle"><Select value={f.lifecycle} disabled={isSA}
-              onChange={e => { const lc = e.target.value; setF(p => ({ ...p, lifecycle: lc, stageStatus: statusOptionsFor(lc)[0] })); }}>
-              {lifecycleOpts.map(o => <option key={o}>{o}</option>)}</Select></Field>
-            <Field label="Stage Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{statusOptionsFor(f.lifecycle).map(o => <option key={o}>{o}</option>)}</Select></Field>
+            <Field label="Stage Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{LEAD_STATUSES.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            <div />
           </Grid>
           <Grid>
             <Field label="Product"><TextInput value={f.product} onChange={set("product")} placeholder="Product name" /></Field>

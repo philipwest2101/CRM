@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LIFECYCLE_OPTIONS, STAGE_OPTIONS } from "../../lib/core";
+import { LEAD_STAGE_STATUSES } from "../../lib/core";
 import { C } from "../../theme";
 
 // Appointment Outcome modal (matches the "Appointment Outcome" wireframe)
@@ -12,11 +12,11 @@ const MEETING_STATUS = ["Completed", "No-show", "Rescheduled", "Cancelled"];
 export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
   const [status,  setStatus]  = useState("");
   const [report,  setReport]  = useState("");
-  const [stage,   setStage]   = useState(LIFECYCLE_OPTIONS[0] || "");
-  const [sStatus, setSStatus] = useState((STAGE_OPTIONS[LIFECYCLE_OPTIONS[0]] || [])[0] || "");
+  // Activities record Stage Status only; Lifecycle never changes here (it changes
+  // solely via the Convert action). Options use the Lead vocabulary.
+  const [sStatus, setSStatus] = useState(LEAD_STAGE_STATUSES[0] || "");
 
-  const stageStatuses = STAGE_OPTIONS[stage] || [];
-  const canSave = !!status && !!stage && !!sStatus;
+  const canSave = !!status && !!sStatus;
 
   return (
     <>
@@ -50,24 +50,16 @@ export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
             style={{ ...input, minHeight:90, resize:"none", lineHeight:1.5 }}/>
         </div>
 
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:18 }}>
-          <div>
-            <label style={lbl}>Lifecycle Stage *</label>
-            <select value={stage} onChange={e=>{ setStage(e.target.value); setSStatus((STAGE_OPTIONS[e.target.value]||[])[0]||""); }} style={input}>
-              {LIFECYCLE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={lbl}>Stage Status *</label>
-            <select value={sStatus} onChange={e=>setSStatus(e.target.value)} style={input}>
-              {stageStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
+        <div style={{ marginBottom:18 }}>
+          <label style={lbl}>Stage Status *</label>
+          <select value={sStatus} onChange={e=>setSStatus(e.target.value)} style={input}>
+            {LEAD_STAGE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
 
         <div style={{ display:"flex", gap:10 }}>
           <button onClick={onClose} style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:13, fontWeight:600, cursor:"pointer" }}>Cancel</button>
-          <button onClick={()=>canSave && onSave && onSave({ status, report, stage, stageStatus:sStatus })} disabled={!canSave}
+          <button onClick={()=>canSave && onSave && onSave({ status, report, stageStatus:sStatus })} disabled={!canSave}
             style={{ flex:2, padding:"10px", borderRadius:9, border:"none", background:canSave?C.primary:"#E2E8F0", color:canSave?"#fff":C.muted, fontSize:13, fontWeight:700, cursor:canSave?"pointer":"default" }}>
             Save Outcome
           </button>

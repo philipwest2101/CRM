@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Avatar } from "../ui/avatar";
-import { AI_BEST_TIMES, AI_CALL_SCRIPTS, AI_SCORES, CALL_STATUS_OPTIONS, LIFECYCLE_OPTIONS, LIFECYCLE_STORE, SCORE_TIER, STAGE_OPTIONS, callClaudeAPI } from "../../lib/core";
+import { AI_BEST_TIMES, AI_CALL_SCRIPTS, AI_SCORES, CALL_STATUS_OPTIONS, LEAD_STAGE_STATUSES, SCORE_TIER, callClaudeAPI } from "../../lib/core";
 import { C } from "../../theme";
 
 export const OutboundCallModal = ({ lead, onClose, onWorkflow }) => {
@@ -9,7 +9,8 @@ export const OutboundCallModal = ({ lead, onClose, onWorkflow }) => {
   const [elapsed, setElapsed]     = useState(0);
   const [callStatus, setCallStatus] = useState("");
   const [callReport, setCallReport] = useState("");
-  const [lifecycle, setLifecycle] = useState("");
+  // Logging a call records the Stage Status only; Lifecycle is system-managed and
+  // never changes here (it changes solely via Convert).
   const [stageStatus, setStageStatus] = useState("");
   const [saved, setSaved]         = useState(false);
 
@@ -34,8 +35,7 @@ export const OutboundCallModal = ({ lead, onClose, onWorkflow }) => {
     const systemPrompt = `You are an AI assistant embedded in vion CRM. Analyse this sales call and return ONLY valid JSON with these exact keys:
 {
   "callStatus": one of ${JSON.stringify(CALL_STATUS_OPTIONS)},
-  "lifecycle": one of ${JSON.stringify(LIFECYCLE_OPTIONS)},
-  "stageStatus": string matching a stage for the chosen lifecycle,
+  "stageStatus": one of ${JSON.stringify(LEAD_STAGE_STATUSES)},
   "reportImproved": string — a professional, concise version of the call report (1–3 sentences max, third person, no filler words),
   "confidence": number 0–100,
   "reasoning": string — one sentence explaining the classification
@@ -48,9 +48,9 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
     callClaudeAPI(systemPrompt, "Analyse this call and return your suggestion JSON.")
       .then(raw => {
         try   { setSuggestions(JSON.parse(raw.replace(/```json|```/g,"").trim())); }
-        catch { setSuggestions({ callStatus: lead.attempts>=3?"Not Reached – No Answer":"Reached – Interested", lifecycle:"Lead", stageStatus:"Appointment", reportImproved:`Advisor reached ${lead.name} via ${lead.source}. Contact expressed interest in ${lead.campaign} and requested a follow-up appointment.`, confidence:82, reasoning:`Contact source (${lead.source}) and campaign (${lead.campaign}) indicate high intent.` }); }
+        catch { setSuggestions({ callStatus: lead.attempts>=3?"Not Reached – No Answer":"Reached – Interested", stageStatus:"Appointment", reportImproved:`Advisor reached ${lead.name} via ${lead.source}. Contact expressed interest in ${lead.campaign} and requested a follow-up appointment.`, confidence:82, reasoning:`Contact source (${lead.source}) and campaign (${lead.campaign}) indicate high intent.` }); }
       })
-      .catch(() => setSuggestions({ callStatus:"Reached – Interested", lifecycle:"Lead", stageStatus:"Appointment", reportImproved:`Reached ${lead.name}. Contact interested in ${lead.campaign}. Follow-up appointment scheduled.`, confidence:78, reasoning:"Inferred from contact profile and campaign context." }))
+      .catch(() => setSuggestions({ callStatus:"Reached – Interested", stageStatus:"Appointment", reportImproved:`Reached ${lead.name}. Contact interested in ${lead.campaign}. Follow-up appointment scheduled.`, confidence:78, reasoning:"Inferred from contact profile and campaign context." }))
       .finally(() => setSugLoading(false));
   }, [phase]);
 
@@ -58,7 +58,6 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
   const handleAccept = () => {
     if (!suggestions) return;
     setCallStatus(suggestions.callStatus);
-    setLifecycle(suggestions.lifecycle);
     setStageStatus(suggestions.stageStatus);
     setCallReport(suggestions.reportImproved);
     setAiDismissed(true);
@@ -161,7 +160,7 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
               </div>
               {suggestions&&!sugLoading&&(<>
                 <div style={{ background:"#fff" }}>
-                  {[["Call Status",suggestions.callStatus],["Lifecycle",suggestions.lifecycle],["Stage Status",suggestions.stageStatus]].map(([label,value],i)=>(
+                  {[["Call Status",suggestions.callStatus],["Stage Status",suggestions.stageStatus]].map(([label,value],i)=>(
                     <div key={label} style={{ display:"flex",alignItems:"center",gap:12,padding:"5px 14px",borderBottom:`1px solid ${C.border}` }}>
                       <div style={{ fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",width:80,flexShrink:0 }}>{label}</div>
                       <div style={{ fontSize:12,fontWeight:600,color:C.text }}>{value}</div>
@@ -210,38 +209,20 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
                 resize:"vertical",boxSizing:"border-box",lineHeight:1.6,outline:"none",background:"#fff" }}/>
           </div>
 
-          {/* ── Lifecycle Stage + Stage Status ── */}
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:22 }}>
-            <div>
-              <div style={{ marginBottom:6 }}>
-                <label style={{ fontSize:12,fontWeight:600,color:C.slate }}>
-                  Lifecycle Stage <span style={{ color:C.red }}>*</span>
-                </label>
-                </div>
-              <div style={{ position:"relative" }}>
-                <select value={lifecycle} onChange={e=>{setLifecycle(e.target.value);setStageStatus("");}}
-                  style={{ width:"100%",padding:"10px 14px",borderRadius:9,border:`1.5px solid ${C.border}`,background:"#fff",fontSize:12,color:lifecycle?C.text:C.muted,cursor:"pointer",appearance:"none",fontFamily:"inherit",outline:"none" }}>
-                  <option value="">Select stage</option>
-                  {LIFECYCLE_OPTIONS.map(o=><option key={o} value={o}>{o}</option>)}
-                </select>
-                <div style={{ position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",color:C.muted,fontSize:11 }}>▼</div>
-              </div>
+          {/* ── Stage Status (Lifecycle is system-managed, not set here) ── */}
+          <div style={{ marginBottom:22 }}>
+            <div style={{ marginBottom:6 }}>
+              <label style={{ fontSize:12,fontWeight:600,color:C.slate }}>
+                Stage Status <span style={{ color:C.red }}>*</span>
+              </label>
             </div>
-            <div>
-              <div style={{ marginBottom:6 }}>
-                <label style={{ fontSize:12,fontWeight:600,color:C.slate }}>
-                  Stage Status <span style={{ color:C.red }}>*</span>
-                </label>
-                </div>
-              <div style={{ position:"relative" }}>
-                <select value={stageStatus} onChange={e=>setStageStatus(e.target.value)}
-                  disabled={!lifecycle}
-                  style={{ width:"100%",padding:"10px 14px",borderRadius:9,border:`1.5px solid ${C.border}`,background:!lifecycle?"#F8FAFC":"#fff",fontSize:12,color:stageStatus?C.text:C.muted,cursor:lifecycle?"pointer":"default",appearance:"none",fontFamily:"inherit",outline:"none",opacity:lifecycle?1:0.6 }}>
-                  <option value="">Select status</option>
-                  {(STAGE_OPTIONS[lifecycle]||[]).map(o=><option key={o} value={o}>{o}</option>)}
-                </select>
-                <div style={{ position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",color:C.muted,fontSize:11 }}>▼</div>
-              </div>
+            <div style={{ position:"relative" }}>
+              <select value={stageStatus} onChange={e=>setStageStatus(e.target.value)}
+                style={{ width:"100%",padding:"10px 14px",borderRadius:9,border:`1.5px solid ${C.border}`,background:"#fff",fontSize:12,color:stageStatus?C.text:C.muted,cursor:"pointer",appearance:"none",fontFamily:"inherit",outline:"none" }}>
+                <option value="">Select status</option>
+                {LEAD_STAGE_STATUSES.map(o=><option key={o} value={o}>{o}</option>)}
+              </select>
+              <div style={{ position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",color:C.muted,fontSize:11 }}>▼</div>
             </div>
           </div>
 
@@ -301,12 +282,12 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
                       }
                       setSaved(true); setTimeout(()=>onClose(), 1400);
                     }}
-                    disabled={!callStatus||!callReport.trim()||!lifecycle||!stageStatus}
+                    disabled={!callStatus||!callReport.trim()||!stageStatus}
                     style={{ padding:"10px 24px",borderRadius:9,border:"none",
-                      background:callStatus&&callReport.trim()&&lifecycle&&stageStatus?C.green:"#E2E8F0",
-                      color:callStatus&&callReport.trim()&&lifecycle&&stageStatus?"#fff":C.muted,
+                      background:callStatus&&callReport.trim()&&stageStatus?C.green:"#E2E8F0",
+                      color:callStatus&&callReport.trim()&&stageStatus?"#fff":C.muted,
                       fontSize:13,fontWeight:700,
-                      cursor:callStatus&&callReport.trim()&&lifecycle&&stageStatus?"pointer":"default" }}>
+                      cursor:callStatus&&callReport.trim()&&stageStatus?"pointer":"default" }}>
                     ✓ Done
                   </button>
                 </>
