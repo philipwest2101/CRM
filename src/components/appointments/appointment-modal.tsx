@@ -145,10 +145,21 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.5 }}>{f.note}</div>
               </div>
             )}
+            {/* A Lead is worked only in its Processing & Feedback tab, so its
+                appointment is read-only here. Cancel / Set Outcome are available
+                for Network contacts only. */}
             <div style={{ display:"flex", alignItems:"center", marginTop:20, gap:10 }}>
-              <button onClick={()=>onCancelAppt&&onCancelAppt(f)} style={{ background:"none", border:"none", color:C.red, fontSize:12, fontWeight:700, cursor:"pointer", padding:0 }}>Cancel Appointment</button>
-              <button onClick={()=>onSetOutcome&&onSetOutcome(f)}
-                style={{ marginLeft:"auto", padding:"9px 22px", borderRadius:9, border:"none", background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>Set Outcome</button>
+              {f.lifecycle === "Network" ? (
+                <>
+                  <button onClick={()=>onCancelAppt&&onCancelAppt(f)} style={{ background:"none", border:"none", color:C.red, fontSize:12, fontWeight:700, cursor:"pointer", padding:0 }}>Cancel Appointment</button>
+                  <button onClick={()=>onSetOutcome&&onSetOutcome(f)}
+                    style={{ marginLeft:"auto", padding:"9px 22px", borderRadius:9, border:"none", background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>Set Outcome</button>
+                </>
+              ) : (
+                <div style={{ fontSize:12, color:C.muted, lineHeight:1.5 }}>
+                  This appointment belongs to a Lead — manage it from the lead's <b>Processing &amp; Feedback</b> tab.
+                </div>
+              )}
             </div>
           </div>
         ) : (

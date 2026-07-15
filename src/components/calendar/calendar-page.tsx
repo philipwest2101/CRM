@@ -173,7 +173,8 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     if (a.isEvent || a.source==="google") { setSelected(a); return; }   // events + Google are read-only → detail panel
     if (isAppt(a)) {
       setApptModal({ mode:"view", data:{
-        id:a.id, title:a.title, contact:a.lead, apptType:a.apptType||"Consultation Appointment",
+        id:a.id, title:a.title, contact:a.lead, leadId:a.leadId, lifecycle:a.lifecycle||"Lead",
+        apptType:a.apptType||"Consultation Appointment",
         date:a.date, time:a.time, end:a.end, location:a.location, attendees:a.attendees,
         attachment:a.attachment, attachments:a.attachments,
         reminder:a.reminder, reminderCustom:a.reminderCustom, note:a.note, reminderOn:true }});

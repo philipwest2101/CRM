@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LEAD_STAGE_STATUSES } from "../../lib/core";
+import { NETWORK_STAGE_STATUSES } from "../../lib/core";
 import { C } from "../../theme";
 
 // Appointment Outcome modal (matches the "Appointment Outcome" wireframe)
@@ -12,9 +12,9 @@ const MEETING_STATUS = ["Completed", "No-show", "Rescheduled", "Cancelled"];
 export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
   const [status,  setStatus]  = useState("");
   const [report,  setReport]  = useState("");
-  // Activities record Stage Status only; Lifecycle never changes here (it changes
-  // solely via the Convert action). Options use the Lead vocabulary.
-  const [sStatus, setSStatus] = useState(LEAD_STAGE_STATUSES[0] || "");
+  // Set Outcome is a Network-only action (Lead appointments are worked in the
+  // Processing & Feedback tab), so Stage Status uses the Network vocabulary.
+  const [sStatus, setSStatus] = useState(NETWORK_STAGE_STATUSES[0] || "");
 
   const canSave = !!status && !!sStatus;
 
@@ -53,7 +53,7 @@ export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
         <div style={{ marginBottom:18 }}>
           <label style={lbl}>Stage Status *</label>
           <select value={sStatus} onChange={e=>setSStatus(e.target.value)} style={input}>
-            {LEAD_STAGE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            {NETWORK_STAGE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
 

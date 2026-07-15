@@ -820,6 +820,9 @@ export const APPOINTMENTS = [
   { id:"A-405", date:"2026-07-01", start:"11:00", end:"11:30", type:"call",     apptType:"Recruiting", lead:"Michael Stein",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Messe FFM contact" },
   { id:"A-406", date:"2026-07-01", start:"14:30", end:"15:15", type:"video",    apptType:"Investment Talk", lead:"Eva Gruber",      leadId:"L-2015", gp:"Thomas Müller", vd:"Thomas Müller", status:"confirmed", notes:"VD direct — contract review, partner referral" },
   { id:"A-407", date:"2026-07-01", start:"16:00", end:"16:45", type:"inperson", apptType:"Business Opening", lead:"Stefan Wolf",     leadId:"L-2017", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Q3 planning & cross-sell" },
+  // ── Network appointments (converted contacts — actionable in the Calendar) ──
+  { id:"A-501", date:"2026-07-01", start:"09:30", end:"10:00", type:"call",     apptType:"Consultation Appointment", lead:"Michael Braun",  leadId:"NW-1", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Network review — portfolio check-in", lifecycle:"Network" },
+  { id:"A-502", date:"2026-07-01", start:"13:00", end:"13:45", type:"video",    apptType:"Investment Talk", lead:"Sabine Hofer",   leadId:"NW-2", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Partner sync — referral opportunities", lifecycle:"Network" },
 ];
 
 
@@ -831,6 +834,9 @@ export let ACTIVITIES_STORE = [
     title: a.lead, lead: a.lead, leadId: a.leadId,
     date: a.date, time: a.start, end: a.end,
     gp: a.gp, vd: a.vd, status: a.status,
+    // Contact's Lifecycle. Lead appointments are read-only in the Calendar
+    // (worked only in Processing & Feedback); Network appointments are actionable.
+    lifecycle: a.lifecycle || "Lead",
     priority: "normal", note: a.notes||"",
     recur: "Once", channels: ["push","inapp"],
     entityType: "appointment", category: "appointment",
