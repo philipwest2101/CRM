@@ -441,12 +441,12 @@ const EditViewModal = ({ view, onClose, onApply }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // IMPORT WIZARD
 // ─────────────────────────────────────────────────────────────────────────────
-export const ImportContactsModal = ({ onClose, role }) => {
+export const ImportContactsModal = ({ onClose, role, importType = "Lead" }) => {
   const [step, setStep]       = useState("source");
   const [progress, setProgress] = useState(0);
-  // Imported rows are always created as Leads (Lifecycle is system-managed and
-  // only changes to Network via Convert). Ownership, Assignee, Source and Stage
-  // Status are all system-set.
+  // The Lead-vs-Network choice is made at the Import button (SA imports Leads
+  // only). All rows take this Lifecycle; Ownership, Assignee, Source and Stage
+  // Status are system-set from role + type.
   const timerRef = useRef(null);
 
   const runImport = () => {
@@ -491,7 +491,7 @@ export const ImportContactsModal = ({ onClose, role }) => {
     );
     return (
       <Overlay width={560}>
-        <Header title="Import Contacts" />
+        <Header title={`Import ${importType}s`} />
         <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Choose a source</div>
         <div style={{ display: "flex", gap: 16 }}>
           <SourceCard icon="📗" title="Excel File" sub="Max size: 5 MB" hint="Upload a file to continue" onClick={() => setStep("upload")} />
@@ -508,7 +508,7 @@ export const ImportContactsModal = ({ onClose, role }) => {
   if (step === "upload") {
     return (
       <Overlay width={580}>
-        <Header title="Import Contacts" back={() => setStep("source")} />
+        <Header title={`Import ${importType}s`} back={() => setStep("source")} />
         <div style={{ background: C.primarySoft, border: `1px solid ${C.primary}33`, borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>Import Rules &amp; Requirements</div>
@@ -1380,7 +1380,10 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
   const [addType, setAddType]   = useState("Lead");   // Lead | Network — chosen via the Add button
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [importType, setImportType] = useState("Lead");   // Lead | Network — chosen via the Import button
+  const [importMenuOpen, setImportMenuOpen] = useState(false);
   const startAdd = (type) => { setAddType(type); setAddMenuOpen(false); setMode("add"); };
+  const startImport = (type) => { setImportType(type); setImportMenuOpen(false); setShowImport(true); };
 
   // Consume a one-shot action requested by the caller (e.g. the dashboard's
   // "Add Contact" / "Import" buttons) so they behave like this page's own buttons.
@@ -1511,7 +1514,29 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>{t("contactList")}</h1>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => setShowImport(true)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>⬇ {t("import")}</button>
+          {/* SA imports Company Leads only; VD/GP choose Lead or Network. */}
+          {role === "superadmin" ? (
+            <button onClick={() => startImport("Lead")} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>⬇ {t("importLead")}</button>
+          ) : (
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setImportMenuOpen(o => !o)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>⬇ {t("import")} <span style={{ fontSize: 10 }}>▾</span></button>
+              {importMenuOpen && (
+                <>
+                  <div onClick={() => setImportMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 12px 36px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 180, padding: "6px 0" }}>
+                    {[["Lead", t("importLead")], ["Network", t("importNetwork")]].map(([type, label]) => (
+                      <div key={type} onClick={() => startImport(type)}
+                        style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           {/* SA can add Company Leads only; VD/GP choose Lead or Network. */}
           {role === "superadmin" ? (
             <button onClick={() => startAdd("Lead")} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{t("addLead")}</button>
@@ -1646,7 +1671,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
       </div>
       )}
 
-      {showImport && <ImportContactsModal onClose={() => setShowImport(false)} role={role} />}
+      {showImport && <ImportContactsModal onClose={() => setShowImport(false)} role={role} importType={importType} />}
       {showBulk && <SendBulkEmailModal contacts={contacts.filter(c => selected.has(c.id))} onClose={() => setShowBulk(false)} />}
       {editView && <EditViewModal view={editView} onClose={() => setEditView(null)} onApply={applyView} />}
       {showAssign && <BulkAssignModal contacts={contacts.filter(c => selected.has(c.id))} onClose={() => setShowAssign(false)} onAssign={() => { setSelected(new Set()); }} />}

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { C } from "../../theme";
 import { PRIORITY_META, DONE_STATUSES, MEETING_TYPE_META, feedbackStatusLabel } from "../../lib/core";
 import { useT } from "../../lib/i18n";
+import { GPDashboard } from "./gp-dashboard";
 
 // ── Dashboard assignee list ───────────────────────────────────────────────────
 const DASH_USERS = [
@@ -831,6 +832,27 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
       setLocalDone(prev => ({ ...prev, [it.id]: next }));
     }
   };
+
+  // The VD "My" dashboard uses the same advisor layout as the GP dashboard,
+  // scoped to the VD's own contacts. The My/Team toggle is injected into the
+  // GP layout so the director can switch to the team view.
+  const vdToggle = (
+    <div title={t("tooltip_vdToggle")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
+      {[["my", t("myDashboard")], ["team", t("teamDashboard")]].map(([key, label], i) => (
+        <button key={key} onClick={() => setVdView(key)} style={{
+          padding: "7px 14px", border: "none",
+          borderLeft: i === 0 ? "none" : `1px solid ${C.border}`,
+          background: vdView === key ? C.navy : "#fff",
+          color: vdView === key ? "#fff" : C.muted,
+          fontSize: 12, fontWeight: vdView === key ? 700 : 500,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>{label}</button>
+      ))}
+    </div>
+  );
+  if (isVD && vdView === "my") {
+    return <GPDashboard navigateTo={navigateTo} userName={userName} roleLabel={t("salesDirector")} toggle={vdToggle} />;
+  }
 
   return (
     <>

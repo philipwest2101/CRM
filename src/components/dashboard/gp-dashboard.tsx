@@ -73,7 +73,7 @@ const PERIOD_DATA = {
   year:    { network:612, leads:3480, appts:168, tasks:63, records:5840 },
 };
 
-export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, setGpChecks }) => {
+export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks = null, setGpChecks = null, roleLabel = null, toggle = null }) => {
   const t = useT();
   const { lang } = useContext(LangContext);
   const firstName = (userName || "").split(" ")[0];
@@ -175,7 +175,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
               {greeting}, {firstName}<span style={{ color:C.primary }}>.</span>
             </h1>
             <div style={{ marginTop:5,fontSize:12,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase" }}>
-              {t("advisor")} · {headerDate}
+              {roleLabel || t("advisor")} · {headerDate}
             </div>
           </div>
         </div>
@@ -193,8 +193,9 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks, set
         </div>
       </div>
 
-      {/* ── Period Selector ────────────────────────────────────────────────── */}
-      <div style={{ display:"flex",justifyContent:"flex-end",marginBottom:20 }}>
+      {/* ── Period Selector (+ optional My/Team toggle for VD) ─────────────── */}
+      <div style={{ display:"flex",justifyContent:toggle?"space-between":"flex-end",alignItems:"center",marginBottom:20 }}>
+        {toggle}
         <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden" }}>
           {["today","week","month","quarter","year"].map((p,i)=>{
             const active = period===p;
