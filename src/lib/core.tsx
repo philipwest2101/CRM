@@ -1466,11 +1466,20 @@ export const CALL_STATUS_OPTIONS = [
   "Not Reached – No Answer",
   "Not Reached – Wrong Number",
 ];
-// Call-report picker options derived from the Super-Admin status config.
+// ─── Lifecycle & Stage Status (system-defined vocabulary) ─────────────────────
+// Per "Network vs. Lead", Lifecycle is a two-value business state (Lead →
+// Network) and Stage Status tracks progress *within* it. Both are system-defined
+// (no longer Super-Admin configurable). Stage Status options depend on the
+// Lifecycle. This is the single source of truth used by every contact form,
+// activity/log modal and outcome picker across the app.
+export const LEAD_STAGE_STATUSES    = ["New", "In Contact", "Not Reached", "Not Interested", "Currently Not Interested", "Difficult Case", "Appointment", "Follow Up", "Qualified"];
+export const NETWORK_STAGE_STATUSES = ["Customer", "Partner", "Prospect"];
 
-export const LIFECYCLE_OPTIONS  = LIFECYCLE_STORE.map(s=>s.nameEn);
+export const LIFECYCLE_OPTIONS  = ["Lead", "Network"];
 
-export const STAGE_OPTIONS      = Object.fromEntries(LIFECYCLE_STORE.map(s=>[s.nameEn, s.statuses.map(x=>x.nameEn)]));
+export const STAGE_OPTIONS      = { Lead: LEAD_STAGE_STATUSES, Network: NETWORK_STAGE_STATUSES };
+
+export const stageStatusOptions = (lifecycle) => STAGE_OPTIONS[lifecycle] || LEAD_STAGE_STATUSES;
 
 
 export const BLANK_RULE = { prefix:"", city:"", gp:"", vd:"", convRate:"", capacity:80, used:0, priority:"medium" };

@@ -1,16 +1,19 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, LIFECYCLE_STORE, blocksToText } from "../../lib/core";
+import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, LIFECYCLE_OPTIONS, stageStatusOptions, blocksToText } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
 
 // Stage Status is the progress *within* the lifecycle (independent of Lead vs
 // Network). Labels come from the Super-Admin configured statuses.
-const STATUS_LABEL: Record<string, string> = {};
-LIFECYCLE_STORE.forEach(s => s.statuses.forEach(st => { if (st.key) STATUS_LABEL[st.key] = st.nameEn; }));
-const stageStatusLabel = (status?: string) => (status && STATUS_LABEL[status]) || "New / Open";
+const STATUS_LABEL: Record<string, string> = {
+  open: "New", in_progress: "In Contact", attempted: "In Contact", not_reached: "Not Reached",
+  followup: "Follow Up", appointment: "Appointment", closed: "Customer",
+  no_interest: "Not Interested", dnc: "Not Interested",
+};
+const stageStatusLabel = (status?: string) => (status && STATUS_LABEL[status]) || "New";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
@@ -63,25 +66,29 @@ const Label = ({ children }) => (
   <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>{children}</label>
 );
 
-// Lifecycle/Status options are sourced from Settings → Statuses (LIFECYCLE_STORE) so
-// every log modal stays in sync with whatever the Super Admin has configured there.
+// Lifecycle and Stage Status are system-defined (Lead → Network, with
+// lifecycle-dependent Stage Status). The Stage Status options follow the
+// selected Lifecycle.
 const StageStatusRow = () => {
-  const [stageId, setStageId] = useState("");
-  const stage = LIFECYCLE_STORE.find(s => s.id === stageId);
+  const [lifecycle, setLifecycle] = useState("");
+  const [status, setStatus] = useState("");
+  const statuses = stageStatusOptions(lifecycle);
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
       <div>
-        <Label>Lifecycle Stage</Label>
-        <select style={stageId ? fieldStyle : placeholderSelect} value={stageId} onChange={e => setStageId(e.target.value)}>
-          <option value="">Select Lifecycle Stage</option>
-          {LIFECYCLE_STORE.map(s => <option key={s.id} value={s.id}>{s.nameEn}</option>)}
+        <Label>Lifecycle</Label>
+        <select style={lifecycle ? fieldStyle : placeholderSelect} value={lifecycle}
+          onChange={e => { setLifecycle(e.target.value); setStatus(""); }}>
+          <option value="">Select Lifecycle</option>
+          {LIFECYCLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
       </div>
       <div>
-        <Label>Stage status</Label>
-        <select style={placeholderSelect} defaultValue="" disabled={!stage}>
+        <Label>Stage Status</Label>
+        <select style={status ? fieldStyle : placeholderSelect} value={status} disabled={!lifecycle}
+          onChange={e => setStatus(e.target.value)}>
           <option value="">Select status</option>
-          {(stage?.statuses || []).map(st => <option key={st.id} value={st.id}>{st.nameEn}</option>)}
+          {(lifecycle ? statuses : []).map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
     </div>

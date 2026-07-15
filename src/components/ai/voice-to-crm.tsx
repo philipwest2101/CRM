@@ -42,7 +42,7 @@ export const VoiceToCRM = ({ leads=ALL_LEADS }) => {
           max_tokens:1000,
           system:`You are the vion CRM post-call processor. Given a GP's dictated call note, extract structured data.
 Output ONLY valid JSON, no markdown:
-{"status": "<in_progress|not_reached|appointment|customer|followup|not_interested>", "lifecycle": "<Nurturing|Qualifying|Sales|Won|Lost>", "summary": "<professional 1-2 sentence summary>", "nextAction": "<specific next action>", "nextDate": "<e.g. Tuesday 10:00|Tomorrow morning|Immediately>", "sentiment": "<Positive|Neutral|Negative>", "keyPoints": ["<point1>","<point2>"]}`,
+{"status": "<in_progress|not_reached|appointment|customer|followup|not_interested>", "lifecycle": "<Lead|Network>", "summary": "<professional 1-2 sentence summary>", "nextAction": "<specific next action>", "nextDate": "<e.g. Tuesday 10:00|Tomorrow morning|Immediately>", "sentiment": "<Positive|Neutral|Negative>", "keyPoints": ["<point1>","<point2>"]}`,
           messages:[{ role:"user", content:`Dictated call note: "${text}"` }],
         })
       });
@@ -52,7 +52,7 @@ Output ONLY valid JSON, no markdown:
       setResult(json);
       setStep("done");
     } catch {
-      setResult({ status:"in_progress", lifecycle:"Qualifying", summary:text, nextAction:"Review manually", nextDate:"ASAP", sentiment:"Neutral", keyPoints:[] });
+      setResult({ status:"in_progress", lifecycle:"Lead", summary:text, nextAction:"Review manually", nextDate:"ASAP", sentiment:"Neutral", keyPoints:[] });
       setStep("done");
     }
   };

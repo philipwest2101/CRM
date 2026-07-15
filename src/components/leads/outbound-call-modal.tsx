@@ -48,9 +48,9 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
     callClaudeAPI(systemPrompt, "Analyse this call and return your suggestion JSON.")
       .then(raw => {
         try   { setSuggestions(JSON.parse(raw.replace(/```json|```/g,"").trim())); }
-        catch { setSuggestions({ callStatus: lead.attempts>=3?"Not Reached – No Answer":"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Advisor reached ${lead.name} via ${lead.source}. Contact expressed interest in ${lead.campaign} and requested a follow-up appointment.`, confidence:82, reasoning:`Contact source (${lead.source}) and campaign (${lead.campaign}) indicate high intent.` }); }
+        catch { setSuggestions({ callStatus: lead.attempts>=3?"Not Reached – No Answer":"Reached – Interested", lifecycle:"Lead", stageStatus:"Appointment", reportImproved:`Advisor reached ${lead.name} via ${lead.source}. Contact expressed interest in ${lead.campaign} and requested a follow-up appointment.`, confidence:82, reasoning:`Contact source (${lead.source}) and campaign (${lead.campaign}) indicate high intent.` }); }
       })
-      .catch(() => setSuggestions({ callStatus:"Reached – Interested", lifecycle:"Sales", stageStatus:"Appointment", reportImproved:`Reached ${lead.name}. Contact interested in ${lead.campaign}. Follow-up appointment scheduled.`, confidence:78, reasoning:"Inferred from contact profile and campaign context." }))
+      .catch(() => setSuggestions({ callStatus:"Reached – Interested", lifecycle:"Lead", stageStatus:"Appointment", reportImproved:`Reached ${lead.name}. Contact interested in ${lead.campaign}. Follow-up appointment scheduled.`, confidence:78, reasoning:"Inferred from contact profile and campaign context." }))
       .finally(() => setSugLoading(false));
   }, [phase]);
 
@@ -293,10 +293,9 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
                           const attempts = (lead?.attempts||0) + 1;
                           onWorkflow(attempts >= 5 ? "lead_not_reached_5" : "lead_not_reached_1_4", {...lead, attempts});
                         }
-                        // Closed / Won — fires when the chosen status carries the isWon flag
-                        const selStage  = LIFECYCLE_STORE.find(s=>s.nameEn===lifecycle);
-                        const selStatus = (selStage?.statuses||[]).find(x=>x.nameEn===stageStatus);
-                        if (selStatus && (selStatus.flags||[]).includes("isWon")) {
+                        // Closed / Won — a Lead that reaches "Qualified" or a
+                        // contact converted to a Network "Customer" is won.
+                        if (stageStatus === "Qualified" || stageStatus === "Customer") {
                           onWorkflow("lead_closed", lead);
                         }
                       }
