@@ -194,7 +194,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", gpChecks = nu
       </div>
 
       {/* ── Period Selector (+ optional My/Team toggle for VD) ─────────────── */}
-      <div style={{ display:"flex",justifyContent:toggle?"space-between":"flex-end",alignItems:"center",marginBottom:20 }}>
+      <div style={{ display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10,marginBottom:20 }}>
         {toggle}
         <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden" }}>
           {["today","week","month","quarter","year"].map((p,i)=>{
