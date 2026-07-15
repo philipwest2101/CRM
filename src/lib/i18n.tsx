@@ -185,6 +185,8 @@ export const TRANSLATIONS = {
     // Contact List
     contactList: "Contact List",
     addContact: "Add Contact",
+    addLead: "Add Lead",
+    addNetwork: "Add Network",
     import: "Import",
     sendBulkEmail: "Send Bulk Email",
     editView: "Edit View",
@@ -734,6 +736,8 @@ export const TRANSLATIONS = {
     // Contact List
     contactList: "Kontaktliste",
     addContact: "Kontakt hinzufügen",
+    addLead: "Lead hinzufügen",
+    addNetwork: "Netzwerk hinzufügen",
     import: "Importieren",
     sendBulkEmail: "Massen-E-Mail senden",
     editView: "Ansicht bearbeiten",

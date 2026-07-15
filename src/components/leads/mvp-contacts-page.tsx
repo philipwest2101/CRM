@@ -606,15 +606,17 @@ const Field = ({ label, children }) => (
 const TextInput = (p) => <input {...p} style={{ ...fieldStyle, padding: "11px 13px" }} />;
 const Select = ({ children, ...p }) => <select {...p} style={{ ...fieldStyle, padding: "11px 13px", color: p.value ? C.text : C.muted }}>{children}</select>;
 
-const AddContactPage = ({ role, onCancel, onSave }) => {
+const AddContactPage = ({ role, contactType = "Lead", onCancel, onSave }) => {
   const t = useT();
-  // Lifecycle is system-managed: every new contact is created as a Lead and only
-  // becomes a Network through the Convert action, so there is no Lifecycle picker
-  // here. Stage Status uses the Lead vocabulary; SA creates Leads fixed to New.
+  // The Lead-vs-Network choice is made once at creation (SA can add Leads only;
+  // VD/GP pick via the Add split-button). After creation Lifecycle is
+  // system-managed — it changes only via Convert and is never shown/edited.
   const isSA = role === "superadmin";
+  const isNetwork = contactType === "Network";
+  const typeStatuses = isNetwork ? NETWORK_STATUSES : LEAD_STATUSES;
   const [tab, setTab] = useState("Basic");
   const [f, setF] = useState({
-    first: "", last: "", email: "", phone: "", lifecycle: "Lead", stageStatus: "New",
+    first: "", last: "", email: "", phone: "", lifecycle: contactType, stageStatus: typeStatuses[0],
     assignee: "", product: "", productProvider: "", source: "Manual Entry", campaign: "",
     gdprConsent: false, gdprDate: "", newsletter: false, newsletterDate: "",
     salutation: "None", addressForm: "Formal", title: "", postTitle: "",
@@ -631,7 +633,7 @@ const AddContactPage = ({ role, onCancel, onSave }) => {
   const valid = f.first.trim() && f.last.trim();
 
   const reset = () => setF(prev => Object.fromEntries(Object.keys(prev).map(k => [k,
-    k === "lifecycle" ? "Lead" : k === "stageStatus" ? "New" : k === "decisionRole" ? "None" :
+    k === "lifecycle" ? contactType : k === "stageStatus" ? typeStatuses[0] : k === "decisionRole" ? "None" :
     k === "gdprConsent" || k === "newsletter" ? false :
     k === "salutation" ? "None" : k === "addressForm" ? "Formal" : k === "gender" ? "N/A" :
     k === "decisionRole" ? "None" : k === "potential" ? 0 : ""])));
@@ -644,8 +646,8 @@ const AddContactPage = ({ role, onCancel, onSave }) => {
     <div style={{ padding: "20px 28px 0", fontFamily: "inherit" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>Add Contact</h1>
-        <span style={{ fontSize: 13, color: C.muted }}>Contacts . Add Contact</span>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>Add {contactType}</h1>
+        <span style={{ fontSize: 13, color: C.muted }}>Contacts . Add {contactType}</span>
       </div>
 
       {/* Tabs */}
@@ -671,7 +673,7 @@ const AddContactPage = ({ role, onCancel, onSave }) => {
             <Field label="Primary Phone"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
           </Grid>
           <Grid>
-            <Field label="Stage Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{LEAD_STATUSES.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            <Field label="Stage Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{typeStatuses.map(o => <option key={o}>{o}</option>)}</Select></Field>
             <div />
           </Grid>
           <Grid>
@@ -1375,7 +1377,10 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
     if (!ids.has(activeView)) setActiveView(systemViews[0]?.id || "my");
   }, [role]);
   const [mode, setMode]         = useState("list");   // list | add
+  const [addType, setAddType]   = useState("Lead");   // Lead | Network — chosen via the Add button
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const startAdd = (type) => { setAddType(type); setAddMenuOpen(false); setMode("add"); };
 
   // Consume a one-shot action requested by the caller (e.g. the dashboard's
   // "Add Contact" / "Import" buttons) so they behave like this page's own buttons.
@@ -1454,7 +1459,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
       id: `NEW-${Date.now()}`, first: f.first, last: f.last, firstName: f.first, lastName: f.last, name: `${f.first} ${f.last}`.trim(),
       lifecycle: f.lifecycle, stageStatus: f.stageStatus,
       ownership, isCompanyOwned: ownership === "Company",
-      tone: f.stageStatus === "New" || f.stageStatus === "Appointment" || f.stageStatus === "Closed" ? C.green
+      tone: f.stageStatus === "New" || f.stageStatus === "Appointment" || f.stageStatus === "Closed" || f.stageStatus === "Customer" ? C.green
           : f.stageStatus === "Not Interested" || f.stageStatus === "Do Not Contact" ? null : C.slate,
       phone: f.phone || "—", email: f.email || "—", primaryEmail: f.email || "—",
       campaign: f.campaign || "—", dob: f.dob || "—",
@@ -1477,7 +1482,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
 
   // ── Add Contact full page ───────────────────────────────────────────────────
   if (mode === "add") {
-    return <AddContactPage role={role} onCancel={() => setMode("list")} onSave={addContact} />;
+    return <AddContactPage role={role} contactType={addType} onCancel={() => setMode("list")} onSave={addContact} />;
   }
 
   const PLACEHOLDER = { firstName: "First name", lastName: "Last name", primaryEmail: "Email", campaign: "Campaign", phone: "Phone number", name: "Contact", email: "Email" };
@@ -1507,7 +1512,31 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, letterSpacing: "-0.02em" }}>{t("contactList")}</h1>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setShowImport(true)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>⬇ {t("import")}</button>
-          <button onClick={() => setMode("add")} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{t("addContact")}</button>
+          {/* SA can add Company Leads only; VD/GP choose Lead or Network. */}
+          {role === "superadmin" ? (
+            <button onClick={() => startAdd("Lead")} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{t("addLead")}</button>
+          ) : (
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setAddMenuOpen(o => !o)} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                {t("addContact")} <span style={{ fontSize: 10 }}>▾</span>
+              </button>
+              {addMenuOpen && (
+                <>
+                  <div onClick={() => setAddMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 250 }} />
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 260, background: "#fff", borderRadius: 10, boxShadow: "0 12px 36px rgba(0,0,0,0.16)", border: `1px solid ${C.border}`, minWidth: 180, padding: "6px 0" }}>
+                    {[["Lead", t("addLead")], ["Network", t("addNetwork")]].map(([type, label]) => (
+                      <div key={type} onClick={() => startAdd(type)}
+                        style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
