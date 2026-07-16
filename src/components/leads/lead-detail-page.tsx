@@ -335,7 +335,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
             { id:"email",       icon:"✉️", label:"Email",   handler:()=>setActionModal("email")    },
             { id:"call",        icon:"📞", label:"Call",    handler:()=>setCallLead(lead)          },
             { id:"task",        icon:"☑️", label:"Task",    handler:()=>setActionModal("task")     },
-            { id:"appointment", icon:"📅", label:"Meeting", handler:()=>setShowApptModal(true)     },
+            { id:"appointment", icon:"📅", label:"Appointment", handler:()=>setShowApptModal(true)     },
             { id:"more",        icon:"···",label:"More",    handler:()=>setShowMoreActions(v=>!v), isMore:true },
           ].map(a=>(
             <div key={a.id} style={{ position:"relative" }}>
@@ -571,7 +571,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
                       {logType==="call"&&<><option>✅ Reached — Interested</option><option>✅ Reached — Appointment set</option><option>👎 Reached — Not Interested</option><option>📵 Not Reached — No answer</option><option>📵 Not Reached — Voicemail</option><option>🔄 Callback Requested</option></>}
                       {logType==="email"&&<><option>📤 Email sent</option><option>📥 Positive response</option><option>📥 Negative response</option><option>🔄 Follow-up requested</option></>}
                       {logType==="appointment"&&<><option>✅ Completed</option><option>❌ No-show / Cancelled</option><option>🔄 Rescheduled</option><option>🕐 Follow-up required</option></>}
-                      {logType==="offline"&&<><option>🤝 In-person meeting</option><option>💬 WhatsApp / SMS</option><option>📮 Letter / Post</option><option>📱 Other channel</option></>}
+                      {logType==="offline"&&<><option>🤝 In-person appointment</option><option>💬 WhatsApp / SMS</option><option>📮 Letter / Post</option><option>📱 Other channel</option></>}
                     </select></div>
                   <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
                     <div><label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Date</label>
@@ -840,7 +840,7 @@ export const LeadDetailPage = ({ lead, role, navigateTo, addAppointment, addRemi
             <SettingsCard style={{ padding:"24px" }}>
               <div style={{ fontSize:14,fontWeight:700,color:C.text,marginBottom:16 }}>Schedule Appointment</div>
               <div style={{ fontSize:12,color:C.muted,marginBottom:18 }}>
-                Book a call, video session, or in-person meeting for <strong>{lead.name}</strong>.
+                Book a call, video session, or in-person appointment for <strong>{lead.name}</strong>.
               </div>
               <button onClick={()=>setShowApptModal(true)}
                 style={{ width:"100%",padding:"10px",borderRadius:9,border:"none",background:C.indigo,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>

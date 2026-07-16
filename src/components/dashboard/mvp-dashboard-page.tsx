@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
-import { PRIORITY_META, DONE_STATUSES, MEETING_TYPE_META, feedbackStatusLabel } from "../../lib/core";
+import { PRIORITY_META, DONE_STATUSES, APPOINTMENT_TYPE_META, feedbackStatusLabel } from "../../lib/core";
 import { useT } from "../../lib/i18n";
 import { GPDashboard } from "./gp-dashboard";
 import { ContactActions } from "../ui/contact-actions";
@@ -1020,7 +1020,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                   </div>
                 ) : periodAppts.map((appt, i) => {
                   const typeColor = { call: C.green, video: C.indigo, inperson: C.amber, email: C.blue }[appt.type] || C.indigo;
-                  const meeting = MEETING_TYPE_META[appt.apptType] || MEETING_TYPE_META["Consultation Appointment"];
+                  const appointment = APPOINTMENT_TYPE_META[appt.apptType] || APPOINTMENT_TYPE_META["Consultation Appointment"];
                   return (
                     <div key={appt.id} style={{
                       display: "flex", alignItems: "center", gap: 9,
@@ -1042,9 +1042,9 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                       <span style={{
                         fontSize: 9, fontFamily: "monospace", padding: "2px 6px",
                         borderRadius: 20, fontWeight: 700, flexShrink: 0,
-                        background: meeting.color + "18", color: meeting.color,
+                        background: appointment.color + "18", color: appointment.color,
                       }}>
-                        {meeting.short}
+                        {appointment.short}
                       </span>
                     </div>
                   );

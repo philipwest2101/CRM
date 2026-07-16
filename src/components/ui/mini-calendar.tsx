@@ -34,5 +34,5 @@ export const MiniCalendar = ({ highlightDays=[] }) => {
 // ─── Activity Feed ─────────────────────────────────────────────────────────────
 // ─── DS Activity Card — lifecycle: collapsed (64px) → open → completed ───────
 // The design system's flagship "card-centric activity model" (LH-Vion Design
-// System §3.1): every activity type (call/email/meeting/task/note/logged) shares
+// System §3.1): every activity type (call/email/appointment/task/note/logged) shares
 // one card with a collapsed→open disclosure and a completed state.

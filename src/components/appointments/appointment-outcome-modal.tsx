@@ -7,7 +7,7 @@ import { C } from "../../theme";
 const lbl   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em", display:"block", marginBottom:5 };
 const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text };
 
-const MEETING_STATUS = ["Completed", "No-show", "Rescheduled", "Cancelled"];
+const APPOINTMENT_STATUS = ["Completed", "No-show", "Rescheduled", "Cancelled"];
 
 export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
   const [status,  setStatus]  = useState("");
@@ -37,16 +37,16 @@ export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
         )}
 
         <div style={{ marginBottom:12 }}>
-          <label style={lbl}>Meeting Status *</label>
+          <label style={lbl}>Appointment Status *</label>
           <select value={status} onChange={e=>setStatus(e.target.value)} style={input}>
             <option value="">Choose…</option>
-            {MEETING_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+            {APPOINTMENT_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
 
         <div style={{ marginBottom:12 }}>
-          <label style={lbl}>Meeting Report *</label>
-          <textarea value={report} onChange={e=>setReport(e.target.value)} placeholder="What happened in the meeting…"
+          <label style={lbl}>Appointment Report *</label>
+          <textarea value={report} onChange={e=>setReport(e.target.value)} placeholder="What happened in the appointment…"
             style={{ ...input, minHeight:90, resize:"none", lineHeight:1.5 }}/>
         </div>
 

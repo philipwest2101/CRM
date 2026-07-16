@@ -23,10 +23,10 @@ export const AIMeetingPrepBrief = ({ leads=ALL_LEADS }) => {
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514",
           max_tokens:1200,
-          system:`You are an AI assistant for vion CRM, a German financial advisory platform. Generate a concise pre-meeting brief for a GP advisor.
+          system:`You are an AI assistant for vion CRM, a German financial advisory platform. Generate a concise pre-appointment brief for a GP advisor.
 Output ONLY valid JSON:
-{"headline": "<1 sentence executive summary>", "leadProfile": "<2-3 sentences about this contact's background, interests, and situation>", "keyObjectives": ["<objective 1>","<objective 2>","<objective 3>"], "openingLine": "<specific suggested opening line for the meeting>", "anticipatedObjections": [{"objection":"<likely objection>","response":"<suggested response>"}], "productMatch": {"primary":"<best fitting product>","reason":"<why it fits>","secondary":"<alternative product>"}, "doList": ["<do this>","<and this>"], "dontList": ["<avoid this>","<and this>"], "closingStrategy": "<specific closing technique to use>"}`,
-          messages:[{ role:"user", content:`Generate meeting prep brief for: Name: ${lead.name}, Status: ${lead.status}, Product: ${lead.product}, Source: ${lead.source||"Unknown"}, City: ${lead.city}, Attempts: ${lead.attempts||0}, AI Score: ${ai?.score||"N/A"}, Score reason: ${ai?.reasons?.[0]||"N/A"}, Language: ${lead.lang==="en"?"English":"German"}` }],
+{"headline": "<1 sentence executive summary>", "leadProfile": "<2-3 sentences about this contact's background, interests, and situation>", "keyObjectives": ["<objective 1>","<objective 2>","<objective 3>"], "openingLine": "<specific suggested opening line for the appointment>", "anticipatedObjections": [{"objection":"<likely objection>","response":"<suggested response>"}], "productMatch": {"primary":"<best fitting product>","reason":"<why it fits>","secondary":"<alternative product>"}, "doList": ["<do this>","<and this>"], "dontList": ["<avoid this>","<and this>"], "closingStrategy": "<specific closing technique to use>"}`,
+          messages:[{ role:"user", content:`Generate appointment prep brief for: Name: ${lead.name}, Status: ${lead.status}, Product: ${lead.product}, Source: ${lead.source||"Unknown"}, City: ${lead.city}, Attempts: ${lead.attempts||0}, AI Score: ${ai?.score||"N/A"}, Score reason: ${ai?.reasons?.[0]||"N/A"}, Language: ${lead.lang==="en"?"English":"German"}` }],
         })
       });
       const data = await res.json();
@@ -34,14 +34,14 @@ Output ONLY valid JSON:
       const json = JSON.parse(text.replace(/```json|```/g,"").trim());
       setBrief(json);
     } catch {
-      setBrief({ headline:`Meeting prep for ${lead.name}`, leadProfile:"AI brief unavailable — check API connection.", keyObjectives:["Build rapport","Present value proposition","Handle objections"], openingLine:"Guten Tag, schön Sie kennenzulernen.", anticipatedObjections:[], productMatch:{primary:lead.product,reason:"Based on profile",secondary:"—"}, doList:["Listen actively","Ask about goals"], dontList:["Don't rush the close"], closingStrategy:"Ask for a follow-up commitment" });
+      setBrief({ headline:`Appointment prep for ${lead.name}`, leadProfile:"AI brief unavailable — check API connection.", keyObjectives:["Build rapport","Present value proposition","Handle objections"], openingLine:"Guten Tag, schön Sie kennenzulernen.", anticipatedObjections:[], productMatch:{primary:lead.product,reason:"Based on profile",secondary:"—"}, doList:["Listen actively","Ask about goals"], dontList:["Don't rush the close"], closingStrategy:"Ask for a follow-up commitment" });
     }
     setLoading(false);
   };
 
   return (
     <div style={{ padding:"24px" }}>
-      <div style={{ fontSize:14,fontWeight:800,color:C.navy,marginBottom:4 }}>📋 AI Meeting Prep Brief</div>
+      <div style={{ fontSize:14,fontWeight:800,color:C.navy,marginBottom:4 }}>📋 AI Appointment Prep Brief</div>
       <div style={{ fontSize:12,color:C.muted,marginBottom:20,lineHeight:1.5,maxWidth:560 }}>
         Before your next appointment, generate a 1-page AI briefing — lead profile, best opening line, anticipated objections, and product match.
       </div>

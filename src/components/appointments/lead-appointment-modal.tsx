@@ -53,7 +53,7 @@ export const LeadAppointmentModal = ({ appt=null, onClose, onOpenProcessing }) =
           {row("👤 Contact", f.contact)}
           {row("🏷 Type", apptType)}
           {row("👥 Attendees", toList(f.attendees))}
-          {row("📍 Meeting Location", f.location)}
+          {row("📍 Appointment Location", f.location)}
           {row("📎 Attachments", toList(f.attachments) || toList(f.attachment))}
           {f.note && (
             <div style={{ marginTop:12 }}>

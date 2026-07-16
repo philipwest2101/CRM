@@ -291,15 +291,15 @@ const LogEmailModal = ({ onClose, lifecycle }) => (
 const LogAppointmentModal = ({ onClose, lifecycle }) => (
   <ModalShell icon="📅" title="Log on Appointment" width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <div><Label>Meeting Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Type</option>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select></div>
-      <div><Label>Meeting Outcome *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Outcome</option><option>Completed</option><option>No Show</option><option>Rescheduled</option><option>Cancelled</option></select></div>
+      <div><Label>Appointment Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Type</option>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select></div>
+      <div><Label>Appointment Outcome *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Outcome</option><option>Completed</option><option>No Show</option><option>Rescheduled</option><option>Cancelled</option></select></div>
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
       <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
       <div><Label>Start *</Label><input type="time" style={placeholderSelect} /></div>
       <div><Label>End *</Label><input type="time" style={placeholderSelect} /></div>
     </div>
-    <div style={{ marginBottom: 16 }}><Label>Meeting Report *</Label><textarea placeholder="Meeting report…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} /></div>
+    <div style={{ marginBottom: 16 }}><Label>Appointment Report *</Label><textarea placeholder="Appointment report…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} /></div>
     <StageStatusRow lifecycle={lifecycle} />
     <FooterBtns onClose={onClose} label="Save" />
   </ModalShell>
@@ -1086,28 +1086,32 @@ const InformationTab = ({ c, role }: any) => {
 
 // ── Activities tab ────────────────────────────────────────────────────────────
 const ACT_ICON = {
-  meeting: { icon: "🤝", color: C.purple },
-  call:    { icon: "📞", color: C.green },
-  email:   { icon: "✉️", color: C.blue },
-  task:    { icon: "☑️", color: C.amber },
-  update:  { icon: "✎",  color: C.muted },
+  appointment: { icon: "📅", color: C.purple },
+  call:        { icon: "📞", color: C.green },
+  email:       { icon: "✉️", color: C.blue },
+  task:        { icon: "☑️", color: C.amber },
+  offline:     { icon: "📝", color: C.slate },
+  update:      { icon: "✎",  color: C.muted },
 };
 
+// Each activity carries the fields shown by its creating modal (see the field
+// spec doc). Where a value isn't set on the sample record, ActivityDetail falls
+// back to a representative default so every field still renders in the mock.
 const ACTIVITIES = [
-  { id: "a1", type: "meeting", title: "Meeting test", day: "Wed 24", month: "June 2026", dt: "24.06.2026 - 10:04" },
+  { id: "a1", type: "appointment", title: "Appointment test", day: "Wed 24", month: "June 2026", dt: "24.06.2026 - 10:04", apptType: "Consultation Appointment", outcome: "Scheduled", location: "Microsoft Teams", duration: "60 min", attendees: "Test Test", status: "Appointment" },
   { id: "a2", type: "update",  title: "Update Assignee", day: "Sun 21", month: "June 2026", dt: "21.06.2026 - 11:14", field: "Assignee", from: "—", to: "Anna Muller" },
-  { id: "a3", type: "meeting", title: "M1", day: "Thu 04", month: "June 2026", dt: "04.06.2026 - 12:30" },
+  { id: "a3", type: "appointment", title: "M1", day: "Thu 04", month: "June 2026", dt: "04.06.2026 - 12:30", apptType: "Investment Talk", outcome: "Completed", location: "Office Room 3", duration: "45 min", status: "Qualified", report: "Presented the Q1 plan; client asked for a written proposal." },
   { id: "a4", type: "update",  title: "Update Label", day: "Wed 03", month: "June 2026", dt: "03.06.2026 - 15:15", field: "Labels", from: "—", to: "Label 1" },
-  { id: "a5", type: "call",    title: "Call with a2 s2", day: "Mon 18", month: "May 2026", dt: "18.05.2026 - 18:09", direction: "Outbound" },
+  { id: "a5", type: "call",    title: "Call with a2 s2", day: "Mon 18", month: "May 2026", dt: "18.05.2026 - 18:09", direction: "Outbound", callStatus: "Reached", duration: "05:12", status: "In Contact", report: "Reached the contact; interested, follow-up agreed." },
   { id: "a6", type: "update",  title: "Update Label", day: "Thu 14", month: "May 2026", dt: "14.05.2026 - 10:38", field: "Labels", from: "Label 1", to: "Label 1, VIP" },
-  { id: "a7", type: "email",   title: "Email to client", day: "Wed 13", month: "May 2026", dt: "13.05.2026 - 09:20" },
-  { id: "a8", type: "task",    title: "Follow-up task", day: "Tue 12", month: "May 2026", dt: "12.05.2026 - 14:00" },
-  { id: "a9", type: "call",    title: "Intro call", day: "Mon 11", month: "May 2026", dt: "11.05.2026 - 16:30", direction: "Inbound" },
-  { id: "a10", type: "meeting", title: "Kickoff", day: "Fri 08", month: "May 2026", dt: "08.05.2026 - 11:00" },
-  { id: "a11", type: "email",  title: "Proposal sent", day: "Thu 07", month: "May 2026", dt: "07.05.2026 - 13:45" },
-  { id: "a12", type: "task",   title: "Prepare docs", day: "Wed 06", month: "May 2026", dt: "06.05.2026 - 10:15" },
+  { id: "a7", type: "email",   title: "Email to client", day: "Wed 13", month: "May 2026", dt: "13.05.2026 - 09:20", direction: "Sent", address: "s.richter@web.de", status: "Delivered", report: "Sent the consultation summary and next steps." },
+  { id: "a8", type: "task",    title: "Follow-up task", day: "Tue 12", month: "May 2026", dt: "12.05.2026 - 14:00", taskType: "Call", priority: "High", status: "Open", reminder: "30 Minutes Before" },
+  { id: "a9", type: "call",    title: "Intro call", day: "Mon 11", month: "May 2026", dt: "11.05.2026 - 16:30", direction: "Inbound", callStatus: "Reached", duration: "02:40", status: "New", report: "Inbound enquiry about the offer." },
+  { id: "a10", type: "offline", title: "In-person visit", day: "Fri 08", month: "May 2026", dt: "08.05.2026 - 11:00", channel: "In-person appointment", status: "Appointment", note: "Dropped by the office to sign documents." },
+  { id: "a11", type: "email",  title: "Proposal sent", day: "Thu 07", month: "May 2026", dt: "07.05.2026 - 13:45", direction: "Sent", address: "s.richter@web.de", status: "Delivered", report: "Proposal PDF sent with pricing." },
+  { id: "a12", type: "task",   title: "Prepare docs", day: "Wed 06", month: "May 2026", dt: "06.05.2026 - 10:15", taskType: "To Do", priority: "Normal", status: "Done", reminder: "1 Hour Before" },
   { id: "a13", type: "update", title: "Update Assignee", day: "Tue 05", month: "May 2026", dt: "05.05.2026 - 09:00", field: "Assignee", from: "Anna Muller", to: "Kai Becker" },
-  { id: "a14", type: "call",   title: "Callback", day: "Mon 04", month: "May 2026", dt: "04.05.2026 - 17:20", direction: "Outbound" },
+  { id: "a14", type: "offline", title: "WhatsApp message", day: "Mon 04", month: "May 2026", dt: "04.05.2026 - 17:20", channel: "WhatsApp / SMS", status: "Follow Up", note: "Sent a quick reminder via WhatsApp." },
 ];
 
 const ActField = ({ label, value, node }) => (
@@ -1117,57 +1121,86 @@ const ActField = ({ label, value, node }) => (
   </div>
 );
 
+// Two-column grid shared by every detail card.
+const actGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" };
+// Outcome / status chip.
+const Pill = ({ text, color = C.amber }) => (
+  <span style={{ fontSize: 12, fontWeight: 700, color, background: color + "18", padding: "3px 12px", borderRadius: 12 }}>{text}</span>
+);
+// Highlighted report / note box at the bottom of a card.
+const ReportBox = ({ label, text }) => (
+  <div style={{ background: C.blue + "0E", borderRadius: 10, padding: "14px 16px", marginTop: 4 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: C.blue, marginBottom: 4 }}>{label}</div>
+    <div style={{ fontSize: 13, color: C.text }}>{text || "-"}</div>
+  </div>
+);
+
+// Fields mirror each activity's creating modal (Log a Call / Log an Email /
+// Log on Appointment / Offline Log / Task / Appointment). "By" is who logged it.
 const ActivityDetail = ({ a }) => {
-  if (a.type === "meeting") return (<>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Hosted By" value="Philip West" />
-      <ActField label="Meeting Outcome" node={<span style={{ fontSize: 12, fontWeight: 700, color: C.amber, background: C.amber + "18", padding: "3px 12px", borderRadius: 12 }}>Scheduled</span>} />
-      <ActField label="Meeting Type" value="Video Conference" />
-      <ActField label="Meeting Duration" value="60 min" />
-      <ActField label="Meeting Location" node={<a style={{ fontSize: 13.5, fontWeight: 600, color: C.blue, textDecoration: "none" }}>Microsoft Teams</a>} />
-      <ActField label="Attendees" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>Test Test <span style={{ fontSize: 11, color: C.blue, background: C.blue + "14", padding: "2px 8px", borderRadius: 10 }}>+1</span></span>} />
-      <ActField label="Description" value="-" />
-      <div />
-      <ActField label="Attachments" value="-" />
+  const who = a.actor || "Philip West";
+
+  if (a.type === "appointment") return (<>
+    <div style={actGrid}>
+      <ActField label="Hosted By" value={who} />
+      <ActField label="Appointment Outcome" node={<Pill text={a.outcome || "Scheduled"} />} />
+      <ActField label="Appointment Type" value={a.apptType || "Consultation Appointment"} />
+      <ActField label="Duration" value={a.duration || "60 min"} />
+      <ActField label="Appointment Location" node={<a style={{ fontSize: 13.5, fontWeight: 600, color: C.blue, textDecoration: "none" }}>{a.location || "Microsoft Teams"}</a>} />
+      <ActField label="Attendees" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{a.attendees || "Test Test"} <span style={{ fontSize: 11, color: C.blue, background: C.blue + "14", padding: "2px 8px", borderRadius: 10 }}>+1</span></span>} />
+      <ActField label="Attachments" value={a.attachments || "-"} />
+      <ActField label="Status" value={a.status || "Appointment"} />
+      <ActField label="Description" value={a.description || "-"} />
     </div>
-    <div style={{ background: C.blue + "0E", borderRadius: 10, padding: "14px 16px", marginTop: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.blue, marginBottom: 4 }}>Meeting Note</div>
-      <div style={{ fontSize: 13, color: C.text }}>-</div>
-    </div>
+    <ReportBox label="Appointment Report" text={a.report} />
   </>);
-  if (a.type === "call") return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Call By" value="Philip West" />
-      <ActField label="Call Status" value="-" />
+
+  if (a.type === "call") return (<>
+    <div style={actGrid}>
+      <ActField label="Call By" value={who} />
       <ActField label="Call Direction" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>📞 {a.direction || "Outbound"}</span>} />
-      <ActField label="Call Duration" value="00:00:00" />
-      <ActField label="Call Report" value="-" />
-      <div />
-      <ActField label="Call Recording" value="-" />
+      <ActField label="Call Status" value={a.callStatus || "Reached"} />
+      <ActField label="Call Duration" value={a.duration || "00:00:00"} />
+      <ActField label="Status" value={a.status || "-"} />
     </div>
-  );
-  if (a.type === "email") return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Sent By" value="Philip West" />
-      <ActField label="Direction" value="Sent" />
+    <ReportBox label="Call Report" text={a.report} />
+  </>);
+
+  if (a.type === "email") return (<>
+    <div style={actGrid}>
+      <ActField label="Sent By" value={who} />
+      <ActField label="Direction" value={a.direction || "Sent"} />
+      <ActField label="Email Address" value={a.address || "-"} />
       <ActField label="Subject" value={a.title} />
-      <ActField label="Status" value="Delivered" />
-      <ActField label="Email Report" value="-" />
+      <ActField label="Status" value={a.status || "Delivered"} />
     </div>
-  );
+    <ReportBox label="Email Report" text={a.report} />
+  </>);
+
   if (a.type === "task") return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Created By" value="Philip West" />
-      <ActField label="Task Type" value="Call" />
-      <ActField label="Priority" value="Medium" />
-      <ActField label="Status" value="Open" />
-      <ActField label="Description" value="-" />
+    <div style={actGrid}>
+      <ActField label="Created By" value={who} />
+      <ActField label="Task Type" value={a.taskType || "Call"} />
+      <ActField label="Priority" value={a.priority || "Normal"} />
+      <ActField label="Status" value={a.status || "Open"} />
+      <ActField label="Reminder" value={a.reminder || "-"} />
+      <ActField label="Description" value={a.description || "-"} />
     </div>
   );
-  // update
+
+  if (a.type === "offline") return (<>
+    <div style={actGrid}>
+      <ActField label="Logged By" value={who} />
+      <ActField label="Channel" value={a.channel || "In-person appointment"} />
+      <ActField label="Status" value={a.status || "-"} />
+    </div>
+    <ReportBox label="Note" text={a.note} />
+  </>);
+
+  // update — system audit entry (field change); not created from a modal.
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
-      <ActField label="Changed By" value="Philip West" />
+    <div style={actGrid}>
+      <ActField label="Changed By" value={who} />
       <ActField label="Field" value={a.field || "-"} />
       <ActField label="From" value={a.from || "-"} />
       <ActField label="To" value={a.to || "-"} />
@@ -1186,8 +1219,9 @@ const ActivitiesTab = () => {
     { key: "all", label: t("all") },
     { key: "call", label: t("call") },
     { key: "email", label: t("email") },
+    { key: "appointment", label: t("appointment") },
     { key: "task", label: t("task") },
-    { key: "meeting", label: t("meeting") },
+    { key: "offline", label: t("offline") },
   ];
   const filtered = useMemo(() => {
     if (filter === "all") return ACTIVITIES;

@@ -378,7 +378,8 @@ export const TRANSLATIONS = {
     // Activities tab
     all: "All",
     call: "Call",
-    meeting: "Meeting",
+    appointment: "Appointment",
+    offline: "Offline",
     task: "Task",
 
     // GDPR
@@ -931,7 +932,8 @@ export const TRANSLATIONS = {
     // Activities tab
     all: "Alle",
     call: "Anruf",
-    meeting: "Meeting",
+    appointment: "Termin",
+    offline: "Offline",
     task: "Aufgabe",
 
     // GDPR

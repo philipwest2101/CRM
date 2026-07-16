@@ -78,7 +78,7 @@ export const NewActivityModal = ({ onClose, role, onAdd, initial=null }) => {
         {/* Title */}
         <div style={{ marginBottom:12 }}>
           <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>
-            {at.icon} {type==="call"?"Call subject":type==="email"?"Email subject":type==="note"?"Note title":"Meeting title"}
+            {at.icon} {type==="call"?"Call subject":type==="email"?"Email subject":type==="note"?"Note title":"Appointment title"}
           </label>
           <input value={title} onChange={e=>setTitle(e.target.value)}
             placeholder={`e.g. Follow-up call with Sandra Richter`}
@@ -143,10 +143,10 @@ export const NewActivityModal = ({ onClose, role, onAdd, initial=null }) => {
           </div>
         )}
 
-        {/* Meeting link — video + events */}
+        {/* Appointment link — video + events */}
         {at.hasLink && (
           <div style={{ marginBottom:12 }}>
-            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>🔗 Meeting link</label>
+            <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>🔗 Appointment link</label>
             <input value={link} onChange={e=>setLink(e.target.value)}
               placeholder="https://meet.google.com/…"
               style={{ width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none" }}/>

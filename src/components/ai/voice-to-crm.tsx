@@ -176,4 +176,4 @@ Output ONLY valid JSON, no markdown:
   );
 };
 
-// ─── AI Meeting Prep Brief ─────────────────────────────────────────────────────
+// ─── AI Appointment Prep Brief ─────────────────────────────────────────────────────

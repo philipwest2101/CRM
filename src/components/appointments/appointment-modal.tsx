@@ -136,7 +136,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
             {rowR("👤 Contact", f.contact)}
             {rowR("🏷 Type", f.apptType==="Other" ? (f.apptTypeOther||"Other") : f.apptType)}
             {rowR("👥 Attendees", attendeeArr.map(attLabelOf).join(", "))}
-            {rowR("📍 Meeting Location", f.location)}
+            {rowR("📍 Appointment Location", f.location)}
             {rowR("📎 Attachments", f.attachments.join(", "))}
             {f.reminderOn && rowR("⏰ Reminder", reminderLabel(f.reminder,f.reminderCustom))}
             {f.note && (
@@ -254,7 +254,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
               <div><label style={lbl}>End</label><input type="time" value={f.end} onChange={e=>set("end",e.target.value)} style={input}/></div>
             </div>
 
-            {field("Meeting Location *", <input value={f.location}
+            {field("Appointment Location *", <input value={f.location}
               onChange={e=>set("location",e.target.value)}
               placeholder="ARTIST Boutique Hotel — Vienna  ·  or https://meet.…" style={input}/>)}
 

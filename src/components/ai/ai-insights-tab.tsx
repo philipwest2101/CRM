@@ -22,7 +22,7 @@ export const AIInsightsTab = ({ role }) => {
     { id:"insights",  label:"📊 Insights",       desc:"Scores, timing, email drafts"    },
     { id:"roleplay",  label:"🎭 Objection Roleplay", desc:"Practice with AI as contact"     },
     { id:"voice",     label:"🎙️ Voice-to-CRM",    desc:"Dictate call notes"             },
-    { id:"brief",     label:"📋 Meeting Prep",    desc:"AI brief before appointments"   },
+    { id:"brief",     label:"📋 Appointment Prep",    desc:"AI brief before appointments"   },
   ];
 
   return (

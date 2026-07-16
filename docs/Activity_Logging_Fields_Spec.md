@@ -22,11 +22,11 @@ Defined in `src/lib/core.tsx` and reused by every form, modal and outcome picker
 | Vocabulary | Values |
 |---|---|
 | **Activity types — Tasks** (`TASK_TYPE_KEYS`) | Call 📞, Email ✉️, Note 📝 (surfaced as "To Do" in the Task modal) |
-| **Activity types — Appointments** (`APPOINTMENT_TYPE_KEYS`) | Consultation 💼, Recruiting 🧑‍💼, Business Meeting 🤝, Other 📌 |
+| **Activity types — Appointments** (`APPOINTMENT_TYPE_KEYS`) | Consultation 💼, Recruiting 🧑‍💼, Business Appointment 🤝, Other 📌 |
 | **Priorities** (`PRIORITY_KEYS`) | Low, Normal, High, Urgent |
 | **Recurrence** | Once, Daily, Weekly, Monthly, Yearly (Add-Activity) · "Every N day/week/month/year" (Task modal) |
 | **Call dispositions** (`CALL_STATUS_OPTIONS`) | Reached – Interested · Reached – Not Interested · Reached – Callback Requested · Reached – Appointment Set · Not Reached – Voicemail · Not Reached – No Answer · Not Reached – Wrong Number |
-| **Appointment / meeting outcome** | Completed · No-show · Rescheduled · Cancelled |
+| **Appointment outcome** | Completed · No-show · Rescheduled · Cancelled |
 | **Stage Status — Lead** (`LEAD_STAGE_STATUSES`) | New · In Contact · Not Reached · Not Interested · Currently Not Interested · Difficult Case · Appointment · Follow Up · Qualified |
 | **Stage Status — Network** (`NETWORK_STAGE_STATUSES`) | Customer · Partner · Prospect |
 | **Reminder offsets** | 15 Minutes Before · 30 Minutes Before · 1 Hour Before · (1 Day Before — appointments) · Custom Date |
@@ -50,14 +50,14 @@ Type is pre-selected and locked.
 | Field | Req | Type | Notes |
 |---|---|---|---|
 | Type | ✱ | Grouped button picker | Appointments group + Tasks group; hidden/locked when pre-set |
-| Title / Subject | \* | Text | Label adapts: "Call subject" / "Email subject" / "Note title" / "Meeting title" |
+| Title / Subject | \* | Text | Label adapts: "Call subject" / "Email subject" / "Note title" / "Appointment title" |
 | Contact | — | Text search | Optional |
 | Date | \* | Date | |
 | Time | \* | Time | Shown only for types with a time; label adapts ("Start time" / "Due time"). Required when the type has a time |
 | End time | — | Time | Appointment types only (`hasEnd`) |
 | Duration | — | Quick-pick buttons | Call: 15/30/45/60/90 min · Consultation 30/45/60/90 · Recruiting 30/45/60 · Business 30/60/90. Sets End |
 | Location | — | Text | Appointment types with `hasLocation` |
-| Meeting link | — | URL | Appointment types with `hasLink` |
+| Appointment link | — | URL | Appointment types with `hasLink` |
 | Priority | — | Select | Urgent / High / Normal / Low (default Normal) |
 | Recurrence | — | Select | Once / Daily / Weekly / Monthly / Yearly |
 | Note | — | Textarea | |
@@ -112,7 +112,7 @@ lifecycle) and for scheduling from a contact. Three states: **create · edit · 
 | Date | \* | Date | |
 | Start | \* | Time | Mandatory (defaults 09:00) |
 | End | — | Time | |
-| Meeting Location | \* | Text | Physical address or a video-meeting URL |
+| Appointment Location | \* | Text | Physical address or a video-call URL |
 | Attachments | — | Multiselect | From `DOCUMENT_TYPES_STORE`; system docs + uploads |
 | Reminder | — | Checkbox + Select | 15 Min / 30 Min / 1 Hour / 1 Day Before / Custom Date |
 | Reminder — custom | — | datetime-local | Shown when "Custom Date" chosen |
@@ -132,7 +132,7 @@ Read-only. Opens when a **Lead** appointment is clicked on the Calendar. Carries
 | Contact | Read-only row | |
 | Type | Read-only row | |
 | Attendees | Read-only row | Shown when present |
-| Meeting Location | Read-only row | Shown when present |
+| Appointment Location | Read-only row | Shown when present |
 | Attachments | Read-only row | Shown when present |
 | Description | Read-only text | Shown when present |
 
@@ -174,8 +174,8 @@ Network-only action (Lead appointments are worked in Processing & Feedback).
 | Field | Req | Type | Notes |
 |---|---|---|---|
 | (Context line) | — | Read-only | Contact · date · time of the appointment |
-| Meeting Status | \* | Select | Completed / No-show / Rescheduled / Cancelled |
-| Meeting Report | \* | Textarea | "What happened in the meeting…" |
+| Appointment Status | \* | Select | Completed / No-show / Rescheduled / Cancelled |
+| Appointment Report | \* | Textarea | "What happened in the appointment…" |
 | Status | \* | Select | Network Stage Status (Customer / Partner / Prospect) |
 
 Returns `{ status, report, stageStatus }`.
@@ -185,26 +185,29 @@ Returns `{ status, report, stageStatus }`.
 ## 3. Per-contact activity feed
 *Source: `src/components/leads/mvp-contact-detail-page.tsx` (`ActivitiesTab`) — the contact detail "Activities" tab*
 
-A reverse-chronological feed of everything logged against one contact.
+A reverse-chronological feed of everything logged against one contact. Each
+card's fields mirror its creating modal — see **`Activities_Tab_And_Modal_Fields.md`**
+for the full per-field breakdown.
 
 **List-level fields / controls**
 
 | Element | Values |
 |---|---|
-| Filter tabs | All · Call · Email · Task · Meeting |
+| Filter tabs | All · Call · Email · Appointment · Task · Offline |
 | Month grouping | Entries grouped by month heading, order preserved |
 | Row (collapsed) | Day label · type icon · title · date-time · expand chevron |
 | Pagination | Page X of N · prev/next · page size 5 / 10 / 25 · "Displaying A–B of T records" |
 
-**Expanded detail — fields per entry type**
+**Expanded detail — fields per entry type** (aligned to each modal)
 
 | Type | Detail fields |
 |---|---|
-| Meeting 🤝 | Hosted By · Meeting Outcome · Meeting Type · Meeting Duration · Meeting Location · Attendees · Description · Attachments · Meeting Note |
-| Call 📞 | Call By · Call Status · Call Direction · Call Duration · Call Report · Call Recording |
-| Email ✉️ | Sent By · Direction · Subject · Status · Email Report |
-| Task ☑️ | Created By · Task Type · Priority · Status · Description |
-| Update ✎ | Changed By · Field · From · To (field-change audit rows, e.g. Assignee / Labels) |
+| Appointment 📅 | Hosted By · Appointment Outcome · Appointment Type · Duration · Appointment Location · Attendees · Attachments · Status · Description · **Appointment Report** |
+| Call 📞 | Call By · Call Direction · Call Status · Call Duration · Status · **Call Report** |
+| Email ✉️ | Sent By · Direction · Email Address · Subject · Status · **Email Report** |
+| Task ☑️ | Created By · Task Type · Priority · Status · Reminder · Description |
+| Offline 📝 | Logged By · Channel · Status · **Note** |
+| Update ✎ | Changed By · Field · From · To (system audit rows, e.g. Assignee / Labels) |
 
 ---
 
@@ -284,12 +287,12 @@ Save / Cancel.
 
 | Field | Req | Type | Options |
 |---|---|---|---|
-| Meeting Type | \* | Select | Consultation Appointment · Recruiting · Business Opening · Investment Talk · Finance Talk · Other |
-| Meeting Outcome | \* | Select | Completed · No Show · Rescheduled · Cancelled |
+| Appointment Type | \* | Select | Consultation Appointment · Recruiting · Business Opening · Investment Talk · Finance Talk · Other |
+| Appointment Outcome | \* | Select | Completed · No Show · Rescheduled · Cancelled |
 | Date | \* | Date | |
 | Start | \* | Time | |
 | End | \* | Time | |
-| Meeting Report | \* | Textarea | |
+| Appointment Report | \* | Textarea | |
 | Status | — | Select | Stage Status for lifecycle |
 
 **Offline Log** (`OfflineLogModal`)
@@ -319,7 +322,7 @@ Save / Cancel.
 | Call | ✅ Reached — Interested · ✅ Reached — Appointment set · 👎 Reached — Not Interested · 📵 Not Reached — No answer · 📵 Not Reached — Voicemail · 🔄 Callback Requested |
 | Email | 📤 Email sent · 📥 Positive response · 📥 Negative response · 🔄 Follow-up requested |
 | Appointment | ✅ Completed · ❌ No-show / Cancelled · 🔄 Rescheduled · 🕐 Follow-up required |
-| Offline | 🤝 In-person meeting · 💬 WhatsApp / SMS · 📮 Letter / Post · 📱 Other channel |
+| Offline | 🤝 In-person appointment · 💬 WhatsApp / SMS · 📮 Letter / Post · 📱 Other channel |
 
 Save button label: **📝 Save Log**; confirmation "✅ Saved successfully".
 

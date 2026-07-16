@@ -630,7 +630,7 @@ export const TIMELINE_EVENTS = [
 
 // ─── Activity Types ───────────────────────────────────────────────────────────
 // Two categories: "task" (Call / Email / Note) and "appointment" (Consultation /
-// Recruiting / Business meeting / Other). Legacy keys are kept so existing stored
+// Recruiting / Business appointment / Other). Legacy keys are kept so existing stored
 // activities still resolve, but the Add-Activity menu offers the grouped set below.
 
 export const ACTIVITY_TYPES = {
@@ -641,12 +641,12 @@ export const ACTIVITY_TYPES = {
   // Appointments
   consultation: { category:"appointment", label:"Consultation",    icon:"💼", color:"#059669", bg:"#F0FDF4", short:"Consult",  hasEnd:true,  hasLocation:true,  hasLink:true,  timeLabel:"Start",       durOptions:[30,45,60,90] },
   recruiting:   { category:"appointment", label:"Recruiting",      icon:"🧑‍💼", color:"#6366F1", bg:"#EEF2FF", short:"Recruit",  hasEnd:true,  hasLocation:true,  hasLink:true,  timeLabel:"Start",       durOptions:[30,45,60] },
-  business:     { category:"appointment", label:"Business Meeting", icon:"🤝", color:"#0891B2", bg:"#ECFEFF", short:"Business", hasEnd:true,  hasLocation:true,  hasLink:true,  timeLabel:"Start",       durOptions:[30,60,90] },
+  business:     { category:"appointment", label:"Business Appointment", icon:"🤝", color:"#0891B2", bg:"#ECFEFF", short:"Business", hasEnd:true,  hasLocation:true,  hasLink:true,  timeLabel:"Start",       durOptions:[30,60,90] },
   other:        { category:"appointment", label:"Other",           icon:"📌", color:"#8B5CF6", bg:"#F5F3FF", short:"Other",    hasEnd:true,  hasLocation:true,  hasLink:true,  timeLabel:"Start",       durOptions:null },
   // Legacy keys (kept for existing data; not offered in the Add menu)
   whatsapp:  { category:"task",        label:"WhatsApp / SMS",    icon:"💬", color:"#25D366", bg:"#F0FFF4", short:"WhatsApp", hasEnd:false, hasLocation:false, hasLink:false, timeLabel:"Send time",   durOptions:null },
-  inperson:  { category:"appointment", label:"In-Person Meeting", icon:"🤝", color:"#059669", bg:"#F0FDF4", short:"Meeting",  hasEnd:true,  hasLocation:true,  hasLink:false, timeLabel:"Start",       durOptions:null },
-  video:     { category:"appointment", label:"Video Meeting",     icon:"📹", color:"#7C3AED", bg:"#F5F3FF", short:"Video",    hasEnd:true,  hasLocation:false, hasLink:true,  timeLabel:"Start",       durOptions:null },
+  inperson:  { category:"appointment", label:"In-Person Appointment", icon:"🤝", color:"#059669", bg:"#F0FDF4", short:"Appointment", hasEnd:true,  hasLocation:true,  hasLink:false, timeLabel:"Start",       durOptions:null },
+  video:     { category:"appointment", label:"Video Appointment",     icon:"📹", color:"#7C3AED", bg:"#F5F3FF", short:"Video",    hasEnd:true,  hasLocation:false, hasLink:true,  timeLabel:"Start",       durOptions:null },
   document:  { category:"task",        label:"Document Request",  icon:"📋", color:"#0891B2", bg:"#F0F9FF", short:"Doc",      hasEnd:false, hasLocation:false, hasLink:false, timeLabel:"Due date",    durOptions:null },
   event:     { category:"appointment", label:"Event Invite",      icon:"🎟️", color:"#BE185D", bg:"#FDF2F8", short:"Event",    hasEnd:true,  hasLocation:true,  hasLink:true,  timeLabel:"Start",       durOptions:null },
 };
@@ -710,9 +710,9 @@ export const APPT_TYPE_META = {
   inperson: { label:"🤝 In-Person",   color:"#10B981", bg:"#ECFDF5" },
 };
 
-// Business meeting types (what the appointment is about) — used for the
-// dashboard badges and matches the "Meeting Type" options in the modals.
-export const MEETING_TYPE_META = {
+// Appointment types (what the appointment is about) — used for the
+// dashboard badges and matches the "Appointment Type" options in the modals.
+export const APPOINTMENT_TYPE_META = {
   "Consultation Appointment": { short:"Consultation",     color:"#3B82F6" },
   "Recruiting":               { short:"Recruiting",       color:"#8B5CF6" },
   "Business Opening":         { short:"Business Opening", color:"#10B981" },
@@ -797,10 +797,10 @@ export const APPOINTMENTS = [
   // ── Today 2026-06-28 ───────────────────────────────────────────────────────
   { id:"A-201", date:"2026-06-28", start:"09:00", end:"09:45", type:"call",     apptType:"Consultation Appointment", lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Initial consultation — high AI score" },
   { id:"A-202", date:"2026-06-28", start:"10:30", end:"11:30", type:"video",    apptType:"Investment Talk", lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Product presentation — Q1 Finanz" },
-  { id:"A-203", date:"2026-06-28", start:"12:00", end:"13:00", type:"inperson", apptType:"Business Opening", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Strategy session — 2nd meeting" },
+  { id:"A-203", date:"2026-06-28", start:"12:00", end:"13:00", type:"inperson", apptType:"Business Opening", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Strategy session — 2nd appointment" },
   { id:"A-204", date:"2026-06-28", start:"14:00", end:"14:45", type:"call",     apptType:"Finance Talk", lead:"Robert Keller",   leadId:"L-2006", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Referral contact — first appointment" },
   { id:"A-205", date:"2026-06-28", start:"15:30", end:"16:30", type:"video",    apptType:"Consultation Appointment", lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Follow-up after proposal sent" },
-  { id:"A-206", date:"2026-06-28", start:"16:00", end:"17:00", type:"inperson", apptType:"Recruiting", lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",    vd:"Lisa Weber",    status:"upcoming",  notes:"Qualification meeting" },
+  { id:"A-206", date:"2026-06-28", start:"16:00", end:"17:00", type:"inperson", apptType:"Recruiting", lead:"Julia Schneider", leadId:"L-1038", gp:"Kai Becker",    vd:"Lisa Weber",    status:"upcoming",  notes:"Qualification appointment" },
   { id:"A-207", date:"2026-06-28", start:"17:30", end:"18:00", type:"call",     apptType:"Finance Talk", lead:"Dirk Schumacher", leadId:"L-1052", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — check in call" },
   // ── Today 2026-06-29 — GP Anna Klein ───────────────────────────────────────
   { id:"A-301", date:"2026-06-29", start:"09:00", end:"09:45", type:"call",     apptType:"Consultation Appointment", lead:"Sandra Richter",  leadId:"L-1040", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"Follow-up after proposal — Q1 Finanz" },
@@ -814,7 +814,7 @@ export const APPOINTMENTS = [
   // ── Today 2026-07-01 — GP Anna Klein ────────────────────────────────────────
   { id:"A-401", date:"2026-07-01", start:"09:00", end:"09:45", type:"call",     apptType:"Consultation Appointment", lead:"Klaus Wagner",    leadId:"L-2010", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"3rd contact — nearing appointment decision" },
   { id:"A-402", date:"2026-07-01", start:"10:30", end:"11:15", type:"video",    apptType:"Investment Talk", lead:"Lena Brandt",     leadId:"L-2011", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Product walkthrough — Q1 Finanz" },
-  { id:"A-403", date:"2026-07-01", start:"12:00", end:"13:00", type:"inperson", apptType:"Business Opening", lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"First in-person meeting — Partner Ref" },
+  { id:"A-403", date:"2026-07-01", start:"12:00", end:"13:00", type:"inperson", apptType:"Business Opening", lead:"Tobias Fischer",  leadId:"L-2012", gp:"Anna Klein",    vd:"Thomas Müller", status:"upcoming",  notes:"First in-person appointment — Partner Ref" },
   { id:"A-404", date:"2026-07-01", start:"14:00", end:"14:30", type:"call",     apptType:"Finance Talk", lead:"Anna Bergmann",   leadId:"L-2013", gp:"Anna Klein",    vd:"Thomas Müller", status:"confirmed", notes:"Follow-up after webinar interest" },
   // ── Today 2026-07-01 — VD Thomas Müller (direct / self-close) ──────────────
   { id:"A-405", date:"2026-07-01", start:"11:00", end:"11:30", type:"call",     apptType:"Recruiting", lead:"Michael Stein",   leadId:"L-2014", gp:"Thomas Müller", vd:"Thomas Müller", status:"upcoming",  notes:"VD direct — Messe FFM contact" },
@@ -1674,8 +1674,8 @@ export const INITIAL_EMAIL_TEMPLATES = [
   { id:"et-r1-en", lang:"en", journey:"reminder",    name:"Appointment Reminder — Phone (EN)", subject:"Reminder: Your phone consultation tomorrow at {{appt_time}}",body:"Dear {{lead_name}},\n\nThis is your reminder about our phone consultation tomorrow at {{appt_time}}.\n\nYour advisor {{advisor_name}} will call you. Please make sure you are reachable.\n\nSee you tomorrow,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}"], published:true },
   { id:"et-f1-en", lang:"en", journey:"followup1",   name:"Follow-up #1 — Interest Check (EN)",subject:"Still interested? We're here to help",                    body:"Dear {{lead_name}},\n\nWe wanted to check if you received our first message and whether we can help you further.\n\nYour advisor {{advisor_name}} is happy to arrange a short call. When would suit you best?\n\nBest regards,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
   { id:"et-r1",  lang:"de", journey:"reminder",    name:"Appointment Reminder — Phone",  subject:"Erinnerung: Ihr Telefontermin morgen um {{appt_time}}", body:"Hallo {{lead_name}},\n\nhier ist Ihre Erinnerung an unseren Telefontermin morgen um {{appt_time}} Uhr.\n\nIhr Berater {{advisor_name}} wird Sie unter Ihrer Nummer anrufen. Bitte stellen Sie sicher, dass Sie erreichbar sind.\n\nBis morgen,\n{{advisor_name}}\n{{sender_email}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}","{{sender_email}}"], published:true },
-  { id:"et-r2",  lang:"de", journey:"reminder",    name:"Appointment Reminder — Video",  subject:"Ihr Video-Meeting morgen — Link anbei",             body:"Hallo {{lead_name}},\n\nmorgen um {{appt_time}} Uhr findet unser Video-Gespräch statt. Hier ist Ihr Zoom-Link:\n\n{{meeting_link}}\n\nBei technischen Fragen wenden Sie sich bitte im Voraus an {{advisor_name}}.\n\nBis morgen!\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}","{{meeting_link}}"], published:true },
-  { id:"et-r3",  lang:"de", journey:"reminder",    name:"Appointment Reminder — In-Person",subject:"Morgen treffen wir uns — Adresse und Details",    body:"Hallo {{lead_name}},\n\nmorgiges Treffen: {{appt_time}} Uhr, {{meeting_location}}.\n\nWir freuen uns auf Sie! Bitte bringen Sie wenn möglich relevante Unterlagen mit.\n\nBis dann,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}","{{meeting_location}}"], published:true },
+  { id:"et-r2",  lang:"de", journey:"reminder",    name:"Appointment Reminder — Video",  subject:"Ihr Video-Termin morgen — Link anbei",             body:"Hallo {{lead_name}},\n\nmorgen um {{appt_time}} Uhr findet unser Video-Gespräch statt. Hier ist Ihr Zoom-Link:\n\n{{appointment_link}}\n\nBei technischen Fragen wenden Sie sich bitte im Voraus an {{advisor_name}}.\n\nBis morgen!\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}","{{appointment_link}}"], published:true },
+  { id:"et-r3",  lang:"de", journey:"reminder",    name:"Appointment Reminder — In-Person",subject:"Morgen treffen wir uns — Adresse und Details",    body:"Hallo {{lead_name}},\n\nmorgiges Treffen: {{appt_time}} Uhr, {{appointment_location}}.\n\nWir freuen uns auf Sie! Bitte bringen Sie wenn möglich relevante Unterlagen mit.\n\nBis dann,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}","{{appt_time}}","{{appointment_location}}"], published:true },
   // Post nurture
   { id:"et-p1",  lang:"de", journey:"postnurture", name:"Post-Appt Follow-up",           subject:"Schön, dass wir gesprochen haben — nächste Schritte",body:"Hallo {{lead_name}},\n\nvielen Dank für unser Gespräch! Es war schön, mehr über Ihre Ziele zu erfahren.\n\nWie besprochen sende ich Ihnen die Unterlagen in Kürze zu. Melden Sie sich jederzeit, wenn Sie Fragen haben.\n\nFreundliche Grüße,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
   { id:"et-p2",  lang:"de", journey:"postnurture", name:"Referral Request",              subject:"Kennen Sie jemanden, der auch profitieren könnte?",  body:"Hallo {{lead_name}},\n\nwir freuen uns, dass unser Gespräch hilfreich war. Falls Sie jemanden kennen, der ebenfalls von einer kostenlosen Beratung profitieren könnte, würden wir uns über eine Empfehlung sehr freuen.\n\nVielen Dank,\n{{advisor_name}}", variables:["{{lead_name}}","{{advisor_name}}"], published:true },
