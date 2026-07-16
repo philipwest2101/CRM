@@ -56,3 +56,103 @@ body {
     box-shadow: none;
   }
 }
+
+/* ─── Mobile reflow overrides (responsive preview only) ─────────────────────────
+   The whole app is styled with inline styles built for a wide desktop viewport.
+   Rather than rewrite every screen, these rules reflow the common desktop layout
+   patterns into a single mobile column. They target the serialized inline `style`
+   attribute and use !important so they win over the inline values. Everything is
+   scoped to `.app-root[data-view="responsive"]`, so the desktop view is untouched.
+
+   IMPORTANT: only *layout* grids are collapsed. Data tables in this app wrap their
+   grid in an `overflow-x:auto` container and drive columns from non-equal tracks
+   (e.g. "1.6fr 1.2fr …"), so they are deliberately NOT matched here and keep their
+   own horizontal scroll. */
+
+/* Equal 2- & 3-column layout grids ("1fr 1fr" / "1fr 1fr 1fr") → one column */
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns:1fr 1fr"] {
+  grid-template-columns: 1fr !important;
+}
+
+/* repeat(2|3, …) layout grids → one column.
+   Anchored to the `grid-template-columns` property so a `grid-template-rows:
+   repeat(N, …)` value can never accidentally trigger a column override. */
+.app-root[data-view="responsive"] [style*="grid-template-columns: repeat(2"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: repeat(3"] {
+  grid-template-columns: 1fr !important;
+}
+
+/* repeat(4|5|6, …) tile strips → two columns (keeps KPI/stat tiles compact) */
+.app-root[data-view="responsive"] [style*="grid-template-columns: repeat(4"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: repeat(5"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: repeat(6"] {
+  grid-template-columns: 1fr 1fr !important;
+}
+
+/* Content + fixed side-rail layouts ("1fr 340px", "260px 1fr", "1.5fr 1fr", …)
+   → stack into one column. Covers rails on either the left or the right. */
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 400px"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 340px"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 320px"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 300px"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 280px"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 260px"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 240px"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1fr 210px"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 400px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 340px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 320px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 300px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 280px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 260px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 250px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 240px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 220px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 210px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 200px 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1.5fr 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 1.6fr 1fr"],
+.app-root[data-view="responsive"] [style*="grid-template-columns: 2fr 1fr"],
+.app-root[data-view="responsive"] [style*="minmax(300px"],
+.app-root[data-view="responsive"] [style*="minmax(280px"] {
+  grid-template-columns: 1fr !important;
+}
+
+/* App-shell "sidebar + main" built with flexbox (e.g. the Calendar): a fixed-width
+   sidebar (width:Npx; flex-shrink:0) sitting next to a flex:1 main area. Make the
+   sidebar span the full width and let the row wrap so the main area drops below it.
+   The :not([style*="column"]) guard keeps this to horizontal (row) splits only. */
+.app-root[data-view="responsive"] [style*="flex-shrink: 0"][style*="width: 200px"],
+.app-root[data-view="responsive"] [style*="flex-shrink: 0"][style*="width: 210px"],
+.app-root[data-view="responsive"] [style*="flex-shrink: 0"][style*="width: 220px"],
+.app-root[data-view="responsive"] [style*="flex-shrink: 0"][style*="width: 240px"],
+.app-root[data-view="responsive"] [style*="flex-shrink: 0"][style*="width: 250px"],
+.app-root[data-view="responsive"] [style*="flex-shrink: 0"][style*="width: 260px"],
+.app-root[data-view="responsive"] [style*="flex-shrink: 0"][style*="width: 280px"],
+.app-root[data-view="responsive"] [style*="flex-shrink: 0"][style*="width: 300px"] {
+  width: 100% !important;
+  flex-shrink: 1 !important;
+  border-right: none !important;
+}
+.app-root[data-view="responsive"] [style*="display: flex"][style*="overflow: hidden"]:not([style*="column"]) {
+  flex-wrap: wrap;
+}
+
+/* Header / toolbar rows split with space-between should wrap on a narrow screen
+   instead of overlapping or overflowing. */
+.app-root[data-view="responsive"] [style*="justify-content: space-between"],
+.app-root[data-view="responsive"] [style*="justify-content:space-between"] {
+  flex-wrap: wrap;
+}
+
+/* Fixed-position modals / dialogs: never wider than the phone column. */
+.app-root[data-view="responsive"] [style*="position: fixed"][style*="translate(-50%"] {
+  max-width: calc(100vw - 24px) !important;
+}
+
+/* Media never forces horizontal overflow. */
+.app-root[data-view="responsive"] img {
+  max-width: 100%;
+  height: auto;
+}

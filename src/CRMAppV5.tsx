@@ -210,8 +210,8 @@ export default function CRMAppV5() {
       {page==="LeadDetail"      && (version==="mvp"
                                       ? <MVPContactDetailPage role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} />
                                       : <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />)}
-      {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
-      {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} />}
+      {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} viewMode={viewMode} />}
+      {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} viewMode={viewMode} />}
       {page==="AutoAssign"      && <AutoAssignPage        role={role} navigateTo={navigateTo} />}
       {page==="LeadCapture"     && <ImportsHistoryPage role={role} />}
       {page==="Settings"        && (version==="mvp"

@@ -42,8 +42,9 @@ const GOOGLE_EVENTS = [
   { id:"g6", title:"Video-Beratung",    date:"2026-07-04", time:"10:00", end:"11:00" },
 ];
 
-export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder }) => {
+export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder, viewMode }) => {
   const t = useT();
+  const mobile   = viewMode === "responsive";   // stack the app-shell layout for mobile
   const TODAY    = "2026-06-29";
   const MONTHS   = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const [currentDate, setCurrentDate] = useState(new Date(2026,5,29));
@@ -335,7 +336,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   );
 
   return (
-    <div style={{ display:"flex",flexDirection:"column",height:"100%",fontFamily:"inherit",overflow:"hidden" }}>
+    <div style={{ display:"flex",flexDirection:"column",height:mobile?"auto":"100%",fontFamily:"inherit",overflow:mobile?"visible":"hidden" }}>
 
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <div style={{ padding:"12px 20px",borderBottom:`1px solid ${C.border}`,background:"#fff",
@@ -403,11 +404,12 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
       </div>
 
       {/* ── Main body: sidebar + calendar ─────────────────────────────────── */}
-      <div style={{ flex:1,display:"flex",overflow:"hidden",background:"#F9FAFB" }}>
+      <div style={{ flex:1,display:"flex",flexDirection:mobile?"column":"row",overflow:mobile?"visible":"hidden",background:"#F9FAFB" }}>
 
         {/* ── Left sidebar ─────────────────────────────────────────────────── */}
-        <div style={{ width:250,flexShrink:0,borderRight:`1px solid ${C.border}`,background:"#F9FAFB",
-          padding:"14px",display:"flex",flexDirection:"column",gap:14,overflowY:"auto" }}>
+        <div style={{ width:mobile?"auto":250,flexShrink:mobile?1:0,
+          borderRight:mobile?"none":`1px solid ${C.border}`,borderBottom:mobile?`1px solid ${C.border}`:"none",background:"#F9FAFB",
+          padding:"14px",display:"flex",flexDirection:"column",gap:14,overflowY:mobile?"visible":"auto" }}>
 
           <SideSection><MiniCal/></SideSection>
 
@@ -437,11 +439,11 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
         </div>
 
         {/* ── Calendar area ────────────────────────────────────────────────── */}
-        <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#fff" }}>
+        <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:mobile?"visible":"hidden",background:"#fff",minHeight:mobile?"70vh":undefined }}>
 
           {/* ── MONTH VIEW ──────────────────────────────────────────────────── */}
           {view==="month" && (
-            <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+            <div style={{ flex:1,display:"flex",flexDirection:"column",overflow:mobile?"visible":"hidden" }}>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)",flexShrink:0 }}>
                 {DE_DOW.map((d,i)=>(
                   <div key={i} style={{ padding:"9px 12px",textAlign:"right",fontSize:11,fontWeight:700,
@@ -449,7 +451,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                 ))}
               </div>
               <div style={{ flex:1,display:"grid",gridTemplateColumns:"repeat(7,1fr)",
-                gridTemplateRows:`repeat(${totalRows},1fr)`,overflow:"auto" }}>
+                gridTemplateRows:`repeat(${totalRows},${mobile?"minmax(64px,auto)":"1fr"})`,overflow:mobile?"visible":"auto" }}>
                 {Array.from({length:totalCells}).map((_,idx)=>{
                   const dayNum  = idx - startOffset + 1;
                   const isValid = dayNum >= 1 && dayNum <= daysInMonth;
