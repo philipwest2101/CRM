@@ -27,6 +27,11 @@ export default function CRMAppV5() {
   const [role, setRole]               = useState("superadmin");
   const [version, setVersion]         = useState("mvp");   // global page-version toggle: "mvp" | "full"
   const [lang, setLang]               = useState<Lang>("de");
+  // Desktop ⇄ Responsive (mobile) preview toggle — switched from the top menu.
+  const [viewMode, setViewMode]       = useState<string>(() => {
+    try { return localStorage.getItem("crm_viewMode") || "desktop"; } catch { return "desktop"; }
+  });
+  useEffect(() => { try { localStorage.setItem("crm_viewMode", viewMode); } catch {} }, [viewMode]);
   const [currentLead, setCurrentLead] = useState(null);
   const [sourceView, setSourceView]   = useState(null);
   const [sourceAction, setSourceAction] = useState(null);
@@ -195,8 +200,9 @@ export default function CRMAppV5() {
 
   return (
     <LangContext.Provider value={{ lang, setLang }}>
-    <div style={{ minHeight:"100vh",background:C.light,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:C.text }}>
-      <TopNav page={page} setPage={setPage} role={role} setRole={setRole} version={version} setVersion={setVersion} pushRef={pushRef} lang={lang} setLang={setLang} />
+    <div className="app-root" data-view={viewMode} style={{ minHeight:"100vh",background:C.light,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:C.text }}>
+      <div className="device-frame">
+      <TopNav page={page} setPage={setPage} role={role} setRole={setRole} version={version} setVersion={setVersion} pushRef={pushRef} lang={lang} setLang={setLang} viewMode={viewMode} setViewMode={setViewMode} />
       {page==="Dashboard"       && <DashboardPage        role={role} navigateTo={navigateTo} version={version} activities={activities} setActivities={setActivities} appointments={appointments} />}
       {page==="Leads"           && (version==="mvp"
                                       ? <MVPContactsPage  role={role} navigateTo={navigateTo} initialView={sourceView} clearInitialView={() => setSourceView(null)} initialAction={sourceAction} clearInitialAction={() => setSourceAction(null)} />
@@ -228,6 +234,7 @@ export default function CRMAppV5() {
           </div>
         </div>
       )}
+      </div>
     </div>
     </LangContext.Provider>
   );

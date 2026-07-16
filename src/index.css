@@ -21,3 +21,38 @@ body {
   background: #f9fafb;
   color: #222730;
 }
+
+/* ─── Responsive preview shell ──────────────────────────────────────────────
+   The whole app is wrapped in .app-root > .device-frame. In "desktop" mode the
+   frame is a transparent full-width passthrough. In "responsive" mode the frame
+   is constrained to a phone-width column centred on a neutral backdrop, so the
+   MVP can be previewed exactly as it renders on a mobile device — while on a
+   real small screen the frame is simply full-width. Toggled from the top menu. */
+.device-frame {
+  width: 100%;
+}
+
+.app-root[data-view="responsive"] {
+  background: #d8dce3 !important;
+}
+
+.app-root[data-view="responsive"] .device-frame {
+  width: 430px;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #f9fafb;
+  /* clip (not hidden) keeps the sticky top nav working while trimming any
+     wide desktop-only content to the phone silhouette. */
+  overflow-x: clip;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 8px 40px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 640px) {
+  .app-root[data-view="responsive"] {
+    background: #f9fafb !important;
+  }
+  .app-root[data-view="responsive"] .device-frame {
+    box-shadow: none;
+  }
+}
