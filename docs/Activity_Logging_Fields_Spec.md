@@ -73,7 +73,7 @@ Three states: **create · edit · view**.
 | Field | Req | Type | Notes |
 |---|---|---|---|
 | Title | \* | Text | |
-| Contact | \* | Select (or locked input) | Locked to the current contact when opened from a contact (`lockContact`) |
+| Contact | (\*) | Select (or locked input) | Labelled required in the UI, but **not enforced** by save validation (only Title + Date + Time are). Locked to the current contact when opened from a contact (`lockContact`) |
 | Type | \* | Button group | Call 📞 / Email ✉️ / To Do ✅ (note) |
 | Priority | — | Button group | Low / Normal / High / Urgent |
 | Date | \* | Date | |
@@ -81,16 +81,26 @@ Three states: **create · edit · view**.
 | Reminder | — | Checkbox + Select | 15 Min / 30 Min / 1 Hour Before / Custom Date |
 | Reminder — custom | — | datetime-local | Shown when "Custom Date" chosen |
 | Set to repeat | — | Checkbox + counter + unit | "every N day/week/month/year" |
-| Email Template | — | Select | **Edit mode only**; from `EMAIL_TEMPLATES_STORE` |
+| Email Template | — | Select | **Edit mode only** — not shown on Create or View (`task-modal.tsx`, rendered under `m==="edit"`); options from `EMAIL_TEMPLATES_STORE` |
 | Description | — | Textarea | |
 
 **View-mode actions:** Log a Call · Make a Call (Call tasks only) · Delete · Done.
 **Edit-mode actions:** Delete · Cancel · Update.
 
-### 1.3 Appointment popup — schedule / edit / view
+### 1.3 Appointment popups — Lead vs Network
+
+Opening an appointment on the Calendar routes to **one of two different modals
+by the contact's lifecycle** (`calendar-page.tsx` → `openActivity`): Network
+contacts get the actionable modal; Leads get a read-only modal, because a Lead's
+appointment is worked from the lead's *Processing & Feedback* tab, not the
+Calendar. (Task / Call / Email items open the Task popup in §1.2 — never an
+appointment modal.)
+
+#### 1.3a Network appointment popup — schedule / edit / view
 *Source: `src/components/appointments/appointment-modal.tsx` (`AppointmentModal`)*
 
-Three states: **create · edit · view**.
+Also used for **creating/editing** any appointment (create/edit don't yet know a
+lifecycle) and for scheduling from a contact. Three states: **create · edit · view**.
 
 | Field | Req | Type | Notes |
 |---|---|---|---|
@@ -108,9 +118,26 @@ Three states: **create · edit · view**.
 | Reminder — custom | — | datetime-local | Shown when "Custom Date" chosen |
 | Description | — | Textarea | |
 
-**View mode (Network contacts only):** Cancel Appointment · Set Outcome. For a
-**Lead**, the appointment is read-only here — it is worked from the lead's
-*Processing & Feedback* tab.
+**View-mode actions (Network):** ✏️ Edit · Cancel Appointment · Set Outcome.
+
+#### 1.3b Lead appointment popup — read-only detail
+*Source: `src/components/appointments/lead-appointment-modal.tsx` (`LeadAppointmentModal`)*
+
+Read-only. Opens when a **Lead** appointment is clicked on the Calendar. Carries a
+**LEAD** badge and no edit / cancel / outcome actions.
+
+| Field | Type | Notes |
+|---|---|---|
+| Date & Time | Read-only row | |
+| Contact | Read-only row | |
+| Type | Read-only row | |
+| Attendees | Read-only row | Shown when present |
+| Meeting Location | Read-only row | Shown when present |
+| Attachments | Read-only row | Shown when present |
+| Description | Read-only text | Shown when present |
+
+**Actions:** Open Processing & Feedback (deep-links to the lead's detail) · Close.
+No editing — Lead appointments are worked in *Processing & Feedback*.
 
 ---
 
@@ -304,7 +331,9 @@ Save button label: **📝 Save Log**; confirmation "✅ Saved successfully".
 |---|---|
 | Add Activity popup | `src/components/calendar/new-activity-modal.tsx` |
 | Task popup | `src/components/calendar/task-modal.tsx` |
-| Appointment popup | `src/components/appointments/appointment-modal.tsx` |
+| Appointment popup — Network (actionable) | `src/components/appointments/appointment-modal.tsx` |
+| Appointment popup — Lead (read-only) | `src/components/appointments/lead-appointment-modal.tsx` |
+| Calendar popup routing (type + Lead/Network) | `src/components/calendar/calendar-page.tsx` (`openActivity`) |
 | Outbound Call (disposition) | `src/components/leads/outbound-call-modal.tsx` |
 | Appointment Outcome | `src/components/appointments/appointment-outcome-modal.tsx` |
 | Per-contact activity feed | `src/components/leads/mvp-contact-detail-page.tsx` (`ActivitiesTab`) |

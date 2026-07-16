@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { NewActivityModal } from "./new-activity-modal";
 import { TaskModal } from "./task-modal";
 import { AppointmentModal } from "../appointments/appointment-modal";
+import { LeadAppointmentModal } from "../appointments/lead-appointment-modal";
 import { AppointmentOutcomeModal } from "../appointments/appointment-outcome-modal";
-import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS, EVENTS_LIST, PRIORITY_META, DONE_STATUSES } from "../../lib/core";
+import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, ALL_LEADS, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS, EVENTS_LIST, PRIORITY_META, DONE_STATUSES } from "../../lib/core";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 
@@ -56,7 +57,8 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [selected,    setSelected]    = useState(null);    // activity detail modal
   const [selectedDate,setSelectedDate]= useState(TODAY);  // highlighted day
   const [taskModal,   setTaskModal]   = useState(null);    // { mode, data }
-  const [apptModal,   setApptModal]   = useState(null);    // { mode, data }
+  const [apptModal,   setApptModal]   = useState(null);    // { mode, data } — Network appointments (actionable)
+  const [leadAppt,    setLeadAppt]    = useState(null);    // Lead appointment (read-only detail)
   const [outcomeAppt, setOutcomeAppt] = useState(null);
   const [cellMenu,    setCellMenu]    = useState(null);    // { x, y, date, time } — create-here popover
   const [miniDate,    setMiniDate]    = useState(new Date(2026,5,29)); // month shown by the sidebar mini-calendar
@@ -173,12 +175,17 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const openActivity = (a) => {
     if (a.isEvent || a.source==="google") { setSelected(a); return; }   // events + Google are read-only → detail panel
     if (isAppt(a)) {
-      setApptModal({ mode:"view", data:{
-        id:a.id, title:a.title, contact:a.lead, leadId:a.leadId, lifecycle:a.lifecycle||"Lead",
+      const lifecycle = a.lifecycle || "Lead";
+      const data = {
+        id:a.id, title:a.title, contact:a.lead, leadId:a.leadId, lifecycle,
         apptType:a.apptType||"Consultation Appointment",
         date:a.date, time:a.time, end:a.end, location:a.location, attendees:a.attendees,
         attachment:a.attachment, attachments:a.attachments,
-        reminder:a.reminder, reminderCustom:a.reminderCustom, note:a.note, reminderOn:true }});
+        reminder:a.reminder, reminderCustom:a.reminderCustom, note:a.note, reminderOn:true };
+      // Lead vs Network appointments open different modals: Leads are read-only
+      // (worked in Processing & Feedback), Network appointments are actionable.
+      if (lifecycle === "Network") setApptModal({ mode:"view", data });
+      else                         setLeadAppt(data);
     } else {
       setTaskModal({ mode:"view", data:{
         id:a.id, type:TASK_TYPE_KEYS.includes(a.type)?a.type:"note", title:a.title, contact:a.lead,
@@ -788,6 +795,21 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
         onSubmit={submitAppt}
         onCancelAppt={cancelAppt}
         onSetOutcome={(f)=>{ setApptModal(null); setOutcomeAppt(f); }}
+      />}
+
+      {/* ── Lead appointment modal (read-only detail) ──────────────────────── */}
+      {leadAppt && <LeadAppointmentModal
+        appt={leadAppt}
+        onClose={()=>setLeadAppt(null)}
+        onOpenProcessing={(f)=>{
+          setLeadAppt(null);
+          if(!navigateTo) return;
+          // Deep-link into the contact's detail (Processing & Feedback) when we
+          // can resolve the lead; otherwise fall back to the Contacts list.
+          const lead = ALL_LEADS.find(l => (f.leadId && l.id===f.leadId) || (f.contact && l.name===f.contact));
+          if(lead) navigateTo("LeadDetail", lead);
+          else     navigateTo("Leads");
+        }}
       />}
 
       {/* ── Appointment outcome modal ──────────────────────────────────────── */}
