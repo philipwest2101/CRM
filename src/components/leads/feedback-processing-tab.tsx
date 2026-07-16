@@ -16,15 +16,17 @@ import { AppointmentModal } from "../appointments/appointment-modal";
 // · Send Initial Message is optional — advisors who prefer to call directly can
 //   skip it and go straight to Call Attempts.
 // · Call attempts are capped at 5; the 5th failed attempt sends the lead to
-//   Finalize as "Not Reached". Advisors are not forced to use all 5 — after the
-//   first attempt they can finalize early ("no further attempts"). If a lead is
+//   Finalize as "Not Reached". Advisors are not forced to use all 5 — if a lead is
 //   unreachable, a ready-made "missed call" message can be copied.
+// · From Call Attempts onward every step offers a "Finalize now" shortcut, so an
+//   advisor can proceed to Finalize at any point (whether or not the lead was
+//   reached) without completing the remaining steps.
 // · Call Outcome: Appointment Scheduled, Not Interested, Currently Not
-//   Interested, Difficult Case. "Appointment Scheduled" opens the scheduling
-//   modal ("Schedule & Continue"); the negative outcomes skip to Finalize.
-// · Appointment Outcome: Qualified, Reschedule, Attending Event, Not Interested,
-//   Currently Not Interested, Difficult Case. "Reschedule" re-opens scheduling.
-//   An optional note captures details (e.g. a no-show without notice).
+//   Interested, Difficult Case, Other. "Appointment Scheduled" opens the
+//   scheduling modal ("Schedule & Continue"); the other outcomes skip to Finalize.
+// · Appointment Outcome: Customer, Reschedule, Attending Event, Not Interested,
+//   Currently Not Interested, Difficult Case, Other. "Reschedule" re-opens
+//   scheduling. An optional note captures details (e.g. a no-show without notice).
 // · Negative outcomes enable a persistent Do-Not-Contact toggle in Finalize.
 // · Conversion happens in Finalize: "Add to My Network" opens the Convert Lead
 //   modal (Network Status: Customer / Prospect / Partner).
@@ -321,8 +323,11 @@ const CALL_RESULTS = [
   { v: "reached",    label: "Reached",     tone: C.green },
 ];
 // Select the result of a call attempt (correctable), then Save & Continue.
-const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeEarly, onCreateTask }) => {
+const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, onCreateTask }) => {
   const [sel, setSel] = useState("");
+  // Finalize is offered once the advisor has logged an attempt or picked a
+  // result (reached or not) — they need never exhaust all attempts.
+  const canFinalize = calls >= 1 || !!sel;
   const [copied, setCopied] = useState(false);
   const first = (contact?.name || "there").replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ")[0];
   const advisor = contact?.assignee || "your advisor";
@@ -363,13 +368,13 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeEarly, 
           <OptionChips options={CALL_RESULTS} value={sel} onChange={setSel} />
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
-            {calls >= 1 && (
-              <GhostBtn icon="🏁" onClick={onFinalizeEarly}>Finalize now — no further attempts</GhostBtn>
+            {canFinalize && (
+              <GhostBtn icon="🏁" onClick={onFinalizeNow}>Finalize now — no further steps</GhostBtn>
             )}
           </div>
-          {calls >= 1 && (
+          {canFinalize && (
             <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
-              You don't have to use all {MAX_CALL_ATTEMPTS} attempts — finalize early if further calls aren't worthwhile.
+              You don't have to use all {MAX_CALL_ATTEMPTS} attempts — finalize now to proceed straight to Finalize.
             </div>
           )}
         </>
@@ -384,8 +389,9 @@ const CALL_OUTCOMES = [
   { v: "notinterested",label: "Not Interested",           tone: C.red },
   { v: "currentlynot", label: "Currently Not Interested", tone: C.amber },
   { v: "difficult",    label: "Difficult Case",           tone: C.slate },
+  { v: "other",        label: "Other",                    tone: C.slate },
 ];
-const CallOutcomeStep = ({ onComplete }) => {
+const CallOutcomeStep = ({ onComplete, onFinalizeNow }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const sel = CALL_OUTCOMES.find(o => o.v === choice);
@@ -394,29 +400,35 @@ const CallOutcomeStep = ({ onComplete }) => {
     <>
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>The contact was reached. Select the outcome of the conversation to continue processing the lead.</div>
       <OptionChips options={CALL_OUTCOMES} value={choice} onChange={setChoice} />
-      {sel && NEGATIVE.has(choice) && (
-        <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>↩ Ends processing — you can set Do Not Contact in Finalize.</div>
+      {sel && !isAppt && (
+        <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>
+          {NEGATIVE.has(choice) ? "↩ Ends processing — you can set Do Not Contact in Finalize." : "↩ Ends processing — sent to Finalize."}
+        </div>
       )}
       <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>Note (optional)</label>
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — briefly describe the conversation outcome…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
-      <PrimaryBtn icon={isAppt ? "📅" : "✓"} disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>
-        {isAppt ? "Schedule & Continue" : "Save & Continue"}
-      </PrimaryBtn>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <PrimaryBtn icon={isAppt ? "📅" : "✓"} disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>
+          {isAppt ? "Schedule & Continue" : "Save & Continue"}
+        </PrimaryBtn>
+        <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize now</GhostBtn>
+      </div>
     </>
   );
 };
 
 // Appointment Outcome (flat, single-select).
 const APPT_OUTCOMES = [
-  { v: "qualified",    label: "Qualified",                tone: C.green },
+  { v: "customer",     label: "Customer",                 tone: C.green },
   { v: "reschedule",   label: "Reschedule",               tone: C.amber },
   { v: "attending",    label: "Attending Event",          tone: C.indigo },
   { v: "notinterested",label: "Not Interested",           tone: C.red },
   { v: "currentlynot", label: "Currently Not Interested", tone: C.amber },
   { v: "difficult",    label: "Difficult Case",           tone: C.slate },
+  { v: "other",        label: "Other",                    tone: C.slate },
 ];
-const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
+const AppointmentOutcomeStep = ({ appointment, onComplete, onFinalizeNow }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const sel = APPT_OUTCOMES.find(o => o.v === choice);
@@ -436,7 +448,10 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
       <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>Note (optional)</label>
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — e.g. client was a no-show without notice…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
-      <PrimaryBtn icon="✓" disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>Save &amp; Continue</PrimaryBtn>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <PrimaryBtn icon="✓" disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>Save &amp; Continue</PrimaryBtn>
+        <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize now</GhostBtn>
+      </div>
     </>
   );
 };
@@ -508,14 +523,21 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     log: pushLog(prev, "Send Initial Message → Skipped (calling directly)"),
   }));
 
-  // Finalize after any call attempt without exhausting all 5 tries.
-  const onFinalizeEarly = () => setState(prev => {
-    if (prev.notReached || prev.calls < 1) return prev;
+  // "Finalize now" — jump straight to Finalize from any step at or after Call
+  // Attempts, without completing the remaining steps. Neutral by design: it does
+  // not flag the lead as a negative outcome (no DNC toggle).
+  const onFinalizeNow = (fromKey, note = "") => setState(prev => {
+    if (prev.finished) return prev;
+    const title = STEPS[IDX[fromKey]].title;
+    const noteSuffix = note ? ` — ${note}` : "";
+    const summary = fromKey === "phone"
+      ? (prev.calls >= 1 ? `Finalized early after ${prev.calls} call attempt${prev.calls !== 1 ? "s" : ""}` : "Finalized early")
+      : `Finalized early${noteSuffix}`;
     return {
-      ...prev, notReached: true, current: IDX.finish, doneSteps: withDone(prev, "phone"),
-      summaries: { ...prev.summaries, phone: `Finalized early after ${prev.calls} call attempt${prev.calls !== 1 ? "s" : ""}` },
-      lastAction: { icon: "🏁", label: "Finalized early — no further attempts", date: today() },
-      log: pushLog(prev, `Call Attempts → Finalized early after ${prev.calls} call attempt${prev.calls !== 1 ? "s" : ""} · sent to Finalize`),
+      ...prev, current: IDX.finish, doneSteps: withDone(prev, fromKey),
+      summaries: { ...prev.summaries, [fromKey]: summary },
+      lastAction: { icon: "🏁", label: "Finalized early", date: today() },
+      log: pushLog(prev, `${title} → Finalized early${noteSuffix} · sent to Finalize`),
     };
   });
 
@@ -560,9 +582,12 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       setScheduleModalOpen(true);
       return;
     }
-    // Negative outcome → skip to Finalize.
+    // Non-appointment outcome → skip to Finalize. Negative outcomes enable the
+    // Do-Not-Contact toggle there; "Other" is neutral and does not.
     setState(prev => ({
-      ...prev, contactOutcome: label, contactNote: note || null, negativeOutcome: true, current: IDX.finish, doneSteps: withDone(prev, "outcome"),
+      ...prev, contactOutcome: label, contactNote: note || null,
+      negativeOutcome: NEGATIVE.has(v) ? true : prev.negativeOutcome,
+      current: IDX.finish, doneSteps: withDone(prev, "outcome"),
       summaries: { ...prev.summaries, outcome: `${label}${noteSuffix}` },
       lastAction: { icon: "🏁", label: `Call outcome: ${label}`, date: today() },
       log: pushLog(prev, `Call Outcome → ${label}${noteSuffix} · sent to Finalize`),
@@ -646,9 +671,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const renderCurrentBody = (step) => {
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} onSend={onSend} onSkip={onSkipInitial} />;
-      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onFinalizeEarly={onFinalizeEarly} onCreateTask={onCreateTask} />;
-      case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} />;
-      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
+      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onFinalizeNow={() => onFinalizeNow("phone")} onCreateTask={onCreateTask} />;
+      case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} onFinalizeNow={(note) => onFinalizeNow("outcome", note)} />;
+      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onFinalizeNow={(note) => onFinalizeNow("appointment", note)} />;
       case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
