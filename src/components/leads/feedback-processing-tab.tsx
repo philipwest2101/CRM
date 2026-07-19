@@ -419,7 +419,7 @@ const CallOutcomeStep = ({ onComplete, onFinalizeNow }) => {
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <PrimaryBtn icon={isAppt ? "📅" : "✓"} disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>
-          {isAppt ? "Schedule & Continue" : "Save & Continue"}
+          {isAppt ? "Schedule & Continue" : "Continue"}
         </PrimaryBtn>
         <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize now</GhostBtn>
       </div>
@@ -458,7 +458,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete, onFinalizeNow }) => {
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — e.g. client was a no-show without notice…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon="✓" disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>Save &amp; Continue</PrimaryBtn>
+        <PrimaryBtn icon={choice === "reschedule" ? "📅" : "✓"} disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>{choice === "reschedule" ? "Reschedule" : "Continue"}</PrimaryBtn>
         <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize now</GhostBtn>
       </div>
     </>
@@ -504,7 +504,7 @@ const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, ca
 );
 
 // ── Main tab (controlled) ─────────────────────────────────────────────────────
-export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask, onSendEmail, emailSent }) => {
+export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask, onSendEmail, emailSent, onBookAppointment, onCancelAppointment }) => {
   const current = state.current;
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -603,23 +603,50 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     }));
   };
 
-  // From Call Outcome (Appointment Scheduled) → book and advance to Appointment Outcome.
-  const onScheduleFromOutcome = (appt) => setState(prev => {
-    const noteSuffix = prev.contactNote ? ` — ${prev.contactNote}` : "";
-    return {
-      ...prev, appointment: appt, current: IDX.appointment, doneSteps: withDone(prev, "outcome"),
-      summaries: { ...prev.summaries, outcome: `${prev.contactOutcome || "Appointment Scheduled"}${noteSuffix}` },
-      lastAction: { icon: "📅", label: `Appointment booked · ${appt.date} ${appt.time}`, date: today() },
-      log: pushLog(prev, `Appointment Scheduled → ${appt.type} · ${appt.date} ${appt.time}`),
-    };
-  });
+  // Write the booked appointment through to the shared calendar / activities store
+  // (so it shows on the Calendar, not just inside this tab). No-op if the host
+  // didn't wire a calendar (the callback is optional).
+  const bookOnCalendar = (appt, data) => {
+    if (!onBookAppointment) return;
+    onBookAppointment({
+      id: appt.id,
+      type: data?.apptType || appt.type,
+      lead: contact?.name || "",
+      leadId: contact?.id,
+      date: appt.date,
+      start: appt.time,
+      end: data?.end || "",
+      gp: contact?.assignee || "",
+      vd: "",
+      notes: data?.description || "",
+    });
+  };
+
+  // From Call Outcome (Appointment Scheduled) → book (on the calendar) and advance
+  // to Appointment Outcome.
+  const onScheduleFromOutcome = (appt, data) => {
+    bookOnCalendar(appt, data);
+    setState(prev => {
+      const noteSuffix = prev.contactNote ? ` — ${prev.contactNote}` : "";
+      return {
+        ...prev, appointment: appt, current: IDX.appointment, doneSteps: withDone(prev, "outcome"),
+        summaries: { ...prev.summaries, outcome: `${prev.contactOutcome || "Appointment Scheduled"}${noteSuffix}` },
+        lastAction: { icon: "📅", label: `Appointment booked · ${appt.date} ${appt.time}`, date: today() },
+        log: pushLog(prev, `Appointment Scheduled → ${appt.type} · ${appt.date} ${appt.time}`),
+      };
+    });
+  };
 
   // Re-book from within Appointment Outcome (reschedule) — keeps the current step.
-  const onRebook = (appt) => setState(prev => ({
-    ...prev, appointment: appt,
-    lastAction: { icon: "📅", label: `Re-booked · ${appt.date} ${appt.time}`, date: today() },
-    log: pushLog(prev, `Appointment Scheduled → Re-booked · ${appt.type} · ${appt.date} ${appt.time}`),
-  }));
+  // The previous calendar event is cancelled by the caller before this runs.
+  const onRebook = (appt, data) => {
+    bookOnCalendar(appt, data);
+    setState(prev => ({
+      ...prev, appointment: appt,
+      lastAction: { icon: "📅", label: `Re-booked · ${appt.date} ${appt.time}`, date: today() },
+      log: pushLog(prev, `Appointment Scheduled → Re-booked · ${appt.type} · ${appt.date} ${appt.time}`),
+    }));
+  };
 
   const onAppointmentOutcome = (v, label, note = "") => {
     if (v === "reschedule") {
@@ -662,7 +689,12 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   // uncommitted, so nothing downstream is orphaned — we just clear the flags this
   // step (and later) produced and re-enter it, appending an audit line.
   const reopen = (stepKey) => setState(prev => {
+    // Conversion to Network is irreversible — once converted, the stepper is
+    // frozen and cannot be reopened. (The Edit control is hidden too; this is a
+    // belt-and-braces guard.)
+    if (prev.isContact) return prev;
     const idx = IDX[stepKey];
+    const wasFinalized = prev.finished;
     const patch: any = {
       ...prev,
       current: idx,
@@ -670,10 +702,13 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       finished: false,
     };
     if (idx <= IDX.phone)       { patch.reached = false; patch.notReached = false; patch.calls = Math.max(0, prev.calls - 1); }
-    if (idx <= IDX.outcome)     { patch.contactOutcome = null; patch.contactNote = null; patch.appointment = null; }
+    // Reopening at/through Call Outcome discards any booked appointment and the
+    // reschedule history (the calendar event itself is cancelled by the caller).
+    if (idx <= IDX.outcome)     { patch.contactOutcome = null; patch.contactNote = null; patch.appointment = null; patch.reschedules = 0; }
     if (idx <= IDX.appointment) { patch.apptOutcome = null; patch.apptNote = null; patch.negativeOutcome = false; patch.dnc = false; }
     patch.lastAction = { icon: "↩", label: `Reopened "${STEPS[idx].title}"`, date: today() };
-    patch.log = pushLog(prev, `↩ Reopened "${STEPS[idx].title}" for correction`);
+    // Reopening a finalized lead pulls its result back out of the campaign stats.
+    patch.log = pushLog(prev, `↩ Reopened "${STEPS[idx].title}" for correction${wasFinalized ? " · processing result retracted from campaign statistics" : ""}`);
     return patch;
   });
 
@@ -697,7 +732,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {completed.map((s, i) => (
         <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]}
-          editable={i === completed.length - 1} onReopen={() => setReopenTarget(s.key)} />
+          editable={i === completed.length - 1 && !state.isContact} onReopen={() => setReopenTarget(s.key)} />
       ))}
 
       <CurrentStepShell num={stepNo(currentStep.key)} title={currentStep.title}>
@@ -716,9 +751,16 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
           }}
           onClose={() => setScheduleModalOpen(false)}
           onSubmit={(data) => {
-            const appt = { type: data.apptType, date: data.date, time: data.time };
-            // From Call Outcome → advance to Appointment Outcome; from Appointment Outcome → re-book.
-            if (current === IDX.outcome) onScheduleFromOutcome(appt); else onRebook(appt);
+            const appt = { id: `appt-${Date.now()}`, type: data.apptType, date: data.date, time: data.time };
+            if (current === IDX.outcome) {
+              // From Call Outcome → advance to Appointment Outcome.
+              onScheduleFromOutcome(appt, data);
+            } else {
+              // From Appointment Outcome (reschedule) → cancel the old calendar
+              // event first, then book and record the replacement.
+              if (state.appointment?.id) onCancelAppointment && onCancelAppointment(state.appointment.id);
+              onRebook(appt, data);
+            }
             setScheduleModalOpen(false);
           }}
         />
@@ -735,11 +777,23 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       {reopenTarget && (
         <ConfirmDialog
           title="Reopen this step?"
-          message={<>Reopening <b>{STEPS[IDX[reopenTarget]].title}</b> discards the steps after it and their recorded outcomes — you'll re-do them from here.</>}
+          message={<>
+            Reopening <b>{STEPS[IDX[reopenTarget]].title}</b> discards the steps after it and their recorded outcomes — you'll re-do them from here.
+            {IDX[reopenTarget] <= IDX.outcome && state.appointment && <> The booked appointment will be cancelled and removed from the calendar.</>}
+            {state.finished && <> This lead's result will be retracted from the campaign statistics.</>}
+          </>}
           confirmLabel="Reopen & Discard"
           danger
           onCancel={() => setReopenTarget(null)}
-          onConfirm={() => { reopen(reopenTarget); setReopenTarget(null); }}
+          onConfirm={() => {
+            // If the reopen discards a booked appointment, cancel its calendar
+            // event too (and notify attendees, once that's wired server-side).
+            if (IDX[reopenTarget] <= IDX.outcome && state.appointment?.id) {
+              onCancelAppointment && onCancelAppointment(state.appointment.id);
+            }
+            reopen(reopenTarget);
+            setReopenTarget(null);
+          }}
         />
       )}
     </div>

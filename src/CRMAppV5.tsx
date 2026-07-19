@@ -38,7 +38,10 @@ export default function CRMAppV5() {
 
   // ── Shared state ────────────────────────────────────────────────────────────
   const [appointments, setAppointments] = useState(APPOINTMENTS);
-  const [activities,    setActivities]    = useState(ACTIVITIES_STORE);
+  // Copy, don't alias: ACTIVITIES_STORE is mutated in place elsewhere (unshift/
+  // splice), so sharing the reference makes the first `[act, ...prev]` double the
+  // new entry (prev is the same array that was just unshifted).
+  const [activities,    setActivities]    = useState(() => [...ACTIVITIES_STORE]);
   const [reminders,    setReminders]    = useState([
     { id:"r1", title:"Follow-up call — Sandra Richter",    lead:"Sandra Richter",  entityType:"lead",       date:"Today",        time:"14:00", recur:"Once",   priority:"high",   status:"pending",   channels:["push","inapp"], type:"manual"   },
     { id:"r2", title:"Appointment prep — Dirk Schumacher", lead:"Dirk Schumacher", entityType:"appointment", date:"Today",        time:"13:00", recur:"Once",   priority:"normal", status:"pending",   channels:["push","inapp"], type:"workflow"  },
@@ -168,6 +171,16 @@ export default function CRMAppV5() {
     runWorkflow("appointment_scheduled", { name: appt.lead });
   };
 
+  // Cancel a previously-added appointment (used when a lead's appointment is
+  // reopened/rescheduled in Processing & Feedback) — pull it from the calendar
+  // and the unified activities store.
+  const removeAppointment = (id) => {
+    setAppointments(prev => prev.filter(a => a.id !== id));
+    setActivities(prev => prev.filter(a => a.id !== id));
+    const idx = ACTIVITIES_STORE.findIndex(a => a.id === id);
+    if (idx >= 0) ACTIVITIES_STORE.splice(idx, 1);
+  };
+
   const addReminder = (reminder) => {
     setReminders(prev => [reminder, ...prev]);
     // Also add to unified activities store
@@ -208,7 +221,7 @@ export default function CRMAppV5() {
                                       ? <MVPContactsPage  role={role} navigateTo={navigateTo} initialView={sourceView} clearInitialView={() => setSourceView(null)} initialAction={sourceAction} clearInitialAction={() => setSourceAction(null)} />
                                       : <LeadsPage        role={role} navigateTo={navigateTo} />)}
       {page==="LeadDetail"      && (version==="mvp"
-                                      ? <MVPContactDetailPage role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} />
+                                      ? <MVPContactDetailPage role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} addAppointment={addAppointment} removeAppointment={removeAppointment} />
                                       : <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />)}
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} viewMode={viewMode} />}
       {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} viewMode={viewMode} />}

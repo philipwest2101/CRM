@@ -1395,7 +1395,7 @@ const DocumentsTab = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => {
+export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role, addAppointment, removeAppointment }) => {
   const t = useT();
   const isMyNetwork = sourceView === "my";
   // ── Feedback & Processing state (shared with the Overview tab + tab gating) ──
@@ -1475,7 +1475,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
             })}
           </div>
 
-          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} />}
+          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
