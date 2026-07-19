@@ -207,7 +207,9 @@ export default function CRMAppV5() {
   const navigateTo = (dest, lead=null, view=null, action=null) => {
     if (lead) setCurrentLead(lead);
     if (view !== null) setSourceView(view);
-    if (action !== null) setSourceAction(action);
+    // Always set (incl. null) so a plain navigation clears a stale one-shot action
+    // (e.g. a "finalize"/"convert" deep-link) instead of it lingering.
+    setSourceAction(action);
     setPage(dest);
   };
 
@@ -221,7 +223,7 @@ export default function CRMAppV5() {
                                       ? <MVPContactsPage  role={role} navigateTo={navigateTo} initialView={sourceView} clearInitialView={() => setSourceView(null)} initialAction={sourceAction} clearInitialAction={() => setSourceAction(null)} />
                                       : <LeadsPage        role={role} navigateTo={navigateTo} />)}
       {page==="LeadDetail"      && (version==="mvp"
-                                      ? <MVPContactDetailPage role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} addAppointment={addAppointment} removeAppointment={removeAppointment} />
+                                      ? <MVPContactDetailPage key={`detail-${currentLead?.id}-${sourceAction||""}`} role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} sourceAction={sourceAction} addAppointment={addAppointment} removeAppointment={removeAppointment} />
                                       : <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />)}
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} viewMode={viewMode} />}
       {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} viewMode={viewMode} />}

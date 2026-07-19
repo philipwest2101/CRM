@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, stageStatusOptions, blocksToText } from "../../lib/core";
+import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, stageStatusOptions, blocksToText, setLeadState, getLeadState } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
@@ -1395,13 +1395,31 @@ const DocumentsTab = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role, addAppointment, removeAppointment }) => {
+export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceAction, role, addAppointment, removeAppointment }) => {
   const t = useT();
   const isMyNetwork = sourceView === "my";
+  // Deep-link actions from the Leads list: "finalize" jumps straight to the
+  // Finalize step; "convert" jumps there and pops the Convert dialog.
+  const FINISH_IDX = STEPS.findIndex(s => s.key === "finish");
+  const jumpToFinalize = sourceAction === "finalize" || sourceAction === "convert";
+  const initFeedback = () => {
+    // Restore any finalized/converted state persisted from a previous visit so the
+    // stepper reflects it (a finalized lead shows "Processed", a converted one
+    // shows "In My Network") instead of re-deriving from the seed status.
+    const ls = getLeadState(lead?.id);
+    const converted = ls.lifecycle === "Network";
+    let fb = makeInitialFeedback(lead, isMyNetwork || converted);
+    if (ls.finalized || converted || jumpToFinalize) {
+      fb = { ...fb, current: FINISH_IDX, doneSteps: STEPS.slice(0, FINISH_IDX).map(s => s.key) };
+    }
+    if (ls.finalized || converted) fb = { ...fb, finished: true };
+    if (converted) fb = { ...fb, isContact: true, networkStatus: ls.networkStatus || fb.networkStatus };
+    return fb;
+  };
   // ── Feedback & Processing state (shared with the Overview tab + tab gating) ──
   // A lead only "becomes a contact" once the initial outreach has been sent; My
   // Network entries are already contacts. Every other tab stays disabled until then.
-  const [feedback, setFeedback] = useState(() => makeInitialFeedback(lead, isMyNetwork));
+  const [feedback, setFeedback] = useState(initFeedback);
 
   // "Feedback & Processing" comes first; every other tab (and the identity-rail
   // quick actions) stays locked until the lead has been converted to a contact.
@@ -1411,7 +1429,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role, addAp
   const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
   const [tab, setTab] = useState(() => t("feedbackTab"));
   // Re-initialise when navigating to a different contact.
-  React.useEffect(() => { setFeedback(makeInitialFeedback(lead, isMyNetwork)); setTab(t("feedbackTab")); }, [lead?.id]);
+  React.useEffect(() => { setFeedback(initFeedback()); setTab(t("feedbackTab")); }, [lead?.id]);
   // If the active tab ever becomes disabled, fall back to Feedback.
   React.useEffect(() => { if (!isTabEnabled(tab)) setTab(t("feedbackTab")); }, [feedback.isContact]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
@@ -1475,7 +1493,10 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role, addAp
             })}
           </div>
 
-          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment} />}
+          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment}
+                                            onLeadFinalized={() => setLeadState(lead?.id, { finalized: true })}
+                                            onLeadConverted={(status) => setLeadState(lead?.id, { finalized: true, lifecycle: "Network", networkStatus: status })}
+                                            autoConvert={sourceAction === "convert"} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}

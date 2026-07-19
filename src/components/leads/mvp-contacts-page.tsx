@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { ALL_LEADS, feedbackStatusLabel } from "../../lib/core";
+import { ALL_LEADS, feedbackStatusLabel, getLeadState } from "../../lib/core";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 
@@ -86,13 +86,18 @@ const toContact = (l) => {
   const [first, ...rest] = l.name.split(" ");
   const last = rest.join(" ");
   const ss = STAGE_STATUS[l.status] || STAGE_STATUS.no_interest;
-  const network = isNetworkStatus(l.status);
+  // A lead converted at runtime (in Processing & Feedback) is promoted to Network
+  // here so it drops out of the Leads views and appears in My Network.
+  const override = getLeadState(l.id);
+  const network = isNetworkStatus(l.status) || override.lifecycle === "Network";
+  const stageStatus = override.lifecycle === "Network" ? (override.networkStatus || "Customer") : ss.status;
+  const tone = override.lifecycle === "Network" ? (override.networkStatus === "Customer" ? C.green : C.slate) : ss.tone;
   // Network is always User-owned; seeded pipeline Leads are Company-owned so they
   // surface in company reporting and the Unassigned/Assigned views.
   const ownership = network ? "User" : "Company";
   return {
     id: l.id, first, last, firstName: first, lastName: last, name: l.name,
-    lifecycle: network ? "Network" : "Lead", stageStatus: ss.status, tone: ss.tone,
+    lifecycle: network ? "Network" : "Lead", stageStatus, tone,
     ownership, isCompanyOwned: ownership === "Company",
     phone: l.phone, email: l.email, primaryEmail: l.email,
     feedback: feedbackStatusLabel(l.status),
@@ -1248,15 +1253,6 @@ const CUSTOM_VIEWS = [
 // ── My Leads view (advisor) — processing-focused table matching the dashboard ──
 const ML_AV = [C.primary, C.blue, C.indigo, C.green, C.amber, C.purple];
 const mlAvColor = (name) => ML_AV[name.charCodeAt(0) % ML_AV.length];
-const ML_STATUS = {
-  open:        { key: "new",         label: "mlStNew",         color: C.blue  },
-  in_progress: { key: "inprogress",  label: "mlStInProgress",  color: C.amber },
-  attempted:   { key: "inprogress",  label: "mlStInProgress",  color: C.amber },
-  followup:    { key: "inprogress",  label: "mlStInProgress",  color: C.amber },
-  appointment: { key: "appointment", label: "mlStAppointment", color: C.green },
-  not_reached: { key: "notreached",  label: "mlStNotReached",  color: C.red   },
-  closed:      { key: "appointment", label: "mlStAppointment", color: C.green },
-};
 const ML_DOT = { sms: { c: C.green, sq: true }, miss: { c: C.amber, sq: false }, reached: { c: C.green, sq: false }, open: { c: "#D0D5DD", sq: false } };
 const mlProcessing = (l, t) => {
   const a = l.attempts || 0; const dots: string[] = []; let text;
@@ -1278,10 +1274,22 @@ const mlNextStep = (l, t) => {
                                       : { dot: C.amber, text: t("mlFirstCall"),        badge: t("mlToday"),    tone: C.amber };
   }
 };
+// Status shown in the My Leads list, derived so it stays consistent with the
+// Processing column: a lead that has been called is never "New", a finalized lead
+// reads "Finalized", etc.
+const mlStatusOf = (l, t) => {
+  if (getLeadState(l.id).finalized) return { key: "finalized", label: t("mlStFinalized"), color: C.slate };
+  const a = l.attempts || 0;
+  const s = l.status;
+  if (s === "appointment" || s === "closed") return { key: "appointment", label: t("mlStAppointment"), color: C.green };
+  if (s === "not_reached")                   return { key: "notreached",  label: t("mlStNotReached"),  color: C.red   };
+  if (s === "open" && a === 0)               return { key: "new",         label: t("mlStNew"),         color: C.blue  };
+  return { key: "inprogress", label: t("mlStInProgress"), color: C.amber };
+};
 const MyLeadsView = ({ leads, navigateTo, t }) => {
   const [filter, setFilter] = useState("all");
   const chips = [["all", "mlAll"], ["new", "mlStNew"], ["inprogress", "mlStInProgress"], ["appointment", "mlStAppointment"], ["notreached", "mlStNotReached"]];
-  const shown = leads.filter(l => filter === "all" || (ML_STATUS[l.status]?.key === filter));
+  const shown = leads.filter(l => filter === "all" || (mlStatusOf(l, t).key === filter));
   const GRID = "1.5fr 1.4fr 0.9fr 1.4fr 1.5fr auto";
   return (
     <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
@@ -1302,15 +1310,17 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
             ))}
           </div>
           {shown.map((l, i) => {
-            const st = ML_STATUS[l.status] || ML_STATUS.open;
+            const st = mlStatusOf(l, t);
             const proc = mlProcessing(l, t); const ns = mlNextStep(l, t);
+            const openDetail = () => navigateTo("LeadDetail", l, "myleads");
+            const finalized = !!getLeadState(l.id).finalized;
             return (
               <div key={l.id} style={{ display: "grid", gridTemplateColumns: GRID, gap: 14, padding: "14px 20px", borderBottom: i < shown.length - 1 ? `1px solid ${C.border}` : "none", alignItems: "center" }}>
                 {/* LEAD */}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                   <div style={{ width: 34, height: 34, borderRadius: "50%", background: mlAvColor(l.name) + "1F", color: mlAvColor(l.name), display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{l.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}</div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.name}</div>
+                    <div onClick={openDetail} title={t("openContact")} style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>{l.name}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{l.campaign}</div>
                   </div>
                 </div>
@@ -1320,7 +1330,7 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{l.city} · {l.source}</div>
                 </div>
                 {/* STATUS */}
-                <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: st.color + "18", color: st.color, whiteSpace: "nowrap" }}>{t(st.label as any)}</span></div>
+                <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: st.color + "18", color: st.color, whiteSpace: "nowrap" }}>{st.label}</span></div>
                 {/* PROCESSING */}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{proc.text}</div>
@@ -1335,8 +1345,10 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
                   </div>
                   <span style={{ display: "inline-block", marginTop: 5, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: ns.tone + "18", color: ns.tone }}>{ns.badge}</span>
                 </div>
-                {/* OPEN */}
-                <button onClick={() => navigateTo("LeadDetail", l, "myleads")} style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.navy, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>{t("openContact")} ›</button>
+                {/* ACTION — not finalized → Finalize Now · finalized → Add to Network */}
+                {finalized
+                  ? <button onClick={() => navigateTo("LeadDetail", l, "myleads", "convert")} style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: C.navy, color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>⇪ {t("mlAddToNetwork")}</button>
+                  : <button onClick={() => navigateTo("LeadDetail", l, "myleads", "finalize")} style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.navy, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>🏁 {t("mlFinalizeNow")}</button>}
               </div>
             );
           })}
@@ -1410,10 +1422,6 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
 
   const view = views.find(v => v.id === activeView) || views[0];
   const cols = view.columns;
-  // SA and VD: Assigned Leads view is non-clickable; all other views open contact detail
-  const canNavigate = !(
-    (role === "superadmin" || role === "vd") && activeView === "assigned"
-  );
 
   // Bulk assign is available for SA on Assigned+Unassigned, VD on Assigned+Pending
   const bulkAssignViews = role === "superadmin" ? ["assigned","pending"]
@@ -1428,7 +1436,8 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
   const currentUserName = role === "vd" ? "Thomas Müller" : role === "gp" ? "Anna Klein" : "Super Admin";
   const viewFilters = useMemo(() => makeViewFilters(currentUserName), [currentUserName]);
   const myLeadsData = useMemo(
-    () => ALL_LEADS.filter(l => l.assignedGP === advisorName),
+    // Converted leads have moved to My Network — drop them from My Leads.
+    () => ALL_LEADS.filter(l => l.assignedGP === advisorName && getLeadState(l.id).lifecycle !== "Network"),
     [advisorName]
   );
 
@@ -1653,7 +1662,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
                     {<input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} style={{ width: 15, height: 15, accentColor: C.primary, cursor: "pointer" }} />}
                   </td>
                   {cols.map(k => {
-                    const isLink = canNavigate && (k === "name" || k === LINK_COL);
+                    const isLink = (k === "name" || k === LINK_COL);   // Name links to detail on every view
                     return (
                     <td key={k} style={{ padding: "14px 16px", cursor: isLink ? "pointer" : "default" }}
                       onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }, activeView) : undefined}>

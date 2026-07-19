@@ -698,6 +698,18 @@ export const FEEDBACK_STATUS_LABEL = {
 };
 export const feedbackStatusLabel = (status) => FEEDBACK_STATUS_LABEL[status] || FEEDBACK_STATUS_LABEL.open;
 
+// ── Runtime lead-state overrides (module-level, like the activity/appointment
+// stores) ────────────────────────────────────────────────────────────────────
+// A lead's Processing & Feedback progress lives in the detail page's local state
+// and is lost on unmount, so the Contacts list can't otherwise see when a lead
+// has been finalized or converted. These overrides bridge that: the detail page
+// writes here on finalize/convert, and the Contacts list reads them to pick the
+// row action, show a sensible Status, and move converted leads into My Network.
+// Shape per id: { finalized?: boolean, lifecycle?: "Network", networkStatus?: string }
+export const LEAD_STATE: Record<string, any> = {};
+export const setLeadState = (id, patch) => { if (id != null) LEAD_STATE[id] = { ...(LEAD_STATE[id] || {}), ...patch }; };
+export const getLeadState = (id) => (id != null && LEAD_STATE[id]) || {};
+
 // Unified ACTIVITIES store — merges appointments + reminders
 // Each activity: id, type, title, lead, leadId, date, time, end, gp, vd,
 //                status, priority, note, recur, channels, entityType, category
