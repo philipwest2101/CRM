@@ -271,48 +271,57 @@ const OptionChips = ({ options, value, onChange }) => (
 );
 
 // ── Step bodies ───────────────────────────────────────────────────────────────
-const CHANNEL_TEMPLATE = {
-  // SMS and WhatsApp use one and the same text.
-  text:  "Hi {first}, this is {advisor} from Nordpfeil Finance. Thanks for your interest in a consultation — I'll try to reach you by phone shortly. Feel free to reply with a time that suits you best.",
-  email: "Dear {first},\n\nThank you for your interest in a consultation with Nordpfeil Finance. I'd be glad to walk you through the next steps. When would be a convenient time for a brief call?\n\nBest regards,\n{advisor}",
-};
+// One shared introductory message, personalised with the lead's first name, the
+// advisor's full name and the lead's preferred contact time. It is used both for
+// the SMS / WhatsApp copy and as the Email body prefill.
+const INITIAL_TEMPLATE =
+  "Hello {lead_first_name}, thanks for your interest in financing with vionworld! I am {user_full_name}, your personal advisor, and will get in touch shortly; preferably {lead_preferred_time}. Best regards, {user_full_name}";
+const INITIAL_SUBJECT = "Your financing consultation with vionworld";
 
 // Ready-made message an advisor can send after failing to reach a lead by phone.
 const MISSED_CALL_TEMPLATE =
   "Hi {first}, this is {advisor} from Nordpfeil Finance. I tried to call you but couldn't reach you. I'll try again tomorrow — or feel free to reply with a time that suits you best.";
 
-const SendInitialMessageStep = ({ contact, onSend, onSkip }) => {
-  const [channel, setChannel] = useState("text");
-  const [copied, setCopied] = useState("");
+const SendInitialMessageStep = ({ contact, emailSent, onSend, onSkip, onSendEmail }) => {
+  const [channel, setChannel] = useState("text");   // channel of the last action taken
+  const [copied, setCopied] = useState(false);
   const first = (contact?.name || "there").replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ")[0];
   const advisor = contact?.assignee || "your advisor";
-  const template = (CHANNEL_TEMPLATE[channel] || "").replace(/{first}/g, first).replace(/{advisor}/g, advisor);
-  const pick = (k) => { setChannel(k); setCopied(k); setTimeout(() => setCopied(""), 1500); };
+  const preferredTime = contact?.preferredTime || "evening (5–7 pm)";
+  const template = INITIAL_TEMPLATE
+    .replace(/{lead_first_name}/g, first)
+    .replace(/{user_full_name}/g, advisor)
+    .replace(/{lead_preferred_time}/g, preferredTime);
+  // SMS / WhatsApp → copy the text. Email → open the email modal prefilled.
+  const copyText = () => { try { navigator?.clipboard?.writeText?.(template); } catch {} setChannel("text"); setCopied(true); };
+  const openEmail = () => { setChannel("email"); setCopied(false); onSendEmail && onSendEmail({ subject: INITIAL_SUBJECT, body: template }); };
+  const badge = copied ? "Copied" : (emailSent ? "Email sent" : null);
+  const chBtn = (key, label, onClick) => {
+    const on = channel === key;
+    return (
+      <button onClick={onClick} style={{
+        display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 9,
+        border: `1.5px solid ${on ? C.navy : C.border}`, background: on ? C.navy + "0D" : "#fff",
+        color: on ? C.navy : C.slate, fontSize: 12.5, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit",
+      }}>{label}</button>
+    );
+  };
   return (
     <>
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Send the prepared introductory message to establish the first contact with the lead.</div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        {CHANNELS.map(ch => {
-          const on = channel === ch.key;
-          return (
-            <button key={ch.key} onClick={() => pick(ch.key)} style={{
-              display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 9,
-              border: `1.5px solid ${on ? C.navy : C.border}`, background: on ? C.navy + "0D" : "#fff",
-              color: on ? C.navy : C.slate, fontSize: 12.5, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit",
-            }}>{copied === ch.key ? "✓ Copied" : ch.button}</button>
-          );
-        })}
-      </div>
       <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.light, padding: "14px 16px", marginBottom: 18 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Message Template</div>
         <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{template}</div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        {chBtn("text", "Copy for SMS / WhatsApp", copyText)}
+        {chBtn("email", "Copy & Send via Email", openEmail)}
+        {badge && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "#fff", background: C.green, padding: "7px 12px", borderRadius: 8 }}>✓ {badge}</span>
+        )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <PrimaryBtn icon="✓" onClick={() => onSend(channel)}>Mark as Sent &amp; Continue</PrimaryBtn>
-        <GhostBtn icon="⏭" onClick={onSkip}>Skip — call directly</GhostBtn>
-      </div>
-      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
-        Optional — some advisors prefer to skip the message and call the lead straight away.
+        <GhostBtn icon="⏭" onClick={onSkip}>Skip &amp; Continue</GhostBtn>
       </div>
     </>
   );
@@ -495,7 +504,7 @@ const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, ca
 );
 
 // ── Main tab (controlled) ─────────────────────────────────────────────────────
-export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask }) => {
+export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask, onSendEmail, emailSent }) => {
   const current = state.current;
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -670,7 +679,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
 
   const renderCurrentBody = (step) => {
     switch (step.key) {
-      case "initial":     return <SendInitialMessageStep contact={contact} onSend={onSend} onSkip={onSkipInitial} />;
+      case "initial":     return <SendInitialMessageStep contact={contact} emailSent={emailSent} onSend={onSend} onSkip={onSkipInitial} onSendEmail={onSendEmail} />;
       case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onFinalizeNow={() => onFinalizeNow("phone")} onCreateTask={onCreateTask} />;
       case "outcome":     return <CallOutcomeStep onComplete={onCallOutcome} onFinalizeNow={(note) => onFinalizeNow("outcome", note)} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onFinalizeNow={(note) => onFinalizeNow("appointment", note)} />;
@@ -686,10 +695,6 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 2 }}>
-        Steps run from top to bottom — completed steps stay above, the current step follows, and locked steps wait below.
-      </div>
-
       {completed.map((s, i) => (
         <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]}
           editable={i === completed.length - 1} onReopen={() => setReopenTarget(s.key)} />

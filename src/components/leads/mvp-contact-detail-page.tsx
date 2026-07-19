@@ -128,11 +128,11 @@ const ConfirmModal = ({ title, message, confirmLabel = "Delete", onCancel, onCon
 );
 
 // ── Email composer ────────────────────────────────────────────────────────────
-const EmailModal = ({ contact = null, onClose }) => {
+const EmailModal = ({ contact = null, onClose, prefill = null, lockRecipient = false, onSent }) => {
   const [schedule, setSchedule] = useState(true);
   const [tplId, setTplId] = useState("");
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
+  const [subject, setSubject] = useState(prefill?.subject || "");
+  const [body, setBody] = useState(prefill?.body || "");
   const [attachments, setAttachments] = useState([]);
   const toolBtns = ["B", "I", "U", "⟸", "⟺", "⟹", "≔", "≕", "🖉", "T"];
 
@@ -165,7 +165,7 @@ const EmailModal = ({ contact = null, onClose }) => {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
         <div><Label>To *</Label>
-          <select style={placeholderSelect} defaultValue={contact?.email || ""}><option value="" disabled>Select recipient</option>{contact?.email && <option>{contact.email}</option>}<option>Account/PC Email</option><option>Example@gmail.com</option></select>
+          <select style={lockRecipient ? { ...fieldStyle, background: C.light, color: C.slate, cursor: "not-allowed" } : placeholderSelect} defaultValue={contact?.email || ""} disabled={lockRecipient}><option value="" disabled>Select recipient</option>{contact?.email && <option>{contact.email}</option>}<option>Account/PC Email</option><option>Example@gmail.com</option></select>
         </div>
         <div><Label>CC</Label>
           <select style={placeholderSelect} defaultValue=""><option value="" disabled>Select CC</option><option>someone@example.com</option><option>manager@vionworld.com</option></select>
@@ -225,7 +225,7 @@ const EmailModal = ({ contact = null, onClose }) => {
       </>)}
       {/* Lifecycle / Status at the bottom of the modal */}
       <StageStatusRow lifecycle={contact?.lifecycle} />
-      <FooterBtns onClose={onClose} label="Send" />
+      <FooterBtns onClose={onClose} label="Send" onAction={() => { onSent && onSent(); onClose(); }} />
     </ModalShell>
   );
 };
@@ -1415,6 +1415,11 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
   // If the active tab ever becomes disabled, fall back to Feedback.
   React.useEffect(() => { if (!isTabEnabled(tab)) setTab(t("feedbackTab")); }, [feedback.isContact]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
+  // When the Initial Message step opens the email composer, it passes a prefill
+  // (subject + body) and locks the recipient; `initialEmailSent` drives the step's
+  // "Email sent" badge once the composer's Send is pressed.
+  const [emailPrefill, setEmailPrefill] = useState(null);
+  const [initialEmailSent, setInitialEmailSent] = useState(false);
 
   const currentUserName = role === "gp" ? "Anna Klein" : role === "vd" ? "Thomas Müller" : role === "manager" ? "Julia Bauer" : "Super Admin";
   // SA opening from Unassigned Leads → no assignee yet. VD opening from Pending Assignments → defaults to himself.
@@ -1470,7 +1475,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
             })}
           </div>
 
-          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} />}
+          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
@@ -1478,7 +1483,9 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, role }) => 
         </div>
       </div>
 
-      {modal === "email"       && <EmailModal contact={c} onClose={() => setModal(null)} />}
+      {modal === "email"       && <EmailModal contact={c} prefill={emailPrefill} lockRecipient={!!emailPrefill}
+                                     onClose={() => { setModal(null); setEmailPrefill(null); }}
+                                     onSent={emailPrefill ? () => setInitialEmailSent(true) : undefined} />}
       {modal === "task"        && <CalendarTaskModal onClose={() => setModal(null)} task={{ contact: c.name }} lockContact onSubmit={() => setModal(null)} />}
       {modal === "appointment" && <CalendarAppointmentModal onClose={() => setModal(null)} appt={{ contact: c.name }} role={role} lockContact onSubmit={() => setModal(null)} />}
       {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} lifecycle={c.lifecycle} />}
