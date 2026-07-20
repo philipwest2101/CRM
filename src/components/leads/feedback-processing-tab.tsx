@@ -277,7 +277,8 @@ const INITIAL_SUBJECT = "Your financing consultation with vionworld";
 
 // Ready-made message an advisor can send after failing to reach a lead by phone.
 const MISSED_CALL_TEMPLATE =
-  "Hi {first}, this is {advisor} from Nordpfeil Finance. I tried to call you but couldn't reach you. I'll try again tomorrow — or feel free to reply with a time that suits you best.";
+  "Hi {first}, this is {advisor} from vionworld. I tried to call you but couldn't reach you. I'll try again tomorrow — or feel free to reply with a time that suits you best.";
+const MISSED_CALL_SUBJECT = "I tried to reach you — vionworld";
 
 const SendInitialMessageStep = ({ contact, emailSent, onSend, onSkip, onSendEmail }) => {
   const [channel, setChannel] = useState("text");   // channel of the last action taken
@@ -328,8 +329,8 @@ const CALL_RESULTS = [
   { v: "notreached", label: "Not Reached", tone: C.red },
   { v: "reached",    label: "Reached",     tone: C.green },
 ];
-// Select the result of a call attempt (correctable), then Continue.
-const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, onCreateTask }) => {
+// Select the result of a call attempt (correctable), then Save & Continue.
+const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, onCreateTask, onSendEmail }) => {
   const [sel, setSel] = useState("");
   // Finalize is offered once the advisor has logged an attempt or picked a
   // result (reached or not) — they need never exhaust all attempts.
@@ -339,10 +340,11 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
   const advisor = contact?.assignee || "your advisor";
   const missedCall = MISSED_CALL_TEMPLATE.replace(/{first}/g, first).replace(/{advisor}/g, advisor);
   const copyMissed = () => { try { navigator?.clipboard?.writeText?.(missedCall); } catch {} setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const emailMissed = () => { try { navigator?.clipboard?.writeText?.(missedCall); } catch {} onSendEmail && onSendEmail({ subject: MISSED_CALL_SUBJECT, body: missedCall }); };
   return (
     <>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
-        <div style={{ fontSize: 13, color: C.slate }}>Make a call attempt (max {MAX_CALL_ATTEMPTS}), pick the result and press <b>Continue</b>.</div>
+        <div style={{ fontSize: 13, color: C.slate }}>Make a call attempt (max {MAX_CALL_ATTEMPTS}), pick the result and press <b>Save &amp; Continue</b>.</div>
         <CreateTaskBtn onClick={onCreateTask} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${notReached ? C.red + "55" : C.border}`, borderRadius: 10, marginBottom: 12, background: notReached ? C.red + "0C" : C.light }}>
@@ -361,26 +363,33 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
         <>
           {/* Couldn't reach the lead? Copy a ready-made "missed call" message. */}
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.light, padding: "12px 14px", marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted }}>Missed-call message</div>
-              <button onClick={copyMissed} style={{
-                display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
-                border: `1px solid ${C.border}`, background: "#fff", color: copied ? C.green : C.slate,
-                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-              }}>{copied ? "✓ Copied" : "📋 Copy for SMS / WhatsApp"}</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={copyMissed} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                  border: `1px solid ${C.border}`, background: "#fff", color: copied ? C.green : C.slate,
+                  fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                }}>{copied ? "✓ Copied" : "📋 Copy for SMS / WhatsApp"}</button>
+                <button onClick={emailMissed} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                  border: `1px solid ${C.border}`, background: "#fff", color: C.slate,
+                  fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                }}>✉️ Copy &amp; Send via Email</button>
+              </div>
             </div>
             <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.5 }}>{missedCall}</div>
           </div>
           <OptionChips options={CALL_RESULTS} value={sel} onChange={setSel} />
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Continue</PrimaryBtn>
+            <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
             {canFinalize && (
-              <GhostBtn icon="🏁" onClick={onFinalizeNow}>Finalize now — no further steps</GhostBtn>
+              <GhostBtn icon="🏁" onClick={onFinalizeNow}>Finalize Process</GhostBtn>
             )}
           </div>
           {canFinalize && (
             <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
-              You don't have to use all {MAX_CALL_ATTEMPTS} attempts — finalize now to proceed straight to Finalize.
+              You don't have to use all {MAX_CALL_ATTEMPTS} attempts — you can Finalize Process at any point.
             </div>
           )}
         </>
@@ -425,8 +434,8 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onContinue, onFinalizeNo
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — briefly describe the conversation outcome…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon="✓" disabled={!canContinue} onClick={() => sel && onContinue(sel.v, sel.label, note.trim())}>Continue</PrimaryBtn>
-        <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize now</GhostBtn>
+        <PrimaryBtn icon="✓" disabled={!canContinue} onClick={() => sel && onContinue(sel.v, sel.label, note.trim())}>Save &amp; Continue</PrimaryBtn>
+        <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize Process</GhostBtn>
       </div>
     </>
   );
@@ -463,8 +472,8 @@ const AppointmentOutcomeStep = ({ appointment, onComplete, onFinalizeNow }) => {
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — e.g. client was a no-show without notice…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon={choice === "reschedule" ? "📅" : "✓"} disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>{choice === "reschedule" ? "Reschedule" : "Continue"}</PrimaryBtn>
-        <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize now</GhostBtn>
+        <PrimaryBtn icon={choice === "reschedule" ? "📅" : "✓"} disabled={!sel} onClick={() => sel && onComplete(sel.v, sel.label, note.trim())}>Save &amp; Continue</PrimaryBtn>
+        <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize Process</GhostBtn>
       </div>
     </>
   );
@@ -725,7 +734,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const renderCurrentBody = (step) => {
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} emailSent={emailSent} onSend={onSend} onSkip={onSkipInitial} onSendEmail={onSendEmail} />;
-      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onFinalizeNow={() => onFinalizeNow("phone")} onCreateTask={onCreateTask} />;
+      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onFinalizeNow={() => onFinalizeNow("phone")} onCreateTask={onCreateTask} onSendEmail={onSendEmail} />;
       case "outcome":     return <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onContinue={onContinueOutcome} onFinalizeNow={(note) => onFinalizeNow("outcome", note)} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onFinalizeNow={(note) => onFinalizeNow("appointment", note)} />;
       case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
