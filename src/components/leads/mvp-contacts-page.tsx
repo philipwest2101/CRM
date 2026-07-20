@@ -1290,7 +1290,7 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
   const [filter, setFilter] = useState("all");
   const chips = [["all", "mlAll"], ["new", "mlStNew"], ["inprogress", "mlStInProgress"], ["appointment", "mlStAppointment"], ["notreached", "mlStNotReached"]];
   const shown = leads.filter(l => filter === "all" || (mlStatusOf(l, t).key === filter));
-  const GRID = "1.3fr 1fr 1.1fr 1.4fr 0.9fr 1.3fr 1.4fr auto";
+  const GRID = "1.3fr 1fr 1.1fr 1.4fr 0.9fr 1.3fr 1.4fr 172px";
   return (
     <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
       {/* Status filter chips */}
