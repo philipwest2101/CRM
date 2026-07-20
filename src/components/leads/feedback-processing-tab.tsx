@@ -328,7 +328,7 @@ const CALL_RESULTS = [
   { v: "notreached", label: "Not Reached", tone: C.red },
   { v: "reached",    label: "Reached",     tone: C.green },
 ];
-// Select the result of a call attempt (correctable), then Save & Continue.
+// Select the result of a call attempt (correctable), then Continue.
 const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, onCreateTask }) => {
   const [sel, setSel] = useState("");
   // Finalize is offered once the advisor has logged an attempt or picked a
@@ -342,7 +342,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
   return (
     <>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
-        <div style={{ fontSize: 13, color: C.slate }}>Make a call attempt (max {MAX_CALL_ATTEMPTS}), pick the result and press <b>Save &amp; Continue</b>.</div>
+        <div style={{ fontSize: 13, color: C.slate }}>Make a call attempt (max {MAX_CALL_ATTEMPTS}), pick the result and press <b>Continue</b>.</div>
         <CreateTaskBtn onClick={onCreateTask} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${notReached ? C.red + "55" : C.border}`, borderRadius: 10, marginBottom: 12, background: notReached ? C.red + "0C" : C.light }}>
@@ -373,7 +373,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
           </div>
           <OptionChips options={CALL_RESULTS} value={sel} onChange={setSel} />
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
+            <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Continue</PrimaryBtn>
             {canFinalize && (
               <GhostBtn icon="🏁" onClick={onFinalizeNow}>Finalize now — no further steps</GhostBtn>
             )}
