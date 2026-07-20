@@ -24,7 +24,7 @@ import { AppointmentModal } from "../appointments/appointment-modal";
 // · Call Outcome: Appointment Scheduled, Not Interested, Currently Not
 //   Interested, Difficult Case, Other. "Appointment Scheduled" opens the
 //   scheduling modal ("Schedule & Continue"); the other outcomes skip to Finalize.
-// · Appointment Outcome: Customer, Reschedule, Attending Event, Not Interested,
+// · Appointment Outcome: Won, Reschedule, Attending Event, Not Interested,
 //   Currently Not Interested, Difficult Case, Other. "Reschedule" re-opens
 //   scheduling. An optional note captures details (e.g. a no-show without notice).
 // · Negative outcomes enable a persistent Do-Not-Contact toggle in Finalize.
@@ -359,6 +359,15 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
           <span key={i} style={{ flex: 1, height: 6, borderRadius: 4, background: i < calls ? (notReached ? C.red : C.amber) : C.border }} />
         ))}
       </div>
+      {notReached && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", border: `1px solid ${C.amber}55`, background: C.amber + "0F", borderRadius: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 18 }}>💡</span>
+          <div style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: C.text, lineHeight: 1.45 }}>
+            This lead couldn't be reached. Create a task to follow up later so it isn't lost — then finalize the process below.
+          </div>
+          <CreateTaskBtn onClick={onCreateTask} />
+        </div>
+      )}
       {!notReached && (
         <>
           {/* Couldn't reach the lead? Copy a ready-made "missed call" message. */}
@@ -381,6 +390,15 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
             <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.5 }}>{missedCall}</div>
           </div>
           <OptionChips options={CALL_RESULTS} value={sel} onChange={setSel} />
+          {sel === "notreached" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", border: `1px solid ${C.amber}55`, background: C.amber + "0F", borderRadius: 10, marginBottom: 14, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 18 }}>💡</span>
+              <div style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: C.text, lineHeight: 1.45 }}>
+                Couldn't reach the lead? Create a task to remind yourself to follow up (e.g. a callback reminder) so this lead isn't forgotten.
+              </div>
+              <CreateTaskBtn onClick={onCreateTask} />
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
             {canFinalize && (
@@ -406,7 +424,7 @@ const CALL_OUTCOMES = [
   { v: "difficult",    label: "Difficult Case",           tone: C.slate },
   { v: "other",        label: "Other",                    tone: C.slate },
 ];
-const CallOutcomeStep = ({ appointment, onScheduleAppt, onContinue, onFinalizeNow }) => {
+const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue, onFinalizeNow }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const sel = CALL_OUTCOMES.find(o => o.v === choice);
@@ -423,6 +441,7 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onContinue, onFinalizeNo
         ? <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 9, background: C.green + "0C", border: `1px solid ${C.green}40`, marginBottom: 14, fontSize: 12.5, color: C.navy, fontWeight: 600 }}>
             📅 {appointment.type} · {appointment.date} {appointment.time}
             <button onClick={onScheduleAppt} style={{ marginLeft: "auto", background: "none", border: "none", color: C.slate, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Change</button>
+            <button onClick={onDeleteAppt} title="Delete this appointment" aria-label="Delete appointment" style={{ background: "none", border: "none", color: C.red, fontSize: 14, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, padding: 0 }}>🗑️</button>
           </div>
         : <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>📅 Book the appointment to continue — reopen the scheduler with “Appointment Scheduled”.</div>)}
       {sel && !isAppt && (
@@ -443,7 +462,7 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onContinue, onFinalizeNo
 
 // Appointment Outcome (flat, single-select).
 const APPT_OUTCOMES = [
-  { v: "customer",     label: "Customer",                 tone: C.green },
+  { v: "won",          label: "Won",                      tone: C.green },
   { v: "reschedule",   label: "Reschedule",               tone: C.amber },
   { v: "attending",    label: "Attending Event",          tone: C.indigo },
   { v: "notinterested",label: "Not Interested",           tone: C.red },
@@ -625,6 +644,17 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     }));
   };
 
+  // Delete the appointment booked from Call Outcome — cancels its calendar event
+  // and clears the booking so the advisor can re-book (or pick another outcome).
+  const onDeleteApptForOutcome = () => setState(prev => {
+    if (prev.appointment?.id) onCancelAppointment && onCancelAppointment(prev.appointment.id);
+    return {
+      ...prev, appointment: null,
+      lastAction: { icon: "🗑️", label: "Appointment deleted", date: today() },
+      log: pushLog(prev, "Appointment Scheduled → Appointment deleted · removed from calendar"),
+    };
+  });
+
   // "Continue" from Call Outcome. Appointment (already booked) → advance to
   // Appointment Outcome; anything else → Finalize, discarding a stray booking.
   const onContinueOutcome = (v, label, note = "") => {
@@ -735,7 +765,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} emailSent={emailSent} onSend={onSend} onSkip={onSkipInitial} onSendEmail={onSendEmail} />;
       case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onFinalizeNow={() => onFinalizeNow("phone")} onCreateTask={onCreateTask} onSendEmail={onSendEmail} />;
-      case "outcome":     return <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onContinue={onContinueOutcome} onFinalizeNow={(note) => onFinalizeNow("outcome", note)} />;
+      case "outcome":     return <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} onFinalizeNow={(note) => onFinalizeNow("outcome", note)} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onFinalizeNow={(note) => onFinalizeNow("appointment", note)} />;
       case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;

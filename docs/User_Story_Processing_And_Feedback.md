@@ -44,6 +44,7 @@ Completed steps stay pinned at the top, the current step follows below them, and
 - If the lead is **not reached** on the 5th attempt, the lead is automatically sent to Finalize marked **Not Reached** — the advisor is not forced to use all 5.
 - A ready-made **missed-call message** can be copied (SMS / WhatsApp) after a failed attempt.
 - **Create a Task** is available (e.g. to schedule a callback reminder) — opens the shared Task modal.
+- Whenever the result is **Not Reached** — either the moment "Not Reached" is selected, or once the lead has been auto-finalized as **Not Reached** after the 5th failed attempt — a suggestion banner prompts the advisor to **create a follow-up task** (with a **Create a Task** button inline) so the lead isn't forgotten.
 - A **Finalize now — no further steps** shortcut appears once at least one attempt has been logged or a result picked, letting the advisor jump straight to Finalize.
 
 ### Step 3 — Call Outcome (after the contact is reached)
@@ -51,13 +52,14 @@ Completed steps stay pinned at the top, the current step follows below them, and
 - The advisor records the outcome of the conversation: **Appointment Scheduled**, **Not Interested**, **Currently Not Interested**, **Difficult Case**, or **Other**.
 - An optional **Note** captures conversation details.
 - **Appointment Scheduled** → **Schedule & Continue** opens the scheduling (Appointment) modal, pre-filled for the contact; on submit the appointment is booked and the flow advances to Appointment Outcome.
+- Once booked, the appointment card offers **Change** (re-open the scheduler) and a **Delete** (🗑️) icon that cancels the booking and removes it from the calendar, letting the advisor re-book or pick a different outcome.
 - **Not Interested / Currently Not Interested / Difficult Case / Other** end processing and skip straight to Finalize.
 - The three negative outcomes (Not Interested, Currently Not Interested, Difficult Case) flag the lead so the **Do Not Contact** toggle becomes available in Finalize; **Other** is neutral (no DNC).
 - A **Finalize now** shortcut is also available.
 
 ### Step 4 — Appointment Outcome
 
-- Shows the booked appointment (type · date · time) for context, then the advisor records the result: **Customer**, **Reschedule**, **Attending Event**, **Not Interested**, **Currently Not Interested**, **Difficult Case**, or **Other**.
+- Shows the booked appointment (type · date · time) for context, then the advisor records the result: **Won**, **Reschedule**, **Attending Event**, **Not Interested**, **Currently Not Interested**, **Difficult Case**, or **Other**.
 - An optional **Note** captures details (e.g. a no-show without notice).
 - **Reschedule** re-opens the scheduling modal to re-book a new appointment and **stays on this step** (reschedule count is tracked).
 - Negative outcomes (Not Interested, Currently Not Interested, Difficult Case) enable the **Do Not Contact** toggle in Finalize.
