@@ -1290,7 +1290,7 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
   const [filter, setFilter] = useState("all");
   const chips = [["all", "mlAll"], ["new", "mlStNew"], ["inprogress", "mlStInProgress"], ["appointment", "mlStAppointment"], ["notreached", "mlStNotReached"]];
   const shown = leads.filter(l => filter === "all" || (mlStatusOf(l, t).key === filter));
-  const GRID = "1.5fr 1.4fr 0.9fr 1.4fr 1.5fr auto";
+  const GRID = "1.3fr 1fr 1.1fr 1.4fr 0.9fr 1.3fr 1.4fr auto";
   return (
     <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
       {/* Status filter chips */}
@@ -1302,10 +1302,10 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
         })}
       </div>
       <div style={{ overflowX: "auto" }}>
-        <div style={{ minWidth: 920 }}>
+        <div style={{ minWidth: 1180 }}>
           {/* Header */}
           <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 14, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, background: C.light }}>
-            {[t("mlColLead"), t("mlColContact"), t("status"), t("mlColProcessing"), t("mlColNextStep"), ""].map((h, i) => (
+            {[t("mlColLead"), t("mlColCampaign"), t("mlColPhone"), t("mlColEmail"), t("status"), t("mlColProcessing"), t("mlColNextStep"), ""].map((h, i) => (
               <div key={i} style={{ fontSize: 10.5, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</div>
             ))}
           </div>
@@ -1321,14 +1321,15 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
                   <div style={{ width: 34, height: 34, borderRadius: "50%", background: mlAvColor(l.name) + "1F", color: mlAvColor(l.name), display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{l.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}</div>
                   <div style={{ minWidth: 0 }}>
                     <div onClick={openDetail} title={t("openContact")} style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>{l.name}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{l.campaign}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{l.city} · {l.source}</div>
                   </div>
                 </div>
-                {/* CONTACT */}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, color: C.text, fontFamily: "monospace", whiteSpace: "nowrap" }}>{l.phone}</div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{l.city} · {l.source}</div>
-                </div>
+                {/* CAMPAIGN */}
+                <div style={{ minWidth: 0, fontSize: 12.5, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.campaign}</div>
+                {/* PHONE NUMBER */}
+                <div style={{ minWidth: 0, fontSize: 12.5, color: C.text, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.phone}</div>
+                {/* PRIMARY EMAIL */}
+                <div style={{ minWidth: 0, fontSize: 12.5, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={l.email}>{l.email}</div>
                 {/* STATUS */}
                 <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: st.color + "18", color: st.color, whiteSpace: "nowrap" }}>{st.label}</span></div>
                 {/* PROCESSING */}
@@ -1345,10 +1346,12 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
                   </div>
                   <span style={{ display: "inline-block", marginTop: 5, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: ns.tone + "18", color: ns.tone }}>{ns.badge}</span>
                 </div>
-                {/* ACTION — not finalized → Finalize Now · finalized → Add to Network */}
+                {/* ACTION — finalized → Add to Network · step 2+ (not New) → Finalize Now · New → none */}
                 {finalized
                   ? <button onClick={() => navigateTo("LeadDetail", l, "myleads", "convert")} style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: C.navy, color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>⇪ {t("mlAddToNetwork")}</button>
-                  : <button onClick={() => navigateTo("LeadDetail", l, "myleads", "finalize")} style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.navy, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>🏁 {t("mlFinalizeNow")}</button>}
+                  : st.key === "new"
+                    ? <div />
+                    : <button onClick={() => navigateTo("LeadDetail", l, "myleads", "finalize")} style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.navy, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>🏁 {t("mlFinalizeNow")}</button>}
               </div>
             );
           })}

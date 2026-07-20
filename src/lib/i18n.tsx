@@ -413,6 +413,9 @@ export const TRANSLATIONS = {
     // My Leads view (advisor)
     mlColLead: "Lead",
     mlColContact: "Contact",
+    mlColCampaign: "Campaign",
+    mlColPhone: "Phone Number",
+    mlColEmail: "Primary Email",
     mlColProcessing: "Processing",
     mlColNextStep: "Next Step",
     mlAll: "All",
@@ -970,6 +973,9 @@ export const TRANSLATIONS = {
     // My Leads view (advisor)
     mlColLead: "Lead",
     mlColContact: "Kontakt",
+    mlColCampaign: "Kampagne",
+    mlColPhone: "Telefonnummer",
+    mlColEmail: "Primäre E-Mail",
     mlColProcessing: "Bearbeitung",
     mlColNextStep: "Nächster Schritt",
     mlAll: "Alle",

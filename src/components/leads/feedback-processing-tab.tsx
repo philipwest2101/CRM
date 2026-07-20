@@ -363,9 +363,8 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", border: `1px solid ${C.amber}55`, background: C.amber + "0F", borderRadius: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 18 }}>💡</span>
           <div style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: C.text, lineHeight: 1.45 }}>
-            This lead couldn't be reached. Create a task to follow up later so it isn't lost — then finalize the process below.
+            This lead couldn't be reached. Use <b>Create a Task</b> above to schedule a follow-up so it isn't lost — then finalize the process below.
           </div>
-          <CreateTaskBtn onClick={onCreateTask} />
         </div>
       )}
       {!notReached && (
@@ -394,9 +393,8 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", border: `1px solid ${C.amber}55`, background: C.amber + "0F", borderRadius: 10, marginBottom: 14, flexWrap: "wrap" }}>
               <span style={{ fontSize: 18 }}>💡</span>
               <div style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: C.text, lineHeight: 1.45 }}>
-                Couldn't reach the lead? Create a task to remind yourself to follow up (e.g. a callback reminder) so this lead isn't forgotten.
+                Couldn't reach the lead? Use <b>Create a Task</b> above to schedule a follow-up (e.g. a callback reminder) so this lead isn't forgotten.
               </div>
-              <CreateTaskBtn onClick={onCreateTask} />
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -441,7 +439,7 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
         ? <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 9, background: C.green + "0C", border: `1px solid ${C.green}40`, marginBottom: 14, fontSize: 12.5, color: C.navy, fontWeight: 600 }}>
             📅 {appointment.type} · {appointment.date} {appointment.time}
             <button onClick={onScheduleAppt} style={{ marginLeft: "auto", background: "none", border: "none", color: C.slate, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Change</button>
-            <button onClick={onDeleteAppt} title="Delete this appointment" aria-label="Delete appointment" style={{ background: "none", border: "none", color: C.red, fontSize: 14, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, padding: 0 }}>🗑️</button>
+            <button onClick={() => { onDeleteAppt(); setChoice(""); }} title="Delete this appointment" aria-label="Delete appointment" style={{ background: "none", border: "none", color: C.red, fontSize: 14, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, padding: 0 }}>🗑️</button>
           </div>
         : <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>📅 Book the appointment to continue — reopen the scheduler with “Appointment Scheduled”.</div>)}
       {sel && !isAppt && (
