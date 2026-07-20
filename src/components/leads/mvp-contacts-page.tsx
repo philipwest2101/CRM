@@ -1321,7 +1321,6 @@ const MyLeadsView = ({ leads, navigateTo, t }) => {
                   <div style={{ width: 34, height: 34, borderRadius: "50%", background: mlAvColor(l.name) + "1F", color: mlAvColor(l.name), display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{l.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}</div>
                   <div style={{ minWidth: 0 }}>
                     <div onClick={openDetail} title={t("openContact")} style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>{l.name}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{l.city} · {l.source}</div>
                   </div>
                 </div>
                 {/* CAMPAIGN */}
