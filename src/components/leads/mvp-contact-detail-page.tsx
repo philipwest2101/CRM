@@ -2,8 +2,9 @@ import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, stageStatusOptions, blocksToText, setLeadState, getLeadState } from "../../lib/core";
-import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
-import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
+import { ModalShell, FooterBtns, Label, fieldStyle, placeholderSelect } from "./mvp-modal-kit";
+import { MVPTaskModal } from "./mvp-task-modal";
+import { MVPAppointmentModal } from "./mvp-appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
 
 // Stage Status is the progress *within* the lifecycle (independent of Lead vs
@@ -24,13 +25,6 @@ const stageStatusLabel = (status?: string) => (status && STATUS_LABEL[status]) |
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TABS = ["Overview", "Information", "Activities", "Documents"];
-
-const fieldStyle = {
-  width: "100%", padding: "10px 12px", borderRadius: 8,
-  border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit",
-  color: C.text, boxSizing: "border-box", outline: "none", background: "#fff",
-};
-const placeholderSelect = { ...fieldStyle, color: C.muted };
 
 const Card = ({ children, style }) => (
   <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14, ...style }}>{children}</div>
@@ -62,10 +56,6 @@ const FileBadge = ({ type }) => {
   return <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 30, borderRadius: 4, fontSize: 7, fontWeight: 800, color: "#fff", background: col }}>{txt}</span>;
 };
 
-const Label = ({ children }) => (
-  <label style={{ fontSize: 13, fontWeight: 600, color: C.navy, display: "block", marginBottom: 6 }}>{children}</label>
-);
-
 // Activities record the Status only. Lifecycle is system-managed (it changes
 // solely via the Convert action), so there is no Lifecycle picker here. The
 // Status options follow the contact's lifecycle: Network contacts offer the
@@ -84,47 +74,6 @@ const StageStatusRow = ({ lifecycle = "Lead" }) => {
     </div>
   );
 };
-
-// ── generic modal shell ───────────────────────────────────────────────────────
-// One shell for every activity modal. Each modal passes a colour-coded `accent`
-// (used for the header icon chip) so the different activities are instantly
-// recognisable, while the primary action stays brand-orange everywhere for a
-// consistent call-to-action. Closes on backdrop click or Escape.
-const ModalShell = ({ icon, title, subtitle, accent = C.primary, width = 520, onClose, children }) => {
-  React.useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return (
-    <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
-      <div role="dialog" aria-modal="true" style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width, maxWidth: "94vw", maxHeight: "92vh", display: "flex", flexDirection: "column", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", fontFamily: "inherit", overflow: "hidden" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: `${accent}16`, color: accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{icon}</div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: C.navy, lineHeight: 1.25 }}>{title}</div>
-            {subtitle && <div style={{ fontSize: 12, color: C.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subtitle}</div>}
-          </div>
-          <button onClick={onClose} aria-label="Close" style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "transparent", color: C.muted, fontSize: 20, lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.light; e.currentTarget.style.color = C.navy; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; }}>×</button>
-        </div>
-        {/* Body */}
-        <div style={{ padding: "18px 20px", overflowY: "auto" }}>{children}</div>
-      </div>
-    </>
-  );
-};
-
-// Footer action row — sits at the bottom of a modal body with a divider above it.
-const FooterBtns = ({ onClose, label, disabled, onAction }) => (
-  <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
-    <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-    <button disabled={disabled} onClick={onAction || onClose} style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: disabled ? C.border : C.primary, color: disabled ? C.muted : "#fff", fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer" }}>{label}</button>
-  </div>
-);
 
 // ── confirm dialog ────────────────────────────────────────────────────────────
 const ConfirmModal = ({ title, message, confirmLabel = "Delete", onCancel, onConfirm }) => (
@@ -1513,8 +1462,8 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
       {modal === "email"       && <EmailModal contact={c} prefill={emailPrefill} lockRecipient={!!emailPrefill}
                                      onClose={() => { setModal(null); setEmailPrefill(null); }}
                                      onSent={emailPrefill ? () => setInitialEmailSent(true) : undefined} />}
-      {modal === "task"        && <CalendarTaskModal onClose={() => setModal(null)} task={{ contact: c.name }} lockContact onSubmit={() => setModal(null)} />}
-      {modal === "appointment" && <CalendarAppointmentModal onClose={() => setModal(null)} appt={{ contact: c.name }} role={role} lockContact onSubmit={() => setModal(null)} />}
+      {modal === "task"        && <MVPTaskModal onClose={() => setModal(null)} task={{ contact: c.name }} lockContact onSubmit={() => setModal(null)} />}
+      {modal === "appointment" && <MVPAppointmentModal onClose={() => setModal(null)} appt={{ contact: c.name }} role={role} lockContact onSubmit={() => setModal(null)} />}
       {modal === "logcall"     && <LogCallModal onClose={() => setModal(null)} lifecycle={c.lifecycle} />}
       {modal === "logemail"    && <LogEmailModal onClose={() => setModal(null)} lifecycle={c.lifecycle} />}
       {modal === "logappt"     && <LogAppointmentModal onClose={() => setModal(null)} lifecycle={c.lifecycle} />}
