@@ -86,28 +86,42 @@ const StageStatusRow = ({ lifecycle = "Lead" }) => {
 };
 
 // ── generic modal shell ───────────────────────────────────────────────────────
-const ModalShell = ({ icon, title, width = 520, onClose, children }) => (
-  <>
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
-    <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width, maxWidth: "94vw", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "20px 24px", fontFamily: "inherit" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 18, color: C.slate }}>{icon}</span>
-          <span style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>{title}</span>
+// One shell for every activity modal. Each modal passes a colour-coded `accent`
+// (used for the header icon chip) so the different activities are instantly
+// recognisable, while the primary action stays brand-orange everywhere for a
+// consistent call-to-action. Closes on backdrop click or Escape.
+const ModalShell = ({ icon, title, subtitle, accent = C.primary, width = 520, onClose, children }) => {
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
+      <div role="dialog" aria-modal="true" style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width, maxWidth: "94vw", maxHeight: "92vh", display: "flex", flexDirection: "column", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", fontFamily: "inherit", overflow: "hidden" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: `${accent}16`, color: accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{icon}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.navy, lineHeight: 1.25 }}>{title}</div>
+            {subtitle && <div style={{ fontSize: 12, color: C.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subtitle}</div>}
+          </div>
+          <button onClick={onClose} aria-label="Close" style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "transparent", color: C.muted, fontSize: 20, lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+            onMouseEnter={e => { e.currentTarget.style.background = C.light; e.currentTarget.style.color = C.navy; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; }}>×</button>
         </div>
-        <div style={{ display: "flex", gap: 14, color: C.muted, fontSize: 18 }}>
-          <span style={{ cursor: "pointer" }}>—</span>
-          <span onClick={onClose} style={{ cursor: "pointer" }}>×</span>
-        </div>
+        {/* Body */}
+        <div style={{ padding: "18px 20px", overflowY: "auto" }}>{children}</div>
       </div>
-      {children}
-    </div>
-  </>
-);
+    </>
+  );
+};
 
+// Footer action row — sits at the bottom of a modal body with a divider above it.
 const FooterBtns = ({ onClose, label, disabled, onAction }) => (
-  <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-    <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+  <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+    <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
     <button disabled={disabled} onClick={onAction || onClose} style={{ padding: "9px 28px", borderRadius: 9, border: "none", background: disabled ? C.border : C.primary, color: disabled ? C.muted : "#fff", fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer" }}>{label}</button>
   </div>
 );
@@ -158,7 +172,7 @@ const EmailModal = ({ contact = null, onClose, prefill = null, lockRecipient = f
   };
 
   return (
-    <ModalShell icon="✉️" title="Send an Email" width={640} onClose={onClose}>
+    <ModalShell icon="✉️" title="Send an Email" subtitle={contact?.name ? `To ${contact.name}` : undefined} accent={C.indigo} width={640} onClose={onClose}>
       <div style={{ marginBottom: 14 }}>
         <Label>From *</Label>
         <select style={fieldStyle} defaultValue="someone@gmail.com"><option>someone@gmail.com</option><option>sales@vionworld.com</option></select>
@@ -237,7 +251,7 @@ const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Business Opening"
 
 // ── Log a Call ────────────────────────────────────────────────────────────────
 const LogCallModal = ({ onClose, lifecycle }) => (
-  <ModalShell icon="📞" title="Log a Call" width={720} onClose={onClose}>
+  <ModalShell icon="📞" title="Log a Call" subtitle="Record an inbound or outbound call" accent={C.blue} width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Contact Name/Number *</Label>
         <div style={{ position: "relative" }}>
@@ -265,13 +279,13 @@ const LogCallModal = ({ onClose, lifecycle }) => (
       <textarea defaultValue="Report of call" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
     </div>
     <StageStatusRow lifecycle={lifecycle} />
-    <FooterBtns onClose={onClose} label="Save" />
+    <FooterBtns onClose={onClose} label="Log Call" />
   </ModalShell>
 );
 
 // ── Log an Email ──────────────────────────────────────────────────────────────
 const LogEmailModal = ({ onClose, lifecycle }) => (
-  <ModalShell icon="✉️" title="Log an Email" width={720} onClose={onClose}>
+  <ModalShell icon="✉️" title="Log an Email" subtitle="Record a sent or received email" accent={C.indigo} width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Direction *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Direction</option><option>Sent</option><option>Received</option></select></div>
       <div><Label>Email Address *</Label><input style={fieldStyle} placeholder="name@example.com" /></div>
@@ -283,13 +297,13 @@ const LogEmailModal = ({ onClose, lifecycle }) => (
     </div>
     <div style={{ marginBottom: 16 }}><Label>Email Report *</Label><textarea placeholder="What was discussed…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} /></div>
     <StageStatusRow lifecycle={lifecycle} />
-    <FooterBtns onClose={onClose} label="Save" />
+    <FooterBtns onClose={onClose} label="Log Email" />
   </ModalShell>
 );
 
 // ── Log on Appointment ────────────────────────────────────────────────────────
 const LogAppointmentModal = ({ onClose, lifecycle }) => (
-  <ModalShell icon="📅" title="Log on Appointment" width={720} onClose={onClose}>
+  <ModalShell icon="📅" title="Log on Appointment" subtitle="Record the outcome of a past appointment" accent={C.green} width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Appointment Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Type</option>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select></div>
       <div><Label>Appointment Outcome *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Outcome</option><option>Completed</option><option>No Show</option><option>Rescheduled</option><option>Cancelled</option></select></div>
@@ -301,13 +315,13 @@ const LogAppointmentModal = ({ onClose, lifecycle }) => (
     </div>
     <div style={{ marginBottom: 16 }}><Label>Appointment Report *</Label><textarea placeholder="Appointment report…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} /></div>
     <StageStatusRow lifecycle={lifecycle} />
-    <FooterBtns onClose={onClose} label="Save" />
+    <FooterBtns onClose={onClose} label="Log Appointment" />
   </ModalShell>
 );
 
 // ── Offline Log ───────────────────────────────────────────────────────────────
 const OfflineLogModal = ({ onClose, lifecycle }) => (
-  <ModalShell icon="ⓘ" title="Offline Log" width={720} onClose={onClose}>
+  <ModalShell icon="🗒️" title="Offline Log" subtitle="Log an interaction that happened outside the CRM" accent={C.slate} width={720} onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
       <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
@@ -317,7 +331,7 @@ const OfflineLogModal = ({ onClose, lifecycle }) => (
       <textarea placeholder="Note" style={{ ...fieldStyle, minHeight: 110, resize: "vertical", lineHeight: 1.5 }} />
     </div>
     <StageStatusRow lifecycle={lifecycle} />
-    <FooterBtns onClose={onClose} label="Save" />
+    <FooterBtns onClose={onClose} label="Save Log" />
   </ModalShell>
 );
 
@@ -325,20 +339,12 @@ const OfflineLogModal = ({ onClose, lifecycle }) => (
 const AddNoteModal = ({ onClose, onSave }) => {
   const [text, setText] = useState("");
   return (
-    <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 460, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>Add Note</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
-        </div>
-        <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>Visible only to you. You can edit or delete it later.</div>
-        <Label>Note</Label>
-        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Type something" autoFocus
-          style={{ ...fieldStyle, minHeight: 120, resize: "vertical", lineHeight: 1.5, marginBottom: 20 }} />
-        <FooterBtns onClose={onClose} label="Save" disabled={!text.trim()} onAction={() => { onSave(text.trim()); onClose(); }} />
-      </div>
-    </>
+    <ModalShell icon="📝" title="Add Note" subtitle="Visible only to you — you can edit or delete it later" accent={C.amber} width={480} onClose={onClose}>
+      <Label>Note</Label>
+      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Type something" autoFocus
+        style={{ ...fieldStyle, minHeight: 120, resize: "vertical", lineHeight: 1.5 }} />
+      <FooterBtns onClose={onClose} label="Save Note" disabled={!text.trim()} onAction={() => { onSave(text.trim()); onClose(); }} />
+    </ModalShell>
   );
 };
 
