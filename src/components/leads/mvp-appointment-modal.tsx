@@ -8,8 +8,6 @@ import { APPOINTMENT_TYPES, getSuperiorEmails } from "../appointments/appointmen
 // action on the contact detail view. Same fields and onSubmit contract as the
 // calendar AppointmentModal, restyled onto the shared MVP ModalShell. Create-only.
 
-const REMINDER_OPTS = [["15", "15 Minutes Before"], ["30", "30 Minutes Before"], ["60", "1 Hour Before"], ["1440", "1 Day Before"], ["custom", "Custom Date"]];
-
 // Attendees are stored as email addresses.
 const isEmail = (s) => /^[^\s,()]+@[^\s,()]+\.[^\s,()]+$/.test(String(s || "").trim());
 const leadByEmail = (email) => ALL_LEADS.find(l => l.email.toLowerCase() === String(email).toLowerCase());
@@ -18,8 +16,7 @@ const attLabelOf = (email) => { const n = displayName(email); return n ? `${emai
 
 const blank = (selectedDate) => ({
   title: "", contact: "", attendees: [], apptType: "Consultation Appointment", apptTypeOther: "",
-  date: selectedDate || "", time: "09:00", end: "", location: "", attachments: [],
-  reminderOn: true, reminder: "30", reminderCustom: "", note: "",
+  date: selectedDate || "", time: "09:00", end: "", location: "", attachments: [], note: "",
 });
 
 export const MVPAppointmentModal = ({ mode = "create", appt = null, selectedDate, role, lockContact = false, onClose, onSubmit }) => {
@@ -146,14 +143,14 @@ export const MVPAppointmentModal = ({ mode = "create", appt = null, selectedDate
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <Label>Appointment Location *</Label>
+        <Label>Location / Link</Label>
         <input value={f.location} onChange={e => set("location", e.target.value)}
           placeholder="ARTIST Boutique Hotel — Vienna  ·  or https://meet.…" style={fieldStyle} />
       </div>
 
-      {/* Attachments */}
+      {/* Attachment */}
       <div style={{ marginBottom: 14 }}>
-        <Label>Attachments</Label>
+        <Label>Attachment</Label>
         {f.attachments.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
             {f.attachments.map(a => (
@@ -170,24 +167,7 @@ export const MVPAppointmentModal = ({ mode = "create", appt = null, selectedDate
         </select>
       </div>
 
-      {/* Reminder */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: f.reminderOn && f.reminder === "custom" ? 8 : 4 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: C.navy, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-          <input type="checkbox" checked={f.reminderOn} onChange={e => set("reminderOn", e.target.checked)} style={{ accentColor: C.primary, width: 15, height: 15 }} />
-          Reminder
-        </label>
-        <select value={f.reminder} disabled={!f.reminderOn} onChange={e => set("reminder", e.target.value)} style={{ ...fieldStyle, opacity: f.reminderOn ? 1 : 0.5 }}>
-          {REMINDER_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-      </div>
-      {f.reminderOn && f.reminder === "custom" && (
-        <div style={{ marginTop: 12 }}>
-          <Label>Remind me on</Label>
-          <input type="datetime-local" value={f.reminderCustom} onChange={e => set("reminderCustom", e.target.value)} style={fieldStyle} />
-        </div>
-      )}
-
-      <div style={{ marginTop: 14 }}>
+      <div>
         <Label>Description</Label>
         <textarea value={f.note} onChange={e => set("note", e.target.value)} placeholder="Any details for this appointment…"
           style={{ ...fieldStyle, minHeight: 72, resize: "vertical", lineHeight: 1.5 }} />
