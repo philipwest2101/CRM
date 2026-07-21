@@ -64,7 +64,7 @@ export const StatusesSection = ({ role }) => {
             border:`1.5px solid ${draft.manual?C.indigo:C.border}`,background:draft.manual?C.indigo+"08":"#fff" }}>
           <div style={{ width:18,height:18,borderRadius:5,border:`2px solid ${draft.manual?C.indigo:C.border}`,background:draft.manual?C.indigo:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",flexShrink:0 }}>{draft.manual?"✓":""}</div>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:12,fontWeight:700,color:draft.manual?C.indigo:C.text }}>Advisors can set this status manually</div>
+            <div style={{ fontSize:12,fontWeight:700,color:draft.manual?C.indigo:C.text }}>Advisors can set this processing state manually</div>
             <div style={{ fontSize:10,color:C.muted,marginTop:1 }}>Automatic transitions are configured in Workflow &amp; Automation, not here.</div>
           </div>
         </div>
@@ -93,24 +93,24 @@ export const StatusesSection = ({ role }) => {
   return (<>
     <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8 }}>
       <div>
-        <div style={{ fontSize:20,fontWeight:800,color:C.navy,marginBottom:4 }}>🔄 Statuses</div>
-        <div style={{ fontSize:12,color:C.muted }}>Define the lead pipeline: Lifecycle Stages and the Statuses grouped under them.</div>
+        <div style={{ fontSize:20,fontWeight:800,color:C.navy,marginBottom:4 }}>🔄 Status &amp; Processing</div>
+        <div style={{ fontSize:12,color:C.muted }}>Define the lead pipeline: the broad <strong>Status</strong> (sales phase) and the <strong>Processing</strong> states grouped under each.</div>
       </div>
       <button onClick={()=>{setShowNewStage(v=>!v);setStageDraft({nameDe:"",nameEn:""});}}
         style={{ padding:"8px 18px",borderRadius:9,border:"none",background:C.primary,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0 }}>
-        {showNewStage?"✕ Cancel":"+ Lifecycle stage"}
+        {showNewStage?"✕ Cancel":"+ Status"}
       </button>
     </div>
 
     {saved && <div style={{ marginBottom:16,padding:"10px 16px",borderRadius:8,background:"#ECFDF5",border:`1px solid ${C.green}40`,fontSize:12,fontWeight:700,color:C.green }}>✅ {saved}</div>}
 
     <div style={{ padding:"12px 16px",borderRadius:10,background:C.blue+"08",border:`1px solid ${C.blue}25`,marginBottom:16,fontSize:12,color:C.text,lineHeight:1.5 }}>
-      This page defines the status vocabulary — names, order, Lifecycle Stage grouping, and the <strong>flags</strong> automation targets. Whether a status is set <strong>manually</strong> by an advisor is toggled per status here; <strong>automatic</strong> transitions (and the not-reached threshold) live in <strong>Workflow &amp; Automation</strong>. Automation reads the flags, never the name, so renaming or reordering never breaks a rule.
+      This page defines the vocabulary — the broad <strong>Status</strong> (sales phase), the <strong>Processing</strong> states grouped under each, their names, order, and the <strong>flags</strong> automation targets. Whether a Processing state is set <strong>manually</strong> by an advisor is toggled here; <strong>automatic</strong> transitions (and the not-reached threshold) live in <strong>Workflow &amp; Automation</strong>. Automation reads the flags, never the name, so renaming or reordering never breaks a rule.
     </div>
 
     {showNewStage && (
       <div style={{ padding:"16px 18px",borderRadius:12,border:`1.5px solid ${C.indigo}30`,background:C.indigo+"05",marginBottom:16 }}>
-        <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>New lifecycle stage</div>
+        <div style={{ fontSize:13,fontWeight:700,color:C.text,marginBottom:12 }}>New Status (sales phase)</div>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12 }}>
           <div><label style={lab}>German name *</label><input value={stageDraft.nameDe} onChange={e=>setStageDraft(d=>({...d,nameDe:e.target.value}))} placeholder="z. B. In Kontakt" style={inp}/></div>
           <div><label style={lab}>English name</label><input value={stageDraft.nameEn} onChange={e=>setStageDraft(d=>({...d,nameEn:e.target.value}))} placeholder="e.g. In Contact" style={inp}/></div>
@@ -131,13 +131,13 @@ export const StatusesSection = ({ role }) => {
           </div>
           <div style={{ flex:1,minWidth:0 }}>
             <div style={{ fontSize:14,fontWeight:800,color:C.navy }}>{s.nameEn}</div>
-            <div style={{ fontSize:11,color:C.muted }}>{s.nameDe} · {s.statuses.length} status{s.statuses.length===1?"":"es"}</div>
+            <div style={{ fontSize:11,color:C.muted }}>{s.nameDe} · {s.statuses.length} processing state{s.statuses.length===1?"":"s"}</div>
           </div>
-          <button onClick={()=>startAdd(s.id)} style={{ padding:"6px 12px",borderRadius:7,border:`1px solid ${C.primary}`,background:"#fff",color:C.navy,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>+ Status</button>
+          <button onClick={()=>startAdd(s.id)} style={{ padding:"6px 12px",borderRadius:7,border:`1px solid ${C.primary}`,background:"#fff",color:C.navy,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>+ Processing</button>
           <button onClick={()=>deleteStage(s.id)} style={{ padding:"6px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:"#fff",color:C.red,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>Delete</button>
         </div>
         <div style={{ padding:"8px 16px 14px" }}>
-          {s.statuses.length===0 && addingTo!==s.id && <div style={{ padding:"14px",textAlign:"center",fontSize:12,color:C.muted }}>No statuses yet. Add one to start.</div>}
+          {s.statuses.length===0 && addingTo!==s.id && <div style={{ padding:"14px",textAlign:"center",fontSize:12,color:C.muted }}>No processing states yet. Add one to start.</div>}
           {s.statuses.map(st=>(
             <div key={st.id}>
               {editing===st.id ? renderEditor(s.id) : (

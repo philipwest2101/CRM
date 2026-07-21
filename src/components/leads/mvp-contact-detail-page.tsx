@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, stageStatusOptions, blocksToText, setLeadState, getLeadState } from "../../lib/core";
+import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, stageStatusOptions, blocksToText, setLeadState, getLeadState, networkOutcomeLabel } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
@@ -9,9 +9,11 @@ import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-pr
 // Stage Status is the progress *within* the lifecycle (independent of Lead vs
 // Network). Labels come from the Super-Admin configured statuses.
 const STATUS_LABEL: Record<string, string> = {
-  open: "New", in_progress: "In Contact", attempted: "In Contact", not_reached: "Not Reached",
-  followup: "Follow Up", appointment: "Appointment", closed: "Customer",
-  no_interest: "Not Interested", dnc: "Not Interested",
+  open: "New", in_progress: "In Contact", first_contact: "In Contact", attempted: "In Contact",
+  connected: "In Contact", not_reached: "Not Reached",
+  followup: "Follow Up", appointment: "Appointment", appt_completed: "Appointment", no_show: "Appointment",
+  qualified: "Qualified", closed: "Closed", partner: "Closed", customer_partner: "Closed", lost: "Closed",
+  no_interest: "Not Interested", dnc: "Do Not Contact",
 };
 const stageStatusLabel = (status?: string) => (status && STATUS_LABEL[status]) || "New";
 
@@ -1495,7 +1497,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
 
           {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment}
                                             onLeadFinalized={() => setLeadState(lead?.id, { finalized: true })}
-                                            onLeadConverted={(status) => setLeadState(lead?.id, { finalized: true, lifecycle: "Network", networkStatus: status })}
+                                            onLeadConverted={(outcome) => setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) })}
                                             autoConvert={sourceAction === "convert"} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}

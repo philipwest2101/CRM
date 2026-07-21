@@ -145,46 +145,76 @@ export let STATUS_AUTOMATION_CONFIG = { notReachedThreshold:5 };
 
 export const STATUS_FLAGS = [
   { id:"isNewDefault",         label:"Default for new contacts" },
+  { id:"isConnected",          label:"Connected (first two-way contact)" },
   { id:"isNotReachedTerminal", label:"Not-reached terminal (counter target)" },
   { id:"isAppointment",        label:"Appointment (triggers calendar sync)" },
+  { id:"isQualified",          label:"Qualified (concrete conversion path)" },
+  { id:"isFollowUp",           label:"Follow Up (requires a Follow-Up Date)" },
   { id:"isWon",                label:"Closed-won (triggers post-sale)" },
+  { id:"isLost",               label:"Closed-lost (requires a Lost Reason)" },
+  { id:"isTerminal",           label:"Terminal (closes open tasks, saves Closed Date)" },
   { id:"excludesOutreach",     label:"Excludes contact from all outreach (DNC)" },
   { id:"retargetingEligible",  label:"Retargeting / nurture eligible (with consent)" },
 ];
 
-// Statuses are now pure vocabulary: name, translation, order, parent stage, the
-// semantic `flags` rules target, and `manual` (can an advisor set it by hand?).
-// All trigger/automation logic lives in Workflow & Automation.
+// Per the CRM Lifecycle & Workflow Specification (MVP), the model is three-level:
+//   Status     = broad sales phase        (the parent `stage` below)
+//   Processing = condition within the phase (each child status)
+// Status/Processing are pure vocabulary: name, translation, order, parent Status,
+// the semantic `flags` rules target, and `manual` (can an advisor set it by
+// hand?). All trigger/automation logic lives in Workflow & Automation. Existing
+// status keys are preserved so seeded contacts keep resolving; new Processing
+// values (connected, appt_completed, no_show, qualified, partner,
+// customer_partner, lost) are additive.
 
 export let LIFECYCLE_STORE = [
   { id:"lc1", nameDe:"Neu",            nameEn:"New", statuses:[
-    { id:"st1", key:"open",        nameDe:"Neu / Offen",                   nameEn:"New / Open",        manual:false, flags:["isNewDefault"],         color:C.slate,  bg:"#F1F5F9" },
+    { id:"st1", key:"open",           nameDe:"Noch nicht kontaktiert",   nameEn:"Not Contacted Yet",     manual:false, flags:["isNewDefault"],                     color:C.slate,  bg:"#F1F5F9" },
   ]},
   { id:"lc2", nameDe:"In Kontakt",     nameEn:"In Contact", statuses:[
-    { id:"st2", key:"in_progress", nameDe:"In Bearbeitung",                nameEn:"In Progress",       manual:true,  flags:[],                       color:C.blue,   bg:"#EFF6FF" },
-    { id:"st3", key:"attempted",   nameDe:"Kontaktaufnahme versucht (1–4×)", nameEn:"Attempted",       manual:false, flags:[],                       color:C.amber,  bg:"#FFFBEB" },
-    { id:"st4", key:"not_reached", nameDe:"Nicht erreicht",                nameEn:"Not Reached",       manual:false, flags:["isNotReachedTerminal"], color:C.red,    bg:"#FEF2F2" },
-    { id:"st5", key:"no_interest", nameDe:"Kein Interesse",                nameEn:"Not Interested",    manual:true,  flags:["retargetingEligible"],  color:C.muted,  bg:"#F9FAFB" },
+    { id:"st2", key:"first_contact",  nameDe:"Erstkontakt versucht",     nameEn:"First Contact Attempted", manual:true,  flags:[],                                  color:C.blue,   bg:"#EFF6FF" },
+    { id:"st3", key:"attempted",      nameDe:"Kontaktversuch läuft",     nameEn:"Attempting Contact",    manual:false, flags:[],                                    color:C.amber,  bg:"#FFFBEB" },
+    { id:"st4", key:"connected",      nameDe:"Erreicht",                 nameEn:"Connected",             manual:false, flags:["isConnected"],                       color:C.green,  bg:"#ECFDF5" },
   ]},
   { id:"lc3", nameDe:"Termin",         nameEn:"Appointment", statuses:[
-    { id:"st7", key:"appointment", nameDe:"Termin vereinbart / In Bearbeitung", nameEn:"Appointment Scheduled", manual:false, flags:["isAppointment"],  color:C.indigo, bg:"#EEF2FF" },
-    { id:"st8", key:"followup",    nameDe:"Wiedervorlage",                 nameEn:"Follow Up",         manual:true,  flags:[],                       color:C.purple, bg:"#F5F3FF" },
+    { id:"st5", key:"appointment",    nameDe:"Termin vereinbart",        nameEn:"Appointment Scheduled", manual:false, flags:["isAppointment"],                     color:C.indigo, bg:"#EEF2FF" },
+    { id:"st6", key:"appt_completed", nameDe:"Termin durchgeführt",      nameEn:"Appointment Completed", manual:false, flags:[],                                    color:C.indigo, bg:"#EEF2FF" },
+    { id:"st7", key:"no_show",        nameDe:"Nicht erschienen",         nameEn:"No Show",               manual:false, flags:[],                                    color:C.amber,  bg:"#FFFBEB" },
   ]},
-  { id:"lc4", nameDe:"Abschluss",      nameEn:"Closing", statuses:[
-    { id:"st9", key:"closed",      nameDe:"Erfolgreich abgeschlossen / Kunde", nameEn:"Closed / Customer", manual:true, flags:["isWon"],            color:C.green,  bg:"#ECFDF5" },
+  { id:"lc4", nameDe:"Wiedervorlage",  nameEn:"Follow Up", statuses:[
+    { id:"st8", key:"followup",       nameDe:"Wartet auf Wiedervorlage", nameEn:"Waiting for Follow-Up", manual:true,  flags:["isFollowUp"],                        color:C.purple, bg:"#F5F3FF" },
   ]},
-  { id:"lc5", nameDe:"Ausgeschlossen", nameEn:"Excluded", statuses:[
-    { id:"st10", key:"dnc",        nameDe:"Do Not Contact (DNC)",          nameEn:"Do Not Contact",    manual:true,  flags:["excludesOutreach"],     color:C.slate,  bg:"#F1F5F9" },
+  { id:"lc5", nameDe:"Qualifiziert",   nameEn:"Qualified", statuses:[
+    { id:"st9", key:"qualified",      nameDe:"Abschlussbereit",          nameEn:"Ready to Close",        manual:true,  flags:["isQualified"],                       color:C.green,  bg:"#ECFDF5" },
+  ]},
+  { id:"lc6", nameDe:"Abschluss",      nameEn:"Closed", statuses:[
+    { id:"st10", key:"closed",           nameDe:"Kunde",          nameEn:"Customer",          manual:true, flags:["isWon","isTerminal"],  color:C.green,  bg:"#ECFDF5" },
+    { id:"st11", key:"partner",          nameDe:"Partner",        nameEn:"Partner",           manual:true, flags:["isWon","isTerminal"],  color:C.indigo, bg:"#EEF2FF" },
+    { id:"st12", key:"customer_partner", nameDe:"Kunde + Partner", nameEn:"Customer + Partner", manual:true, flags:["isWon","isTerminal"], color:C.green,  bg:"#ECFDF5" },
+    { id:"st13", key:"lost",             nameDe:"Verloren",       nameEn:"Lost",              manual:true, flags:["isLost","isTerminal"], color:C.red,    bg:"#FEF2F2" },
+  ]},
+  { id:"lc7", nameDe:"Kein Interesse", nameEn:"Not Interested", statuses:[
+    { id:"st14", key:"no_interest",   nameDe:"Abgeschlossen",            nameEn:"Closed",                manual:true,  flags:["retargetingEligible","isTerminal"],  color:C.muted,  bg:"#F9FAFB" },
+  ]},
+  { id:"lc8", nameDe:"Nicht erreicht", nameEn:"Not Reached", statuses:[
+    { id:"st15", key:"not_reached",   nameDe:"Abgeschlossen",            nameEn:"Closed",                manual:false, flags:["isNotReachedTerminal","isTerminal"], color:C.red,    bg:"#FEF2F2" },
+  ]},
+  { id:"lc9", nameDe:"Do Not Contact", nameEn:"Do Not Contact", statuses:[
+    { id:"st16", key:"dnc",           nameDe:"Abgeschlossen",            nameEn:"Closed",                manual:true,  flags:["excludesOutreach","isTerminal"],     color:C.slate,  bg:"#F1F5F9" },
   ]},
 ];
 
 // Single source of truth for status badges/labels. Rebuilt after admin edits.
+// `label`/`stage` are the broad Status (the phase every badge shows); `processing`
+// is the operational Processing value within it. Legacy `in_progress` keys are
+// aliased to First Contact Attempted so pre-existing contacts keep resolving.
 
 export function buildStatusMeta() {
-  const m = {};
+  const m: Record<string, any> = {};
   LIFECYCLE_STORE.forEach(stage => stage.statuses.forEach(st => {
-    if (st.key) m[st.key] = { label:st.nameEn, de:st.nameDe, color:st.color||C.slate, bg:st.bg||"#F1F5F9", stage:stage.nameEn, flags:st.flags||[] };
+    if (st.key) m[st.key] = { label:stage.nameEn, de:stage.nameDe, processing:st.nameEn, processingDe:st.nameDe, color:st.color||C.slate, bg:st.bg||"#F1F5F9", stage:stage.nameEn, flags:st.flags||[] };
   }));
+  if (m.first_contact && !m.in_progress) m.in_progress = m.first_contact;   // legacy alias
   return m;
 }
 
@@ -685,16 +715,26 @@ export const DONE_STATUSES = ["done","completed","cancelled"];
 // Single source of truth for how a lead's processing stage is named across the
 // lead list, dashboard tables and anywhere the "Feedback & Processing" status
 // is shown — clearer, action-oriented labels instead of raw step names.
+// Shows the Processing value (the operational condition within the Status) — per
+// the spec the lead list surfaces Processing + counters, not the broad Status.
 export const FEEDBACK_STATUS_LABEL = {
-  open:        "New",
-  in_progress: "In Contact",
-  attempted:   "In Contact",
-  not_reached: "Not Reached",
-  followup:    "Follow Up",
-  appointment: "Appointment",
-  closed:      "Qualified",
-  no_interest: "Not Interested",
-  dnc:         "Do Not Contact",
+  open:             "Not Contacted Yet",
+  in_progress:      "First Contact Attempted",
+  first_contact:    "First Contact Attempted",
+  attempted:        "Attempting Contact",
+  connected:        "Connected",
+  not_reached:      "Not Reached",
+  followup:         "Waiting for Follow-Up",
+  appointment:      "Appointment Scheduled",
+  appt_completed:   "Appointment Completed",
+  no_show:          "No Show",
+  qualified:        "Ready to Close",
+  closed:           "Customer",
+  partner:          "Partner",
+  customer_partner: "Customer + Partner",
+  lost:             "Lost",
+  no_interest:      "Not Interested",
+  dnc:              "Do Not Contact",
 };
 export const feedbackStatusLabel = (status) => FEEDBACK_STATUS_LABEL[status] || FEEDBACK_STATUS_LABEL.open;
 
@@ -1322,12 +1362,30 @@ export const SA_TOP_PRODUCTS = [
 // ─── Mini Calendar ────────────────────────────────────────────────────────────
 
 export const TIMELINE_META = {
-  call:    { icon:"📞", color:C.blue,    bg:"#EFF6FF" },
-  attempt: { icon:"📵", color:C.amber,   bg:"#FFFBEB" },
-  assign:  { icon:"⚡", color:C.primary, bg:C.primarySoft },
-  email:   { icon:"✉️", color:C.blue,    bg:"#EFF6FF" },
-  import:  { icon:"📥", color:C.slate,   bg:C.light },
-  note:    { icon:"📝", color:C.amber,   bg:"#FFFBEB" },
+  call:               { icon:"📞", color:C.blue,    bg:"#EFF6FF" },
+  attempt:            { icon:"📵", color:C.amber,   bg:"#FFFBEB" },
+  connected:          { icon:"✅", color:C.green,   bg:"#ECFDF5" },
+  assign:             { icon:"⚡", color:C.primary, bg:C.primarySoft },
+  email:              { icon:"✉️", color:C.blue,    bg:"#EFF6FF" },
+  sms:                { icon:"💬", color:C.blue,    bg:"#EFF6FF" },
+  whatsapp:           { icon:"💬", color:"#25D366", bg:"#F0FFF4" },
+  import:             { icon:"📥", color:C.slate,   bg:C.light },
+  note:               { icon:"📝", color:C.amber,   bg:"#FFFBEB" },
+  created:            { icon:"➕", color:C.slate,   bg:C.light },
+  // Appointment lifecycle (spec §11)
+  appt_scheduled:     { icon:"📅", color:C.indigo,  bg:"#EEF2FF" },
+  appt_rescheduled:   { icon:"🔁", color:C.amber,   bg:"#FFFBEB" },
+  appt_cancelled:     { icon:"🚫", color:C.red,     bg:"#FEF2F2" },
+  appt_no_show:       { icon:"👻", color:C.amber,   bg:"#FFFBEB" },
+  appt_completed:     { icon:"✔️", color:C.indigo,  bg:"#EEF2FF" },
+  // Documents (spec §11)
+  document_sent:      { icon:"📤", color:C.blue,    bg:"#EFF6FF" },
+  document_received:  { icon:"📥", color:C.green,   bg:"#ECFDF5" },
+  // State & outcome changes (spec §11)
+  status_changed:     { icon:"🔄", color:C.slate,   bg:C.light },
+  processing_changed: { icon:"⚙️", color:C.slate,   bg:C.light },
+  outcome_recorded:   { icon:"🏁", color:C.green,   bg:"#ECFDF5" },
+  reminder:           { icon:"⏰", color:C.purple,  bg:"#F5F3FF" },
 };
 
 export const BULK_EMAIL_CAMPAIGNS = [
@@ -1484,20 +1542,79 @@ export const CALL_STATUS_OPTIONS = [
   "Not Reached – No Answer",
   "Not Reached – Wrong Number",
 ];
-// ─── Lifecycle & Stage Status (system-defined vocabulary) ─────────────────────
+// ─── Lifecycle, Status & Network Outcome (system-defined vocabulary) ──────────
 // Per "Network vs. Lead", Lifecycle is a two-value business state (Lead →
-// Network) and Stage Status tracks progress *within* it. Both are system-defined
-// (no longer Super-Admin configurable). Stage Status options depend on the
-// Lifecycle. This is the single source of truth used by every contact form,
-// activity/log modal and outcome picker across the app.
-export const LEAD_STAGE_STATUSES    = ["New", "In Contact", "Not Reached", "Not Interested", "Currently Not Interested", "Difficult Case", "Appointment", "Follow Up", "Qualified"];
-export const NETWORK_STAGE_STATUSES = ["Customer", "Partner", "Prospect"];
+// Network). For a Lead, the broad Status tracks the sales phase. Per the CRM
+// Lifecycle & Workflow Specification (MVP): "Currently Not Interested" is dropped
+// (a "maybe later" is a Follow Up), and "Difficult Case" is replaced by Closed /
+// Lost + a structured Lost Reason. Both are removed from the Status vocabulary.
+export const LEAD_STAGE_STATUSES    = ["New", "In Contact", "Appointment", "Follow Up", "Qualified", "Closed", "Not Interested", "Not Reached", "Do Not Contact"];
+
+// A Network member no longer carries a "stage status". Instead it has an Outcome —
+// any combination of Customer / Partner (both may apply); an empty set is a plain
+// Network contact ("Contact"). Prospect is removed (it overlapped with Lead).
+export const NETWORK_OUTCOMES       = ["Customer", "Partner"];
+// Kept as a back-compat alias for callers that still import the old name.
+export const NETWORK_STAGE_STATUSES = NETWORK_OUTCOMES;
+
+// Human label for a Network outcome set (array of NETWORK_OUTCOMES).
+export const networkOutcomeLabel = (outcome) => {
+  const set = Array.isArray(outcome) ? outcome : (outcome ? [outcome] : []);
+  const c = set.includes("Customer"), p = set.includes("Partner");
+  if (c && p) return "Customer + Partner";
+  if (c) return "Customer";
+  if (p) return "Partner";
+  return "Contact";
+};
 
 export const LIFECYCLE_OPTIONS  = ["Lead", "Network"];
 
-export const STAGE_OPTIONS      = { Lead: LEAD_STAGE_STATUSES, Network: NETWORK_STAGE_STATUSES };
+export const STAGE_OPTIONS      = { Lead: LEAD_STAGE_STATUSES, Network: NETWORK_OUTCOMES };
 
 export const stageStatusOptions = (lifecycle) => STAGE_OPTIONS[lifecycle] || LEAD_STAGE_STATUSES;
+
+// ─── Spec §7 Properties, §8 Lost Reasons, Next Actions, Follow-Up & DNC reasons ─
+// Structured values that must NOT be encoded in Processing. Used by the outcome
+// pickers, the Follow-Up card and reporting.
+export const NEXT_ACTIONS = [
+  "Call again", "Send information", "Schedule appointment", "Attend / conduct appointment",
+  "Call to reschedule", "Record appointment result", "Review appointment outcome",
+  "Define next closing step", "Resume follow-up", "No open action",
+];
+export const LOST_REASONS = [
+  "No Interest", "Existing Solution", "Credit Not Possible", "Financing Requirements Not Met",
+  "No Suitable Product", "Financial Situation", "Wrong Target Group", "Competitor Selected",
+  "No Response After Previous Contact", "Invalid Contact Details", "Other",
+];
+export const FOLLOWUP_REASONS = [
+  "Timing not right", "Requested later contact", "Awaiting a document",
+  "After a future event / milestone", "Budget not ready yet", "Other",
+];
+export const DNC_REASONS = [
+  "GDPR / erasure request", "Invalid contact details", "Blocked / complaint",
+  "Legal restriction", "Other",
+];
+export const APPOINTMENT_STATUS_OPTIONS = ["Scheduled", "Confirmed", "Rescheduled", "Cancelled", "No Show", "Completed"];
+export const OUTCOME_OPTIONS = ["Customer", "Partner", "Customer + Partner", "Lost"];
+
+// Structured lead properties (spec §7) — the fields that live alongside Status /
+// Processing rather than inside them. Reference list for forms & the detail view.
+export const LEAD_PROPERTIES = [
+  { key:"callAttempts",     label:"Call Attempts",        type:"Number" },
+  { key:"nextAction",       label:"Next Action",          type:"Select" },
+  { key:"nextActionDue",    label:"Next Action Due Date", type:"Date" },
+  { key:"firstConnected",   label:"First Connected Date", type:"Date" },
+  { key:"lastContact",      label:"Last Contact Date",    type:"Date" },
+  { key:"followUpDate",     label:"Follow-Up Date",       type:"Date" },
+  { key:"followUpReason",   label:"Follow-Up Reason",     type:"Select" },
+  { key:"appointmentDate",  label:"Appointment Date",     type:"Date" },
+  { key:"appointmentStatus",label:"Appointment Status",   type:"Select" },
+  { key:"qualifiedDate",    label:"Qualified Date",       type:"Date" },
+  { key:"outcome",          label:"Outcome",              type:"Select" },
+  { key:"lostReason",       label:"Lost Reason",          type:"Select" },
+  { key:"closedDate",       label:"Closed Date",          type:"Date" },
+  { key:"dncReason",        label:"Do Not Contact Reason", type:"Select" },
+];
 
 
 export const BLANK_RULE = { prefix:"", city:"", gp:"", vd:"", convRate:"", capacity:80, used:0, priority:"medium" };

@@ -277,9 +277,9 @@ Return ONLY the JSON object. No markdown. No explanation outside the JSON.`;
                           const attempts = (lead?.attempts||0) + 1;
                           onWorkflow(attempts >= 5 ? "lead_not_reached_5" : "lead_not_reached_1_4", {...lead, attempts});
                         }
-                        // Closed / Won — a Lead that reaches "Qualified" or a
-                        // contact converted to a Network "Customer" is won.
-                        if (stageStatus === "Qualified" || stageStatus === "Customer") {
+                        // Closed / Won — per the spec, "Qualified" (Ready to Close)
+                        // is not yet won; only the terminal "Closed" status is.
+                        if (stageStatus === "Closed") {
                           onWorkflow("lead_closed", lead);
                         }
                       }

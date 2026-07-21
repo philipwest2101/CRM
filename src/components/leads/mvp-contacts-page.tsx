@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { ALL_LEADS, feedbackStatusLabel, getLeadState } from "../../lib/core";
+import { ALL_LEADS, feedbackStatusLabel, getLeadState, NETWORK_OUTCOMES, networkOutcomeLabel } from "../../lib/core";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 
@@ -37,15 +37,20 @@ const InfoTip = ({ text }) => {
 // completed the process and were converted to (always User-owned) Network
 // contacts.
 const STAGE_STATUS = {
-  open:        { status: "New",            tone: C.green },
-  in_progress: { status: "In Contact",     tone: C.slate },
-  attempted:   { status: "In Contact",     tone: C.slate },
-  not_reached: { status: "Not Reached",    tone: C.red   },
-  followup:    { status: "Follow Up",      tone: C.slate },
-  appointment: { status: "Appointment",    tone: C.green },
-  closed:      { status: "Customer",       tone: C.green },   // converted → Network
-  no_interest: { status: "Not Interested", tone: null    },
-  dnc:         { status: "Not Interested", tone: null    },
+  open:          { status: "New",            tone: C.green },
+  in_progress:   { status: "In Contact",     tone: C.slate },
+  first_contact: { status: "In Contact",     tone: C.slate },
+  attempted:     { status: "In Contact",     tone: C.slate },
+  connected:     { status: "In Contact",     tone: C.green },
+  not_reached:   { status: "Not Reached",    tone: C.red   },
+  followup:      { status: "Follow Up",      tone: C.slate },
+  appointment:   { status: "Appointment",    tone: C.green },
+  appt_completed:{ status: "Appointment",    tone: C.green },
+  no_show:       { status: "Appointment",    tone: C.amber },
+  qualified:     { status: "Qualified",      tone: C.green },
+  closed:        { status: "Closed",         tone: C.green },   // converted → Network
+  no_interest:   { status: "Not Interested", tone: null    },
+  dnc:           { status: "Do Not Contact", tone: null    },
 };
 
 // A seeded contact becomes a Network once it has completed the process.
@@ -56,11 +61,11 @@ const isNetworkStatus = (status) => status === "closed";
 // Ownership is Company or User; Network is always User-owned and excluded from
 // company reporting.
 const OWNERSHIP_OPTIONS  = ["Company", "User"];
-// Stage Status vocabulary is system-defined (not configurable) and depends on
-// the Lifecycle: Lead statuses vs. Network statuses.
-const LEAD_STATUSES    = ["New", "In Contact", "Not Reached", "Not Interested", "Currently Not Interested", "Difficult Case", "Appointment", "Follow Up", "Qualified"];
-const NETWORK_STATUSES = ["Customer", "Partner", "Prospect"];
-const STATUS_OPTIONS   = [...LEAD_STATUSES, ...NETWORK_STATUSES];
+// Lead Status vocabulary is system-defined (not configurable). A Network member
+// has no stage status — it carries an Outcome (Customer / Partner, both may
+// apply) instead, chosen via checkboxes.
+const LEAD_STATUSES    = ["New", "In Contact", "Appointment", "Follow Up", "Qualified", "Closed", "Not Interested", "Not Reached", "Do Not Contact"];
+const STATUS_OPTIONS   = [...LEAD_STATUSES, ...NETWORK_OUTCOMES];
 
 // deterministic DOB from id so the column has plausible values
 const synthDob = (id) => {
@@ -90,14 +95,17 @@ const toContact = (l) => {
   // here so it drops out of the Leads views and appears in My Network.
   const override = getLeadState(l.id);
   const network = isNetworkStatus(l.status) || override.lifecycle === "Network";
-  const stageStatus = override.lifecycle === "Network" ? (override.networkStatus || "Customer") : ss.status;
-  const tone = override.lifecycle === "Network" ? (override.networkStatus === "Customer" ? C.green : C.slate) : ss.tone;
+  // Network members carry an Outcome (Customer / Partner, both possible; empty =
+  // plain Contact) rather than a stage status.
+  const outcome = network ? (Array.isArray(override.outcome) ? override.outcome : (l.status === "closed" ? ["Customer"] : [])) : [];
+  const stageStatus = network ? networkOutcomeLabel(outcome) : ss.status;
+  const tone = network ? (outcome.includes("Customer") ? C.green : outcome.includes("Partner") ? C.indigo : C.slate) : ss.tone;
   // Network is always User-owned; seeded pipeline Leads are Company-owned so they
   // surface in company reporting and the Unassigned/Assigned views.
   const ownership = network ? "User" : "Company";
   return {
     id: l.id, first, last, firstName: first, lastName: last, name: l.name,
-    lifecycle: network ? "Network" : "Lead", stageStatus, tone,
+    lifecycle: network ? "Network" : "Lead", stageStatus, outcome, tone,
     ownership, isCompanyOwned: ownership === "Company",
     phone: l.phone, email: l.email, primaryEmail: l.email,
     feedback: feedbackStatusLabel(l.status),
@@ -120,19 +128,22 @@ const toContact = (l) => {
 // A handful of User-owned Network contacts so the "My Network" view (user-owned
 // Network contacts assigned to the current user) is populated for the demo. The
 // current advisor is "Anna Klein" (GP) or "Thomas Müller" (VD).
+// A Network member's Outcome is any combination of Customer / Partner (both may
+// apply). An empty set = a plain Network contact (the former "Prospect" seeds,
+// which no longer have a stage status).
 const NETWORK_SEED = [
-  { id: "NW-1", name: "Michael Braun",  phone: "+43 660 1234567", email: "m.braun@email.at",   assignee: "Anna Klein",    stageStatus: "Customer" },
-  { id: "NW-2", name: "Sabine Hofer",   phone: "+43 664 2345678", email: "s.hofer@email.at",   assignee: "Anna Klein",    stageStatus: "Partner" },
-  { id: "NW-3", name: "Georg Steiner",  phone: "+43 699 3456789", email: "g.steiner@email.at", assignee: "Anna Klein",    stageStatus: "Prospect" },
-  { id: "NW-4", name: "Petra Wagner",   phone: "+43 650 4567890", email: "p.wagner@email.at",  assignee: "Thomas Müller", stageStatus: "Customer" },
-  { id: "NW-5", name: "Klaus Berger",   phone: "+43 676 5678901", email: "k.berger@email.at",  assignee: "Thomas Müller", stageStatus: "Prospect" },
+  { id: "NW-1", name: "Michael Braun",  phone: "+43 660 1234567", email: "m.braun@email.at",   assignee: "Anna Klein",    outcome: ["Customer"] },
+  { id: "NW-2", name: "Sabine Hofer",   phone: "+43 664 2345678", email: "s.hofer@email.at",   assignee: "Anna Klein",    outcome: ["Partner"] },
+  { id: "NW-3", name: "Georg Steiner",  phone: "+43 699 3456789", email: "g.steiner@email.at", assignee: "Anna Klein",    outcome: ["Customer", "Partner"] },
+  { id: "NW-4", name: "Petra Wagner",   phone: "+43 650 4567890", email: "p.wagner@email.at",  assignee: "Thomas Müller", outcome: ["Customer"] },
+  { id: "NW-5", name: "Klaus Berger",   phone: "+43 676 5678901", email: "k.berger@email.at",  assignee: "Thomas Müller", outcome: [] },
 ].map(n => {
   const [first, ...rest] = n.name.split(" ");
   const last = rest.join(" ");
   return {
-    ...n, first, last, firstName: first, lastName: last,
+    ...n, first, last, firstName: first, lastName: last, stageStatus: networkOutcomeLabel(n.outcome),
     primaryEmail: n.email, lifecycle: "Network", ownership: "User", isCompanyOwned: false,
-    tone: n.stageStatus === "Customer" ? C.green : C.slate,
+    tone: n.outcome.includes("Customer") ? C.green : n.outcome.includes("Partner") ? C.indigo : C.slate,
     feedback: "—", campaign: "—", dob: synthDob(n.id), gender: synthGender(n.id),
     nationality: synthNationality(n.id), website: "—", create: "—", registration: "—",
     linkedin: "—", accountSource: "Referral", lastActivity: "2026-07-10", assigned: true, gdpr: false,
@@ -157,6 +168,7 @@ const COLUMNS = {
   assignee:      { label: "Assignee",            locked: false, filter: null,        group: "Main Information" },
   ownership:     { label: "Ownership",           locked: false, filter: "ownership", group: "Main Information" },
   stageStatus:   { label: "Status",              locked: false, filter: "status",    group: "Main Information" },
+  outcomeType:   { label: "Type",                locked: false, filter: null,        group: "Main Information" },
   feedback:      { label: "Feedback & Processing",locked: false, filter: "text",      group: "Main Information" },
   lastActivity:  { label: "Last Activity",       locked: false, filter: null,        group: "Main Information" },
   create:        { label: "Create Date",         locked: false, filter: null,        group: "Main Information" },
@@ -203,10 +215,24 @@ const StagePill = ({ label, tone }) => {
   );
 };
 
+// Network Outcome badges — one pill per role (Customer / Partner). A person may
+// be both; an empty set renders a neutral "Contact" chip.
+const OUTCOME_TONE = { Customer: C.green, Partner: C.indigo };
+const OutcomeBadges = ({ outcome }) => {
+  const set = Array.isArray(outcome) ? outcome : [];
+  if (set.length === 0) return <span style={{ display: "inline-block", padding: "3px 12px", borderRadius: 16, fontSize: 12, fontWeight: 600, background: C.light, color: C.muted }}>Contact</span>;
+  return (
+    <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+      {set.map(o => <span key={o} style={{ display: "inline-block", padding: "3px 12px", borderRadius: 16, fontSize: 12, fontWeight: 600, background: (OUTCOME_TONE[o] || C.slate) + "1A", color: OUTCOME_TONE[o] || C.slate }}>{o}</span>)}
+    </span>
+  );
+};
+
 const renderCell = (key, c, isLink?: boolean) => {
   if (key === "name" || key === LINK_COL) return <span style={{ fontSize: 13, fontWeight: 500, color: C.navy, textDecoration: isLink ? "underline" : "none", textUnderlineOffset: 2 }}>{c[key]}</span>;
   if (key === "ownership")   return <span style={{ fontSize: 13, color: c.ownership === "Company" ? C.text : C.slate }}>{c.ownership}</span>;
   if (key === "stageStatus") return <StagePill label={c.stageStatus} tone={c.tone} />;
+  if (key === "outcomeType") return <OutcomeBadges outcome={c.outcome} />;
   return <span style={{ fontSize: 13, color: C.slate }}>{c[key] ?? "—"}</span>;
 };
 
@@ -618,8 +644,12 @@ const AddContactPage = ({ role, contactType = "Lead", onCancel, onSave }) => {
   // system-managed — it changes only via Convert and is never shown/edited.
   const isSA = role === "superadmin";
   const isNetwork = contactType === "Network";
-  const typeStatuses = isNetwork ? NETWORK_STATUSES : LEAD_STATUSES;
+  const typeStatuses = LEAD_STATUSES;
   const [tab, setTab] = useState("Basic");
+  // A Network member carries an Outcome (Customer / Partner, both possible) rather
+  // than a stage status.
+  const [outcome, setOutcome] = useState<string[]>([]);
+  const toggleOutcome = (v) => setOutcome(o => o.includes(v) ? o.filter(x => x !== v) : [...o, v]);
   const [f, setF] = useState({
     first: "", last: "", email: "", phone: "", lifecycle: contactType, stageStatus: typeStatuses[0],
     assignee: "", product: "", productProvider: "", source: "Manual Entry", campaign: "",
@@ -678,7 +708,27 @@ const AddContactPage = ({ role, contactType = "Lead", onCancel, onSave }) => {
             <Field label="Primary Phone"><TextInput value={f.phone} onChange={set("phone")} placeholder="+41 1234 5678" /></Field>
           </Grid>
           <Grid>
-            <Field label="Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{typeStatuses.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            {isNetwork ? (
+              <Field label="Outcome — the person may be both">
+                <div style={{ display: "flex", gap: 10 }}>
+                  {NETWORK_OUTCOMES.map(v => {
+                    const on = outcome.includes(v);
+                    const tone = v === "Customer" ? C.green : C.indigo;
+                    return (
+                      <button key={v} type="button" onClick={() => toggleOutcome(v)} style={{
+                        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 12px", borderRadius: 9,
+                        border: `1.5px solid ${on ? tone : C.border}`, background: on ? tone + "12" : "#fff", color: on ? tone : C.slate,
+                        fontSize: 13, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                        <span style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${on ? tone : C.border}`, background: on ? tone : "#fff", display: "grid", placeItems: "center", fontSize: 10, color: "#fff" }}>{on ? "✓" : ""}</span>
+                        {v}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            ) : (
+              <Field label="Status"><Select value={f.stageStatus} disabled={isSA} onChange={set("stageStatus")}>{typeStatuses.map(o => <option key={o}>{o}</option>)}</Select></Field>
+            )}
             <div />
           </Grid>
           <Grid>
@@ -908,9 +958,9 @@ const AddContactPage = ({ role, contactType = "Lead", onCancel, onSave }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 0 24px" }}>
         <button onClick={onCancel} style={{ padding: "10px 8px", background: "none", border: "none", color: C.slate, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
         <div style={{ display: "flex", gap: 12 }}>
-          <button disabled={!valid} onClick={() => { onSave(f); reset(); setTab("Basic"); }}
+          <button disabled={!valid} onClick={() => { onSave({ ...f, outcome }); reset(); setOutcome([]); setTab("Basic"); }}
             style={{ padding: "11px 22px", borderRadius: 9, border: "none", background: valid ? C.primarySoft : C.light, color: valid ? C.primaryDark : C.muted, fontSize: 14, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Save &amp; New</button>
-          <button disabled={!valid} onClick={() => { onSave(f); onCancel(); }}
+          <button disabled={!valid} onClick={() => { onSave({ ...f, outcome }); onCancel(); }}
             style={{ padding: "11px 30px", borderRadius: 9, border: "none", background: valid ? C.primary : C.border, color: valid ? "#fff" : C.muted, fontSize: 14, fontWeight: 700, cursor: valid ? "pointer" : "default" }}>Save</button>
         </div>
       </div>
@@ -1227,7 +1277,7 @@ const TakeOverModal = ({ contacts, vdName, onClose, onTakeOver, t }) => (
 const getSystemViews = (role, t?: (key: any) => string) => {
   const n = (key: string, fallback: string) => t ? t(key) : fallback;
   // Column sets follow the "System Views – Revisions & Definitions" spec.
-  const MY_NETWORK_COLS   = ["name", "primaryEmail", "phone", "stageStatus", "lastActivity"];
+  const MY_NETWORK_COLS   = ["name", "primaryEmail", "phone", "outcomeType", "lastActivity"];
   const MY_LEADS_COLS     = ["name", "primaryEmail", "phone", "stageStatus", "feedback"];
   const ASSIGNED_COLS     = ["name", "assignee", "stageStatus", "feedback", "lastActivity"];
   const PENDING_COLS      = ["name", "primaryEmail", "phone", "accountSource", "campaign"];        // VD Pending Assignments
@@ -1474,11 +1524,15 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
     const isNetwork = f.lifecycle === "Network";
     const ownership = (!isNetwork && role === "superadmin") ? "Company" : "User";
     const assignee  = (role === "superadmin" && !isNetwork) ? "Unassigned" : currentUserName;
+    const outcome   = isNetwork ? (Array.isArray(f.outcome) ? f.outcome : []) : [];
+    const stageStatus = isNetwork ? networkOutcomeLabel(outcome) : f.stageStatus;
     setContacts(prev => [{
       id: `NEW-${Date.now()}`, first: f.first, last: f.last, firstName: f.first, lastName: f.last, name: `${f.first} ${f.last}`.trim(),
-      lifecycle: f.lifecycle, stageStatus: f.stageStatus,
+      lifecycle: f.lifecycle, stageStatus, outcome,
       ownership, isCompanyOwned: ownership === "Company",
-      tone: f.stageStatus === "New" || f.stageStatus === "Appointment" || f.stageStatus === "Closed" || f.stageStatus === "Customer" ? C.green
+      tone: isNetwork
+          ? (outcome.includes("Customer") ? C.green : outcome.includes("Partner") ? C.indigo : C.slate)
+          : f.stageStatus === "New" || f.stageStatus === "Appointment" || f.stageStatus === "Closed" ? C.green
           : f.stageStatus === "Not Interested" || f.stageStatus === "Do Not Contact" ? null : C.slate,
       phone: f.phone || "—", email: f.email || "—", primaryEmail: f.email || "—",
       campaign: f.campaign || "—", dob: f.dob || "—",
