@@ -17,16 +17,11 @@ const TYPE_META = Object.fromEntries(
 );
 // Priorities come from the shared canonical set (low / normal / high / urgent).
 const PRIORITIES = PRIORITY_KEYS.map(k => [k, PRIORITY_META[k].label, PRIORITY_META[k].color]);
-const REMINDER_OPTS = [["15","15 Minutes Before"],["30","30 Minutes Before"],["60","1 Hour Before"],["custom","Custom Date"]];
-
-const REPEAT_UNITS = ["day","week","month","year"];
-const composeRecur = (every, unit) => `Every ${every} ${unit}${every>1?"s":""}`;
-const legacyUnit = { Daily:"day", Weekly:"week", Monthly:"month", Yearly:"year" };
 
 const blank = (selectedDate) => ({
   type:"call", title:"", contact:"", priority:"normal",
-  date:selectedDate||"", time:"09:00", reminderOn:true, reminder:"30", reminderCustom:"",
-  emailTemplate:"", repeatOn:false, repeatEvery:1, repeatUnit:"day", recur:"Once", note:"",
+  date:selectedDate||"", time:"09:00",
+  emailTemplate:"", recur:"Once", note:"",
 });
 
 export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=false, onClose, onSubmit, onDone, onDelete, onLogCall, onMakeCall }) => {
@@ -34,12 +29,6 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
   const [f, setF]   = useState(() => {
     const init = task ? { ...blank(selectedDate), ...task } : blank(selectedDate);
     if (!init.time) init.time = "09:00";                    // Time is mandatory — default 9 AM
-    if (task && task.recur && task.recur !== "Once") {
-      init.repeatOn = true;
-      if (legacyUnit[task.recur]) { init.repeatEvery = 1; init.repeatUnit = legacyUnit[task.recur]; }
-      else { const mt = String(task.recur).match(/Every\s+(\d+)\s+(day|week|month|year)/i);
-        if (mt) { init.repeatEvery = Number(mt[1]); init.repeatUnit = mt[2].toLowerCase(); } }
-    }
     return init;
   });
   const set = (k,v) => setF(prev => ({ ...prev, [k]:v }));
@@ -92,10 +81,6 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
             {row("📅 Date & Time", `${f.date}${f.time?` · ${f.time}`:""}`)}
             {row("👤 Contact", f.contact)}
             {row("⚡ Priority", (PRIORITIES.find(p=>p[0]===f.priority)||[])[1])}
-            {f.reminderOn && row("⏰ Reminder", f.reminder==="custom"
-              ? (f.reminderCustom ? `Custom · ${f.reminderCustom.replace("T"," ")}` : "Custom Date")
-              : (REMINDER_OPTS.find(r=>r[0]===String(f.reminder))||[])[1])}
-            {row("🔁 Recurring", f.recur && f.recur!=="Once" ? f.recur : null)}
             {f.note && (
               <div style={{ marginTop:12 }}>
                 <label style={lbl}>Description</label>
@@ -161,42 +146,6 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
               <div><label style={lbl}>Time *</label><input type="time" value={f.time} onChange={e=>set("time",e.target.value)} style={input}/></div>
             </div>
 
-            {/* Reminder */}
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:f.reminderOn&&f.reminder==="custom"?8:12 }}>
-              <label style={{ display:"flex", alignItems:"center", gap:7, fontSize:12, color:C.slate, cursor:"pointer", whiteSpace:"nowrap" }}>
-                <input type="checkbox" checked={f.reminderOn} onChange={e=>set("reminderOn",e.target.checked)} style={{ accentColor:C.primary, width:14, height:14 }}/>
-                Reminder
-              </label>
-              <select value={f.reminder} disabled={!f.reminderOn} onChange={e=>set("reminder",e.target.value)} style={{ ...input, opacity:f.reminderOn?1:0.5 }}>
-                {REMINDER_OPTS.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
-            {/* Custom reminder date/time — shown when "Custom Date" picked */}
-            {f.reminderOn && f.reminder==="custom" && (
-              <div style={{ marginBottom:12 }}>
-                <label style={lbl}>Remind me on</label>
-                <input type="datetime-local" value={f.reminderCustom} onChange={e=>set("reminderCustom",e.target.value)} style={input}/>
-              </div>
-            )}
-
-            {/* Set to Repeat — recurrence with an interval counter */}
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, flexWrap:"wrap" }}>
-              <label style={{ display:"flex", alignItems:"center", gap:7, fontSize:12, color:C.slate, cursor:"pointer", whiteSpace:"nowrap" }}>
-                <input type="checkbox" checked={f.repeatOn}
-                  onChange={e=>set("repeatOn",e.target.checked)}
-                  style={{ accentColor:C.primary, width:14, height:14 }}/>
-                🔁 Set to repeat:
-              </label>
-              <span style={{ fontSize:12, color:f.repeatOn?C.slate:C.muted }}>every</span>
-              <input type="number" min={1} max={365} value={f.repeatEvery} disabled={!f.repeatOn}
-                onChange={e=>set("repeatEvery",Math.max(1,Number(e.target.value)||1))}
-                style={{ ...input, width:72, opacity:f.repeatOn?1:0.5, padding:"9px 8px" }}/>
-              <select value={f.repeatUnit} disabled={!f.repeatOn} onChange={e=>set("repeatUnit",e.target.value)}
-                style={{ ...input, width:120, opacity:f.repeatOn?1:0.5 }}>
-                {REPEAT_UNITS.map(u => <option key={u} value={u}>{u}{f.repeatEvery>1?"s":""}</option>)}
-              </select>
-            </div>
-
             {/* Edit-only extra: Email Template */}
             {m==="edit" && (
               <div style={{ marginBottom:12 }}>
@@ -217,7 +166,7 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
                   style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.red}40`, background:"#fff", color:C.red, fontSize:13, fontWeight:700, cursor:"pointer" }}>🗑 Delete</button>
               )}
               <button onClick={onClose} style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:13, fontWeight:600, cursor:"pointer" }}>Cancel</button>
-              <button onClick={()=>canSave && onSubmit && onSubmit({ ...f, recur:f.repeatOn?composeRecur(f.repeatEvery,f.repeatUnit):"Once", kind:"task" }, m)} disabled={!canSave}
+              <button onClick={()=>canSave && onSubmit && onSubmit({ ...f, recur:"Once", kind:"task" }, m)} disabled={!canSave}
                 style={{ flex:2, padding:"10px", borderRadius:9, border:"none", background:canSave?C.primary:"#E2E8F0", color:canSave?"#fff":C.muted, fontSize:13, fontWeight:700, cursor:canSave?"pointer":"default" }}>
                 {m==="edit" ? "Update" : "Save"}
               </button>

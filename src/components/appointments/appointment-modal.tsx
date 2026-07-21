@@ -11,11 +11,6 @@ const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px 
 export const APPOINTMENT_TYPES = [
   "Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other",
 ];
-const REMINDER_OPTS = [["15","15 Minutes Before"],["30","30 Minutes Before"],["60","1 Hour Before"],["1440","1 Day Before"],["custom","Custom Date"]];
-const reminderLabel = (val,custom) => val==="custom"
-  ? (custom ? `Custom · ${custom.replace("T"," ")}` : "Custom Date")
-  : (REMINDER_OPTS.find(o=>o[0]===String(val))||[])[1];
-
 // ── Email helpers ───────────────────────────────────────────────────────────
 // Attendees are stored as email addresses.
 const isEmail      = (s) => /^[^\s,()]+@[^\s,()]+\.[^\s,()]+$/.test(String(s||"").trim());
@@ -45,7 +40,6 @@ const blank = (selectedDate, role) => ({
   date:selectedDate||"", time:"09:00", end:"",
   location:"",
   attachments:[],
-  reminderOn:true, reminder:"30", reminderCustom:"",
   note:"",
 });
 
@@ -58,9 +52,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
     init.attendees = toArr(init.attendees).map(asEmail);
     // Attachments → array (migrate legacy single attachment string)
     init.attachments = toArr(init.attachments).length ? toArr(init.attachments) : toArr(init.attachment);
-    // Single reminder (migrate legacy reminders array if present)
-    if (Array.isArray(init.reminders) && init.reminders.length) { init.reminder = init.reminders[0].val||"30"; init.reminderCustom = init.reminders[0].custom||""; }
-    if (init.reminder == null) init.reminder = "30";
     // Migrate a custom "Other" type into its own field
     if (init.apptType && !APPOINTMENT_TYPES.includes(init.apptType)) { init.apptTypeOther = init.apptType; init.apptType = "Other"; }
     return init;
@@ -138,7 +129,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
             {rowR("👥 Attendees", attendeeArr.map(attLabelOf).join(", "))}
             {rowR("📍 Appointment Location", f.location)}
             {rowR("📎 Attachments", f.attachments.join(", "))}
-            {f.reminderOn && rowR("⏰ Reminder", reminderLabel(f.reminder,f.reminderCustom))}
             {f.note && (
               <div style={{ marginTop:12 }}>
                 <label style={lbl}>Description</label>
@@ -276,23 +266,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
                 {DOCUMENT_TYPES_STORE.filter(d=>!f.attachments.includes(d.label)).map(d => <option key={d.id} value={d.label}>{d.icon} {d.label}</option>)}
               </select>
             </div>
-
-            {/* Reminder */}
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:f.reminderOn&&f.reminder==="custom"?8:12 }}>
-              <label style={{ display:"flex", alignItems:"center", gap:7, fontSize:12, color:C.slate, cursor:"pointer", whiteSpace:"nowrap" }}>
-                <input type="checkbox" checked={f.reminderOn} onChange={e=>set("reminderOn",e.target.checked)} style={{ accentColor:C.primary, width:14, height:14 }}/>
-                Reminder
-              </label>
-              <select value={f.reminder} disabled={!f.reminderOn} onChange={e=>set("reminder",e.target.value)} style={{ ...input, opacity:f.reminderOn?1:0.5 }}>
-                {REMINDER_OPTS.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
-            {f.reminderOn && f.reminder==="custom" && (
-              <div style={{ marginBottom:12 }}>
-                <label style={lbl}>Remind me on</label>
-                <input type="datetime-local" value={f.reminderCustom} onChange={e=>set("reminderCustom",e.target.value)} style={input}/>
-              </div>
-            )}
 
             {field("Description", <textarea value={f.note} onChange={e=>set("note",e.target.value)} placeholder="Any details for this appointment…"
               style={{ ...input, minHeight:70, resize:"none", lineHeight:1.5 }}/>)}
