@@ -558,8 +558,8 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
   const lastAction  = fb.lastAction;
   const stageLabel  = fb.finished ? "Finished" : (STEPS[fb.current]?.title || "Initial Contact");
   const [notes, setNotes] = useState([
-    { id: "n1", stage: "Prospect",   dur: "3 days",  active: true, date: "04.03.2026 - 10:00" },
-    { id: "n2", stage: "In Progress",dur: "18 days", done: true,   date: "04.03.2026 - 10:00" },
+    { id: "n1", stage: "Connected",              dur: "3 days",  active: true, date: "04.03.2026 - 10:00" },
+    { id: "n2", stage: "First Contact Attempted",dur: "18 days", done: true,   date: "04.03.2026 - 10:00" },
     { id: "n3", text: "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor…", note: true, date: "04.03.2026 - 10:00" },
     { id: "n4", text: "It's a short note.", note: true, date: "04.03.2026 - 10:00" },
     { id: "n5", stage: "New", done: true, created: "Anna Muller", source: "Landing Page", campaign: "Webinar – Q1 2026", date: "04.03.2026 - 10:00" },

@@ -22,15 +22,19 @@ import { LOST_REASONS, FOLLOWUP_REASONS, NETWORK_OUTCOMES } from "../../lib/core
 // · From Call Attempts onward every step offers a "Finalize now" shortcut, so an
 //   advisor can proceed to Finalize at any point (whether or not the lead was
 //   reached) without completing the remaining steps.
-// · Call Outcome: Appointment Scheduled, Not Interested, Currently Not
-//   Interested, Difficult Case, Other. "Appointment Scheduled" opens the
-//   scheduling modal ("Schedule & Continue"); the other outcomes skip to Finalize.
-// · Appointment Outcome: Won, Reschedule, Attending Event, Not Interested,
-//   Currently Not Interested, Difficult Case, Other. "Reschedule" re-opens
-//   scheduling. An optional note captures details (e.g. a no-show without notice).
-// · Negative outcomes enable a persistent Do-Not-Contact toggle in Finalize.
+// · Call Outcome (spec-aligned): Appointment Scheduled, Qualified, Follow Up
+//   (later — requires a date + reason), Not Interested, No Suitable Solution
+//   (Closed / Lost — requires a Lost Reason), Other. "Appointment Scheduled"
+//   opens the scheduling modal; the other outcomes skip to Finalize.
+// · Appointment Outcome (spec-aligned): a completed appointment resolves to
+//   exactly one of Qualified, Follow Up (later), Not Interested, or No Suitable
+//   Solution (Closed / Lost). Reschedule / No Show keep the lead in Appointment
+//   and re-open scheduling. An optional note captures details.
+// · Negative outcomes (Not Interested, No Suitable Solution) enable a persistent
+//   Do-Not-Contact toggle in Finalize.
 // · Conversion happens in Finalize: "Add to My Network" opens the Convert Lead
-//   modal (Network Status: Customer / Prospect / Partner).
+//   modal, where the Outcome is any combination of Customer / Partner (both may
+//   apply; none = a plain Network contact).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const STEPS = [

@@ -504,16 +504,25 @@ const CallAttemptsTable = ({ title, rowLabel, rows, action, info }) => (
 );
 
 // ── Shared status / feedback maps (VD Team "Assigned Leads" + Contact List) ────
+// Broad Status labels (spec-aligned). Processing detail is shown separately.
 const STATUS_META = {
-  open:        { label: "New",         color: C.green },
-  in_progress: { label: "In Progress", color: C.blue },
-  attempted:   { label: "Attempted",   color: C.amber },
-  not_reached: { label: "Not Reached", color: C.red },
-  followup:    { label: "Follow-up",   color: C.amber },
-  appointment: { label: "Appointment", color: C.indigo },
-  closed:      { label: "Closed",      color: C.green },
-  no_interest: { label: "No Interest", color: C.slate },
-  dnc:         { label: "Do Not Call", color: C.slate },
+  open:             { label: "New",             color: C.green },
+  in_progress:      { label: "In Contact",      color: C.blue },
+  first_contact:    { label: "In Contact",      color: C.blue },
+  attempted:        { label: "In Contact",      color: C.amber },
+  connected:        { label: "In Contact",      color: C.green },
+  not_reached:      { label: "Not Reached",     color: C.red },
+  followup:         { label: "Follow Up",       color: C.amber },
+  appointment:      { label: "Appointment",     color: C.indigo },
+  appt_completed:   { label: "Appointment",     color: C.indigo },
+  no_show:          { label: "Appointment",     color: C.amber },
+  qualified:        { label: "Qualified",       color: C.green },
+  closed:           { label: "Closed",          color: C.green },
+  partner:          { label: "Closed",          color: C.indigo },
+  customer_partner: { label: "Closed",          color: C.green },
+  lost:             { label: "Closed",          color: C.red },
+  no_interest:      { label: "Not Interested",  color: C.slate },
+  dnc:              { label: "Do Not Contact",  color: C.slate },
 };
 // Deterministic "messages sent" figure from the lead id (mock has no real counter).
 const synthSms = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) & 0xffff; return 1 + (h % 3); };
