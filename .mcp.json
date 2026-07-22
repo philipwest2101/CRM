@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "balsamiq": {
+      "type": "http",
+      "url": "https://bais.balsamiq.com/mcp"
+    }
+  }
+}
