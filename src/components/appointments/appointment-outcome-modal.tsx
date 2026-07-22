@@ -9,9 +9,11 @@ import { C } from "../../theme";
 const lbl   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em", display:"block", marginBottom:5 };
 const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text };
 
-// Outcome options come straight from the board.
+// Outcome options come straight from the board. Per the MVP spec §2, the legacy
+// "Difficult Case" is replaced by "No Suitable Solution" (→ Status: Closed,
+// Processing: Lost).
 export const APPOINTMENT_OUTCOMES = [
-  "Won", "Rescheduled", "Attending Event", "Not Interested", "Maybe Later", "Difficult Case", "Other",
+  "Won", "Rescheduled", "Attending Event", "Not Interested", "Maybe Later", "No Suitable Solution", "Other",
 ];
 
 export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {

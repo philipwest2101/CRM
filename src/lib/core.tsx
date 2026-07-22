@@ -262,6 +262,54 @@ export const ALL_LEADS = [
   { id:"L-2017", lang:"de", name:"Stefan Wolf",     email:"s.wolf@t-online.de",     phone:"+49 152 8899007", zip:"80999", city:"München",     source:"CSV",           campaign:"Messe FFM",    status:"open", assignedVD:"Thomas Müller", assignedGP:"Thomas Müller", created:"2 days ago",   consent:false, attempts:2 },
 ];
 
+// ─── Structured lead properties (Spec §1 / §7) ────────────────────────────────
+// The MVP spec requires the operational data below to live as first-class,
+// typed properties on the lead object — NOT encoded inside Status / Processing
+// strings. `attempts` is the legacy numeric counter; `callAttempts` is its
+// spec-named canonical form. We enrich every seed lead in place so existing
+// references to `attempts` keep working while the new named fields become the
+// single source of truth for the list, detail and dashboard surfaces.
+const _todayISO = () => new Date().toISOString().slice(0, 10);
+const _plusDaysISO = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+
+// Status-derived defaults for the new structured fields, so seeded leads render
+// a realistic Next Action / Follow-Up / Outcome without hand-authoring each row.
+const _STRUCTURED_DEFAULTS = {
+  open:         { nextAction:"Call to introduce",             due:() => _plusDaysISO(0) },
+  in_progress:  { nextAction:"Call again",                    due:() => _plusDaysISO(1) },
+  attempted:    { nextAction:"Call again",                    due:() => _plusDaysISO(1) },
+  connected:    { nextAction:"Schedule appointment",          due:() => _plusDaysISO(1) },
+  followup:     { nextAction:"Resume follow-up",              due:() => _plusDaysISO(7), followUpDate:() => _plusDaysISO(7), followUpReason:"Requested later contact" },
+  appointment:  { nextAction:"Attend / conduct appointment",  due:() => _plusDaysISO(2), appointmentStatus:"Scheduled" },
+  appt_completed:{ nextAction:"Record appointment result",    due:() => _plusDaysISO(0), appointmentStatus:"Completed" },
+  no_show:      { nextAction:"Call to reschedule",            due:() => _plusDaysISO(0), appointmentStatus:"No Show" },
+  qualified:    { nextAction:"Define next closing step",      due:() => _plusDaysISO(1) },
+  not_reached:  { nextAction:"No open action",                due:() => null, closed:true },
+  no_interest:  { nextAction:"No open action",                due:() => null, closed:true },
+  dnc:          { nextAction:"No open action",                due:() => null, closed:true },
+  closed:       { nextAction:"No open action",                due:() => null, closed:true, outcome:"Customer" },
+  partner:      { nextAction:"No open action",                due:() => null, closed:true, outcome:"Partner" },
+  customer_partner:{ nextAction:"No open action",             due:() => null, closed:true, outcome:"Customer + Partner" },
+  lost:         { nextAction:"No open action",                due:() => null, closed:true, outcome:"Lost", lostReason:"No Suitable Product" },
+};
+
+export function enrichLead(l) {
+  const d = _STRUCTURED_DEFAULTS[l.status] || _STRUCTURED_DEFAULTS.open;
+  if (typeof l.callAttempts !== "number") l.callAttempts = l.attempts || 0;
+  if (l.nextAction        === undefined) l.nextAction        = d.nextAction ?? null;
+  const due = d.due ? d.due() : null;
+  if (l.nextActionDue     === undefined) l.nextActionDue     = due;
+  if (l.nextActionDueDate === undefined) l.nextActionDueDate = due;   // spec-named alias
+  if (l.followUpDate      === undefined) l.followUpDate      = d.followUpDate ? d.followUpDate() : null;
+  if (l.followUpReason    === undefined) l.followUpReason    = d.followUpReason ?? null;
+  if (l.lostReason        === undefined) l.lostReason        = d.lostReason ?? null;
+  if (l.outcome           === undefined) l.outcome           = d.outcome ?? null;
+  if (l.appointmentStatus === undefined) l.appointmentStatus = d.appointmentStatus ?? null;
+  if (l.closedDate        === undefined) l.closedDate        = d.closed ? _todayISO() : null;
+  return l;
+}
+ALL_LEADS.forEach(enrichLead);
+
 // ─── P0 AI: Live Contact Scoring ─────────────────────────────────────────────────
 // Module-level cache — scores persist for the session, never re-fetch the same lead
 
@@ -1615,6 +1663,64 @@ export const LEAD_PROPERTIES = [
   { key:"closedDate",       label:"Closed Date",          type:"Date" },
   { key:"dncReason",        label:"Do Not Contact Reason", type:"Select" },
 ];
+
+// ─── State transitions (Spec §3) ──────────────────────────────────────────────
+// Pure functions that enforce the MVP lifecycle rules on a lead object. They are
+// the single source of truth for the status/processing transitions and are
+// consumed by the list/detail/dashboard readers; the guided Processing &
+// Feedback stepper applies the same rules step-by-step in its own flow.
+
+// Canonical numeric call-attempts reader. Prefers the spec-named `callAttempts`
+// and falls back to the legacy `attempts` counter so older data keeps resolving.
+export const getCallAttempts = (l) => (typeof l?.callAttempts === "number" ? l.callAttempts : (l?.attempts || 0));
+
+// Dashboard metric (spec §4): sum the numeric callAttempts across a dataset,
+// never by parsing legacy Status / Processing strings.
+export const totalCallAttempts = (leads = []) => leads.reduce((s, l) => s + getCallAttempts(l), 0);
+
+// Statuses that end the lifecycle. Reaching one closes open tasks + stamps the
+// Closed Date (spec §3 "Terminal Statuses").
+export const TERMINAL_STATUSES = new Set(["closed", "partner", "customer_partner", "lost", "no_interest", "not_reached", "dnc"]);
+export const isTerminalStatus = (status) => TERMINAL_STATUSES.has(status);
+
+const _isoToday = () => new Date().toISOString().slice(0, 10);
+
+// §3 Terminal Statuses — when a lead reaches Closed / Not Interested / Not
+// Reached / Do Not Contact, cancel every still-open task and record closedDate.
+export const applyTerminalStatus = (lead, tasks = []) => {
+  if (!isTerminalStatus(lead.status)) return lead;
+  (tasks || []).forEach(tk => { if (tk && tk.status !== "completed" && tk.status !== "cancelled") tk.status = "cancelled"; });
+  return { ...lead, closedDate: lead.closedDate || _isoToday(), nextAction: "No open action", nextActionDue: null, nextActionDueDate: null };
+};
+
+// §3 Call Attempts + Max Attempts — a "No Answer" result increments the counter
+// and keeps the lead In Contact / Attempting Contact with Next Action "Call
+// again"; once the threshold is reached with no successful connection the lead
+// moves to Not Reached (Closed). A successful "Connected" result resets the loop.
+export const applyCallResult = (lead, result, tasks = []) => {
+  const noAnswer = ["No Answer", "no_answer", "notreached", "not_reached"].includes(result);
+  if (!noAnswer) {
+    return { ...lead, status: "connected", processing: "Connected", nextAction: lead.nextAction || "Define next step" };
+  }
+  const callAttempts = getCallAttempts(lead) + 1;
+  const next = { ...lead, callAttempts, attempts: callAttempts };
+  if (callAttempts >= STATUS_AUTOMATION_CONFIG.notReachedThreshold) {
+    return applyTerminalStatus({ ...next, status: "not_reached", processing: "Closed" }, tasks);
+  }
+  return { ...next, status: "attempted", processing: "Attempting Contact", nextAction: "Call again" };
+};
+
+// §3 Appointments — a "No Show" keeps the lead in the Appointment status (does
+// NOT auto-advance to Follow Up or Qualified) and sets Next Action accordingly.
+export const applyAppointmentResult = (lead, result) => {
+  if (["No Show", "noshow", "no_show"].includes(result)) {
+    return { ...lead, appointmentStatus: "No Show", processing: "No Show", nextAction: "Call to reschedule" };
+  }
+  if (["Cancelled", "cancelled", "Rescheduled", "reschedule"].includes(result)) {
+    return { ...lead, appointmentStatus: result === "reschedule" ? "Rescheduled" : "Cancelled", nextAction: "Call to reschedule" };
+  }
+  return { ...lead, appointmentStatus: "Completed", nextAction: "Record appointment result" };
+};
 
 
 export const BLANK_RULE = { prefix:"", city:"", gp:"", vd:"", convRate:"", capacity:80, used:0, priority:"medium" };

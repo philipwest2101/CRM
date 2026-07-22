@@ -571,6 +571,13 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
   const nextBest    = fb.finished ? { icon: "✓", label: "Processing complete" } : (NEXT_BEST[stepKey] || NEXT_BEST.initial);
   const lastAction  = fb.lastAction;
   const stageLabel  = fb.finished ? "Finished" : (STEPS[fb.current]?.title || "Initial Contact");
+  // Spec §4 — the primary open Next Action (structured property), the Lost Reason
+  // (shown only when Processing = Lost) and the Follow-Up Reason (shown only when
+  // Status = Follow Up). These come off the live processing state, never a string.
+  const primaryNextAction = fb.nextAction || null;
+  const nextActionDue     = fb.nextActionDue || fb.nextActionDueDate || null;
+  const showLostReason    = (fb.outcome === "Lost" || !!fb.lostReason) && !!fb.lostReason;
+  const showFollowUp      = (!!fb.followUpReason || !!fb.followUpDate);
   const [notes, setNotes] = useState([
     { id: "n1", stage: "Connected",              dur: "3 days",  active: true, date: "04.03.2026 - 10:00" },
     { id: "n2", stage: "First Contact Attempted",dur: "18 days", done: true,   date: "04.03.2026 - 10:00" },
@@ -600,6 +607,15 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
                 {lastAction?.label || "No action yet"}
               </div>
+              {/* Primary open Next Action (structured property, spec §4) */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Next Action</span>
+                {nextActionDue && <span style={{ fontSize: 11.5, color: C.muted }}>Due {nextActionDue}</span>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 700, color: primaryNextAction ? C.navy : C.muted }}>
+                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center" }}>➡️</span>
+                {primaryNextAction || "No open action"}
+              </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Next Best Action</span><AiTag />
               </div>
@@ -607,6 +623,20 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{nextBest.icon}</span>
                 {nextBest.label}
               </div>
+              {/* Conditional: Lost Reason only when Processing = Lost (spec §4) */}
+              {showLostReason && (
+                <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.red + "0C", border: `1px solid ${C.red}33` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.red, marginBottom: 3 }}>Lost Reason</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.lostReason}</div>
+                </div>
+              )}
+              {/* Conditional: Follow-Up Reason only when Status = Follow Up (spec §4) */}
+              {showFollowUp && (
+                <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.purple + "0C", border: `1px solid ${C.purple}33` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.purple, marginBottom: 3 }}>Follow-Up{fb.followUpDate ? ` · ${fb.followUpDate}` : ""}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.followUpReason || "Scheduled follow-up"}</div>
+                </div>
+              )}
             </div>
           </div>
         </Card>

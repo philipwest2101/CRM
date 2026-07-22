@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { ALL_LEADS, feedbackStatusLabel, getLeadState, NETWORK_OUTCOMES, networkOutcomeLabel } from "../../lib/core";
+import { ALL_LEADS, feedbackStatusLabel, getLeadState, getCallAttempts, NETWORK_OUTCOMES, networkOutcomeLabel } from "../../lib/core";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 
@@ -1304,17 +1304,41 @@ const CUSTOM_VIEWS = [
 const ML_AV = [C.primary, C.blue, C.indigo, C.green, C.amber, C.purple];
 const mlAvColor = (name) => ML_AV[name.charCodeAt(0) % ML_AV.length];
 const ML_DOT = { sms: { c: C.green, sq: true }, miss: { c: C.amber, sq: false }, reached: { c: C.green, sq: false }, open: { c: "#D0D5DD", sq: false } };
+// Format a structured Next-Action due date (ISO) into a relative badge.
+const fmtDue = (iso, t) => {
+  if (!iso) return "";
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return String(iso);
+  const days = Math.round((d.getTime() - today.getTime()) / 86400000);
+  if (days < 0)  return t("mlOverdue");
+  if (days === 0) return t("mlToday");
+  if (days === 1) return t("mlTomorrow");
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+};
+// Processing column — the Processing value plus a live call counter (spec §4),
+// e.g. "Attempting Contact · 3 calls". Counters come from the numeric
+// `callAttempts` property, never from parsing the status string.
 const mlProcessing = (l, t) => {
-  const a = l.attempts || 0; const dots: string[] = []; let text;
+  const a = getCallAttempts(l); const dots: string[] = []; let text;
+  const callLbl = `${a} ${a === 1 ? t("mlCall") : t("mlCalls")}`;
   if (l.status === "open" && a === 0) { text = t("mlNotContacted"); }
   else if (l.status === "appointment") { text = t("mlApptScheduled"); dots.push("sms", "reached"); }
   else if (a === 0) { text = t("mlSmsSent"); dots.push("sms"); }
-  else { text = `${a} ${a === 1 ? t("mlCall") : t("mlCalls")} · ${t("mlNotReachedLc")}`; dots.push("sms"); for (let i = 0; i < a; i++) dots.push("miss"); }
+  else if (l.status === "connected") { text = `${t("mlConnected")} · ${callLbl}`; dots.push("sms", "reached"); for (let i = 0; i < a; i++) dots.push("miss"); }
+  else if (l.status === "not_reached") { text = `${callLbl} · ${t("mlNotReachedLc")}`; dots.push("sms"); for (let i = 0; i < a; i++) dots.push("miss"); }
+  else { text = `${t("mlAttemptingContact")} · ${callLbl}`; dots.push("sms"); for (let i = 0; i < a; i++) dots.push("miss"); }
   while (dots.length < 6) dots.push("open");
   return { text, dots: dots.slice(0, 6) };
 };
 const mlNextStep = (l, t) => {
-  const a = l.attempts || 0;
+  // Prefer the lead's structured Next Action + due date (spec §1/§4) over the
+  // status-derived heuristic fallback below.
+  if (l.nextAction && l.nextAction !== "No open action") {
+    const due = l.nextActionDue || l.nextActionDueDate;
+    return { dot: C.blue, text: l.nextAction, badge: due ? fmtDue(due, t) : t("mlToday"), tone: C.blue };
+  }
+  const a = getCallAttempts(l);
   switch (l.status) {
     case "open":        return { dot: C.amber, text: t("mlSendSmsCall"),  badge: t("mlToday"),     tone: C.amber };
     case "appointment": return { dot: C.green, text: t("mlConsultation"), badge: "02.07. · 11:00", tone: C.green };
@@ -1329,7 +1353,7 @@ const mlNextStep = (l, t) => {
 // reads "Finalized", etc.
 const mlStatusOf = (l, t) => {
   if (getLeadState(l.id).finalized) return { key: "finalized", label: t("mlStFinalized"), color: C.slate };
-  const a = l.attempts || 0;
+  const a = getCallAttempts(l);
   const s = l.status;
   if (s === "appointment" || s === "closed") return { key: "appointment", label: t("mlStAppointment"), color: C.green };
   if (s === "not_reached")                   return { key: "notreached",  label: t("mlStNotReached"),  color: C.red   };
