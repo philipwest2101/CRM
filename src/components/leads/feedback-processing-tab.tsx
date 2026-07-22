@@ -171,6 +171,23 @@ const LockedStep = ({ num, title }) => (
   </div>
 );
 
+// The Finalize Process step row carries the single "Finalize Process" action —
+// enabled once the advisor has reached the Call Attempt & Outcome step, so a lead
+// can be finalized from here at any point (without stepping through every stage).
+const FinalizeStepRow = ({ num, title, canFinalize, onFinalize }) => (
+  <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, opacity: canFinalize ? 1 : 0.75 }}>
+    <StepDot n={num} bg={canFinalize ? C.navy : C.light} color={canFinalize ? "#fff" : C.muted} ring={!canFinalize} />
+    <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: canFinalize ? C.navy : C.muted }}>{title}</span>
+    <button onClick={canFinalize ? onFinalize : undefined} disabled={!canFinalize}
+      title={canFinalize ? "Finalize the process now" : "Available once you reach the Call Attempt & Outcome step"}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 9, border: "none",
+        background: canFinalize ? C.navy : C.border, color: canFinalize ? "#fff" : C.muted,
+        fontSize: 13, fontWeight: 700, cursor: canFinalize ? "pointer" : "not-allowed", fontFamily: "inherit",
+      }}>✓ Finalize Process</button>
+  </div>
+);
+
 // Only the most recently completed step is editable — reopening it discards the
 // uncommitted current step; older steps stay locked so a branch can't be orphaned.
 const DoneStep = ({ num, title, summary, editable, onReopen }) => (
@@ -379,7 +396,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) =>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", border: `1px solid ${C.amber}55`, background: C.amber + "0F", borderRadius: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 18 }}>💡</span>
           <div style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: C.text, lineHeight: 1.45 }}>
-            This lead couldn't be reached. Use <b>Create Task</b> (top) to schedule a follow-up so it isn't lost — then <b>Finalize Process</b> from the button above.
+            This lead couldn't be reached. Use <b>Create Task</b> (top) to schedule a follow-up so it isn't lost — then <b>Finalize Process</b> from the step below.
           </div>
         </div>
       )}
@@ -417,7 +434,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) =>
             <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
           </div>
           <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
-            You don't have to use all {MAX_CALL_ATTEMPTS} attempts — you can <b>Finalize Process</b> at any point using the button above.
+            You don't have to use all {MAX_CALL_ATTEMPTS} attempts — you can <b>Finalize Process</b> at any point using the button on the Finalize Process step below.
           </div>
         </>
       )}
@@ -909,12 +926,6 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
             border: `1px solid ${C.border}`, background: "#fff", color: readOnly ? C.muted : C.slate,
             fontSize: 13, fontWeight: 600, cursor: readOnly ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: readOnly ? 0.6 : 1,
           }}>☑️ Create Task</button>
-          <button onClick={canFinalize ? () => onFinalizeNow(currentStep.key) : undefined} disabled={!canFinalize}
-            title={!canFinalize ? "Available once you reach the Call Attempt & Outcome step" : "Finalize the process now"} style={{
-            display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 9, border: "none",
-            background: canFinalize ? C.navy : C.border, color: canFinalize ? "#fff" : C.muted,
-            fontSize: 13, fontWeight: 700, cursor: canFinalize ? "pointer" : "not-allowed", fontFamily: "inherit",
-          }}>🏁 Finalize Process</button>
         </div>
       </div>
       {/* Network contacts have completed the lead process — the flow is read-only
@@ -938,7 +949,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
         {renderCurrentBody(currentStep)}
       </CurrentStepShell>
 
-      {future.map(s => <LockedStep key={s.key} num={stepNo(s.key)} title={s.title} />)}
+      {future.map(s => s.key === "finish"
+        ? <FinalizeStepRow key={s.key} num={stepNo(s.key)} title={s.title} canFinalize={canFinalize} onFinalize={() => onFinalizeNow(currentStep.key)} />
+        : <LockedStep key={s.key} num={stepNo(s.key)} title={s.title} />)}
         </div>
       </div>
 
