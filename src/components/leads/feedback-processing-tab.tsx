@@ -39,8 +39,7 @@ import { LOST_REASONS, FOLLOWUP_REASONS, NETWORK_OUTCOMES } from "../../lib/core
 
 export const STEPS = [
   { key: "initial",     title: "Send Initial Message" },
-  { key: "phone",       title: "Call Attempts" },
-  { key: "outcome",     title: "Call Outcome" },
+  { key: "call",        title: "Call Attempt & Outcome" },
   { key: "appointment", title: "Appointment Outcome" },
   { key: "finish",      title: "Finalize Process" },
 ];
@@ -60,8 +59,7 @@ const MAX_CALL_ATTEMPTS = 5;
 // Short label shown as the "Feedback & Processing status" elsewhere.
 export const FEEDBACK_STEP_LABEL = {
   initial:     "Initial Message",
-  phone:       "Call Attempts",
-  outcome:     "Call Outcome",
+  call:        "Call Attempt & Outcome",
   appointment: "Appointment",
   finish:      "Finalized",
 };
@@ -79,10 +77,12 @@ const channelLabel = (k) => CHANNELS.find(c => c.key === k)?.label || k;
 const nowTime = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const today   = () => new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
-// Map a lead's mock status → the step it should open on.
+// Map a lead's mock status → the step it should open on (initial 0, call 1,
+// appointment 2, finish 3).
 const STATUS_STEP = {
-  open: 0, in_progress: 1, attempted: 1, not_reached: 4,
-  followup: 2, appointment: 3, closed: 4, no_interest: 4, dnc: 4,
+  open: 0, in_progress: 1, attempted: 1, connected: 1, not_reached: 3,
+  followup: 3, appointment: 2, appt_completed: 2, no_show: 2, qualified: 3,
+  closed: 3, no_interest: 3, dnc: 3,
 };
 
 // Build the initial processing state from a lead. `alreadyContact` is true when
@@ -96,14 +96,14 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
   const calls   = lead?.attempts || 0;
   const isContact = alreadyContact || status === "appointment" || status === "closed";
   const channels = { text: current > 0 ? 1 : 0, email: 0 };
-  const doneSteps = notReached ? ["initial", "phone"]
-    : negative ? ["initial", "phone", "outcome"]
+  const doneSteps = notReached ? ["initial", "call"]
+    : negative ? ["initial", "call"]
     : STEPS.slice(0, current).map(s => s.key);
   const log = [{ text: "Lead assigned → status set to New", time: "12:58:29 PM" }];
   if (current > 0) log.push({ text: "Send Initial Message → Sent via SMS / WhatsApp", time: "12:59:05 PM" });
   return {
     current, finished, isContact, channels, calls,
-    reached: current >= IDX.outcome && !notReached,
+    reached: (status === "connected" || current > IDX.call) && !notReached,
     notReached,
     contactOutcome: null, apptOutcome: null, contactNote: null, apptNote: null,
     negativeOutcome: negative, dnc: status === "dnc",
@@ -127,8 +127,7 @@ export const feedbackDetail = (s) => {
   if (s.notReached) return `Not reached (${s.calls}/${MAX_CALL_ATTEMPTS})`;
   if (s.finished)   return s.apptOutcome || s.contactOutcome || "Processed";
   if (step === "initial")     return `${msgs} message${msgs !== 1 ? "s" : ""} sent`;
-  if (step === "phone")       return `${s.calls} call${s.calls !== 1 ? "s" : ""}${s.reached ? " · reached" : ""}`;
-  if (step === "outcome")     return "Recording outcome";
+  if (step === "call")        return s.reached ? "Connected · recording outcome" : `${s.calls} call${s.calls !== 1 ? "s" : ""}${s.reached ? " · reached" : ""}`;
   if (step === "appointment") return s.reschedules ? `Re-scheduling (×${s.reschedules})` : "Awaiting appointment result";
   if (step === "finish")      return s.contactOutcome || "Finalizing";
   return "";
@@ -353,11 +352,8 @@ const CALL_RESULTS = [
   { v: "reached",    label: "Reached",     tone: C.green },
 ];
 // Select the result of a call attempt (correctable), then Save & Continue.
-const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, onCreateTask, onSendEmail }) => {
+const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) => {
   const [sel, setSel] = useState("");
-  // Finalize is offered once the advisor has logged an attempt or picked a
-  // result (reached or not) — they need never exhaust all attempts.
-  const canFinalize = calls >= 1 || !!sel;
   const [copied, setCopied] = useState(false);
   const first = (contact?.name || "there").replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ")[0];
   const advisor = contact?.assignee || "your advisor";
@@ -366,10 +362,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
   const emailMissed = () => { try { navigator?.clipboard?.writeText?.(missedCall); } catch {} onSendEmail && onSendEmail({ subject: MISSED_CALL_SUBJECT, body: missedCall }); };
   return (
     <>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
-        <div style={{ fontSize: 13, color: C.slate }}>Make a call attempt (max {MAX_CALL_ATTEMPTS}), pick the result and press <b>Save &amp; Continue</b>.</div>
-        <CreateTaskBtn onClick={onCreateTask} />
-      </div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Log a call attempt (max {MAX_CALL_ATTEMPTS}); pick the result and press <b>Save &amp; Continue</b>. Once the contact is reached, record the outcome in this same step.</div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${notReached ? C.red + "55" : C.border}`, borderRadius: 10, marginBottom: 12, background: notReached ? C.red + "0C" : C.light }}>
         <span style={{ fontSize: 22 }}>{notReached ? "🚫" : "📞"}</span>
         <div style={{ flex: 1 }}>
@@ -386,7 +379,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", border: `1px solid ${C.amber}55`, background: C.amber + "0F", borderRadius: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 18 }}>💡</span>
           <div style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: C.text, lineHeight: 1.45 }}>
-            This lead couldn't be reached. Use <b>Create a Task</b> above to schedule a follow-up so it isn't lost — then finalize the process below.
+            This lead couldn't be reached. Use <b>Create Task</b> (top) to schedule a follow-up so it isn't lost — then <b>Finalize Process</b> from the button above.
           </div>
         </div>
       )}
@@ -416,21 +409,16 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onFinalizeNow, on
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", border: `1px solid ${C.amber}55`, background: C.amber + "0F", borderRadius: 10, marginBottom: 14, flexWrap: "wrap" }}>
               <span style={{ fontSize: 18 }}>💡</span>
               <div style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: C.text, lineHeight: 1.45 }}>
-                Couldn't reach the lead? Use <b>Create a Task</b> above to schedule a follow-up (e.g. a callback reminder) so this lead isn't forgotten.
+                Couldn't reach the lead? Use <b>Create Task</b> (top) to schedule a follow-up (e.g. a callback reminder) so this lead isn't forgotten.
               </div>
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
-            {canFinalize && (
-              <GhostBtn icon="🏁" onClick={onFinalizeNow}>Finalize Process</GhostBtn>
-            )}
           </div>
-          {canFinalize && (
-            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
-              You don't have to use all {MAX_CALL_ATTEMPTS} attempts — you can Finalize Process at any point.
-            </div>
-          )}
+          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
+            You don't have to use all {MAX_CALL_ATTEMPTS} attempts — you can <b>Finalize Process</b> at any point using the button above.
+          </div>
         </>
       )}
     </>
@@ -455,7 +443,7 @@ const MiniField = ({ label, children }) => (
     {children}
   </div>
 );
-const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue, onFinalizeNow }) => {
+const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const [lostReason, setLostReason] = useState("");
@@ -514,7 +502,6 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <PrimaryBtn icon="✓" disabled={!canContinue} onClick={() => sel && onContinue(sel.v, sel.label, note.trim(), extra())}>Save &amp; Continue</PrimaryBtn>
-        <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize Process</GhostBtn>
       </div>
     </>
   );
@@ -532,7 +519,7 @@ const APPT_OUTCOMES = [
   { v: "reschedule",   label: "Reschedule",           tone: C.amber },
   { v: "noshow",       label: "No Show",              tone: C.amber },
 ];
-const AppointmentOutcomeStep = ({ appointment, onComplete, onFinalizeNow }) => {
+const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const [lostReason, setLostReason] = useState("");
@@ -583,7 +570,6 @@ const AppointmentOutcomeStep = ({ appointment, onComplete, onFinalizeNow }) => {
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <PrimaryBtn icon={choice === "reschedule" ? "📅" : "✓"} disabled={!canSave} onClick={() => sel && onComplete(sel.v, sel.label, note.trim(), extra())}>Save &amp; Continue</PrimaryBtn>
-        <GhostBtn icon="🏁" onClick={() => onFinalizeNow(note.trim())}>Finalize Process</GhostBtn>
       </div>
     </>
   );
@@ -644,7 +630,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const onSend = (channel) => setState(prev => {
     const ch = { ...prev.channels }; ch[channel] = (ch[channel] || 0) + 1;
     return {
-      ...prev, channels: ch, current: IDX.phone, doneSteps: withDone(prev, "initial"),
+      ...prev, channels: ch, current: IDX.call, doneSteps: withDone(prev, "initial"),
       summaries: { ...prev.summaries, initial: "Initial message sent" },
       lastAction: { icon: "✉️", label: `Initial message · ${channelLabel(channel)}`, date: today() },
       log: pushLog(prev, `Send Initial Message → Sent via ${channelLabel(channel)}`),
@@ -653,7 +639,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
 
   // Send Initial Message is optional — skip straight to Call Attempts.
   const onSkipInitial = () => setState(prev => ({
-    ...prev, current: IDX.phone, doneSteps: withDone(prev, "initial"),
+    ...prev, current: IDX.call, doneSteps: withDone(prev, "initial"),
     summaries: { ...prev.summaries, initial: "Skipped — calling directly" },
     lastAction: { icon: "⏭", label: "Initial message skipped", date: today() },
     log: pushLog(prev, "Send Initial Message → Skipped (calling directly)"),
@@ -666,7 +652,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     if (prev.finished) return prev;
     const title = STEPS[IDX[fromKey]].title;
     const noteSuffix = note ? ` — ${note}` : "";
-    const summary = fromKey === "phone"
+    const summary = fromKey === "call"
       ? (prev.calls >= 1 ? `Finalized early after ${prev.calls} call attempt${prev.calls !== 1 ? "s" : ""}` : "Finalized early")
       : `Finalized early${noteSuffix}`;
     return {
@@ -681,27 +667,28 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     if (prev.notReached) return prev;
     const calls = Math.min(prev.calls + 1, MAX_CALL_ATTEMPTS);
     if (reached) {
+      // Reached → stay on the merged "Call Attempt & Outcome" step and reveal the
+      // outcome picker (no separate step to advance to).
       return {
-        ...prev, calls, reached: true, current: IDX.outcome, doneSteps: withDone(prev, "phone"),
-        summaries: { ...prev.summaries, phone: `Reached after ${calls} call attempt${calls !== 1 ? "s" : ""}` },
+        ...prev, calls, reached: true,
         lastAction: { icon: "📞", label: "Reached by phone", date: today() },
-        log: pushLog(prev, `Call Attempts → Reached after ${calls} call attempt${calls !== 1 ? "s" : ""}`),
+        log: pushLog(prev, `Call Attempt & Outcome → Connected after ${calls} call attempt${calls !== 1 ? "s" : ""}`),
       };
     }
     const exhausted = calls >= MAX_CALL_ATTEMPTS;
     if (exhausted) {
       return {
-        ...prev, calls, notReached: true, current: IDX.finish, doneSteps: withDone(prev, "phone"),
-        summaries: { ...prev.summaries, phone: `Not reached after ${calls} call attempts` },
+        ...prev, calls, notReached: true, current: IDX.finish, doneSteps: withDone(prev, "call"),
+        summaries: { ...prev.summaries, call: `Not reached after ${calls} call attempts` },
         lastAction: { icon: "🚫", label: `Not reached (max ${MAX_CALL_ATTEMPTS} attempts)`, date: today() },
-        log: pushLog(prev, `Call Attempts → Not reached after ${calls} call attempts · sent to Finalize`),
+        log: pushLog(prev, `Call Attempt & Outcome → Not reached after ${calls} call attempts · sent to Finalize`),
       };
     }
     return {
       ...prev, calls,
-      summaries: { ...prev.summaries, phone: `Not reached after ${calls} call attempt${calls !== 1 ? "s" : ""}` },
+      summaries: { ...prev.summaries, call: `Not reached after ${calls} call attempt${calls !== 1 ? "s" : ""}` },
       lastAction: { icon: "📞", label: "Call attempt — not reached", date: today() },
-      log: pushLog(prev, `Call Attempts → Not reached after ${calls} call attempt${calls !== 1 ? "s" : ""}`),
+      log: pushLog(prev, `Call Attempt & Outcome → Not reached after ${calls} call attempt${calls !== 1 ? "s" : ""}`),
     };
   });
 
@@ -764,10 +751,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     if (v === "appointment") {
       setState(prev => ({
         ...prev, contactOutcome: label, contactNote: note || null, nextAction,
-        current: IDX.appointment, doneSteps: withDone(prev, "outcome"),
-        summaries: { ...prev.summaries, outcome: `${label}${noteSuffix}` },
+        current: IDX.appointment, doneSteps: withDone(prev, "call"),
+        summaries: { ...prev.summaries, call: `Connected · ${label}${noteSuffix}` },
         lastAction: { icon: "📅", label: `Call outcome: ${label}`, date: today() },
-        log: pushLog(prev, `Call Outcome → ${label}${noteSuffix}`),
+        log: pushLog(prev, `Call Attempt & Outcome → ${label}${noteSuffix}`),
       }));
       return;
     }
@@ -782,10 +769,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       followUpReason: extra.followUpReason || prev.followUpReason,
       nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
       outcome: v === "lost" ? "Lost" : prev.outcome,
-      current: IDX.finish, doneSteps: withDone(prev, "outcome"),
-      summaries: { ...prev.summaries, outcome: `${label}${noteSuffix}` },
+      current: IDX.finish, doneSteps: withDone(prev, "call"),
+      summaries: { ...prev.summaries, call: `Connected · ${label}${noteSuffix}` },
       lastAction: { icon: "🏁", label: `Call outcome: ${label}`, date: today() },
-      log: pushLog(prev, `Call Outcome → ${label}${noteSuffix}${extraLog} · sent to Finalize`),
+      log: pushLog(prev, `Call Attempt & Outcome → ${label}${noteSuffix}${extraLog} · sent to Finalize`),
     }));
   };
 
@@ -874,10 +861,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       doneSteps: prev.doneSteps.filter(k => IDX[k] < idx),
       finished: false,
     };
-    if (idx <= IDX.phone)       { patch.reached = false; patch.notReached = false; patch.calls = Math.max(0, prev.calls - 1); }
-    // Reopening at/through Call Outcome discards any booked appointment and the
-    // reschedule history (the calendar event itself is cancelled by the caller).
-    if (idx <= IDX.outcome)     { patch.contactOutcome = null; patch.contactNote = null; patch.appointment = null; patch.reschedules = 0; }
+    // Reopening the merged Call Attempt & Outcome step clears the reached/outcome
+    // state and discards any booked appointment + reschedule history (the calendar
+    // event itself is cancelled by the caller).
+    if (idx <= IDX.call)        { patch.reached = false; patch.notReached = false; patch.calls = Math.max(0, prev.calls - 1); patch.contactOutcome = null; patch.contactNote = null; patch.appointment = null; patch.reschedules = 0; }
     if (idx <= IDX.appointment) { patch.apptOutcome = null; patch.apptNote = null; patch.negativeOutcome = false; patch.dnc = false; }
     patch.lastAction = { icon: "↩", label: `Reopened "${STEPS[idx].title}"`, date: today() };
     // Reopening a finalized lead pulls its result back out of the campaign stats.
@@ -888,9 +875,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const renderCurrentBody = (step) => {
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} emailSent={emailSent} onSend={onSend} onSkip={onSkipInitial} onSendEmail={onSendEmail} />;
-      case "phone":       return <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onFinalizeNow={() => onFinalizeNow("phone")} onCreateTask={onCreateTask} onSendEmail={onSendEmail} />;
-      case "outcome":     return <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} onFinalizeNow={(note) => onFinalizeNow("outcome", note)} />;
-      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onFinalizeNow={(note) => onFinalizeNow("appointment", note)} />;
+      case "call":        return (state.reached && !state.notReached)
+                            ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} />
+                            : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
+      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
       case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
@@ -901,8 +889,34 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const future    = STEPS.slice(current + 1);
   const completed = state.doneSteps.map(k => STEPS.find(s => s.key === k)).filter(Boolean);
 
+  // Single "Finalize Process" control lives in the header — enabled once the
+  // advisor has reached the "Call Attempt & Outcome" step (not during the initial
+  // message) and until the process is finalized.
+  const canFinalize = !readOnly && !state.finished && current >= IDX.call && current < IDX.finish;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* Header — the single Create Task and Finalize Process controls live here,
+          not inside individual steps. */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 2 }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>Processing &amp; Feedback</div>
+          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>Follow the steps below to process the lead.</div>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button onClick={readOnly ? undefined : onCreateTask} disabled={readOnly} style={{
+            display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 9,
+            border: `1px solid ${C.border}`, background: "#fff", color: readOnly ? C.muted : C.slate,
+            fontSize: 13, fontWeight: 600, cursor: readOnly ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: readOnly ? 0.6 : 1,
+          }}>☑️ Create Task</button>
+          <button onClick={canFinalize ? () => onFinalizeNow(currentStep.key) : undefined} disabled={!canFinalize}
+            title={!canFinalize ? "Available once you reach the Call Attempt & Outcome step" : "Finalize the process now"} style={{
+            display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 9, border: "none",
+            background: canFinalize ? C.navy : C.border, color: canFinalize ? "#fff" : C.muted,
+            fontSize: 13, fontWeight: 700, cursor: canFinalize ? "pointer" : "not-allowed", fontFamily: "inherit",
+          }}>🏁 Finalize Process</button>
+        </div>
+      </div>
       {/* Network contacts have completed the lead process — the flow is read-only
           (their Outcome is edited from the contact's Status field, not here). */}
       {readOnly && (
@@ -942,8 +956,8 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
             // Re-opening the scheduler (Change / reschedule) replaces the prior
             // booking — cancel its calendar event first.
             if (state.appointment?.id) onCancelAppointment && onCancelAppointment(state.appointment.id);
-            if (current === IDX.outcome) {
-              // From Call Outcome → book but stay; the advisor advances with Continue.
+            if (current === IDX.call) {
+              // From Call Attempt & Outcome → book but stay; advance with Continue.
               onBookForOutcome(appt, data);
             } else {
               // From Appointment Outcome (reschedule) → book the replacement.
@@ -967,7 +981,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
           title="Reopen this step?"
           message={<>
             Reopening <b>{STEPS[IDX[reopenTarget]].title}</b> discards the steps after it and their recorded outcomes — you'll re-do them from here.
-            {IDX[reopenTarget] <= IDX.outcome && state.appointment && <> The booked appointment will be cancelled and removed from the calendar.</>}
+            {IDX[reopenTarget] <= IDX.call && state.appointment && <> The booked appointment will be cancelled and removed from the calendar.</>}
             {state.finished && <> This lead's result will be retracted from the campaign statistics.</>}
           </>}
           confirmLabel="Reopen & Discard"
@@ -976,7 +990,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
           onConfirm={() => {
             // If the reopen discards a booked appointment, cancel its calendar
             // event too (and notify attendees, once that's wired server-side).
-            if (IDX[reopenTarget] <= IDX.outcome && state.appointment?.id) {
+            if (IDX[reopenTarget] <= IDX.call && state.appointment?.id) {
               onCancelAppointment && onCancelAppointment(state.appointment.id);
             }
             reopen(reopenTarget);
