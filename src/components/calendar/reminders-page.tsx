@@ -640,7 +640,7 @@ export const RemindersPage = ({ role, navigateTo, reminders:remindersFromRoot, s
               <div>
                 <label style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",display:"block",marginBottom:5 }}>Priority</label>
                 <div style={{ display:"flex",gap:4 }}>
-                  {[["low","Low","#64748B"],["normal","Normal","#4338CA"],["high","High","#DC2626"]].map(([k,l,col])=>(
+                  {[["low","Low","#64748B"],["normal","Medium","#4338CA"],["high","High","#DC2626"]].map(([k,l,col])=>(
                     <button key={k} onClick={()=>setFPriority(k)}
                       style={{ flex:1,padding:"8px 4px",borderRadius:7,border:`1.5px solid ${fPriority===k?col:C.border}`,
                         background:fPriority===k?col+"12":"#fff",color:fPriority===k?col:C.muted,

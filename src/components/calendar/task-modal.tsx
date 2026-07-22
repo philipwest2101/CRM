@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ALL_LEADS, EMAIL_TEMPLATES_STORE, ACTIVITY_TYPES, TASK_TYPE_KEYS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
+import { ALL_LEADS, ACTIVITY_TYPES, TASK_TYPE_KEYS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
 import { C } from "../../theme";
 
 // Task modal — supports three states: create | edit | view
@@ -24,7 +24,7 @@ const blank = (selectedDate) => ({
   emailTemplate:"", recur:"Once", note:"",
 });
 
-export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=false, onClose, onSubmit, onDone, onDelete, onLogCall, onMakeCall }) => {
+export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=false, onClose, onSubmit, onDone, onDelete, onLogCall, onMakeCall, onLogEmail, onSendEmail }) => {
   const [m, setM]   = useState(mode);                       // active mode (view can switch to edit)
   const [f, setF]   = useState(() => {
     const init = task ? { ...blank(selectedDate), ...task } : blank(selectedDate);
@@ -37,8 +37,13 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
   const tm = TYPE_META[f.type] || TYPE_META.note;
 
   const titleText = m==="create" ? "Create Task"
-    : m==="edit" ? `Edit ${tm.label} Task — ${f.title||"Untitled"}`
-    : `${tm.label} Task — ${f.title||"Untitled"}`;
+    : m==="edit" ? "Edit Task"
+    : (f.title || `${tm.label} Task`);
+
+  // Priority chip shown in the view header (colour-coded, matching the board).
+  const prio = PRIORITIES.find(p=>p[0]===f.priority);
+  // Two-letter initials for the contact avatar (e.g. "Sandra Richter" → "SR").
+  const initials = (f.contact||"").split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0]?.toUpperCase()||"").join("") || "–";
 
   const field = (label, node) => (
     <div style={{ marginBottom:12 }}>
@@ -46,13 +51,6 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
       {node}
     </div>
   );
-
-  const row = (label, value) => value ? (
-    <div style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom:`1px solid ${C.border}`, fontSize:12, gap:12 }}>
-      <span style={{ color:C.muted }}>{label}</span>
-      <span style={{ color:C.text, fontWeight:600, textAlign:"right" }}>{value}</span>
-    </div>
-  ) : null;
 
   return (
     <>
@@ -68,36 +66,56 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
           </div>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             {isView && (
-              <button onClick={()=>setM("edit")} title="Edit"
-                style={{ width:28, height:28, borderRadius:7, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, cursor:"pointer", fontSize:13 }}>✏️</button>
+              <>
+                <button onClick={()=>onDelete&&onDelete(f)} title="Delete"
+                  style={{ width:28, height:28, borderRadius:7, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, cursor:"pointer", fontSize:13 }}>🗑</button>
+                <button onClick={()=>setM("edit")} title="Edit"
+                  style={{ width:28, height:28, borderRadius:7, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, cursor:"pointer", fontSize:13 }}>✏️</button>
+              </>
             )}
             <button onClick={onClose} style={{ width:28, height:28, borderRadius:"50%", border:`1px solid ${C.border}`, background:"#F8FAFC", color:C.muted, fontSize:15, cursor:"pointer" }}>×</button>
           </div>
         </div>
 
         {isView ? (
-          /* ── VIEW ─────────────────────────────────────────────── */
+          /* ── VIEW (Call / Email / To-Do Task) ─────────────────── */
           <div>
-            {row("📅 Date & Time", `${f.date}${f.time?` · ${f.time}`:""}`)}
-            {row("👤 Contact", f.contact)}
-            {row("⚡ Priority", (PRIORITIES.find(p=>p[0]===f.priority)||[])[1])}
+            {/* Date-time on the left, priority chip on the right */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, marginBottom:12 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, color:C.text }}>
+                <span>🕐</span>{f.date}{f.time?` | ${f.time}`:""}
+              </div>
+              {prio && <span style={{ fontSize:12, fontWeight:700, color:prio[2] }}>{prio[1]}</span>}
+            </div>
+            {/* Contact avatar + name */}
+            {f.contact && (
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
+                <span style={{ width:32, height:32, borderRadius:"50%", background:C.primary+"18", color:C.primaryDark, display:"grid", placeItems:"center", fontSize:11, fontWeight:700 }}>{initials}</span>
+                <span style={{ fontSize:13, color:C.text }}>{f.contact}</span>
+              </div>
+            )}
             {f.note && (
-              <div style={{ marginTop:12 }}>
+              <div style={{ marginBottom:12 }}>
                 <label style={lbl}>Description</label>
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.5 }}>{f.note}</div>
               </div>
             )}
-            <div style={{ display:"flex", alignItems:"center", marginTop:20, gap:10 }}>
+            {/* Type-specific quick links on the left, Done on the right */}
+            <div style={{ display:"flex", alignItems:"center", marginTop:20, gap:16 }}>
               {f.type==="call" && (
                 <>
-                  <button onClick={()=>onLogCall&&onLogCall(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, cursor:"pointer", padding:0 }}>Log a Call</button>
-                  <button onClick={()=>onMakeCall&&onMakeCall(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, cursor:"pointer", padding:0 }}>Make a Call</button>
+                  <button onClick={()=>onLogCall&&onLogCall(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Log a Call</button>
+                  <button onClick={()=>onMakeCall&&onMakeCall(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Make a Call</button>
                 </>
               )}
-              <button onClick={()=>onDelete&&onDelete(f)} title="Delete this task permanently"
-                style={{ marginLeft:"auto", background:"none", border:"none", color:C.red, fontSize:12, fontWeight:700, cursor:"pointer", padding:0 }}>🗑 Delete</button>
+              {f.type==="email" && (
+                <>
+                  <button onClick={()=>onLogEmail&&onLogEmail(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Log an Email</button>
+                  <button onClick={()=>onSendEmail&&onSendEmail(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Send an Email</button>
+                </>
+              )}
               <button onClick={()=>onDone&&onDone(f)} title="Mark this task complete (stays in your calendar as Done)"
-                style={{ padding:"9px 22px", borderRadius:9, border:"none", background:C.green, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ Done</button>
+                style={{ marginLeft:"auto", padding:"9px 22px", borderRadius:9, border:"none", background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>Done</button>
             </div>
           </div>
         ) : (
@@ -146,18 +164,7 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
               <div><label style={lbl}>Time *</label><input type="time" value={f.time} onChange={e=>set("time",e.target.value)} style={input}/></div>
             </div>
 
-            {/* Edit-only extra: Email Template */}
-            {m==="edit" && (
-              <div style={{ marginBottom:12 }}>
-                <label style={lbl}>Email Template</label>
-                <select value={f.emailTemplate} onChange={e=>set("emailTemplate",e.target.value)} style={input}>
-                  <option value="">None</option>
-                  {EMAIL_TEMPLATES_STORE.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-            )}
-
-            {field("Description", <textarea value={f.note} onChange={e=>set("note",e.target.value)} placeholder="Any details for this task…"
+            {field("Description",<textarea value={f.note} onChange={e=>set("note",e.target.value)} placeholder="Any details for this task…"
               style={{ ...input, minHeight:70, resize:"none", lineHeight:1.5 }}/>)}
 
             <div style={{ display:"flex", gap:10, marginTop:6 }}>

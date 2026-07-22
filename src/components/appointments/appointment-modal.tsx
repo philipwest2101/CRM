@@ -82,11 +82,11 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
 
   // "Other" appointment type requires a custom label
   const apptTypeOk = f.apptType !== "Other" || f.apptTypeOther.trim();
-  const canSave = f.title.trim() && f.contact && f.date && f.time && apptTypeOk;   // Time + valid type required
+  const canSave = f.title.trim() && f.contact && f.date && f.time && f.end && apptTypeOk;   // Start + End + valid type required
 
   const titleText = m==="create" ? "Schedule Appointment"
-    : m==="edit" ? `Edit Appointment — ${f.title||"Untitled"}`
-    : `Appointment — ${f.title||"Untitled"}`;
+    : m==="edit" ? "Edit Appointment"
+    : (f.title || "Appointment");
 
   const field = (label, node) => (
     <div style={{ marginBottom:12 }}><label style={lbl}>{label}</label>{node}</div>
@@ -100,6 +100,70 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
 
   const attLabelOf = (email) => { const n = displayName(email); return n ? `${email} (${n})` : email; };
 
+  // Attendees — one searchable multiselect (contacts + any email). Extracted so
+  // the create/edit form can place it after Date/Start/End (board field order).
+  const ATTENDEES_BLOCK = (
+    <div style={{ marginBottom:12 }}>
+      <label style={lbl}>Attendees</label>
+      <div style={{ position:"relative" }}>
+        <div onClick={()=>setAttOpen(o=>!o)}
+          style={{ ...input, minHeight:38, display:"flex", alignItems:"center", flexWrap:"wrap", gap:6, cursor:"pointer", padding:attendeeArr.length?"6px 30px 6px 8px":"9px 30px 9px 12px" }}>
+          {attendeeArr.length===0 && <span style={{ color:C.muted }}>Select attendees</span>}
+          {attendeeArr.map((email)=>(
+            <span key={email} style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 8px", borderRadius:20,
+              background:"#F1F5F9", border:`1px solid ${C.border}`, fontSize:11.5, fontWeight:600, color:C.text }}>
+              {displayName(email) || email}
+              <span onClick={e=>{ e.stopPropagation(); toggleAttendee(email); }} style={{ color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</span>
+            </span>
+          ))}
+          <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", color:C.muted, fontSize:11, pointerEvents:"none" }}>{attOpen?"▲":"▼"}</span>
+        </div>
+
+        {attOpen && (
+          <>
+            <div onClick={()=>setAttOpen(false)} style={{ position:"fixed", inset:0, zIndex:710 }}/>
+            <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, zIndex:720, background:"#fff",
+              border:`1.5px solid ${C.border}`, borderRadius:10, boxShadow:"0 12px 32px rgba(0,0,0,0.15)", overflow:"hidden" }}>
+              <div style={{ padding:8, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:6 }}>
+                <input autoFocus value={attQuery} onChange={e=>setAttQuery(e.target.value)}
+                  onKeyDown={e=>{ if(e.key==="Enter" && canAddTyped){ e.preventDefault(); toggleAttendee(attQuery.trim()); setAttQuery(""); } }}
+                  placeholder="Search superiors or type an email…"
+                  style={{ ...input, border:"none", padding:"4px 6px", fontSize:12.5 }}/>
+                <span style={{ color:C.muted, fontSize:13 }}>🔍</span>
+              </div>
+              <div style={{ maxHeight:200, overflowY:"auto" }}>
+                {canAddTyped && (
+                  <div onClick={()=>{ toggleAttendee(attQuery.trim()); setAttQuery(""); }}
+                    style={{ padding:"9px 12px", fontSize:12.5, color:C.primaryDark, fontWeight:600, cursor:"pointer", borderBottom:`1px solid ${C.border}` }}>
+                    ＋ Add “{attQuery.trim()}”
+                  </div>
+                )}
+                {extraSelected.filter(e=>!q||e.toLowerCase().includes(q)).map(email=>(
+                  <label key={email} style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 12px", cursor:"pointer", fontSize:12.5 }}>
+                    <input type="checkbox" checked readOnly onChange={()=>toggleAttendee(email)} style={{ accentColor:C.primary, width:14, height:14 }}/>
+                    <span style={{ color:C.text }}>{email}</span>
+                  </label>
+                ))}
+                {superiorOptions.map(email=>{ const checked = attendeeArr.includes(email); const name = displayName(email); return (
+                  <label key={email} onClick={e=>{ e.preventDefault(); toggleAttendee(email); }}
+                    style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 12px", cursor:"pointer", fontSize:12.5,
+                      background:checked?C.primary+"08":"transparent" }}>
+                    <input type="checkbox" checked={checked} readOnly style={{ accentColor:C.primary, width:14, height:14 }}/>
+                    <span style={{ color:C.text }}>{email}</span>
+                    {name && <span style={{ color:C.muted }}>({name})</span>}
+                  </label>
+                );})}
+                {superiorOptions.length===0 && !canAddTyped && (
+                  <div style={{ padding:"10px 12px", fontSize:12, color:C.muted }}>No matches</div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", zIndex:600 }}/>
@@ -109,7 +173,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
 
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
           <div style={{ fontSize:15, fontWeight:800, color:C.navy, display:"flex", alignItems:"center", gap:8 }}>
-            <span>📅</span>{titleText}
+            <span>🤝</span>{titleText}
           </div>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             {isView && (
@@ -127,7 +191,7 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
             {rowR("👤 Contact", f.contact)}
             {rowR("🏷 Type", f.apptType==="Other" ? (f.apptTypeOther||"Other") : f.apptType)}
             {rowR("👥 Attendees", attendeeArr.map(attLabelOf).join(", "))}
-            {rowR("📍 Appointment Location", f.location)}
+            {rowR("📍 Location / Link", f.location)}
             {rowR("📎 Attachments", f.attachments.join(", "))}
             {f.note && (
               <div style={{ marginTop:12 }}>
@@ -166,67 +230,6 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
               </select>
             ))}
 
-            {/* Attendees — one searchable multiselect (contacts + any email) */}
-            <div style={{ marginBottom:12 }}>
-              <label style={lbl}>Attendees *</label>
-              <div style={{ position:"relative" }}>
-                <div onClick={()=>setAttOpen(o=>!o)}
-                  style={{ ...input, minHeight:38, display:"flex", alignItems:"center", flexWrap:"wrap", gap:6, cursor:"pointer", padding:attendeeArr.length?"6px 30px 6px 8px":"9px 30px 9px 12px" }}>
-                  {attendeeArr.length===0 && <span style={{ color:C.muted }}>Select attendees</span>}
-                  {attendeeArr.map((email,i)=>(
-                    <span key={email} style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 8px", borderRadius:20,
-                      background:"#F1F5F9", border:`1px solid ${C.border}`, fontSize:11.5, fontWeight:600, color:C.text }}>
-                      {displayName(email) || email}
-                      <span onClick={e=>{ e.stopPropagation(); toggleAttendee(email); }} style={{ color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</span>
-                    </span>
-                  ))}
-                  <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", color:C.muted, fontSize:11, pointerEvents:"none" }}>{attOpen?"▲":"▼"}</span>
-                </div>
-
-                {attOpen && (
-                  <>
-                    <div onClick={()=>setAttOpen(false)} style={{ position:"fixed", inset:0, zIndex:710 }}/>
-                    <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, zIndex:720, background:"#fff",
-                      border:`1.5px solid ${C.border}`, borderRadius:10, boxShadow:"0 12px 32px rgba(0,0,0,0.15)", overflow:"hidden" }}>
-                      <div style={{ padding:8, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:6 }}>
-                        <input autoFocus value={attQuery} onChange={e=>setAttQuery(e.target.value)}
-                          onKeyDown={e=>{ if(e.key==="Enter" && canAddTyped){ e.preventDefault(); toggleAttendee(attQuery.trim()); setAttQuery(""); } }}
-                          placeholder="Search superiors or type an email…"
-                          style={{ ...input, border:"none", padding:"4px 6px", fontSize:12.5 }}/>
-                        <span style={{ color:C.muted, fontSize:13 }}>🔍</span>
-                      </div>
-                      <div style={{ maxHeight:200, overflowY:"auto" }}>
-                        {canAddTyped && (
-                          <div onClick={()=>{ toggleAttendee(attQuery.trim()); setAttQuery(""); }}
-                            style={{ padding:"9px 12px", fontSize:12.5, color:C.primaryDark, fontWeight:600, cursor:"pointer", borderBottom:`1px solid ${C.border}` }}>
-                            ＋ Add “{attQuery.trim()}”
-                          </div>
-                        )}
-                        {extraSelected.filter(e=>!q||e.toLowerCase().includes(q)).map(email=>(
-                          <label key={email} style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 12px", cursor:"pointer", fontSize:12.5 }}>
-                            <input type="checkbox" checked readOnly onChange={()=>toggleAttendee(email)} style={{ accentColor:C.primary, width:14, height:14 }}/>
-                            <span style={{ color:C.text }}>{email}</span>
-                          </label>
-                        ))}
-                        {superiorOptions.map(email=>{ const checked = attendeeArr.includes(email); const name = displayName(email); return (
-                          <label key={email} onClick={e=>{ e.preventDefault(); toggleAttendee(email); }}
-                            style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 12px", cursor:"pointer", fontSize:12.5,
-                              background:checked?C.primary+"08":"transparent" }}>
-                            <input type="checkbox" checked={checked} readOnly style={{ accentColor:C.primary, width:14, height:14 }}/>
-                            <span style={{ color:C.text }}>{email}</span>
-                            {name && <span style={{ color:C.muted }}>({name})</span>}
-                          </label>
-                        );})}
-                        {superiorOptions.length===0 && !canAddTyped && (
-                          <div style={{ padding:"10px 12px", fontSize:12, color:C.muted }}>No matches</div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
             <div style={{ marginBottom:12 }}>
               <label style={lbl}>Type *</label>
               <select value={f.apptType} onChange={e=>set("apptType",e.target.value)} style={input}>
@@ -241,10 +244,12 @@ export const AppointmentModal = ({ mode="create", appt=null, selectedDate, role,
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:12 }}>
               <div><label style={lbl}>Date *</label><input type="date" value={f.date} onChange={e=>set("date",e.target.value)} style={input}/></div>
               <div><label style={lbl}>Start *</label><input type="time" value={f.time} onChange={e=>set("time",e.target.value)} style={input}/></div>
-              <div><label style={lbl}>End</label><input type="time" value={f.end} onChange={e=>set("end",e.target.value)} style={input}/></div>
+              <div><label style={lbl}>End *</label><input type="time" value={f.end} onChange={e=>set("end",e.target.value)} style={input}/></div>
             </div>
 
-            {field("Appointment Location *", <input value={f.location}
+            {ATTENDEES_BLOCK}
+
+            {field("Location / Link", <input value={f.location}
               onChange={e=>set("location",e.target.value)}
               placeholder="ARTIST Boutique Hotel — Vienna  ·  or https://meet.…" style={input}/>)}
 

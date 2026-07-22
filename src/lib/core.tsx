@@ -702,7 +702,7 @@ export const ACTIVITY_STATUS_META = {
 // Task modal, Add-Activity modal, the quick-reminder modal and the dashboard.
 export const PRIORITY_META = {
   low:    { label:"Low",    color:"#64748B" },
-  normal: { label:"Normal", color:"#FDB022" },
+  normal: { label:"Medium", color:"#FDB022" },
   high:   { label:"High",   color:"#F04438" },
   urgent: { label:"Urgent", color:"#B42318" },
 };

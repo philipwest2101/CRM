@@ -104,17 +104,17 @@ const EmailModal = ({ contact = null, onClose, prefill = null, lockRecipient = f
   };
 
   return (
-    <ModalShell icon="✉️" title="Send an Email" subtitle={contact?.name ? `To ${contact.name}` : undefined} accent={C.indigo} width={640} onClose={onClose}>
+    <ModalShell icon="✉️" title="Send Email" subtitle={contact?.name ? `To ${contact.name}` : undefined} accent={C.indigo} width={640} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
         <div><Label>To *</Label>
           <select style={lockRecipient ? { ...fieldStyle, background: C.light, color: C.slate, cursor: "not-allowed" } : placeholderSelect} defaultValue={contact?.email || ""} disabled={lockRecipient}><option value="" disabled>Select recipient</option>{contact?.email && <option>{contact.email}</option>}<option>Account/PC Email</option><option>Example@gmail.com</option></select>
         </div>
-        <div><Label>CC</Label>
-          <select style={placeholderSelect} defaultValue=""><option value="" disabled>Select CC</option><option>someone@example.com</option><option>manager@vionworld.com</option></select>
+        <div><Label>Cc</Label>
+          <select style={placeholderSelect} defaultValue=""><option value="" disabled>Select Cc</option><option>someone@example.com</option><option>manager@vionworld.com</option></select>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
-        <div><Label>Template</Label>
+        <div><Label>Template *</Label>
           <select style={tplId ? fieldStyle : placeholderSelect} value={tplId} onChange={e => applyTemplate(e.target.value)}>
             <option value="">Select Template</option>
             {templates.map(t => (
@@ -124,9 +124,9 @@ const EmailModal = ({ contact = null, onClose, prefill = null, lockRecipient = f
             ))}
           </select>
         </div>
-        <div><Label>Attachment</Label>
+        <div><Label>Attachments</Label>
           <select style={placeholderSelect} value="" onChange={e => addAttachment(e.target.value)}>
-            <option value="">Select Attachment</option>
+            <option value="">Select attachments</option>
             {ATTACHMENTS_STORE.filter(a => !attachments.find(x => x.id === a.id)).map(a => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
@@ -156,7 +156,7 @@ const EmailModal = ({ contact = null, onClose, prefill = null, lockRecipient = f
         </div>
       </div>
       <label style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14, cursor: "pointer", fontSize: 14, fontWeight: 600, color: C.navy }}>
-        <input type="checkbox" checked={schedule} onChange={e => setSchedule(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Schedule send
+        <input type="checkbox" checked={schedule} onChange={e => setSchedule(e.target.checked)} style={{ width: 16, height: 16, accentColor: C.primary }} /> Schedule
       </label>
       {schedule && (<>
         <Label>Select Date &amp; Time</Label>
@@ -175,96 +175,122 @@ const EmailModal = ({ contact = null, onClose, prefill = null, lockRecipient = f
 // locked to the current contact (see lockContact prop on each).
 const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other"];
 
-// ── Log a Call ────────────────────────────────────────────────────────────────
-const LogCallModal = ({ onClose }) => (
-  <ModalShell icon="📞" title="Log a Call" subtitle="Record an inbound or outbound call" accent={C.blue} width={720} onClose={onClose}>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <div><Label>Call With *</Label>
-        <div style={{ position: "relative" }}>
-          <input style={{ ...fieldStyle, paddingRight: 32 }} placeholder="Select contact" />
-          <span style={{ position: "absolute", right: 11, top: 10, color: C.muted }}>🔍</span>
-        </div>
-      </div>
-      <div><Label>Call Direction *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Call Direction</option><option>Inbound</option><option>Outbound</option></select></div>
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <div><Label>Call Status *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Status</option><option>Reached</option><option>Not Reached</option></select></div>
-      <div><Label>Call Duration (minutes) *</Label>
-        <div style={{ position: "relative" }}>
-          <input style={{ ...fieldStyle, paddingRight: 40 }} placeholder="Call duration" />
-          <span style={{ position: "absolute", right: 12, top: 11, color: C.muted, fontSize: 12 }}>min</span>
-        </div>
-      </div>
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
-      <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
-    </div>
-    <div>
-      <Label>Call Report *</Label>
-      <textarea placeholder="What was discussed…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
-    </div>
-    <FooterBtns onClose={onClose} label="Log Call" />
-  </ModalShell>
+// ── Segmented toggle (Inbound/Outbound, Sent/Received, …) ──────────────────────
+const Segmented = ({ options, value, onChange }) => (
+  <div style={{ display: "flex", gap: 8 }}>
+    {options.map(o => {
+      const on = value === o;
+      return (
+        <button key={o} type="button" onClick={() => onChange(o)}
+          style={{ flex: 1, padding: "9px 12px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 13,
+            fontWeight: on ? 700 : 500, border: `1.5px solid ${on ? C.primary : C.border}`,
+            background: on ? C.primary + "14" : "#fff", color: on ? C.primaryDark : C.slate }}>{o}</button>
+      );
+    })}
+  </div>
 );
 
-// ── Log an Email ──────────────────────────────────────────────────────────────
-const LogEmailModal = ({ onClose }) => (
-  <ModalShell icon="✉️" title="Log an Email" subtitle="Record a sent or received email" accent={C.indigo} width={720} onClose={onClose}>
-    <div style={{ marginBottom: 16 }}><Label>Direction *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Direction</option><option>Sent</option><option>Received</option></select></div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <div><Label>From *</Label><input style={fieldStyle} placeholder="sender@example.com" /></div>
-      <div><Label>To *</Label><input style={fieldStyle} placeholder="recipient@example.com" /></div>
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <div><Label>Cc *</Label><input style={fieldStyle} placeholder="cc@example.com" /></div>
-      <div><Label>Attachment *</Label>
-        <select style={placeholderSelect} defaultValue=""><option value="">Select Attachment</option>{ATTACHMENTS_STORE.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+// ── Add Call Log ──────────────────────────────────────────────────────────────
+const LogCallModal = ({ onClose }) => {
+  const [dir, setDir] = useState("Inbound");
+  return (
+    <ModalShell icon="📞" title="Add Call Log" subtitle={undefined} accent={C.blue} width={720} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Call With *</Label>
+        <select style={placeholderSelect} defaultValue=""><option value="">Select a contact</option></select>
       </div>
-    </div>
-    <div style={{ marginBottom: 16 }}><Label>Subject *</Label><input style={fieldStyle} placeholder="Subject" /></div>
-    <div>
-      <Label>Body *</Label>
-      <textarea placeholder="Email content…" style={{ ...fieldStyle, minHeight: 110, resize: "vertical", lineHeight: 1.5 }} />
-    </div>
-    <FooterBtns onClose={onClose} label="Log Email" />
-  </ModalShell>
-);
+      <div style={{ marginBottom: 16 }}><Label>Call Direction *</Label>
+        <Segmented options={["Inbound", "Outbound"]} value={dir} onChange={setDir} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
+      </div>
+      <div style={{ marginBottom: 16 }}><Label>Call Duration (minutes)</Label>
+        <input style={fieldStyle} placeholder="Enter call duration approximately in minutes" />
+      </div>
+      <div>
+        <Label>Call Report</Label>
+        <textarea placeholder="Enter call report" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <FooterBtns onClose={onClose} label="Save" />
+    </ModalShell>
+  );
+};
 
-// ── Log on Appointment ────────────────────────────────────────────────────────
-const LogAppointmentModal = ({ onClose }) => (
-  <ModalShell icon="📅" title="Log on Appointment" subtitle="Log a past appointment" accent={C.green} width={720} onClose={onClose}>
-    <div style={{ marginBottom: 16 }}><Label>Title *</Label><input style={fieldStyle} placeholder="e.g. Consultation — Sandra Richter" /></div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <div><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option></select></div>
-      <div><Label>Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Type</option>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}</select></div>
-    </div>
-    <div style={{ marginBottom: 16 }}><Label>Attendees</Label><input style={fieldStyle} placeholder="Add attendees…" /></div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
-      <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
-      <div><Label>Start *</Label><input type="time" style={placeholderSelect} /></div>
-      <div><Label>End *</Label><input type="time" style={placeholderSelect} /></div>
-    </div>
-    <div style={{ marginBottom: 16 }}><Label>Location / Link</Label><input style={fieldStyle} placeholder="ARTIST Boutique Hotel — Vienna  ·  or https://meet.…" /></div>
-    <div style={{ marginBottom: 16 }}><Label>Attachment</Label>
-      <select style={placeholderSelect} defaultValue=""><option value="">Select Attachment</option>{ATTACHMENTS_STORE.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-    </div>
-    <div>
-      <Label>Description</Label>
-      <textarea placeholder="Any details…" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
-    </div>
-    <FooterBtns onClose={onClose} label="Log Appointment" />
-  </ModalShell>
-);
+// ── Add Email Log ─────────────────────────────────────────────────────────────
+const LogEmailModal = ({ onClose }) => {
+  const [dir, setDir] = useState("Sent");
+  return (
+    <ModalShell icon="✉️" title="Add Email Log" subtitle={undefined} accent={C.indigo} width={720} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Direction *</Label>
+        <Segmented options={["Sent", "Received"]} value={dir} onChange={setDir} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>From *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose</option></select></div>
+        <div><Label>To *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select a contact</option></select></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Cc</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose</option></select></div>
+        <div><Label>Attachments</Label>
+          <select style={placeholderSelect} defaultValue=""><option value="">Select attachments</option>{ATTACHMENTS_STORE.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        </div>
+      </div>
+      <div style={{ marginBottom: 16 }}><Label>Subject *</Label><input style={fieldStyle} placeholder="Enter email subject line" /></div>
+      <div>
+        <Label>Body *</Label>
+        <textarea placeholder="Enter email body" style={{ ...fieldStyle, minHeight: 110, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <FooterBtns onClose={onClose} label="Save" />
+    </ModalShell>
+  );
+};
+
+// ── Add Appointment Log ───────────────────────────────────────────────────────
+const LogAppointmentModal = ({ onClose }) => {
+  const [type, setType] = useState("");
+  return (
+    <ModalShell icon="🤝" title="Add Appointment Log" subtitle={undefined} accent={C.green} width={720} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Title *</Label><input style={fieldStyle} placeholder="Enter appointment title" /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select a contact</option></select></div>
+        <div><Label>Type *</Label>
+          <select style={type ? fieldStyle : placeholderSelect} value={type} onChange={e => setType(e.target.value)}>
+            <option value="">Select appointment type</option>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}
+          </select>
+        </div>
+      </div>
+      {type === "Other" && (
+        <div style={{ marginBottom: 16 }}><Label>Appointment Type *</Label><input style={fieldStyle} placeholder="Enter appointment type" autoFocus /></div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
+        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Start *</Label><input type="time" style={placeholderSelect} /></div>
+        <div><Label>End *</Label><input type="time" style={placeholderSelect} /></div>
+      </div>
+      <div style={{ marginBottom: 16 }}><Label>Attendees</Label>
+        <select style={placeholderSelect} defaultValue=""><option value="">Select attendees</option></select>
+      </div>
+      <div style={{ marginBottom: 16 }}><Label>Location / Link</Label><input style={fieldStyle} placeholder="Enter appointment location / link" /></div>
+      <div style={{ marginBottom: 16 }}><Label>Attachment</Label>
+        <select style={placeholderSelect} defaultValue=""><option value="">Select attachments</option>{ATTACHMENTS_STORE.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+      </div>
+      <div>
+        <Label>Description</Label>
+        <textarea placeholder="Enter description" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <FooterBtns onClose={onClose} label="Save" />
+    </ModalShell>
+  );
+};
 
 // ── Offline Log ───────────────────────────────────────────────────────────────
 const OFFLINE_TYPES = ["WhatsApp", "LinkedIn", "Instagram", "Facebook", "Other"];
 const OfflineLogModal = ({ onClose }) => (
-  <ModalShell icon="🗒️" title="Offline Log" subtitle="Log an interaction that happened outside the CRM" accent={C.slate} width={720} onClose={onClose}>
-    <div style={{ marginBottom: 16 }}><Label>Title *</Label><input style={fieldStyle} placeholder="e.g. WhatsApp message" /></div>
+  <ModalShell icon="📝" title="Add Offline Log" subtitle={undefined} accent={C.slate} width={720} onClose={onClose}>
+    <div style={{ marginBottom: 16 }}><Label>Title *</Label><input style={fieldStyle} placeholder="Enter a title" /></div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-      <div><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Choose…</option></select></div>
-      <div><Label>Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select Type</option>{OFFLINE_TYPES.map(o => <option key={o}>{o}</option>)}</select></div>
+      <div><Label>Contact *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select a contact</option></select></div>
+      <div><Label>Type *</Label><select style={placeholderSelect} defaultValue=""><option value="">Select type</option>{OFFLINE_TYPES.map(o => <option key={o}>{o}</option>)}</select></div>
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
       <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
@@ -272,9 +298,9 @@ const OfflineLogModal = ({ onClose }) => (
     </div>
     <div>
       <Label>Description</Label>
-      <textarea placeholder="Description" style={{ ...fieldStyle, minHeight: 100, resize: "vertical", lineHeight: 1.5 }} />
+      <textarea placeholder="Enter description" style={{ ...fieldStyle, minHeight: 100, resize: "vertical", lineHeight: 1.5 }} />
     </div>
-    <FooterBtns onClose={onClose} label="Save Log" />
+    <FooterBtns onClose={onClose} label="Save" />
   </ModalShell>
 );
 
