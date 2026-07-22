@@ -628,7 +628,7 @@ const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, ca
 );
 
 // ── Main tab (controlled) ─────────────────────────────────────────────────────
-export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask, onSendEmail, emailSent, onBookAppointment, onCancelAppointment, onLeadFinalized, onLeadConverted, autoConvert }) => {
+export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask, onSendEmail, emailSent, onBookAppointment, onCancelAppointment, onLeadFinalized, onLeadConverted, autoConvert, readOnly = false }) => {
   const current = state.current;
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -903,6 +903,18 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* Network contacts have completed the lead process — the flow is read-only
+          (their Outcome is edited from the contact's Status field, not here). */}
+      {readOnly && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.light, marginBottom: 2 }}>
+          <span style={{ fontSize: 18 }}>🔒</span>
+          <div style={{ fontSize: 12.5, color: C.slate, lineHeight: 1.5 }}>
+            This contact is in your <b>Network</b> — the lead <b>Processing &amp; Feedback</b> flow is read-only. To change the Customer / Partner classification, use the <b>Status</b> field on the contact.
+          </div>
+        </div>
+      )}
+      <div style={readOnly ? { pointerEvents: "none", opacity: 0.65, filter: "grayscale(0.2)" } : undefined} aria-disabled={readOnly}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {completed.map((s, i) => (
         <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]}
           editable={i === completed.length - 1 && !state.isContact} onReopen={() => setReopenTarget(s.key)} />
@@ -913,6 +925,8 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       </CurrentStepShell>
 
       {future.map(s => <LockedStep key={s.key} num={stepNo(s.key)} title={s.title} />)}
+        </div>
+      </div>
 
       {scheduleModalOpen && (
         <AppointmentModal

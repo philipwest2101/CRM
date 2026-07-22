@@ -1721,7 +1721,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
                     const isLink = (k === "name" || k === LINK_COL);   // Name links to detail on every view
                     return (
                     <td key={k} style={{ padding: "14px 16px", cursor: isLink ? "pointer" : "default" }}
-                      onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone }, activeView) : undefined}>
+                      onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone, outcome: c.outcome, stageStatus: c.stageStatus, lifecycle: c.lifecycle }, activeView) : undefined}>
                       {renderCell(k, c, isLink)}
                     </td>);
                   })}

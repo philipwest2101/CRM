@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
-import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, stageStatusOptions, blocksToText, setLeadState, getLeadState, networkOutcomeLabel } from "../../lib/core";
+import { ATTACHMENTS_STORE, EMAIL_TEMPLATES_STORE, stageStatusOptions, blocksToText, setLeadState, getLeadState, networkOutcomeLabel, NETWORK_OUTCOMES } from "../../lib/core";
 import { TaskModal as CalendarTaskModal } from "../calendar/task-modal";
 import { AppointmentModal as CalendarAppointmentModal } from "../appointments/appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
@@ -448,7 +448,46 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline, actionsDisabled = false, isContact = false, networkStatus = null }) => {
+// Editable Network Outcome row (Customer / Partner). A Network member has no
+// stage status — its Status field is the Outcome, editable here after conversion.
+const OutcomeStatusRow = ({ outcome = [], onChange }) => {
+  const [open, setOpen] = useState(false);
+  const set = Array.isArray(outcome) ? outcome : [];
+  const toggle = (v) => onChange(set.includes(v) ? set.filter(x => x !== v) : [...set, v]);
+  const tone = (v) => (v === "Customer" ? C.green : C.indigo);
+  return (
+    <div style={{ display: "flex", gap: 11, alignItems: "flex-start", marginBottom: 14, position: "relative" }}>
+      <span style={{ fontSize: 14, color: C.muted, width: 18, textAlign: "center", flexShrink: 0 }}>◎</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11, color: C.muted }}>Status</span>
+          <button onClick={() => setOpen(o => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.primary, fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>{open ? "Done" : "Edit"}</button>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+          {set.length === 0
+            ? <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 16, background: C.light, color: C.muted }}>Contact</span>
+            : set.map(o => <span key={o} style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 16, background: tone(o) + "1A", color: tone(o) }}>{o}</span>)}
+        </div>
+        {open && (
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 9, background: "#fff" }}>
+            <div style={{ fontSize: 10.5, color: C.muted }}>The person may be both.</div>
+            {NETWORK_OUTCOMES.map(v => {
+              const on = set.includes(v);
+              return (
+                <button key={v} onClick={() => toggle(v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 7, border: `1.5px solid ${on ? tone(v) : C.border}`, background: on ? tone(v) + "10" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <span style={{ width: 15, height: 15, borderRadius: 4, border: `2px solid ${on ? tone(v) : C.border}`, background: on ? tone(v) : "#fff", display: "grid", placeItems: "center", fontSize: 9, color: "#fff" }}>{on ? "✓" : ""}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: on ? 700 : 500, color: on ? tone(v) : C.slate }}>{v}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail, onLogAppt, onOffline, actionsDisabled = false, isContact = false, networkStatus = null, outcome = [], onChangeOutcome }) => {
   const t = useT();
   const [gdpr, setGdpr] = useState(true);
   const [rating, setRating] = useState(2);
@@ -517,7 +556,9 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
       <InfoRow icon="📞" label="Phone" value={c.phone} />
       <InfoRow icon="👤" label="Assignee" value={c.assignee} />
       <InfoRow icon="🏷" label="Ownership" value={c.ownership} />
-      <InfoRow icon="◎" label="Status" value={c.stageStatus} />
+      {isContact
+        ? <OutcomeStatusRow outcome={outcome} onChange={onChangeOutcome} />
+        : <InfoRow icon="◎" label="Status" value={c.stageStatus} />}
       <InfoRow icon="🔗" label="Source" value={c.source} />
       <InfoRow icon="📣" label="Campaign Assignment" value={c.campaign} />
 
@@ -1423,6 +1464,28 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
   // Network entries are already contacts. Every other tab stays disabled until then.
   const [feedback, setFeedback] = useState(initFeedback);
 
+  // Network Outcome (Customer / Partner, both possible; empty = plain Contact).
+  // Editable from the contact's Status field once it's in the Network.
+  const [networkOutcome, setNetworkOutcome] = useState<string[]>(() => {
+    const ls = getLeadState(lead?.id);
+    if (Array.isArray(ls.outcome)) return ls.outcome;
+    if (Array.isArray((lead as any)?.outcome)) return (lead as any).outcome;
+    const lbl = ls.networkStatus || (lead as any)?.stageStatus || "";
+    const s: string[] = [];
+    if (/customer|kunde/i.test(lbl)) s.push("Customer");
+    if (/partner/i.test(lbl)) s.push("Partner");
+    return s;
+  });
+  React.useEffect(() => {
+    const ls = getLeadState(lead?.id);
+    setNetworkOutcome(Array.isArray(ls.outcome) ? ls.outcome : Array.isArray((lead as any)?.outcome) ? (lead as any).outcome : []);
+  }, [lead?.id]);
+  const changeOutcome = (next: string[]) => {
+    setNetworkOutcome(next);
+    setLeadState(lead?.id, { outcome: next, networkStatus: networkOutcomeLabel(next) });
+    setFeedback(f => ({ ...f, networkStatus: networkOutcomeLabel(next), outcome: networkOutcomeLabel(next) }));
+  };
+
   // "Feedback & Processing" comes first; every other tab (and the identity-rail
   // quick actions) stays locked until the lead has been converted to a contact.
   const ACTIVE_TABS = isMyNetwork
@@ -1457,7 +1520,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
     lifecycle: feedback.isContact ? "Network" : "Lead",
     // Network is always User-owned; company reporting only sees Ownership = Company.
     ownership: feedback.isContact ? "User" : "Company",
-    stageStatus: feedback.isContact ? (feedback.networkStatus || "Customer") : stageStatusLabel(lead?.status),
+    stageStatus: feedback.isContact ? networkOutcomeLabel(networkOutcome) : stageStatusLabel(lead?.status),
     source: lead?.source || "Landing Page",
     campaign: lead?.campaign || "Webinar – Q1 2026",
   };
@@ -1473,6 +1536,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 18, alignItems: "start" }}>
         <IdentityRail c={c} actionsDisabled={!feedback.isContact} isContact={feedback.isContact} networkStatus={feedback.networkStatus}
+          outcome={networkOutcome} onChangeOutcome={changeOutcome}
           onEmail={() => setModal("email")} onTask={() => setModal("task")} onAppointment={() => setModal("appointment")}
           onLogCall={() => setModal("logcall")} onLogEmail={() => setModal("logemail")}
           onLogAppt={() => setModal("logappt")} onOffline={() => setModal("offline")} />
@@ -1497,7 +1561,8 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
 
           {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment}
                                             onLeadFinalized={() => setLeadState(lead?.id, { finalized: true })}
-                                            onLeadConverted={(outcome) => setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) })}
+                                            onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); }}
+                                            readOnly={feedback.isContact}
                                             autoConvert={sourceAction === "convert"} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
