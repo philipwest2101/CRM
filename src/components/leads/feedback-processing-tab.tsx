@@ -534,6 +534,7 @@ const APPT_OUTCOMES = [
   { v: "notinterested",label: "Not Interested",       tone: C.red },
   { v: "lost",         label: "No Suitable Solution", tone: C.slate },
   { v: "reschedule",   label: "Reschedule",           tone: C.amber },
+  { v: "cancelled",    label: "Cancelled",            tone: C.amber },
   { v: "noshow",       label: "No Show",              tone: C.amber },
 ];
 const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
@@ -547,6 +548,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
   const isFollow = choice === "followup";
   const hint = choice === "reschedule"
     ? "↩ Re-opens scheduling — you'll re-book a new appointment and stay on this step."
+    : choice === "cancelled" ? "↩ Stays in Appointment — the lead cancelled; re-open scheduling. Next Action: contact to reschedule."
     : choice === "noshow" ? "↩ Stays in Appointment — Next Action: call to reschedule."
     : choice === "qualified" ? "→ Status becomes Qualified (Ready to Close)."
     : NEGATIVE.has(choice) ? "↩ Ends processing — you can set Do Not Contact in Finalize." : null;
@@ -805,14 +807,18 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   };
 
   const onAppointmentOutcome = (v, label, note = "", extra: any = {}) => {
-    // Reschedule and No Show both keep the lead in the Appointment status and
-    // re-open scheduling (Next Action = call to reschedule / conduct appointment).
-    if (v === "reschedule" || v === "noshow") {
-      const isNoShow = v === "noshow";
+    // Reschedule, Cancelled and No Show all keep the lead in the Appointment
+    // status and re-open scheduling (they must NOT advance to Follow Up/Qualified).
+    if (v === "reschedule" || v === "noshow" || v === "cancelled") {
+      const meta = {
+        noshow:     { icon: "👻", action: "Call to reschedule",       label: "No show — reschedule",             apptStatus: "No Show",     log: "No Show" },
+        cancelled:  { icon: "🚫", action: "Contact lead / Reschedule", label: "Appointment cancelled — re-book",   apptStatus: "Cancelled",   log: "Cancelled" },
+        reschedule: { icon: "🔁", action: "Call to reschedule",       label: "Appointment rescheduled — re-book", apptStatus: "Rescheduled", log: "Reschedule" },
+      }[v];
       setState(prev => ({
-        ...prev, reschedules: prev.reschedules + 1, nextAction: "Call to reschedule",
-        lastAction: { icon: isNoShow ? "👻" : "🔁", label: isNoShow ? "No show — reschedule" : "Appointment rescheduled — re-book", date: today() },
-        log: pushLog(prev, `Appointment Outcome → ${isNoShow ? "No Show" : "Reschedule"} — re-opening scheduling${note ? ` · ${note}` : ""}`),
+        ...prev, reschedules: prev.reschedules + 1, nextAction: meta.action, appointmentStatus: meta.apptStatus,
+        lastAction: { icon: meta.icon, label: meta.label, date: today() },
+        log: pushLog(prev, `Appointment Outcome → ${meta.log} — re-opening scheduling${note ? ` · ${note}` : ""}`),
       }));
       setScheduleModalOpen(true);
       return;
