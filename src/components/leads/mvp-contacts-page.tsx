@@ -108,7 +108,12 @@ const toContact = (l) => {
     lifecycle: network ? "Network" : "Lead", stageStatus, outcome, tone,
     ownership, isCompanyOwned: ownership === "Company",
     phone: l.phone, email: l.email, primaryEmail: l.email,
-    feedback: feedbackStatusLabel(l.status),
+    // Feedback & Processing shows the Processing value + a live call counter (§10).
+    feedback: `${feedbackStatusLabel(l.status)}${getCallAttempts(l) > 0 ? ` · ${getCallAttempts(l)} call${getCallAttempts(l) !== 1 ? "s" : ""}` : ""}`,
+    // Next Action column: the primary open task + its due date (§10 new field).
+    nextAction: network ? "—" : (l.nextAction && l.nextAction !== "No open action"
+      ? `${l.nextAction}${(l.nextActionDue || l.nextActionDueDate) ? ` · ${l.nextActionDue || l.nextActionDueDate}` : ""}`
+      : "—"),
     lastActivity: l.created || "—",
     campaign: l.campaign || "—",
     dob: synthDob(l.id),
@@ -170,6 +175,7 @@ const COLUMNS = {
   stageStatus:   { label: "Status",              locked: false, filter: "status",    group: "Main Information" },
   outcomeType:   { label: "Type",                locked: false, filter: null,        group: "Main Information" },
   feedback:      { label: "Feedback & Processing",locked: false, filter: "text",      group: "Main Information" },
+  nextAction:    { label: "Next Action",         locked: false, filter: "text",      group: "Main Information" },
   lastActivity:  { label: "Last Activity",       locked: false, filter: null,        group: "Main Information" },
   create:        { label: "Create Date",         locked: false, filter: null,        group: "Main Information" },
   registration:  { label: "Registration Number", locked: false, filter: null,        group: "Main Information" },
