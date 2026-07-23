@@ -475,7 +475,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) =>
 // (with a date), reject (Not Interested), or Closed / Lost when no solution fits.
 const CALL_OUTCOMES = [
   { v: "appointment",  k: "fpChipAppt",         label: "Appointment Scheduled", tone: C.green },
-  { v: "qualified",    k: "fpChipWon",          label: "Won",                   tone: C.green },
+  { v: "won",          k: "fpChipWon",          label: "Won",                   tone: C.green },
   { v: "followup",     k: "fpChipFollowUp",     label: "Follow Up",             tone: C.purple },
   { v: "notinterested",k: "fpChipNotInterested",label: "Not Interested",        tone: C.red },
   { v: "lost",         k: "fpChipNoSolution",   label: "No Suitable Solution",  tone: C.slate },
@@ -513,7 +513,7 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
             <button onClick={() => { onDeleteAppt(); setChoice(""); }} title="Delete this appointment" aria-label="Delete appointment" style={{ background: "none", border: "none", color: C.red, fontSize: 14, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, padding: 0 }}>🗑️</button>
           </div>
         : <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>📅 {t("fpChipAppt")}</div>)}
-      {choice === "qualified" && <div style={{ fontSize: 12, color: C.green, fontWeight: 600, marginBottom: 12 }}>{t("fpWonHint")}</div>}
+      {choice === "won" && <div style={{ fontSize: 12, color: C.green, fontWeight: 600, marginBottom: 12 }}>{t("fpWonHint")}</div>}
       {isLost && (
         <MiniField label={`${t("fpLostReason")} *`}>
           <select value={lostReason} onChange={e => setLostReason(e.target.value)} style={fieldStyle}>
@@ -523,7 +523,7 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
       )}
       {sel && !isAppt && choice !== "followup" && (
         <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>
-          {NEGATIVE.has(choice) ? t("fpEndsDnc") : choice === "qualified" ? "" : t("fpEndsFinalize")}
+          {NEGATIVE.has(choice) ? t("fpEndsDnc") : choice === "won" ? "" : t("fpEndsFinalize")}
         </div>
       )}
       <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>{t("fpNoteOptional")}</label>
@@ -541,7 +541,7 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
 // Interested / Closed-Lost — attending an appointment does NOT auto-qualify. No
 // Show and Reschedule keep the lead in the Appointment status.
 const APPT_OUTCOMES = [
-  { v: "qualified",    k: "fpChipWon",          label: "Won",                  tone: C.green },
+  { v: "won",          k: "fpChipWon",          label: "Won",                  tone: C.green },
   { v: "followup",     k: "fpChipFollowUp",     label: "Follow Up",            tone: C.purple },
   { v: "notinterested",k: "fpChipNotInterested",label: "Not Interested",       tone: C.red },
   { v: "lost",         k: "fpChipNoSolution",   label: "No Suitable Solution", tone: C.slate },
@@ -566,7 +566,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule, onNoSho
   };
   const hint = choice === "reschedule" ? t("fpRescheduleHint")
     : choice === "noshow" ? t("fpNoShowHint")
-    : choice === "qualified" ? t("fpWonHintShort")
+    : choice === "won" ? t("fpWonHintShort")
     : NEGATIVE.has(choice) ? t("fpEndsDnc") : null;
   const isActionChip = choice === "reschedule" || choice === "noshow" || choice === "followup";
   const canSave = !!sel && !isActionChip && (!isLost || !!lostReason);
@@ -581,7 +581,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule, onNoSho
       )}
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{t("fpApptDesc")}</div>
       <OptionChips options={APPT_OUTCOMES.map(o => ({ ...o, label: t(o.k as any) }))} value={choice} onChange={pick} />
-      {hint && <div style={{ fontSize: 12, color: choice === "qualified" ? C.green : C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 12, color: choice === "won" ? C.green : C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
       {isLost && (
         <MiniField label={`${t("fpLostReason")} *`}>
           <select value={lostReason} onChange={e => setLostReason(e.target.value)} style={fieldStyle}>
@@ -789,11 +789,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   // Next Action derived from a resolved outcome (spec §4 / trigger matrix).
   const NEXT_ACTION_FOR = {
     appointment: "Attend / conduct appointment",
-    qualified:   "Define next closing step",
+    won:         "No open action",
     followup:    "Resume follow-up",
     notinterested: "No open action",
     lost:        "No open action",
-    other:       "Review outcome",
   };
 
   // "Continue" from Call Outcome. Appointment (already booked) → advance to
@@ -821,7 +820,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       followUpDate: extra.followUpDate || prev.followUpDate,
       followUpReason: extra.followUpReason || prev.followUpReason,
       nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
-      outcome: v === "lost" ? "Lost" : prev.outcome,
+      outcome: v === "lost" ? "Lost" : v === "won" ? "Won" : prev.outcome,
       paused: v === "followup" ? true : prev.paused,
       pausedFrom: v === "followup" ? "call" : prev.pausedFrom,
       current: IDX.finish, doneSteps: withDone(prev, "call"),
@@ -854,7 +853,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       negativeOutcome: NEGATIVE.has(v) ? true : prev.negativeOutcome,
       lostReason: extra.lostReason || prev.lostReason,
       nextAction,
-      outcome: v === "lost" ? "Lost" : prev.outcome,
+      outcome: v === "lost" ? "Lost" : v === "won" ? "Won" : prev.outcome,
       summaries: { ...prev.summaries, appointment: `${label}${noteSuffix}` },
       lastAction: { icon: NEGATIVE.has(v) ? "🏁" : "✅", label: `Appointment: ${label}`, date: today() },
       log: pushLog(prev, `Appointment Outcome → ${label}${noteSuffix}${extraLog}`),

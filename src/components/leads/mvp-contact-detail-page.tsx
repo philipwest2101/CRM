@@ -31,9 +31,8 @@ export const liveStatusFromFeedback = (fb: any, lead?: any): { label: string; pr
   if (fb.negativeOutcome) return fb.outcome === "Lost"
     ? { label: "Closed",        processing: "Lost" }
     : { label: "Not Interested", processing: "Closed" };
-  const oc = fb.contactOutcome || fb.apptOutcome;
-  if (oc === "Qualified" || fb.nextAction === "Define next closing step")
-    return { label: "Qualified", processing: "Ready to Close" };
+  // Won is a terminal positive close: Status = Closed, Processing = Won.
+  if (fb.outcome === "Won") return { label: "Closed", processing: "Won" };
   if (fb.appointmentStatus || fb.appointment || fb.current === APPT_STEP_IDX) {
     const p = fb.appointmentStatus
       ? (fb.appointmentStatus === "Completed" ? "Appointment Completed" : fb.appointmentStatus)
