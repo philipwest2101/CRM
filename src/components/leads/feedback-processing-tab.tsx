@@ -88,7 +88,7 @@ const today   = () => new Date().toLocaleDateString("en-GB", { day: "2-digit", m
 // appointment 2, finish 3).
 const STATUS_STEP = {
   open: 0, in_progress: 1, attempted: 1, connected: 1, not_reached: 3,
-  followup: 3, appointment: 2, appt_completed: 2, no_show: 2, qualified: 3,
+  followup: 1, appointment: 2, appt_completed: 2, no_show: 2, qualified: 3,
   closed: 3, no_interest: 3, dnc: 3,
 };
 
@@ -110,14 +110,10 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
   if (current > 0) log.push({ text: "Send Initial Message → Sent via SMS / WhatsApp", time: "12:59:05 PM" });
   return {
     current, finished, isContact, channels, calls,
-    reached: (status === "connected" || current > IDX.call) && !notReached,
+    reached: (status === "connected" || status === "followup" || current > IDX.call) && !notReached,
     notReached,
     contactOutcome: null, apptOutcome: null, contactNote: null, apptNote: null,
     negativeOutcome: negative, dnc: status === "dnc",
-    // Follow Up is a deliberate pause: the lead is parked (active), not processed.
-    // `pausedFrom` records which step created the pause so Resume returns there.
-    paused: status === "followup",
-    pausedFrom: status === "appointment" || status === "appt_completed" || status === "no_show" ? "appointment" : "call",
     // Spec §7 properties — seeded from the lead so a pre-existing Follow Up /
     // Lost lead shows its real date/reason; updated live during processing.
     nextAction: lead?.nextAction || null,
@@ -599,33 +595,12 @@ const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule, onNoSho
   );
 };
 
-const FinalizeStep = ({ done, paused, followUpDate, followUpReason, negativeOutcome, dnc, isContact, networkStatus, canConvert = true, onToggleDnc, onProcess, onAddToNetwork, onResumeFollowUp, onBackToDashboard }) => {
+// Reaching Finalize means the lead is processed — the terminal Status documents
+// completion (no manual "mark as processed" button). Shows the processed summary,
+// an optional Do-Not-Contact toggle for negative outcomes, and the convert action.
+const FinalizeStep = ({ negativeOutcome, dnc, isContact, networkStatus, canConvert = true, onToggleDnc, onAddToNetwork, onBackToDashboard }) => {
   const t = useT();
   return (
-  paused ? (
-    // Follow Up = a deliberate pause. The lead is ACTIVE (not "processed") and
-    // waits until the Follow-Up Date, then resumes in In Contact (spec §6/§9/§14).
-    <>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 0 16px" }}>
-        <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.purple, display: "grid", placeItems: "center", fontSize: 16, color: "#fff", flexShrink: 0 }}>⏸</span>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{t("fpFollowUpParkedTitle")}</div>
-          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>{t("fpFollowUpParkedDesc")}</div>
-        </div>
-      </div>
-      <div style={{ padding: "12px 14px", border: `1px solid ${C.purple}40`, background: C.purple + "08", borderRadius: 10, marginBottom: 16 }}>
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-          {followUpDate && <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>{t("fpFollowUpDate")}</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{followUpDate}</div></div>}
-          {followUpReason && <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>{t("fpReason")}</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{followUpReason}</div></div>}
-          <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>{t("fpNextAction")}</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{t("fpResumeFollowUp")}</div></div>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <PrimaryBtn icon="▶" onClick={onResumeFollowUp}>{t("fpResumeNow")}</PrimaryBtn>
-        <GhostBtn icon="←" onClick={onBackToDashboard}>{t("fpBackDashboard")}</GhostBtn>
-      </div>
-    </>
-  ) : (
   <>
     {negativeOutcome && (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderRadius: 10, border: `1px solid ${dnc ? C.red + "55" : C.border}`, background: dnc ? C.red + "0C" : C.light, marginBottom: 16 }}>
@@ -636,32 +611,22 @@ const FinalizeStep = ({ done, paused, followUpDate, followUpReason, negativeOutc
         <Toggle on={dnc} onChange={onToggleDnc} danger />
       </div>
     )}
-    {done ? (
-      <>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 0 16px" }}>
-          <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.green, display: "grid", placeItems: "center", fontSize: 16, color: "#fff", flexShrink: 0 }}>✓</span>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{t("fpProcessedTitle")}</div>
-            <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>{t("fpProcessedDesc")}{dnc ? t("fpProcessedDnc") : ""}</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <GhostBtn icon="←" onClick={onBackToDashboard}>{t("fpBackDashboard")}</GhostBtn>
-          {isContact
-            ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ {t("fpInNetwork")} · {networkStatus}</span>
-            : canConvert
-              ? <PrimaryBtn icon="⇪" onClick={onAddToNetwork}>{t("fpAddNetwork")}</PrimaryBtn>
-              : <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: C.light, border: `1px solid ${C.border}`, padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>{t("fpConvNotAllowed")}</span>}
-        </div>
-      </>
-    ) : (
-      <>
-        <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>{t("fpFinalizeDesc")}</div>
-        <PrimaryBtn icon="🏁" onClick={onProcess}>{t("fpMarkProcessed")}</PrimaryBtn>
-      </>
-    )}
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 0 16px" }}>
+      <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.green, display: "grid", placeItems: "center", fontSize: 16, color: "#fff", flexShrink: 0 }}>✓</span>
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{t("fpProcessedTitle")}</div>
+        <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>{t("fpProcessedDesc")}{dnc ? t("fpProcessedDnc") : ""}</div>
+      </div>
+    </div>
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <GhostBtn icon="←" onClick={onBackToDashboard}>{t("fpBackDashboard")}</GhostBtn>
+      {isContact
+        ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ {t("fpInNetwork")} · {networkStatus}</span>
+        : canConvert
+          ? <PrimaryBtn icon="⇪" onClick={onAddToNetwork}>{t("fpAddNetwork")}</PrimaryBtn>
+          : <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: C.light, border: `1px solid ${C.border}`, padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>{t("fpConvNotAllowed")}</span>}
+    </div>
   </>
-  )
   );
 };
 
@@ -676,6 +641,12 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
 
   // "Add to Network" deep-link from the Leads list opens the Convert dialog once.
   React.useEffect(() => { if (autoConvert && !state.isContact) setConvertOpen(true); }, []);
+
+  // Reaching the Finalize step marks the lead processed automatically — there is
+  // no manual "mark as processed" button; the terminal Status documents it.
+  React.useEffect(() => {
+    if (current === IDX.finish && !state.finished && !state.isContact && !readOnly) onProcess();
+  }, [current, state.finished, state.isContact, readOnly]);
 
   const pushLog = (prev, text) => [...prev.log, { text, time: nowTime() }];
   const withDone = (prev, key) => prev.doneSteps.includes(key) ? prev.doneSteps : [...prev.doneSteps, key];
@@ -821,8 +792,6 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       followUpReason: extra.followUpReason || prev.followUpReason,
       nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
       outcome: v === "lost" ? "Lost" : v === "won" ? "Won" : prev.outcome,
-      paused: v === "followup" ? true : prev.paused,
-      pausedFrom: v === "followup" ? "call" : prev.pausedFrom,
       current: IDX.finish, doneSteps: withDone(prev, "call"),
       summaries: { ...prev.summaries, call: `Connected · ${label}${noteSuffix}` },
       lastAction: { icon: "🏁", label: `Call outcome: ${label}`, date: today() },
@@ -881,17 +850,13 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     onCreateTask && onCreateTask();
   };
 
-  // Follow Up (from Call or Appointment) — park the lead as an active Follow Up
-  // and open the Create Task modal to schedule it (no inline date/reason).
+  // Follow Up — stays in the current step (like No Show); highlight the chip and
+  // open the Create Task modal to schedule the follow-up. No dedicated step.
   const onPickFollowUp = (fromKey) => {
     setState(prev => ({
-      ...prev, paused: true, pausedFrom: fromKey, nextAction: "Resume follow-up",
-      contactOutcome: fromKey === "call" ? "Follow Up" : prev.contactOutcome,
-      apptOutcome: fromKey === "appointment" ? "Follow Up" : prev.apptOutcome,
-      current: IDX.finish, doneSteps: withDone(prev, fromKey),
-      summaries: { ...prev.summaries, [fromKey]: "Follow Up · task created" },
-      lastAction: { icon: "⏸", label: "Follow Up · task created", date: today() },
-      log: pushLog(prev, `${STEPS[IDX[fromKey]].title} → Follow Up · lead paused, task created`),
+      ...prev, nextAction: "Resume follow-up",
+      lastAction: { icon: "🔁", label: "Follow Up · task created", date: today() },
+      log: pushLog(prev, `${STEPS[IDX[fromKey]].title} → Follow Up · task created`),
     }));
     onCreateTask && onCreateTask();
   };
@@ -901,26 +866,11 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     return { ...prev, dnc, log: pushLog(prev, `Do Not Contact → ${dnc ? "ON" : "OFF"}`) };
   });
 
-  // Resume a paused Follow Up — the lead returns to the step that created the
-  // pause (spec §14: Follow-Up date reached → return to In Contact / Appointment).
-  const onResumeFollowUp = () => setState(prev => {
-    const from = prev.pausedFrom || "call";
-    const idx = IDX[from];
-    const backTo = from === "appointment" ? "Appointment" : "In Contact";
-    return {
-      ...prev, paused: false, current: idx, reached: true, notReached: false,
-      doneSteps: prev.doneSteps.filter(k => IDX[k] < idx),
-      contactOutcome: from === "call" ? null : prev.contactOutcome,
-      apptOutcome: from === "appointment" ? null : prev.apptOutcome,
-      nextAction: from === "appointment" ? "Record appointment result" : "Schedule appointment",
-      lastAction: { icon: "▶", label: `Follow-up resumed → ${backTo}`, date: today() },
-      log: pushLog(prev, `Follow Up → Resumed · returned to ${STEPS[idx].title}`),
-    };
-  });
-
+  // Reaching the Finalize step marks the lead processed automatically — the
+  // terminal Status already documents completion, so there is no manual button.
   const onProcess = () => {
     onLeadFinalized && onLeadFinalized();   // persist "finalized" so the Leads list shows "Add to Network"
-    setState(prev => ({
+    setState(prev => prev.finished ? prev : ({
       ...prev, finished: true,
       lastAction: { icon: "🏁", label: "Lead processed", date: today() },
       log: pushLog(prev, `Finalize Process → Processed${prev.dnc ? " · Do Not Contact" : ""}`),
@@ -974,7 +924,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
                             ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} onFollowUp={() => onPickFollowUp("call")} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onNoShow={onNoShowAppt} onFollowUp={() => onPickFollowUp("appointment")} />;
-      case "finish":      return <FinalizeStep done={state.finished} paused={state.paused && !state.finished} followUpDate={state.followUpDate} followUpReason={state.followUpReason} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onResumeFollowUp={onResumeFollowUp} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
+      case "finish":      return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
   };
@@ -1021,7 +971,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
           editable={i === completed.length - 1 && !state.isContact} onReopen={() => setReopenTarget(s.key)} />
       ))}
 
-      <CurrentStepShell num={stepNo(currentStep.key)} title={(currentStep.key === "finish" && state.paused && !state.finished) ? t("fpFollowUpTitle") : stepTitleT(currentStep.key, t)}>
+      <CurrentStepShell num={stepNo(currentStep.key)} title={stepTitleT(currentStep.key, t)}>
         {renderCurrentBody(currentStep)}
       </CurrentStepShell>
 

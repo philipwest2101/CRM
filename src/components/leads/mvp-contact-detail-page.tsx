@@ -25,7 +25,6 @@ const stageStatusLabel = (status?: string) => (status && STATUS_LABEL[status]) |
 const APPT_STEP_IDX = STEPS.findIndex(s => s.key === "appointment");
 export const liveStatusFromFeedback = (fb: any, lead?: any): { label: string; processing: string | null } => {
   if (!fb) return { label: stageStatusLabel(lead?.status), processing: null };
-  if (fb.paused)      return { label: "Follow Up",      processing: "Waiting for Follow-Up" };
   if (fb.notReached)  return { label: "Not Reached",    processing: "Closed" };
   if (fb.dnc)         return { label: "Do Not Contact", processing: "Closed" };
   if (fb.negativeOutcome) return fb.outcome === "Lost"
