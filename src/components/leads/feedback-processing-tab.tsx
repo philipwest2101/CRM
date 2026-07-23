@@ -544,7 +544,7 @@ const APPT_OUTCOMES = [
   { v: "lost",         label: "No Suitable Solution", tone: C.slate },
   // The three "appointment didn't take place" outcomes share one flow (re-open
   // scheduling); the specific Appointment Status is picked in the reveal below.
-  { v: "reopen",       label: "Reschedule / No Show / Cancelled", tone: C.amber },
+  { v: "reopen",       label: "Appointment Not Held", tone: C.amber },
 ];
 // Sub-options for the combined "reopen" chip — kept structured (not free-text)
 // so Appointment Status stays reportable (spec §7).
@@ -588,7 +588,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
       <OptionChips options={APPT_OUTCOMES} value={choice} onChange={setChoice} />
       {hint && <div style={{ fontSize: 12, color: choice === "qualified" ? C.green : C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
       {isReopen && (
-        <MiniField label="Appointment Status *">
+        <MiniField label="What happened? *">
           <select value={reopenKind} onChange={e => setReopenKind(e.target.value)} style={fieldStyle}>
             <option value="">Choose what happened…</option>{REOPEN_KINDS.map(k => <option key={k.v} value={k.v}>{k.label}</option>)}
           </select>
