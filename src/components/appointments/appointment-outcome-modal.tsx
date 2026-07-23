@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
+import { useT } from "../../lib/i18n";
 
 // Appointment Outcome modal (matches the "Appointment Outcome" wireframe).
 // Set Outcome is a Network-only action (Lead appointments are worked in the
@@ -15,8 +16,14 @@ const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px 
 export const APPOINTMENT_OUTCOMES = [
   "Won", "Rescheduled", "Attending Event", "Not Interested", "Maybe Later", "No Suitable Solution", "Other",
 ];
+// Canonical value (stored) → i18n key (displayed). Keeps saved data language-stable.
+const OUTCOME_KEY = {
+  "Won": "aoWon", "Rescheduled": "aoRescheduled", "Attending Event": "aoAttendingEvent",
+  "Not Interested": "aoNotInterested", "Maybe Later": "aoMaybeLater", "No Suitable Solution": "aoNoSolution", "Other": "aoOther",
+};
 
 export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
+  const t = useT();
   const [outcome, setOutcome] = useState("");
   const [note,    setNote]    = useState("");
   // Only used when the outcome is "Rescheduled" — the new appointment slot.
@@ -39,7 +46,7 @@ export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
 
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
           <div style={{ fontSize:15, fontWeight:800, color:C.navy, display:"flex", alignItems:"center", gap:8 }}>
-            <span>🤝</span>Appointment Outcome
+            <span>🤝</span>{t("apptOutcomeTitle")}
           </div>
           <button onClick={onClose} style={{ width:28, height:28, borderRadius:"50%", border:`1px solid ${C.border}`, background:"#F8FAFC", color:C.muted, fontSize:15, cursor:"pointer" }}>×</button>
         </div>
@@ -61,32 +68,32 @@ export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
         )}
 
         <div style={{ marginBottom:12 }}>
-          <label style={lbl}>Outcome *</label>
+          <label style={lbl}>{t("fldOutcome")} *</label>
           <select value={outcome} onChange={e=>setOutcome(e.target.value)} style={input}>
-            <option value="">Select outcome</option>
-            {APPOINTMENT_OUTCOMES.map(o => <option key={o} value={o}>{o}</option>)}
+            <option value="">{t("selectOutcome")}</option>
+            {APPOINTMENT_OUTCOMES.map(o => <option key={o} value={o}>{t(OUTCOME_KEY[o] as any)}</option>)}
           </select>
         </div>
 
         <div style={{ marginBottom:isReschedule?12:18 }}>
-          <label style={lbl}>Note</label>
-          <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Enter a note"
+          <label style={lbl}>{t("fldNote")}</label>
+          <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder={t("enterNote")}
             style={{ ...input, minHeight:90, resize:"none", lineHeight:1.5 }}/>
         </div>
 
         {/* Reschedule reveal — a new Date + Time for the moved appointment. */}
         {isReschedule && (
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:18 }}>
-            <div><label style={lbl}>Date *</label><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={input}/></div>
-            <div><label style={lbl}>Time *</label><input type="time" value={time} onChange={e=>setTime(e.target.value)} style={input}/></div>
+            <div><label style={lbl}>{t("fldDate")} *</label><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={input}/></div>
+            <div><label style={lbl}>{t("fldTime")} *</label><input type="time" value={time} onChange={e=>setTime(e.target.value)} style={input}/></div>
           </div>
         )}
 
         <div style={{ display:"flex", gap:10 }}>
-          <button onClick={onClose} style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:13, fontWeight:600, cursor:"pointer" }}>Cancel</button>
+          <button onClick={onClose} style={{ flex:1, padding:"10px", borderRadius:9, border:`1px solid ${C.border}`, background:"#fff", color:C.slate, fontSize:13, fontWeight:600, cursor:"pointer" }}>{t("cancel")}</button>
           <button onClick={()=>canSave && onSave && onSave({ outcome, note, ...(isReschedule?{ date, time }:{}) })} disabled={!canSave}
             style={{ flex:2, padding:"10px", borderRadius:9, border:"none", background:canSave?C.primary:"#E2E8F0", color:canSave?"#fff":C.muted, fontSize:13, fontWeight:700, cursor:canSave?"pointer":"default" }}>
-            {isReschedule ? "Update" : "Save"}
+            {isReschedule ? t("update") : t("save")}
           </button>
         </div>
       </div>
