@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
 import { AppointmentModal } from "../appointments/appointment-modal";
-import { LOST_REASONS, FOLLOWUP_REASONS, NETWORK_OUTCOMES } from "../../lib/core";
+import { LOST_REASONS, NETWORK_OUTCOMES } from "../../lib/core";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FEEDBACK & PROCESSING TAB  (controlled)
@@ -456,38 +456,32 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) =>
 // (with a date), reject (Not Interested), or Closed / Lost when no solution fits.
 const CALL_OUTCOMES = [
   { v: "appointment",  label: "Appointment Scheduled", tone: C.green },
-  { v: "qualified",    label: "Qualified",             tone: C.green },
-  { v: "followup",     label: "Follow Up (later)",     tone: C.purple },
+  { v: "qualified",    label: "Won",                   tone: C.green },
+  { v: "followup",     label: "Follow Up",             tone: C.purple },
   { v: "notinterested",label: "Not Interested",        tone: C.red },
   { v: "lost",         label: "No Suitable Solution",  tone: C.slate },
-  { v: "other",        label: "Other",                 tone: C.slate },
 ];
-// Small labelled <select> used for Lost Reason / Follow-Up Reason / date capture.
+// Small labelled <select> used for Lost Reason capture.
 const MiniField = ({ label, children }) => (
   <div style={{ marginBottom: 12 }}>
     <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>{label}</label>
     {children}
   </div>
 );
-const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue }) => {
+const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue, onFollowUp }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const [lostReason, setLostReason] = useState("");
-  const [followUpDate, setFollowUpDate] = useState("");
-  const [followUpReason, setFollowUpReason] = useState("");
   const sel = CALL_OUTCOMES.find(o => o.v === choice);
   const isAppt = choice === "appointment";
   const isLost = NEEDS_LOST_REASON.has(choice);
-  const isFollow = choice === "followup";
-  // Picking "Appointment Scheduled" opens the scheduling modal right away; the
-  // step then keeps a plain "Continue" that advances once the appointment is booked.
-  const pick = (v) => { setChoice(v); if (v === "appointment") onScheduleAppt(); };
-  // Follow Up needs a date + reason; Closed / Lost needs a Lost Reason (spec §6, §9).
-  const canContinue = !!sel
+  // Appointment Scheduled → open the scheduler. Follow Up → open the Create Task
+  // modal (scheduling the follow-up task is sufficient — no inline date/reason).
+  const pick = (v) => { setChoice(v); if (v === "appointment") onScheduleAppt(); else if (v === "followup") onFollowUp(); };
+  const canContinue = !!sel && choice !== "followup"
     && (!isAppt || !!appointment)
-    && (!isLost || !!lostReason)
-    && (!isFollow || (!!followUpDate && !!followUpReason));
-  const extra = () => ({ lostReason: isLost ? lostReason : null, followUpDate: isFollow ? followUpDate : null, followUpReason: isFollow ? followUpReason : null });
+    && (!isLost || !!lostReason);
+  const extra = () => ({ lostReason: isLost ? lostReason : null });
   return (
     <>
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>The contact was reached (<b>Connected</b>). Select the outcome of the conversation to continue processing the lead.</div>
@@ -499,18 +493,7 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
             <button onClick={() => { onDeleteAppt(); setChoice(""); }} title="Delete this appointment" aria-label="Delete appointment" style={{ background: "none", border: "none", color: C.red, fontSize: 14, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, padding: 0 }}>🗑️</button>
           </div>
         : <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>📅 Book the appointment to continue — reopen the scheduler with “Appointment Scheduled”.</div>)}
-      {choice === "qualified" && <div style={{ fontSize: 12, color: C.green, fontWeight: 600, marginBottom: 12 }}>→ Status becomes <b>Qualified</b> (Ready to Close). Next Action: define the next closing step.</div>}
-      {isFollow && (
-        <div style={{ padding: "12px 14px", border: `1px solid ${C.purple}40`, background: C.purple + "08", borderRadius: 10, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: C.purple, fontWeight: 700, marginBottom: 10 }}>A Follow Up is a deliberate pause until a later date — a date and reason are required.</div>
-          <MiniField label="Follow-Up Date *"><input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} style={fieldStyle} /></MiniField>
-          <MiniField label="Follow-Up Reason *">
-            <select value={followUpReason} onChange={e => setFollowUpReason(e.target.value)} style={fieldStyle}>
-              <option value="">Choose…</option>{FOLLOWUP_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </MiniField>
-        </div>
-      )}
+      {choice === "qualified" && <div style={{ fontSize: 12, color: C.green, fontWeight: 600, marginBottom: 12 }}>→ Marked <b>Won</b> (Ready to Close). Next Action: define the next closing step.</div>}
       {isLost && (
         <MiniField label="Lost Reason *">
           <select value={lostReason} onChange={e => setLostReason(e.target.value)} style={fieldStyle}>
@@ -518,7 +501,7 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
           </select>
         </MiniField>
       )}
-      {sel && !isAppt && !isFollow && (
+      {sel && !isAppt && choice !== "followup" && (
         <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>
           {NEGATIVE.has(choice) ? "↩ Ends processing — you can set Do Not Contact in Finalize." : choice === "qualified" ? "" : "↩ Ends processing — sent to Finalize."}
         </div>
@@ -538,45 +521,36 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
 // Interested / Closed-Lost — attending an appointment does NOT auto-qualify. No
 // Show and Reschedule keep the lead in the Appointment status.
 const APPT_OUTCOMES = [
-  { v: "qualified",    label: "Qualified",            tone: C.green },
-  { v: "followup",     label: "Follow Up (later)",    tone: C.purple },
+  { v: "qualified",    label: "Won",                  tone: C.green },
+  { v: "followup",     label: "Follow Up",            tone: C.purple },
   { v: "notinterested",label: "Not Interested",       tone: C.red },
   { v: "lost",         label: "No Suitable Solution", tone: C.slate },
-  // The three "appointment didn't take place" outcomes share one flow (re-open
-  // scheduling); the specific Appointment Status is picked in the reveal below.
-  { v: "reopen",       label: "Appointment Not Held", tone: C.amber },
+  { v: "reschedule",   label: "Reschedule",           tone: C.amber },
+  { v: "noshow",       label: "No Show",              tone: C.amber },
 ];
-// Sub-options for the combined "reopen" chip — kept structured (not free-text)
-// so Appointment Status stays reportable (spec §7).
-const REOPEN_KINDS = [
-  { v: "reschedule", label: "Reschedule" },
-  { v: "noshow",     label: "No Show" },
-  { v: "cancelled",  label: "Cancelled" },
-];
-const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
+const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule, onNoShow, onFollowUp }) => {
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const [lostReason, setLostReason] = useState("");
-  const [followUpDate, setFollowUpDate] = useState("");
-  const [followUpReason, setFollowUpReason] = useState("");
-  const [reopenKind, setReopenKind] = useState("");   // reschedule | noshow | cancelled
   const sel = APPT_OUTCOMES.find(o => o.v === choice);
   const isLost = NEEDS_LOST_REASON.has(choice);
-  const isFollow = choice === "followup";
-  const isReopen = choice === "reopen";
-  const hint = isReopen
-    ? "↩ Stays in Appointment — pick what happened, then re-open scheduling. Next Action: call / contact to reschedule."
-    : choice === "qualified" ? "→ Status becomes Qualified (Ready to Close)."
+  // Reschedule → re-open scheduler. No Show / Follow Up → open the Create Task
+  // modal (creating the reschedule / follow-up task is sufficient). Won / Not
+  // Interested / No Suitable Solution → Save & Continue.
+  const pick = (v) => {
+    setChoice(v);
+    if (v === "reschedule") onReschedule();
+    else if (v === "noshow") onNoShow();
+    else if (v === "followup") onFollowUp();
+  };
+  const hint = choice === "reschedule" ? "↩ Stays in Appointment — re-open the scheduler to re-book."
+    : choice === "noshow" ? "↩ Stays in Appointment — a Create Task modal opens to schedule the reschedule call."
+    : choice === "qualified" ? "→ Marked Won (Ready to Close)."
     : NEGATIVE.has(choice) ? "↩ Ends processing — you can set Do Not Contact in Finalize." : null;
-  const canSave = !!sel
-    && (!isLost || !!lostReason)
-    && (!isFollow || (!!followUpDate && !!followUpReason))
-    && (!isReopen || !!reopenKind);
-  const extra = () => ({ lostReason: isLost ? lostReason : null, followUpDate: isFollow ? followUpDate : null, followUpReason: isFollow ? followUpReason : null });
-  // The combined "reopen" chip resolves to the picked sub-kind so the downstream
-  // handler (reschedule | noshow | cancelled) and Appointment Status are unchanged.
-  const resolved = isReopen ? REOPEN_KINDS.find(k => k.v === reopenKind) : sel;
-  const submit = () => resolved && onComplete(resolved.v, resolved.label, note.trim(), extra());
+  const isActionChip = choice === "reschedule" || choice === "noshow" || choice === "followup";
+  const canSave = !!sel && !isActionChip && (!isLost || !!lostReason);
+  const extra = () => ({ lostReason: isLost ? lostReason : null });
+  const submit = () => sel && onComplete(sel.v, sel.label, note.trim(), extra());
   return (
     <>
       {appointment && (
@@ -585,26 +559,8 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
         </div>
       )}
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Record the outcome of the appointment. A completed appointment must resolve to one clear result.</div>
-      <OptionChips options={APPT_OUTCOMES} value={choice} onChange={setChoice} />
+      <OptionChips options={APPT_OUTCOMES} value={choice} onChange={pick} />
       {hint && <div style={{ fontSize: 12, color: choice === "qualified" ? C.green : C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
-      {isReopen && (
-        <MiniField label="What happened? *">
-          <select value={reopenKind} onChange={e => setReopenKind(e.target.value)} style={fieldStyle}>
-            <option value="">Choose what happened…</option>{REOPEN_KINDS.map(k => <option key={k.v} value={k.v}>{k.label}</option>)}
-          </select>
-        </MiniField>
-      )}
-      {isFollow && (
-        <div style={{ padding: "12px 14px", border: `1px solid ${C.purple}40`, background: C.purple + "08", borderRadius: 10, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: C.purple, fontWeight: 700, marginBottom: 10 }}>A Follow Up is a deliberate pause until a later date — a date and reason are required.</div>
-          <MiniField label="Follow-Up Date *"><input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} style={fieldStyle} /></MiniField>
-          <MiniField label="Follow-Up Reason *">
-            <select value={followUpReason} onChange={e => setFollowUpReason(e.target.value)} style={fieldStyle}>
-              <option value="">Choose…</option>{FOLLOWUP_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </MiniField>
-        </div>
-      )}
       {isLost && (
         <MiniField label="Lost Reason *">
           <select value={lostReason} onChange={e => setLostReason(e.target.value)} style={fieldStyle}>
@@ -616,7 +572,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — e.g. client was a no-show without notice…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon={isReopen ? "📅" : "✓"} disabled={!canSave} onClick={submit}>Save &amp; Continue</PrimaryBtn>
+        <PrimaryBtn icon="✓" disabled={!canSave} onClick={submit}>Save &amp; Continue</PrimaryBtn>
       </div>
     </>
   );
@@ -631,13 +587,13 @@ const FinalizeStep = ({ done, paused, followUpDate, followUpReason, negativeOutc
         <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.purple, display: "grid", placeItems: "center", fontSize: 16, color: "#fff", flexShrink: 0 }}>⏸</span>
         <div>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>Follow Up Scheduled — lead paused (still active)</div>
-          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>Status <b>Follow Up</b>. It will resume in <b>In Contact</b> on the Follow-Up Date. This is not a closed/processed lead.</div>
+          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>Status <b>Follow Up</b>. A follow-up task has been created; the lead resumes in <b>In Contact</b> when you pick it back up. This is not a closed/processed lead.</div>
         </div>
       </div>
       <div style={{ padding: "12px 14px", border: `1px solid ${C.purple}40`, background: C.purple + "08", borderRadius: 10, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-          <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>Follow-Up Date</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{followUpDate || "—"}</div></div>
-          <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>Reason</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{followUpReason || "—"}</div></div>
+          {followUpDate && <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>Follow-Up Date</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{followUpDate}</div></div>}
+          {followUpReason && <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>Reason</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{followUpReason}</div></div>}
           <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>Next Action</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>Resume follow-up</div></div>
         </div>
       </div>
@@ -861,41 +817,59 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     }));
   };
 
+  // Terminal appointment outcomes (Won / Not Interested / No Suitable Solution)
+  // resolve to Finalize. Reschedule / No Show / Follow Up are handled by their own
+  // chip actions below (they open a modal and keep the lead active).
   const onAppointmentOutcome = (v, label, note = "", extra: any = {}) => {
-    // Reschedule, Cancelled and No Show all keep the lead in the Appointment
-    // status and re-open scheduling (they must NOT advance to Follow Up/Qualified).
-    if (v === "reschedule" || v === "noshow" || v === "cancelled") {
-      const meta = {
-        noshow:     { icon: "👻", action: "Call to reschedule",       label: "No show — reschedule",             apptStatus: "No Show",     log: "No Show" },
-        cancelled:  { icon: "🚫", action: "Contact lead / Reschedule", label: "Appointment cancelled — re-book",   apptStatus: "Cancelled",   log: "Cancelled" },
-        reschedule: { icon: "🔁", action: "Call to reschedule",       label: "Appointment rescheduled — re-book", apptStatus: "Rescheduled", log: "Reschedule" },
-      }[v];
-      setState(prev => ({
-        ...prev, reschedules: prev.reschedules + 1, nextAction: meta.action, appointmentStatus: meta.apptStatus,
-        lastAction: { icon: meta.icon, label: meta.label, date: today() },
-        log: pushLog(prev, `Appointment Outcome → ${meta.log} — re-opening scheduling${note ? ` · ${note}` : ""}`),
-      }));
-      setScheduleModalOpen(true);
-      return;
-    }
     const noteSuffix = note ? ` — ${note}` : "";
     const nextAction = NEXT_ACTION_FOR[v] || null;
-    const extraLog = extra.lostReason ? ` · Lost Reason: ${extra.lostReason}`
-      : extra.followUpDate ? ` · Follow-Up ${extra.followUpDate} (${extra.followUpReason})` : "";
+    const extraLog = extra.lostReason ? ` · Lost Reason: ${extra.lostReason}` : "";
     setState(prev => ({
       ...prev, apptOutcome: label, apptNote: note || null, current: IDX.finish, doneSteps: withDone(prev, "appointment"),
       negativeOutcome: NEGATIVE.has(v) ? true : prev.negativeOutcome,
       lostReason: extra.lostReason || prev.lostReason,
-      followUpDate: extra.followUpDate || prev.followUpDate,
-      followUpReason: extra.followUpReason || prev.followUpReason,
-      nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
+      nextAction,
       outcome: v === "lost" ? "Lost" : prev.outcome,
-      paused: v === "followup" ? true : prev.paused,
-      pausedFrom: v === "followup" ? "appointment" : prev.pausedFrom,
       summaries: { ...prev.summaries, appointment: `${label}${noteSuffix}` },
       lastAction: { icon: NEGATIVE.has(v) ? "🏁" : "✅", label: `Appointment: ${label}`, date: today() },
       log: pushLog(prev, `Appointment Outcome → ${label}${noteSuffix}${extraLog}`),
     }));
+  };
+
+  // Reschedule — re-open the scheduler; the lead stays in Appointment.
+  const onReschedule = () => {
+    setState(prev => ({
+      ...prev, reschedules: prev.reschedules + 1, appointmentStatus: "Rescheduled", nextAction: "Call to reschedule",
+      lastAction: { icon: "🔁", label: "Appointment rescheduled — re-book", date: today() },
+      log: pushLog(prev, "Appointment Outcome → Reschedule — re-opening scheduling"),
+    }));
+    setScheduleModalOpen(true);
+  };
+
+  // No Show — stay in Appointment / No Show and open the Create Task modal to
+  // schedule the reschedule call (spec §9.1). Does not advance to Follow Up.
+  const onNoShowAppt = () => {
+    setState(prev => ({
+      ...prev, appointmentStatus: "No Show", nextAction: "Call to reschedule",
+      lastAction: { icon: "👻", label: "No show — create reschedule task", date: today() },
+      log: pushLog(prev, "Appointment Outcome → No Show · create reschedule task"),
+    }));
+    onCreateTask && onCreateTask();
+  };
+
+  // Follow Up (from Call or Appointment) — park the lead as an active Follow Up
+  // and open the Create Task modal to schedule it (no inline date/reason).
+  const onPickFollowUp = (fromKey) => {
+    setState(prev => ({
+      ...prev, paused: true, pausedFrom: fromKey, nextAction: "Resume follow-up",
+      contactOutcome: fromKey === "call" ? "Follow Up" : prev.contactOutcome,
+      apptOutcome: fromKey === "appointment" ? "Follow Up" : prev.apptOutcome,
+      current: IDX.finish, doneSteps: withDone(prev, fromKey),
+      summaries: { ...prev.summaries, [fromKey]: "Follow Up · task created" },
+      lastAction: { icon: "⏸", label: "Follow Up · task created", date: today() },
+      log: pushLog(prev, `${STEPS[IDX[fromKey]].title} → Follow Up · lead paused, task created`),
+    }));
+    onCreateTask && onCreateTask();
   };
 
   const onToggleDnc = () => setState(prev => {
@@ -973,9 +947,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} emailSent={emailSent} onSend={onSend} onSkip={onSkipInitial} onSendEmail={onSendEmail} />;
       case "call":        return (state.reached && !state.notReached)
-                            ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} />
+                            ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} onFollowUp={() => onPickFollowUp("call")} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
-      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
+      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onNoShow={onNoShowAppt} onFollowUp={() => onPickFollowUp("appointment")} />;
       case "finish":      return <FinalizeStep done={state.finished} paused={state.paused && !state.finished} followUpDate={state.followUpDate} followUpReason={state.followUpReason} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onResumeFollowUp={onResumeFollowUp} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
