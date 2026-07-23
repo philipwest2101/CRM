@@ -293,6 +293,10 @@ const _STRUCTURED_DEFAULTS = {
   lost:         { nextAction:"No open action",                due:() => null, closed:true, outcome:"Lost", lostReason:"No Suitable Product" },
 };
 
+// Status groups used to seed the remaining §7 date/reason properties.
+const _CONNECTED_STATUSES  = new Set(["connected", "appointment", "appt_completed", "no_show", "followup", "qualified", "closed", "partner", "customer_partner", "lost"]);
+const _APPOINTMENT_STATUSES = new Set(["appointment", "appt_completed", "no_show"]);
+
 export function enrichLead(l) {
   const d = _STRUCTURED_DEFAULTS[l.status] || _STRUCTURED_DEFAULTS.open;
   if (typeof l.callAttempts !== "number") l.callAttempts = l.attempts || 0;
@@ -306,6 +310,13 @@ export function enrichLead(l) {
   if (l.outcome           === undefined) l.outcome           = d.outcome ?? null;
   if (l.appointmentStatus === undefined) l.appointmentStatus = d.appointmentStatus ?? null;
   if (l.closedDate        === undefined) l.closedDate        = d.closed ? _todayISO() : null;
+  // Remaining §7 properties (dates + reasons).
+  const connected = _CONNECTED_STATUSES.has(l.status);
+  if (l.firstConnected    === undefined) l.firstConnected    = connected ? _plusDaysISO(-3) : null;
+  if (l.lastContact       === undefined) l.lastContact       = (connected || (l.callAttempts || 0) > 0) ? _plusDaysISO(-1) : null;
+  if (l.appointmentDate   === undefined) l.appointmentDate   = _APPOINTMENT_STATUSES.has(l.status) ? _plusDaysISO(l.status === "appointment" ? 2 : -1) : null;
+  if (l.qualifiedDate     === undefined) l.qualifiedDate     = l.status === "qualified" ? _todayISO() : null;
+  if (l.dncReason         === undefined) l.dncReason         = l.status === "dnc" ? "GDPR / erasure request" : null;
   return l;
 }
 ALL_LEADS.forEach(enrichLead);
@@ -1684,6 +1695,14 @@ export const TERMINAL_STATUSES = new Set(["closed", "partner", "customer_partner
 export const isTerminalStatus = (status) => TERMINAL_STATUSES.has(status);
 
 const _isoToday = () => new Date().toISOString().slice(0, 10);
+// Next working day (skips Sat/Sun) — used for "Call again" / "Call to reschedule"
+// due dates, which the spec requires whenever those Next Actions are set.
+const _nextWorkingDayISO = () => {
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  if (d.getDay() === 6) d.setDate(d.getDate() + 2);        // Sat → Mon
+  else if (d.getDay() === 0) d.setDate(d.getDate() + 1);   // Sun → Mon
+  return d.toISOString().slice(0, 10);
+};
 
 // §3 Terminal Statuses — when a lead reaches Closed / Not Interested / Not
 // Reached / Do Not Contact, cancel every still-open task and record closedDate.
@@ -1700,26 +1719,37 @@ export const applyTerminalStatus = (lead, tasks = []) => {
 export const applyCallResult = (lead, result, tasks = []) => {
   const noAnswer = ["No Answer", "no_answer", "notreached", "not_reached"].includes(result);
   if (!noAnswer) {
-    return { ...lead, status: "connected", processing: "Connected", nextAction: lead.nextAction || "Define next step" };
+    // Connected: keep In Contact / Connected, save First Connected Date if empty,
+    // and stamp Last Contact Date (spec §9 "IF call is connected").
+    return {
+      ...lead, status: "connected", processing: "Connected",
+      nextAction: lead.nextAction || "Schedule appointment",
+      firstConnected: lead.firstConnected || _isoToday(),
+      lastContact: _isoToday(),
+    };
   }
   const callAttempts = getCallAttempts(lead) + 1;
-  const next = { ...lead, callAttempts, attempts: callAttempts };
+  const next = { ...lead, callAttempts, attempts: callAttempts, lastContact: _isoToday() };
   if (callAttempts >= STATUS_AUTOMATION_CONFIG.notReachedThreshold) {
     return applyTerminalStatus({ ...next, status: "not_reached", processing: "Closed" }, tasks);
   }
-  return { ...next, status: "attempted", processing: "Attempting Contact", nextAction: "Call again" };
+  // No Answer: Next Action = Call again with a required due date (spec §9).
+  const due = _nextWorkingDayISO();
+  return { ...next, status: "attempted", processing: "Attempting Contact", nextAction: "Call again", nextActionDue: due, nextActionDueDate: due };
 };
 
 // §3 Appointments — a "No Show" keeps the lead in the Appointment status (does
-// NOT auto-advance to Follow Up or Qualified) and sets Next Action accordingly.
+// NOT auto-advance to Follow Up or Qualified) and sets Next Action + a required
+// due date. Reschedule/Cancelled also stay in Appointment.
 export const applyAppointmentResult = (lead, result) => {
+  const due = _nextWorkingDayISO();
   if (["No Show", "noshow", "no_show"].includes(result)) {
-    return { ...lead, appointmentStatus: "No Show", processing: "No Show", nextAction: "Call to reschedule" };
+    return { ...lead, appointmentStatus: "No Show", processing: "No Show", nextAction: "Call to reschedule", nextActionDue: due, nextActionDueDate: due };
   }
   if (["Cancelled", "cancelled", "Rescheduled", "reschedule"].includes(result)) {
-    return { ...lead, appointmentStatus: result === "reschedule" ? "Rescheduled" : "Cancelled", nextAction: "Call to reschedule" };
+    return { ...lead, appointmentStatus: result === "reschedule" ? "Rescheduled" : "Cancelled", nextAction: "Call to reschedule", nextActionDue: due, nextActionDueDate: due };
   }
-  return { ...lead, appointmentStatus: "Completed", nextAction: "Record appointment result" };
+  return { ...lead, appointmentStatus: "Completed", nextAction: "Record appointment result", nextActionDue: _isoToday(), nextActionDueDate: _isoToday() };
 };
 
 
