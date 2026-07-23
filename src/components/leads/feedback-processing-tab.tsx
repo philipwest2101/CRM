@@ -108,7 +108,9 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
     contactOutcome: null, apptOutcome: null, contactNote: null, apptNote: null,
     negativeOutcome: negative, dnc: status === "dnc",
     // Follow Up is a deliberate pause: the lead is parked (active), not processed.
+    // `pausedFrom` records which step created the pause so Resume returns there.
     paused: status === "followup",
+    pausedFrom: status === "appointment" || status === "appt_completed" || status === "no_show" ? "appointment" : "call",
     // Spec §7 properties — seeded from the lead so a pre-existing Follow Up /
     // Lost lead shows its real date/reason; updated live during processing.
     nextAction: lead?.nextAction || null,
@@ -540,9 +542,16 @@ const APPT_OUTCOMES = [
   { v: "followup",     label: "Follow Up (later)",    tone: C.purple },
   { v: "notinterested",label: "Not Interested",       tone: C.red },
   { v: "lost",         label: "No Suitable Solution", tone: C.slate },
-  { v: "reschedule",   label: "Reschedule",           tone: C.amber },
-  { v: "cancelled",    label: "Cancelled",            tone: C.amber },
-  { v: "noshow",       label: "No Show",              tone: C.amber },
+  // The three "appointment didn't take place" outcomes share one flow (re-open
+  // scheduling); the specific Appointment Status is picked in the reveal below.
+  { v: "reopen",       label: "Reschedule / No Show / Cancelled", tone: C.amber },
+];
+// Sub-options for the combined "reopen" chip — kept structured (not free-text)
+// so Appointment Status stays reportable (spec §7).
+const REOPEN_KINDS = [
+  { v: "reschedule", label: "Reschedule" },
+  { v: "noshow",     label: "No Show" },
+  { v: "cancelled",  label: "Cancelled" },
 ];
 const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
   const [choice, setChoice] = useState("");
@@ -550,19 +559,24 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
   const [lostReason, setLostReason] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpReason, setFollowUpReason] = useState("");
+  const [reopenKind, setReopenKind] = useState("");   // reschedule | noshow | cancelled
   const sel = APPT_OUTCOMES.find(o => o.v === choice);
   const isLost = NEEDS_LOST_REASON.has(choice);
   const isFollow = choice === "followup";
-  const hint = choice === "reschedule"
-    ? "↩ Re-opens scheduling — you'll re-book a new appointment and stay on this step."
-    : choice === "cancelled" ? "↩ Stays in Appointment — the lead cancelled; re-open scheduling. Next Action: contact to reschedule."
-    : choice === "noshow" ? "↩ Stays in Appointment — Next Action: call to reschedule."
+  const isReopen = choice === "reopen";
+  const hint = isReopen
+    ? "↩ Stays in Appointment — pick what happened, then re-open scheduling. Next Action: call / contact to reschedule."
     : choice === "qualified" ? "→ Status becomes Qualified (Ready to Close)."
     : NEGATIVE.has(choice) ? "↩ Ends processing — you can set Do Not Contact in Finalize." : null;
   const canSave = !!sel
     && (!isLost || !!lostReason)
-    && (!isFollow || (!!followUpDate && !!followUpReason));
+    && (!isFollow || (!!followUpDate && !!followUpReason))
+    && (!isReopen || !!reopenKind);
   const extra = () => ({ lostReason: isLost ? lostReason : null, followUpDate: isFollow ? followUpDate : null, followUpReason: isFollow ? followUpReason : null });
+  // The combined "reopen" chip resolves to the picked sub-kind so the downstream
+  // handler (reschedule | noshow | cancelled) and Appointment Status are unchanged.
+  const resolved = isReopen ? REOPEN_KINDS.find(k => k.v === reopenKind) : sel;
+  const submit = () => resolved && onComplete(resolved.v, resolved.label, note.trim(), extra());
   return (
     <>
       {appointment && (
@@ -573,6 +587,13 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Record the outcome of the appointment. A completed appointment must resolve to one clear result.</div>
       <OptionChips options={APPT_OUTCOMES} value={choice} onChange={setChoice} />
       {hint && <div style={{ fontSize: 12, color: choice === "qualified" ? C.green : C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
+      {isReopen && (
+        <MiniField label="Appointment Status *">
+          <select value={reopenKind} onChange={e => setReopenKind(e.target.value)} style={fieldStyle}>
+            <option value="">Choose what happened…</option>{REOPEN_KINDS.map(k => <option key={k.v} value={k.v}>{k.label}</option>)}
+          </select>
+        </MiniField>
+      )}
       {isFollow && (
         <div style={{ padding: "12px 14px", border: `1px solid ${C.purple}40`, background: C.purple + "08", borderRadius: 10, marginBottom: 14 }}>
           <div style={{ fontSize: 12, color: C.purple, fontWeight: 700, marginBottom: 10 }}>A Follow Up is a deliberate pause until a later date — a date and reason are required.</div>
@@ -595,7 +616,7 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — e.g. client was a no-show without notice…"
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon={choice === "reschedule" ? "📅" : "✓"} disabled={!canSave} onClick={() => sel && onComplete(sel.v, sel.label, note.trim(), extra())}>Save &amp; Continue</PrimaryBtn>
+        <PrimaryBtn icon={isReopen ? "📅" : "✓"} disabled={!canSave} onClick={submit}>Save &amp; Continue</PrimaryBtn>
       </div>
     </>
   );
@@ -821,6 +842,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
       outcome: v === "lost" ? "Lost" : prev.outcome,
       paused: v === "followup" ? true : prev.paused,
+      pausedFrom: v === "followup" ? "call" : prev.pausedFrom,
       current: IDX.finish, doneSteps: withDone(prev, "call"),
       summaries: { ...prev.summaries, call: `Connected · ${label}${noteSuffix}` },
       lastAction: { icon: "🏁", label: `Call outcome: ${label}`, date: today() },
@@ -869,6 +891,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
       outcome: v === "lost" ? "Lost" : prev.outcome,
       paused: v === "followup" ? true : prev.paused,
+      pausedFrom: v === "followup" ? "appointment" : prev.pausedFrom,
       summaries: { ...prev.summaries, appointment: `${label}${noteSuffix}` },
       lastAction: { icon: NEGATIVE.has(v) ? "🏁" : "✅", label: `Appointment: ${label}`, date: today() },
       log: pushLog(prev, `Appointment Outcome → ${label}${noteSuffix}${extraLog}`),
@@ -880,15 +903,22 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     return { ...prev, dnc, log: pushLog(prev, `Do Not Contact → ${dnc ? "ON" : "OFF"}`) };
   });
 
-  // Resume a paused Follow Up — the lead returns to In Contact / Connected so the
-  // consultant can continue (spec §14: Follow-Up date reached → In Contact).
-  const onResumeFollowUp = () => setState(prev => ({
-    ...prev, paused: false, reached: true, notReached: false,
-    current: IDX.call, doneSteps: prev.doneSteps.filter(k => IDX[k] < IDX.call),
-    contactOutcome: null, nextAction: "Schedule appointment",
-    lastAction: { icon: "▶", label: "Follow-up resumed → In Contact", date: today() },
-    log: pushLog(prev, "Follow Up → Resumed · lead returned to In Contact (Connected)"),
-  }));
+  // Resume a paused Follow Up — the lead returns to the step that created the
+  // pause (spec §14: Follow-Up date reached → return to In Contact / Appointment).
+  const onResumeFollowUp = () => setState(prev => {
+    const from = prev.pausedFrom || "call";
+    const idx = IDX[from];
+    const backTo = from === "appointment" ? "Appointment" : "In Contact";
+    return {
+      ...prev, paused: false, current: idx, reached: true, notReached: false,
+      doneSteps: prev.doneSteps.filter(k => IDX[k] < idx),
+      contactOutcome: from === "call" ? null : prev.contactOutcome,
+      apptOutcome: from === "appointment" ? null : prev.apptOutcome,
+      nextAction: from === "appointment" ? "Record appointment result" : "Schedule appointment",
+      lastAction: { icon: "▶", label: `Follow-up resumed → ${backTo}`, date: today() },
+      log: pushLog(prev, `Follow Up → Resumed · returned to ${STEPS[idx].title}`),
+    };
+  });
 
   const onProcess = () => {
     onLeadFinalized && onLeadFinalized();   // persist "finalized" so the Leads list shows "Add to Network"
