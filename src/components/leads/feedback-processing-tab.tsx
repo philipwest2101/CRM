@@ -107,9 +107,16 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
     notReached,
     contactOutcome: null, apptOutcome: null, contactNote: null, apptNote: null,
     negativeOutcome: negative, dnc: status === "dnc",
-    // Spec §7 properties captured during processing.
-    nextAction: null, nextActionDue: null, lostReason: null,
-    followUpDate: null, followUpReason: null, outcome: null,
+    // Follow Up is a deliberate pause: the lead is parked (active), not processed.
+    paused: status === "followup",
+    // Spec §7 properties — seeded from the lead so a pre-existing Follow Up /
+    // Lost lead shows its real date/reason; updated live during processing.
+    nextAction: lead?.nextAction || null,
+    nextActionDue: lead?.nextActionDue || lead?.nextActionDueDate || null,
+    lostReason: lead?.lostReason || null,
+    followUpDate: lead?.followUpDate || null,
+    followUpReason: lead?.followUpReason || null,
+    outcome: typeof lead?.outcome === "string" ? lead.outcome : null,
     networkStatus: alreadyContact ? "Customer" : null,
     appointment: current >= IDX.appointment && !notReached ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
     reschedules: 0,
@@ -594,7 +601,31 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
   );
 };
 
-const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, canConvert = true, onToggleDnc, onProcess, onAddToNetwork, onBackToDashboard }) => (
+const FinalizeStep = ({ done, paused, followUpDate, followUpReason, negativeOutcome, dnc, isContact, networkStatus, canConvert = true, onToggleDnc, onProcess, onAddToNetwork, onResumeFollowUp, onBackToDashboard }) => (
+  paused ? (
+    // Follow Up = a deliberate pause. The lead is ACTIVE (not "processed") and
+    // waits until the Follow-Up Date, then resumes in In Contact (spec §6/§9/§14).
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 0 16px" }}>
+        <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.purple, display: "grid", placeItems: "center", fontSize: 16, color: "#fff", flexShrink: 0 }}>⏸</span>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>Follow Up Scheduled — lead paused (still active)</div>
+          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>Status <b>Follow Up</b>. It will resume in <b>In Contact</b> on the Follow-Up Date. This is not a closed/processed lead.</div>
+        </div>
+      </div>
+      <div style={{ padding: "12px 14px", border: `1px solid ${C.purple}40`, background: C.purple + "08", borderRadius: 10, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+          <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>Follow-Up Date</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{followUpDate || "—"}</div></div>
+          <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>Reason</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>{followUpReason || "—"}</div></div>
+          <div><div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted }}>Next Action</div><div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy, marginTop: 3 }}>Resume follow-up</div></div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <PrimaryBtn icon="▶" onClick={onResumeFollowUp}>Resume follow-up now</PrimaryBtn>
+        <GhostBtn icon="←" onClick={onBackToDashboard}>Back to Dashboard</GhostBtn>
+      </div>
+    </>
+  ) : (
   <>
     {negativeOutcome && (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderRadius: 10, border: `1px solid ${dnc ? C.red + "55" : C.border}`, background: dnc ? C.red + "0C" : C.light, marginBottom: 16 }}>
@@ -630,6 +661,7 @@ const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, ca
       </>
     )}
   </>
+  )
 );
 
 // ── Main tab (controlled) ─────────────────────────────────────────────────────
@@ -788,6 +820,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       followUpReason: extra.followUpReason || prev.followUpReason,
       nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
       outcome: v === "lost" ? "Lost" : prev.outcome,
+      paused: v === "followup" ? true : prev.paused,
       current: IDX.finish, doneSteps: withDone(prev, "call"),
       summaries: { ...prev.summaries, call: `Connected · ${label}${noteSuffix}` },
       lastAction: { icon: "🏁", label: `Call outcome: ${label}`, date: today() },
@@ -835,6 +868,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       followUpReason: extra.followUpReason || prev.followUpReason,
       nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
       outcome: v === "lost" ? "Lost" : prev.outcome,
+      paused: v === "followup" ? true : prev.paused,
       summaries: { ...prev.summaries, appointment: `${label}${noteSuffix}` },
       lastAction: { icon: NEGATIVE.has(v) ? "🏁" : "✅", label: `Appointment: ${label}`, date: today() },
       log: pushLog(prev, `Appointment Outcome → ${label}${noteSuffix}${extraLog}`),
@@ -845,6 +879,16 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     const dnc = !prev.dnc;
     return { ...prev, dnc, log: pushLog(prev, `Do Not Contact → ${dnc ? "ON" : "OFF"}`) };
   });
+
+  // Resume a paused Follow Up — the lead returns to In Contact / Connected so the
+  // consultant can continue (spec §14: Follow-Up date reached → In Contact).
+  const onResumeFollowUp = () => setState(prev => ({
+    ...prev, paused: false, reached: true, notReached: false,
+    current: IDX.call, doneSteps: prev.doneSteps.filter(k => IDX[k] < IDX.call),
+    contactOutcome: null, nextAction: "Schedule appointment",
+    lastAction: { icon: "▶", label: "Follow-up resumed → In Contact", date: today() },
+    log: pushLog(prev, "Follow Up → Resumed · lead returned to In Contact (Connected)"),
+  }));
 
   const onProcess = () => {
     onLeadFinalized && onLeadFinalized();   // persist "finalized" so the Leads list shows "Add to Network"
@@ -902,7 +946,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
                             ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
-      case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
+      case "finish":      return <FinalizeStep done={state.finished} paused={state.paused && !state.finished} followUpDate={state.followUpDate} followUpReason={state.followUpReason} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onResumeFollowUp={onResumeFollowUp} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
   };
@@ -951,7 +995,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
           editable={i === completed.length - 1 && !state.isContact} onReopen={() => setReopenTarget(s.key)} />
       ))}
 
-      <CurrentStepShell num={stepNo(currentStep.key)} title={currentStep.title}>
+      <CurrentStepShell num={stepNo(currentStep.key)} title={(currentStep.key === "finish" && state.paused && !state.finished) ? "Follow Up Scheduled" : currentStep.title}>
         {renderCurrentBody(currentStep)}
       </CurrentStepShell>
 
