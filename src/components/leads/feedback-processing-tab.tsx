@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
 import { AppointmentModal } from "../appointments/appointment-modal";
-import { LOST_REASONS, NETWORK_OUTCOMES } from "../../lib/core";
+import { LOST_REASONS } from "../../lib/core";
 import { useT } from "../../lib/i18n";
 
 // Step key → i18n key, so step titles render in the active language.
@@ -234,46 +234,6 @@ const CurrentStepShell = ({ num, title, children }) => (
     <div style={{ padding: "18px 20px" }}>{children}</div>
   </div>
 );
-
-// ── Convert Lead modal ────────────────────────────────────────────────────────
-// Conversion sets Lifecycle = Network. A Network member has no "stage status" —
-// instead it carries an Outcome: any combination of Customer / Partner (both may
-// apply, per spec §5 rows 9–11). Selecting neither is allowed — the person is
-// then just a Network contact. Ownership is UNCHANGED and the contact's
-// information, activities and history are preserved.
-const OutcomeCheck = ({ label, on, tone, onToggle }) => (
-  <button onClick={onToggle} style={{
-    display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, width: "100%",
-    border: `1.5px solid ${on ? tone : C.border}`, background: on ? tone + "10" : "#fff", cursor: "pointer",
-    fontFamily: "inherit", textAlign: "left" as const, marginBottom: 10,
-  }}>
-    <span style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${on ? tone : C.border}`, background: on ? tone : "#fff", display: "grid", placeItems: "center", fontSize: 11, color: "#fff", flexShrink: 0 }}>{on ? "✓" : ""}</span>
-    <span style={{ fontSize: 13.5, fontWeight: on ? 700 : 500, color: on ? tone : C.slate }}>{label}</span>
-  </button>
-);
-const ConvertLeadModal = ({ contact, onCancel, onApply }) => {
-  const t = useT();
-  const [outcome, setOutcome] = useState<string[]>([]);   // subset of NETWORK_OUTCOMES
-  const toggle = (v) => setOutcome(o => o.includes(v) ? o.filter(x => x !== v) : [...o, v]);
-  const tone = (v) => (v === "Customer" ? C.green : C.indigo);
-  const summary = outcome.length === 2 ? "Customer + Partner" : outcome[0] || "Contact";
-  return (
-    <>
-      <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{t("fpConvertTitle")}</div>
-        <div style={{ fontSize: 13, color: C.slate, marginBottom: 18, lineHeight: 1.5 }}><b>{contact?.name || ""}</b></div>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 8 }}>{t("fpConvertOutcome")}</label>
-        {NETWORK_OUTCOMES.map(v => <OutcomeCheck key={v} label={v} on={outcome.includes(v)} tone={tone(v)} onToggle={() => toggle(v)} />)}
-        <div style={{ fontSize: 11.5, color: C.muted, margin: "2px 0 20px" }}>{t("fpConvertAs")} <b style={{ color: C.slate }}>{summary}</b></div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-          <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("cancel")}</button>
-          <button onClick={() => onApply(outcome)} style={{ padding: "9px 26px", borderRadius: 9, border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{t("fpConvert")}</button>
-        </div>
-      </div>
-    </>
-  );
-};
 
 // Confirmation dialog (used before a reopen discards later steps).
 const ConfirmDialog = ({ title, message, confirmLabel, danger = false, onCancel, onConfirm }) => {
@@ -636,11 +596,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const current = state.current;
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
-  const [convertOpen, setConvertOpen] = useState(false);
   const [reopenTarget, setReopenTarget] = useState<string | null>(null);
 
-  // "Add to Network" deep-link from the Leads list opens the Convert dialog once.
-  React.useEffect(() => { if (autoConvert && !state.isContact) setConvertOpen(true); }, []);
+  // "Add to Network" deep-link from the Leads list converts the lead once (no modal).
+  React.useEffect(() => { if (autoConvert && !state.isContact) onApplyConvert([]); }, []);
 
   // Reaching the Finalize step marks the lead processed automatically — there is
   // no manual "mark as processed" button; the terminal Status documents it.
@@ -839,26 +798,24 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     setScheduleModalOpen(true);
   };
 
-  // No Show — stay in Appointment / No Show and open the Create Task modal to
-  // schedule the reschedule call (spec §9.1). Does not advance to Follow Up.
+  // No Show — stay in Appointment / No Show (spec §9.1). Highlights the chip and
+  // sets the Next Action; does not advance or open a modal.
   const onNoShowAppt = () => {
     setState(prev => ({
       ...prev, appointmentStatus: "No Show", nextAction: "Call to reschedule",
-      lastAction: { icon: "👻", label: "No show — create reschedule task", date: today() },
-      log: pushLog(prev, "Appointment Outcome → No Show · create reschedule task"),
+      lastAction: { icon: "👻", label: "No show — reschedule", date: today() },
+      log: pushLog(prev, "Appointment Outcome → No Show"),
     }));
-    onCreateTask && onCreateTask();
   };
 
-  // Follow Up — stays in the current step (like No Show); highlight the chip and
-  // open the Create Task modal to schedule the follow-up. No dedicated step.
+  // Follow Up — stays in the current step (like No Show); highlights the chip and
+  // sets the Next Action. No dedicated step and no modal.
   const onPickFollowUp = (fromKey) => {
     setState(prev => ({
       ...prev, nextAction: "Resume follow-up",
-      lastAction: { icon: "🔁", label: "Follow Up · task created", date: today() },
-      log: pushLog(prev, `${STEPS[IDX[fromKey]].title} → Follow Up · task created`),
+      lastAction: { icon: "🔁", label: "Follow Up", date: today() },
+      log: pushLog(prev, `${STEPS[IDX[fromKey]].title} → Follow Up`),
     }));
-    onCreateTask && onCreateTask();
   };
 
   const onToggleDnc = () => setState(prev => {
@@ -924,7 +881,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
                             ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} onFollowUp={() => onPickFollowUp("call")} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onNoShow={onNoShowAppt} onFollowUp={() => onPickFollowUp("appointment")} />;
-      case "finish":      return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
+      case "finish":      return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onAddToNetwork={() => onApplyConvert([])} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
   };
@@ -1004,14 +961,6 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
             }
             setScheduleModalOpen(false);
           }}
-        />
-      )}
-
-      {convertOpen && (
-        <ConvertLeadModal
-          contact={contact}
-          onCancel={() => setConvertOpen(false)}
-          onApply={(status) => { onApplyConvert(status); setConvertOpen(false); }}
         />
       )}
 
