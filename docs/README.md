@@ -23,6 +23,7 @@ by the app at runtime.
 | `Vion_Mobile_App_Context.docx` | UI mockups / context for the companion mobile app. |
 | `Vion_MASTER_CONTACT_2_ENG.csv` | Master contact/lead field template (field names, allowed values, field types) — German + English. |
 | `LH-Vion_Design_System_Reference.md` | Design-system reference (tokens, components, principles) reconstructed from the Figma file. The contract for visual consistency. |
+| `User_Story_Activities_Tab_Logs.md` | User stories for the contact-detail **Activities** tab (log feed), from the Balsamiq board *Activities Tab Logs* (`r6379`). |
 
 ## Key project rules (from Project_Instructions.docx)
 

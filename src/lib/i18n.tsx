@@ -483,6 +483,10 @@ export const TRANSLATIONS = {
     appointment: "Appointment",
     offline: "Offline",
     task: "Task",
+    calls: "Calls",
+    emails: "Emails",
+    tasks: "Tasks",
+    updates: "Updates",
 
     // GDPR
     gdpr: "GDPR",
@@ -1148,6 +1152,10 @@ export const TRANSLATIONS = {
     appointment: "Termin",
     offline: "Offline",
     task: "Aufgabe",
+    calls: "Anrufe",
+    emails: "E-Mails",
+    tasks: "Aufgaben",
+    updates: "Änderungen",
 
     // GDPR
     gdpr: "DSGVO",

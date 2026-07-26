@@ -1268,6 +1268,9 @@ const InformationTab = ({ c, role }: any) => {
 };
 
 // ── Activities tab ────────────────────────────────────────────────────────────
+// Aligned to the Balsamiq board "Activities Tab Logs" (r6379):
+// All · Calls · Emails · Appointments · Tasks · Updates, month-grouped, each row
+// expands into a per-type detail card. See docs/User_Story_Activities_Tab_Logs.md.
 const ACT_ICON = {
   appointment: { icon: "📅", color: C.purple },
   call:        { icon: "📞", color: C.green },
@@ -1276,25 +1279,39 @@ const ACT_ICON = {
   offline:     { icon: "📝", color: C.slate },
   update:      { icon: "✎",  color: C.muted },
 };
+// Per-entry icon overrides for call direction (inbound/outbound) and email
+// direction (sent/received), matching the board's distinct row glyphs.
+const DIR_ICON = { Inbound: "📥", Outbound: "📤", Sent: "✉️", Received: "📨" };
+
+const LOREM = "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore...";
 
 // Each activity carries the fields shown by its creating modal (see the field
 // spec doc). Where a value isn't set on the sample record, ActivityDetail falls
 // back to a representative default so every field still renders in the mock.
-const ACTIVITIES = [
-  { id: "a1", type: "appointment", title: "Appointment test", day: "Wed 24", month: "June 2026", dt: "24.06.2026 - 10:04", apptType: "Consultation Appointment", outcome: "Scheduled", location: "Microsoft Teams", duration: "60 min", attendees: "Test Test", status: "Appointment" },
-  { id: "a2", type: "update",  title: "Update Assignee", day: "Sun 21", month: "June 2026", dt: "21.06.2026 - 11:14", field: "Assignee", from: "—", to: "Anna Muller" },
-  { id: "a3", type: "appointment", title: "M1", day: "Thu 04", month: "June 2026", dt: "04.06.2026 - 12:30", apptType: "Investment Talk", outcome: "Completed", location: "Office Room 3", duration: "45 min", status: "Qualified", report: "Presented the Q1 plan; client asked for a written proposal." },
-  { id: "a4", type: "update",  title: "Update Label", day: "Wed 03", month: "June 2026", dt: "03.06.2026 - 15:15", field: "Labels", from: "—", to: "Label 1" },
-  { id: "a5", type: "call",    title: "Call with a2 s2", day: "Mon 18", month: "May 2026", dt: "18.05.2026 - 18:09", direction: "Outbound", callStatus: "Reached", duration: "05:12", status: "In Contact", report: "Reached the contact; interested, follow-up agreed." },
-  { id: "a6", type: "update",  title: "Update Label", day: "Thu 14", month: "May 2026", dt: "14.05.2026 - 10:38", field: "Labels", from: "Label 1", to: "Label 1, VIP" },
-  { id: "a7", type: "email",   title: "Email to client", day: "Wed 13", month: "May 2026", dt: "13.05.2026 - 09:20", direction: "Sent", address: "s.richter@web.de", status: "Delivered", report: "Sent the consultation summary and next steps." },
-  { id: "a8", type: "task",    title: "Follow-up task", day: "Tue 12", month: "May 2026", dt: "12.05.2026 - 14:00", taskType: "Call", priority: "High", status: "Open", reminder: "30 Minutes Before" },
-  { id: "a9", type: "call",    title: "Intro call", day: "Mon 11", month: "May 2026", dt: "11.05.2026 - 16:30", direction: "Inbound", callStatus: "Reached", duration: "02:40", status: "New", report: "Inbound enquiry about the offer." },
-  { id: "a10", type: "offline", title: "In-person visit", day: "Fri 08", month: "May 2026", dt: "08.05.2026 - 11:00", channel: "In-person appointment", status: "Appointment", note: "Dropped by the office to sign documents." },
-  { id: "a11", type: "email",  title: "Proposal sent", day: "Thu 07", month: "May 2026", dt: "07.05.2026 - 13:45", direction: "Sent", address: "s.richter@web.de", status: "Delivered", report: "Proposal PDF sent with pricing." },
-  { id: "a12", type: "task",   title: "Prepare docs", day: "Wed 06", month: "May 2026", dt: "06.05.2026 - 10:15", taskType: "To Do", priority: "Normal", status: "Done", reminder: "1 Hour Before" },
-  { id: "a13", type: "update", title: "Update Assignee", day: "Tue 05", month: "May 2026", dt: "05.05.2026 - 09:00", field: "Assignee", from: "Anna Muller", to: "Kai Becker" },
-  { id: "a14", type: "offline", title: "WhatsApp message", day: "Mon 04", month: "May 2026", dt: "04.05.2026 - 17:20", channel: "WhatsApp / SMS", status: "Follow Up", note: "Sent a quick reminder via WhatsApp." },
+// `badge` = "Logged" for manually back-logged activities, or "Overdue" /
+// "Canceled" for tasks; live/system-captured entries carry no badge.
+const ACTIVITIES: any[] = [
+  // July 2026 — Tasks
+  { id: "a1", type: "task", title: "Call Task - Task Title XXX", day: "Mon 20", month: "July 2026", dt: "2026.07.20 - 10:10", taskType: "Call", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
+  { id: "a2", type: "task", title: "Email Task - Task Title XXX", day: "Fri 17", month: "July 2026", dt: "2026.07.17 - 09:09", taskType: "Email", badge: "Canceled", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
+  { id: "a3", type: "task", title: "To Do Task - Task Title XXX", day: "Thu 16", month: "July 2026", dt: "2026.07.16 - 08:08", taskType: "To Do", badge: "Overdue", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
+  // April 2025
+  { id: "a4", type: "appointment", title: "Appointment Title XXX", day: "Tue 20", month: "April 2025", dt: "2025.04.20 - 10:10", actor: "Anna Klein", createdAt: "2025.04.19 - 19:19", attendees: "john.smith@email.com, olivia.ruth@email.com", apptType: "Consultation", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf", outcome: "Not Interested", note: LOREM },
+  { id: "a5", type: "appointment", title: "Appointment Title XXX", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 09:09", badge: "Logged", actor: "Anna Klein", attendees: "john.smith@email.com, olivia.ruth@email.com", apptType: "Consultation", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a6", type: "call", title: "Inbound Call Log", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 08:08", badge: "Logged", direction: "Inbound", actor: "Anna Klein", duration: "29 minutes", report: LOREM },
+  { id: "a7", type: "call", title: "Outbound Call Log", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 12:59", badge: "Logged", direction: "Outbound", actor: "Anna Klein", duration: "19 minutes", report: LOREM },
+  { id: "a8", type: "email", title: "Send Email Log Subject XXX", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 12:02", badge: "Logged", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", cc: "john.smith@email.com, olivia.ruth@email.com", createdAt: "2025.03.04 - 23:59", scheduledOn: "2025.03.05 - 10:10", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
+  { id: "a9", type: "email", title: "Received Email Log Subject XXX", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 11:21", badge: "Logged", direction: "Received", from: "sandra.richter@email.com", to: "anna.klein@email.com", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
+  { id: "a10", type: "offline", title: "Offline Log Title XXX", day: "Wed 14", month: "April 2025", dt: "2025.04.14 - 17:27", badge: "Logged", actor: "Anna Klein", channel: "WhatsApp", description: LOREM },
+  // March 2025 — live / system-captured (no badge)
+  { id: "a11", type: "email", title: "Sent Email Subject", day: "Wed 05", month: "March 2025", dt: "2025.03.05 - 10:10", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", cc: "john.smith@email.com, olivia.ruth@email.com", createdAt: "2025.03.04 - 23:59", scheduledOn: "2025.03.05 - 10:10", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
+  { id: "a12", type: "email", title: "Received Email Subject", day: "Wed 05", month: "March 2025", dt: "2025.03.05 - 09:09", direction: "Received", from: "sandra.richter@email.com", to: "anna.klein@email.com", subject: "Received Email Subject", report: LOREM },
+  { id: "a13", type: "call", title: "Outbound Call", day: "Mon 03", month: "March 2025", dt: "2025.03.03 - 08:08", direction: "Outbound", actor: "Anna Klein", duration: "9 minutes", report: LOREM },
+  // February 2025 — Updates (system audit)
+  { id: "a14", type: "update", title: "Update Assignee", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 17:17", actionIcon: "👤", actionText: "Anna Klein" },
+  { id: "a15", type: "update", title: "Update Labels", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 15:15", actionIcon: "🏷️", actionText: "＋ VIP-CUSTOMER" },
+  { id: "a16", type: "update", title: "Update Labels", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 13:13", actionIcon: "🏷️", actionText: "－ VIP-CUSTOMER" },
+  { id: "a17", type: "update", title: "Add Contact", day: "Mon 19", month: "February 2025", dt: "2025.02.19 - 11:11", actionIcon: "👤", actionText: "Created by: John Smith" },
 ];
 
 const ActField = ({ label, value, node }) => (
@@ -1310,83 +1327,121 @@ const actGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px"
 const Pill = ({ text, color = C.amber }) => (
   <span style={{ fontSize: 12, fontWeight: 700, color, background: color + "18", padding: "3px 12px", borderRadius: 12 }}>{text}</span>
 );
-// Highlighted report / note box at the bottom of a card.
+// Free-text field with a "Show more…" affordance (labelled box).
 const ReportBox = ({ label, text }) => (
-  <div style={{ background: C.blue + "0E", borderRadius: 10, padding: "14px 16px", marginTop: 4 }}>
-    <div style={{ fontSize: 12, fontWeight: 700, color: C.blue, marginBottom: 4 }}>{label}</div>
+  <div style={{ marginTop: 4 }}>
+    <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>{label}</div>
     <div style={{ fontSize: 13, color: C.text }}>{text || "-"}</div>
+    {text && <span style={{ fontSize: 12, color: C.muted, textDecoration: "underline", cursor: "pointer" }}>Show more...</span>}
   </div>
 );
 
-// Fields mirror each activity's creating modal (Log a Call / Log an Email /
-// Log on Appointment / Offline Log / Task / Appointment). "By" is who logged it.
+// Row status badge — "Logged" (back-logged activity) / "Overdue" / "Canceled".
+const BADGE_STYLE = {
+  Logged:   { color: C.slate, bg: "#EEF0F3" },
+  Overdue:  { color: C.red,   bg: C.red + "14" },
+  Canceled: { color: C.slate, bg: "#EEF0F3" },
+};
+const RowBadge = ({ text }) => {
+  const s = BADGE_STYLE[text] || BADGE_STYLE.Logged;
+  return <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.color}33`, padding: "2px 10px", borderRadius: 11 }}>{text}</span>;
+};
+
+// ⋮ menu on a task card — Done · Edit · Delete. "Done" is only offered while the
+// task is not overdue or cancelled yet (per the board annotation).
+const TaskActionsMenu = ({ canComplete }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => setOpen(o => !o)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: C.slate, lineHeight: 1, padding: "0 6px" }}>⋮</button>
+      {open && (
+        <div style={{ position: "absolute", right: 0, top: 26, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "0 6px 20px rgba(16,24,40,.12)", padding: 6, zIndex: 5, minWidth: 130 }}>
+          {canComplete && <div style={{ fontSize: 13, color: C.text, padding: "8px 12px", borderRadius: 7, cursor: "pointer" }}>Done</div>}
+          {canComplete && <div style={{ height: 1, background: C.border, margin: "4px 0" }} />}
+          <div style={{ fontSize: 13, color: C.text, padding: "8px 12px", borderRadius: 7, cursor: "pointer" }}>Edit</div>
+          <div style={{ fontSize: 13, color: C.red, padding: "8px 12px", borderRadius: 7, cursor: "pointer" }}>Delete</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Fields mirror each activity's creating modal and the "Activities Tab Logs"
+// board (r6379). "…By" is who logged it; "Logged" activities were back-logged.
 const ActivityDetail = ({ a }) => {
-  const who = a.actor || "Philip West";
+  const who = a.actor || "Anna Klein";
+  const logged = a.badge === "Logged";
 
   if (a.type === "appointment") return (<>
     <div style={actGrid}>
-      <ActField label="Hosted By" value={who} />
-      <ActField label="Appointment Outcome" node={<Pill text={a.outcome || "Scheduled"} />} />
-      <ActField label="Appointment Type" value={a.apptType || "Consultation Appointment"} />
-      <ActField label="Duration" value={a.duration || "60 min"} />
-      <ActField label="Appointment Location" node={<a style={{ fontSize: 13.5, fontWeight: 600, color: C.blue, textDecoration: "none" }}>{a.location || "Microsoft Teams"}</a>} />
-      <ActField label="Attendees" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{a.attendees || "Test Test"} <span style={{ fontSize: 11, color: C.blue, background: C.blue + "14", padding: "2px 8px", borderRadius: 10 }}>+1</span></span>} />
-      <ActField label="Attachments" value={a.attachments || "-"} />
-      <ActField label="Status" value={a.status || "Appointment"} />
+      <ActField label={logged ? "Logged By" : "Hosted By"} value={who} />
+      <ActField label="Type" value={a.apptType || "Consultation"} />
+      <ActField label="Attendees" value={a.attendees || "-"} />
+      <ActField label="Location / Link" node={<a style={{ fontSize: 13.5, fontWeight: 600, color: C.blue, textDecoration: "none" }}>{a.location || "-"}</a>} />
       <ActField label="Description" value={a.description || "-"} />
+      <ActField label="Attachments" node={a.attachments ? <span style={{ fontSize: 13.5, fontWeight: 600, color: C.blue }}>📎 {a.attachments}</span> : <span style={{ fontSize: 13.5, color: C.muted }}>-</span>} />
+      {a.outcome && <ActField label="Outcome" node={<Pill text={a.outcome} />} />}
     </div>
-    <ReportBox label="Appointment Report" text={a.report} />
+    {a.note && <ReportBox label="Note" text={a.note} />}
   </>);
 
   if (a.type === "call") return (<>
     <div style={actGrid}>
-      <ActField label="Call By" value={who} />
-      <ActField label="Call Direction" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>📞 {a.direction || "Outbound"}</span>} />
-      <ActField label="Call Status" value={a.callStatus || "Reached"} />
-      <ActField label="Call Duration" value={a.duration || "00:00:00"} />
-      <ActField label="Status" value={a.status || "-"} />
+      <ActField label={logged ? "Logged By" : "Call By"} value={who} />
+      <ActField label="Call Duration" value={a.duration || "-"} />
     </div>
-    <ReportBox label="Call Report" text={a.report} />
+    <ReportBox label="Call report" text={a.report} />
   </>);
 
-  if (a.type === "email") return (<>
-    <div style={actGrid}>
-      <ActField label="Sent By" value={who} />
-      <ActField label="Direction" value={a.direction || "Sent"} />
-      <ActField label="Email Address" value={a.address || "-"} />
-      <ActField label="Subject" value={a.title} />
-      <ActField label="Status" value={a.status || "Delivered"} />
-    </div>
-    <ReportBox label="Email Report" text={a.report} />
-  </>);
+  if (a.type === "email") {
+    const received = a.direction === "Received";
+    return (<>
+      <div style={actGrid}>
+        <ActField label="From" value={a.from || "-"} />
+        <ActField label="To" value={a.to || "-"} />
+        {!received && a.cc && <ActField label="Cc" value={a.cc} />}
+        {!received && a.createdAt && <ActField label="Created At" value={a.createdAt} />}
+        {!received && a.scheduledOn && <ActField label="Scheduled On" value={a.scheduledOn} />}
+        <ActField label="Subject" value={a.subject || a.title} />
+        <ActField label="Attachments" node={a.attachments ? <span style={{ fontSize: 13.5, fontWeight: 600, color: C.blue }}>📎 {a.attachments}</span> : <span style={{ fontSize: 13.5, color: C.muted }}>-</span>} />
+      </div>
+      <ReportBox label="Message" text={a.report} />
+    </>);
+  }
 
-  if (a.type === "task") return (
-    <div style={actGrid}>
-      <ActField label="Created By" value={who} />
-      <ActField label="Task Type" value={a.taskType || "Call"} />
-      <ActField label="Priority" value={a.priority || "Normal"} />
-      <ActField label="Status" value={a.status || "Open"} />
-      <ActField label="Reminder" value={a.reminder || "-"} />
-      <ActField label="Description" value={a.description || "-"} />
-    </div>
-  );
+  if (a.type === "task") {
+    const canComplete = !a.badge; // not overdue or cancelled yet
+    return (
+      <div style={{ display: "flex", gap: 16 }}>
+        <div style={{ ...actGrid, flex: 1 }}>
+          <ActField label="Created By" value={who} />
+          <ActField label="Created At" value={a.createdAt || "-"} />
+          <ActField label="Priority" node={<span style={{ fontSize: 13.5, fontWeight: 700, color: C.amber }}>{a.priority || "Normal"}</span>} />
+          <ActField label="Task Type" value={a.taskType || "-"} />
+          <div style={{ gridColumn: "1 / -1" }}><ActField label="Description" value={a.description || "-"} /></div>
+        </div>
+        <TaskActionsMenu canComplete={canComplete} />
+      </div>
+    );
+  }
 
   if (a.type === "offline") return (<>
     <div style={actGrid}>
       <ActField label="Logged By" value={who} />
-      <ActField label="Channel" value={a.channel || "In-person appointment"} />
-      <ActField label="Status" value={a.status || "-"} />
+      <ActField label="Type" value={a.channel || "-"} />
     </div>
-    <ReportBox label="Note" text={a.note} />
+    <ReportBox label="Description" text={a.description} />
   </>);
 
-  // update — system audit entry (field change); not created from a modal.
+  // update — system audit entry (assignee / label / contact change). Shows a
+  // single "Action" line with an edit affordance; not created from a modal.
   return (
-    <div style={actGrid}>
-      <ActField label="Changed By" value={who} />
-      <ActField label="Field" value={a.field || "-"} />
-      <ActField label="From" value={a.from || "-"} />
-      <ActField label="To" value={a.to || "-"} />
+    <div>
+      <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Action</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: C.text }}>
+        <span>{a.actionIcon}</span>
+        <span>{a.actionText}</span>
+      </div>
     </div>
   );
 };
@@ -1400,11 +1455,11 @@ const ActivitiesTab = () => {
 
   const FILTERS: Array<{ key: string; label: string }> = [
     { key: "all", label: t("all") },
-    { key: "call", label: t("call") },
-    { key: "email", label: t("email") },
-    { key: "appointment", label: t("appointment") },
-    { key: "task", label: t("task") },
-    { key: "offline", label: t("offline") },
+    { key: "call", label: t("calls") },
+    { key: "email", label: t("emails") },
+    { key: "appointment", label: t("appointments") },
+    { key: "task", label: t("tasks") },
+    { key: "update", label: t("updates") },
   ];
   const filtered = useMemo(() => {
     if (filter === "all") return ACTIVITIES;
@@ -1446,6 +1501,7 @@ const ActivitiesTab = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {g.items.map(a => {
               const meta = ACT_ICON[a.type];
+              const icon = DIR_ICON[a.direction] || meta.icon;
               const isOpen = !!open[a.id];
               return (
                 <div key={a.id} style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
@@ -1453,8 +1509,10 @@ const ActivitiesTab = () => {
                     style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 18px", cursor: "pointer" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.navy, width: 56, flexShrink: 0 }}>{a.day}</span>
                     <span style={{ width: 1, height: 30, background: C.border, flexShrink: 0 }} />
-                    <span style={{ fontSize: 16, color: meta.color, flexShrink: 0 }}>{meta.icon}</span>
-                    <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: C.navy }}>{a.title}</span>
+                    <span style={{ fontSize: 16, color: meta.color, flexShrink: 0 }}>{icon}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{a.title}</span>
+                    {a.badge && <RowBadge text={a.badge} />}
+                    <span style={{ flex: 1 }} />
                     <span style={{ fontSize: 12.5, color: C.muted }}>{a.dt}</span>
                     <span style={{
                       display: "flex", alignItems: "center", justifyContent: "center",
