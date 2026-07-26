@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
 import { AppointmentModal } from "../appointments/appointment-modal";
-import { LOST_REASONS, FOLLOWUP_REASONS, NETWORK_OUTCOMES } from "../../lib/core";
+import { LOST_REASONS } from "../../lib/core";
+import { useT } from "../../lib/i18n";
+
+// Step key → i18n key, so step titles render in the active language.
+const STEP_TITLE_KEY: Record<string, string> = {
+  initial: "fpStepInitial", call: "fpStepCall", appointment: "fpStepAppt", finish: "fpStepFinish",
+};
+const stepTitleT = (key: string, t: any) => t(STEP_TITLE_KEY[key] || "fpStepInitial");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FEEDBACK & PROCESSING TAB  (controlled)
@@ -81,7 +88,7 @@ const today   = () => new Date().toLocaleDateString("en-GB", { day: "2-digit", m
 // appointment 2, finish 3).
 const STATUS_STEP = {
   open: 0, in_progress: 1, attempted: 1, connected: 1, not_reached: 3,
-  followup: 3, appointment: 2, appt_completed: 2, no_show: 2, qualified: 3,
+  followup: 1, appointment: 2, appt_completed: 2, no_show: 2, qualified: 3,
   closed: 3, no_interest: 3, dnc: 3,
 };
 
@@ -103,13 +110,18 @@ export const makeInitialFeedback = (lead, alreadyContact = false) => {
   if (current > 0) log.push({ text: "Send Initial Message → Sent via SMS / WhatsApp", time: "12:59:05 PM" });
   return {
     current, finished, isContact, channels, calls,
-    reached: (status === "connected" || current > IDX.call) && !notReached,
+    reached: (status === "connected" || status === "followup" || current > IDX.call) && !notReached,
     notReached,
     contactOutcome: null, apptOutcome: null, contactNote: null, apptNote: null,
     negativeOutcome: negative, dnc: status === "dnc",
-    // Spec §7 properties captured during processing.
-    nextAction: null, nextActionDue: null, lostReason: null,
-    followUpDate: null, followUpReason: null, outcome: null,
+    // Spec §7 properties — seeded from the lead so a pre-existing Follow Up /
+    // Lost lead shows its real date/reason; updated live during processing.
+    nextAction: lead?.nextAction || null,
+    nextActionDue: lead?.nextActionDue || lead?.nextActionDueDate || null,
+    lostReason: lead?.lostReason || null,
+    followUpDate: lead?.followUpDate || null,
+    followUpReason: lead?.followUpReason || null,
+    outcome: typeof lead?.outcome === "string" ? lead.outcome : null,
     networkStatus: alreadyContact ? "Customer" : null,
     appointment: current >= IDX.appointment && !notReached ? { type: "Consultation Appointment", date: "—", time: "—" } : null,
     reschedules: 0,
@@ -163,34 +175,42 @@ const StepDot = ({ n, bg, color = "#fff", ring = false }) => (
   }}>{n}</span>
 );
 
-const LockedStep = ({ num, title }) => (
+const LockedStep = ({ num, title }) => {
+  const t = useT();
+  return (
   <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, opacity: 0.75 }}>
     <StepDot n={num} bg={C.light} color={C.muted} ring />
     <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: C.muted }}>{title}</span>
-    <span title="Locked" style={{ fontSize: 12, color: C.muted }}>🔒</span>
+    <span title={t("fpLocked")} style={{ fontSize: 12, color: C.muted }}>🔒</span>
   </div>
-);
+  );
+};
 
 // The Finalize Process step row carries the single "Finalize Process" action —
 // enabled once the advisor has reached the Call Attempt & Outcome step, so a lead
 // can be finalized from here at any point (without stepping through every stage).
-const FinalizeStepRow = ({ num, title, canFinalize, onFinalize }) => (
+const FinalizeStepRow = ({ num, title, canFinalize, onFinalize }) => {
+  const t = useT();
+  return (
   <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, opacity: canFinalize ? 1 : 0.75 }}>
     <StepDot n={num} bg={canFinalize ? C.navy : C.light} color={canFinalize ? "#fff" : C.muted} ring={!canFinalize} />
     <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: canFinalize ? C.navy : C.muted }}>{title}</span>
     <button onClick={canFinalize ? onFinalize : undefined} disabled={!canFinalize}
-      title={canFinalize ? "Finalize the process now" : "Available once you reach the Call Attempt & Outcome step"}
+      title={canFinalize ? t("fpFinalizeNowHint") : t("fpFinalizeOffHint")}
       style={{
         display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 9, border: "none",
         background: canFinalize ? C.navy : C.border, color: canFinalize ? "#fff" : C.muted,
         fontSize: 13, fontWeight: 700, cursor: canFinalize ? "pointer" : "not-allowed", fontFamily: "inherit",
-      }}>✓ Finalize Process</button>
+      }}>✓ {t("fpStepFinish")}</button>
   </div>
-);
+  );
+};
 
 // Only the most recently completed step is editable — reopening it discards the
 // uncommitted current step; older steps stay locked so a branch can't be orphaned.
-const DoneStep = ({ num, title, summary, editable, onReopen }) => (
+const DoneStep = ({ num, title, summary, editable, onReopen }) => {
+  const t = useT();
+  return (
   <div style={{ ...card, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, background: C.green + "08", borderColor: C.green + "40" }}>
     <StepDot n={num} bg={C.green} color="#fff" />
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -199,10 +219,11 @@ const DoneStep = ({ num, title, summary, editable, onReopen }) => (
     </div>
     <span style={{ color: C.green, fontSize: 13 }}>✓</span>
     {editable
-      ? <button onClick={onReopen} title="Reopen this step to correct it" style={{ background: "none", border: "none", cursor: "pointer", color: C.slate, fontSize: 12, fontWeight: 600 }}>Edit</button>
-      : <span title="Only the latest completed step can be edited" style={{ color: C.muted, fontSize: 12 }}>🔒</span>}
+      ? <button onClick={onReopen} style={{ background: "none", border: "none", cursor: "pointer", color: C.slate, fontSize: 12, fontWeight: 600 }}>{t("fpEdit")}</button>
+      : <span style={{ color: C.muted, fontSize: 12 }}>🔒</span>}
   </div>
-);
+  );
+};
 
 const CurrentStepShell = ({ num, title, children }) => (
   <div style={{ ...card, borderColor: C.navy, boxShadow: "0 6px 22px rgba(29,41,57,0.10)" }}>
@@ -214,62 +235,23 @@ const CurrentStepShell = ({ num, title, children }) => (
   </div>
 );
 
-// ── Convert Lead modal ────────────────────────────────────────────────────────
-// Conversion sets Lifecycle = Network. A Network member has no "stage status" —
-// instead it carries an Outcome: any combination of Customer / Partner (both may
-// apply, per spec §5 rows 9–11). Selecting neither is allowed — the person is
-// then just a Network contact. Ownership is UNCHANGED and the contact's
-// information, activities and history are preserved.
-const OutcomeCheck = ({ label, on, tone, onToggle }) => (
-  <button onClick={onToggle} style={{
-    display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, width: "100%",
-    border: `1.5px solid ${on ? tone : C.border}`, background: on ? tone + "10" : "#fff", cursor: "pointer",
-    fontFamily: "inherit", textAlign: "left" as const, marginBottom: 10,
-  }}>
-    <span style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${on ? tone : C.border}`, background: on ? tone : "#fff", display: "grid", placeItems: "center", fontSize: 11, color: "#fff", flexShrink: 0 }}>{on ? "✓" : ""}</span>
-    <span style={{ fontSize: 13.5, fontWeight: on ? 700 : 500, color: on ? tone : C.slate }}>{label}</span>
-  </button>
-);
-const ConvertLeadModal = ({ contact, onCancel, onApply }) => {
-  const [outcome, setOutcome] = useState<string[]>([]);   // subset of NETWORK_OUTCOMES
-  const toggle = (v) => setOutcome(o => o.includes(v) ? o.filter(x => x !== v) : [...o, v]);
-  const tone = (v) => (v === "Customer" ? C.green : C.indigo);
-  const summary = outcome.length === 2 ? "Customer + Partner" : outcome[0] || "Contact (no outcome yet)";
-  return (
-    <>
-      <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Convert Lead → Network</div>
-        <div style={{ fontSize: 13, color: C.slate, marginBottom: 18, lineHeight: 1.5 }}>
-          Move <b>{contact?.name || "this lead"}</b> to your Network. Ownership stays unchanged and all contact
-          information, activities and history are preserved. This cannot be reversed — a Network cannot be converted back to a Lead.
-        </div>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.navy, display: "block", marginBottom: 8 }}>Outcome — the person may be both</label>
-        {NETWORK_OUTCOMES.map(v => <OutcomeCheck key={v} label={v} on={outcome.includes(v)} tone={tone(v)} onToggle={() => toggle(v)} />)}
-        <div style={{ fontSize: 11.5, color: C.muted, margin: "2px 0 20px" }}>Will be added to your Network as: <b style={{ color: C.slate }}>{summary}</b></div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-          <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-          <button onClick={() => onApply(outcome)} style={{ padding: "9px 26px", borderRadius: 9, border: "none", background: C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Convert</button>
-        </div>
-      </div>
-    </>
-  );
-};
-
 // Confirmation dialog (used before a reopen discards later steps).
-const ConfirmDialog = ({ title, message, confirmLabel, danger = false, onCancel, onConfirm }) => (
+const ConfirmDialog = ({ title, message, confirmLabel, danger = false, onCancel, onConfirm }) => {
+  const t = useT();
+  return (
   <>
     <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 600 }} />
     <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 700, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
       <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 8 }}>{title}</div>
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 22, lineHeight: 1.5 }}>{message}</div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-        <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+        <button onClick={onCancel} style={{ padding: "9px 20px", borderRadius: 9, border: "none", background: "transparent", color: C.slate, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("cancel")}</button>
         <button onClick={onConfirm} style={{ padding: "9px 22px", borderRadius: 9, border: "none", background: danger ? C.red : C.navy, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{confirmLabel}</button>
       </div>
     </div>
   </>
-);
+  );
+};
 
 // Labelled on/off switch (used for the Do-Not-Contact flag).
 const Toggle = ({ on, onChange, danger = false }) => (
@@ -320,6 +302,7 @@ const MISSED_CALL_TEMPLATE =
 const MISSED_CALL_SUBJECT = "I tried to reach you — vionworld";
 
 const SendInitialMessageStep = ({ contact, emailSent, onSend, onSkip, onSendEmail }) => {
+  const t = useT();
   const [channel, setChannel] = useState("text");   // channel of the last action taken
   const [copied, setCopied] = useState(false);
   const first = (contact?.name || "there").replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ")[0];
@@ -332,7 +315,7 @@ const SendInitialMessageStep = ({ contact, emailSent, onSend, onSkip, onSendEmai
   // SMS / WhatsApp → copy the text. Email → open the email modal prefilled.
   const copyText = () => { try { navigator?.clipboard?.writeText?.(template); } catch {} setChannel("text"); setCopied(true); };
   const openEmail = () => { setChannel("email"); setCopied(false); onSendEmail && onSendEmail({ subject: INITIAL_SUBJECT, body: template }); };
-  const badge = copied ? "Copied" : (emailSent ? "Email sent" : null);
+  const badge = copied ? t("fpCopied") : (emailSent ? t("fpEmailSentBadge") : null);
   const chBtn = (key, label, onClick) => {
     const on = channel === key;
     return (
@@ -345,31 +328,32 @@ const SendInitialMessageStep = ({ contact, emailSent, onSend, onSkip, onSendEmai
   };
   return (
     <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Send the prepared introductory message to establish the first contact with the lead.</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{t("fpInitialDesc")}</div>
       <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, background: C.light, padding: "14px 16px", marginBottom: 18 }}>
         <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{template}</div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        {chBtn("text", "Copy for SMS / WhatsApp", copyText)}
-        {chBtn("email", "Copy & Send via Email", openEmail)}
+        {chBtn("text", t("fpCopySms"), copyText)}
+        {chBtn("email", t("fpCopyEmail"), openEmail)}
         {badge && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "#fff", background: C.green, padding: "7px 12px", borderRadius: 8 }}>✓ {badge}</span>
         )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon="✓" onClick={() => onSend(channel)}>Mark as Sent &amp; Continue</PrimaryBtn>
-        <GhostBtn icon="⏭" onClick={onSkip}>Skip &amp; Continue</GhostBtn>
+        <PrimaryBtn icon="✓" onClick={() => onSend(channel)}>{t("fpMarkSent")}</PrimaryBtn>
+        <GhostBtn icon="⏭" onClick={onSkip}>{t("fpSkip")}</GhostBtn>
       </div>
     </>
   );
 };
 
 const CALL_RESULTS = [
-  { v: "notreached", label: "Not Reached", tone: C.red },
-  { v: "reached",    label: "Reached",     tone: C.green },
+  { v: "notreached", k: "fpNotReachedShort", label: "Not Reached", tone: C.red },
+  { v: "reached",    k: "fpReachedShort",    label: "Reached",     tone: C.green },
 ];
 // Select the result of a call attempt (correctable), then Save & Continue.
 const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) => {
+  const t = useT();
   const [sel, setSel] = useState("");
   const [copied, setCopied] = useState(false);
   const first = (contact?.name || "there").replace(/^(Ms|Mr|Mrs|Dr)\.?\s+/i, "").split(" ")[0];
@@ -379,7 +363,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) =>
   const emailMissed = () => { try { navigator?.clipboard?.writeText?.(missedCall); } catch {} onSendEmail && onSendEmail({ subject: MISSED_CALL_SUBJECT, body: missedCall }); };
   return (
     <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Log a call attempt (max {MAX_CALL_ATTEMPTS}); pick the result and press <b>Save &amp; Continue</b>. Once the contact is reached, record the outcome in this same step.</div>
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{t("fpCallDesc")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: `1px solid ${notReached ? C.red + "55" : C.border}`, borderRadius: 10, marginBottom: 12, background: notReached ? C.red + "0C" : C.light }}>
         <span style={{ fontSize: 22 }}>{notReached ? "🚫" : "📞"}</span>
         <div style={{ flex: 1 }}>
@@ -411,17 +395,17 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) =>
                   display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
                   border: `1px solid ${C.border}`, background: "#fff", color: copied ? C.green : C.slate,
                   fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                }}>{copied ? "✓ Copied" : "📋 Copy for SMS / WhatsApp"}</button>
+                }}>{copied ? `✓ ${t("fpCopied")}` : `📋 ${t("fpCopySms")}`}</button>
                 <button onClick={emailMissed} style={{
                   display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
                   border: `1px solid ${C.border}`, background: "#fff", color: C.slate,
                   fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                }}>✉️ Copy &amp; Send via Email</button>
+                }}>✉️ {t("fpCopyEmail")}</button>
               </div>
             </div>
             <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.5 }}>{missedCall}</div>
           </div>
-          <OptionChips options={CALL_RESULTS} value={sel} onChange={setSel} />
+          <OptionChips options={CALL_RESULTS.map(o => ({ ...o, label: t(o.k as any) }))} value={sel} onChange={setSel} />
           {sel === "notreached" && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", border: `1px solid ${C.amber}55`, background: C.amber + "0F", borderRadius: 10, marginBottom: 14, flexWrap: "wrap" }}>
               <span style={{ fontSize: 18 }}>💡</span>
@@ -431,7 +415,7 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) =>
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>Save &amp; Continue</PrimaryBtn>
+            <PrimaryBtn icon="✓" disabled={!sel} onClick={() => onLog(sel === "reached")}>{t("fpSaveContinue")}</PrimaryBtn>
           </div>
           <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>
             You don't have to use all {MAX_CALL_ATTEMPTS} attempts — you can <b>Finalize Process</b> at any point using the button on the Finalize Process step below.
@@ -446,79 +430,63 @@ const CallAttemptsStep = ({ contact, calls, notReached, onLog, onSendEmail }) =>
 // resolves to one of: schedule an appointment, qualify, pause as a Follow Up
 // (with a date), reject (Not Interested), or Closed / Lost when no solution fits.
 const CALL_OUTCOMES = [
-  { v: "appointment",  label: "Appointment Scheduled", tone: C.green },
-  { v: "qualified",    label: "Qualified",             tone: C.green },
-  { v: "followup",     label: "Follow Up (later)",     tone: C.purple },
-  { v: "notinterested",label: "Not Interested",        tone: C.red },
-  { v: "lost",         label: "No Suitable Solution",  tone: C.slate },
-  { v: "other",        label: "Other",                 tone: C.slate },
+  { v: "appointment",  k: "fpChipAppt",         label: "Appointment Scheduled", tone: C.green },
+  { v: "won",          k: "fpChipWon",          label: "Won",                   tone: C.green },
+  { v: "followup",     k: "fpChipFollowUp",     label: "Follow Up",             tone: C.purple },
+  { v: "notinterested",k: "fpChipNotInterested",label: "Not Interested",        tone: C.red },
+  { v: "lost",         k: "fpChipNoSolution",   label: "No Suitable Solution",  tone: C.slate },
 ];
-// Small labelled <select> used for Lost Reason / Follow-Up Reason / date capture.
+// Small labelled <select> used for Lost Reason capture.
 const MiniField = ({ label, children }) => (
   <div style={{ marginBottom: 12 }}>
     <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>{label}</label>
     {children}
   </div>
 );
-const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue }) => {
+const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue, onFollowUp }) => {
+  const t = useT();
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const [lostReason, setLostReason] = useState("");
-  const [followUpDate, setFollowUpDate] = useState("");
-  const [followUpReason, setFollowUpReason] = useState("");
   const sel = CALL_OUTCOMES.find(o => o.v === choice);
   const isAppt = choice === "appointment";
   const isLost = NEEDS_LOST_REASON.has(choice);
-  const isFollow = choice === "followup";
-  // Picking "Appointment Scheduled" opens the scheduling modal right away; the
-  // step then keeps a plain "Continue" that advances once the appointment is booked.
-  const pick = (v) => { setChoice(v); if (v === "appointment") onScheduleAppt(); };
-  // Follow Up needs a date + reason; Closed / Lost needs a Lost Reason (spec §6, §9).
-  const canContinue = !!sel
+  // Appointment Scheduled → open the scheduler. Follow Up → open the Create Task
+  // modal (scheduling the follow-up task is sufficient — no inline date/reason).
+  const pick = (v) => { setChoice(v); if (v === "appointment") onScheduleAppt(); else if (v === "followup") onFollowUp(); };
+  const canContinue = !!sel && choice !== "followup"
     && (!isAppt || !!appointment)
-    && (!isLost || !!lostReason)
-    && (!isFollow || (!!followUpDate && !!followUpReason));
-  const extra = () => ({ lostReason: isLost ? lostReason : null, followUpDate: isFollow ? followUpDate : null, followUpReason: isFollow ? followUpReason : null });
+    && (!isLost || !!lostReason);
+  const extra = () => ({ lostReason: isLost ? lostReason : null });
   return (
     <>
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>The contact was reached (<b>Connected</b>). Select the outcome of the conversation to continue processing the lead.</div>
-      <OptionChips options={CALL_OUTCOMES} value={choice} onChange={pick} />
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{t("fpCallOutcomeDesc")}</div>
+      <OptionChips options={CALL_OUTCOMES.map(o => ({ ...o, label: t(o.k as any) }))} value={choice} onChange={pick} />
       {isAppt && (appointment
         ? <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 9, background: C.green + "0C", border: `1px solid ${C.green}40`, marginBottom: 14, fontSize: 12.5, color: C.navy, fontWeight: 600 }}>
             📅 {appointment.type} · {appointment.date} {appointment.time}
-            <button onClick={onScheduleAppt} style={{ marginLeft: "auto", background: "none", border: "none", color: C.slate, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Change</button>
+            <button onClick={onScheduleAppt} style={{ marginLeft: "auto", background: "none", border: "none", color: C.slate, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{t("update")}</button>
             <button onClick={() => { onDeleteAppt(); setChoice(""); }} title="Delete this appointment" aria-label="Delete appointment" style={{ background: "none", border: "none", color: C.red, fontSize: 14, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, padding: 0 }}>🗑️</button>
           </div>
-        : <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>📅 Book the appointment to continue — reopen the scheduler with “Appointment Scheduled”.</div>)}
-      {choice === "qualified" && <div style={{ fontSize: 12, color: C.green, fontWeight: 600, marginBottom: 12 }}>→ Status becomes <b>Qualified</b> (Ready to Close). Next Action: define the next closing step.</div>}
-      {isFollow && (
-        <div style={{ padding: "12px 14px", border: `1px solid ${C.purple}40`, background: C.purple + "08", borderRadius: 10, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: C.purple, fontWeight: 700, marginBottom: 10 }}>A Follow Up is a deliberate pause until a later date — a date and reason are required.</div>
-          <MiniField label="Follow-Up Date *"><input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} style={fieldStyle} /></MiniField>
-          <MiniField label="Follow-Up Reason *">
-            <select value={followUpReason} onChange={e => setFollowUpReason(e.target.value)} style={fieldStyle}>
-              <option value="">Choose…</option>{FOLLOWUP_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </MiniField>
-        </div>
-      )}
+        : <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>📅 {t("fpChipAppt")}</div>)}
+      {choice === "won" && <div style={{ fontSize: 12, color: C.green, fontWeight: 600, marginBottom: 12 }}>{t("fpWonHint")}</div>}
       {isLost && (
-        <MiniField label="Lost Reason *">
+        <MiniField label={`${t("fpLostReason")} *`}>
           <select value={lostReason} onChange={e => setLostReason(e.target.value)} style={fieldStyle}>
-            <option value="">Choose a reason…</option>{LOST_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+            <option value="">{t("fpChooseReason")}</option>{LOST_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </MiniField>
       )}
-      {sel && !isAppt && !isFollow && (
+      {sel && !isAppt && choice !== "followup" && (
         <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>
-          {NEGATIVE.has(choice) ? "↩ Ends processing — you can set Do Not Contact in Finalize." : choice === "qualified" ? "" : "↩ Ends processing — sent to Finalize."}
+          {NEGATIVE.has(choice) ? t("fpEndsDnc") : choice === "won" ? "" : t("fpEndsFinalize")}
         </div>
       )}
-      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>Note (optional)</label>
-      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — briefly describe the conversation outcome…"
+      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>{t("fpNoteOptional")}</label>
+      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder=""
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon="✓" disabled={!canContinue} onClick={() => sel && onContinue(sel.v, sel.label, note.trim(), extra())}>Save &amp; Continue</PrimaryBtn>
+        <PrimaryBtn icon="✓" disabled={!canContinue} onClick={() => sel && onContinue(sel.v, sel.label, note.trim(), extra())}>{t("fpSaveContinue")}</PrimaryBtn>
       </div>
     </>
   );
@@ -529,31 +497,37 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
 // Interested / Closed-Lost — attending an appointment does NOT auto-qualify. No
 // Show and Reschedule keep the lead in the Appointment status.
 const APPT_OUTCOMES = [
-  { v: "qualified",    label: "Qualified",            tone: C.green },
-  { v: "followup",     label: "Follow Up (later)",    tone: C.purple },
-  { v: "notinterested",label: "Not Interested",       tone: C.red },
-  { v: "lost",         label: "No Suitable Solution", tone: C.slate },
-  { v: "reschedule",   label: "Reschedule",           tone: C.amber },
-  { v: "noshow",       label: "No Show",              tone: C.amber },
+  { v: "won",          k: "fpChipWon",          label: "Won",                  tone: C.green },
+  { v: "followup",     k: "fpChipFollowUp",     label: "Follow Up",            tone: C.purple },
+  { v: "notinterested",k: "fpChipNotInterested",label: "Not Interested",       tone: C.red },
+  { v: "lost",         k: "fpChipNoSolution",   label: "No Suitable Solution", tone: C.slate },
+  { v: "reschedule",   k: "fpChipReschedule",   label: "Reschedule",           tone: C.amber },
+  { v: "noshow",       k: "fpChipNoShow",       label: "No Show",              tone: C.amber },
 ];
-const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
+const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule, onNoShow, onFollowUp }) => {
+  const t = useT();
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const [lostReason, setLostReason] = useState("");
-  const [followUpDate, setFollowUpDate] = useState("");
-  const [followUpReason, setFollowUpReason] = useState("");
   const sel = APPT_OUTCOMES.find(o => o.v === choice);
   const isLost = NEEDS_LOST_REASON.has(choice);
-  const isFollow = choice === "followup";
-  const hint = choice === "reschedule"
-    ? "↩ Re-opens scheduling — you'll re-book a new appointment and stay on this step."
-    : choice === "noshow" ? "↩ Stays in Appointment — Next Action: call to reschedule."
-    : choice === "qualified" ? "→ Status becomes Qualified (Ready to Close)."
-    : NEGATIVE.has(choice) ? "↩ Ends processing — you can set Do Not Contact in Finalize." : null;
-  const canSave = !!sel
-    && (!isLost || !!lostReason)
-    && (!isFollow || (!!followUpDate && !!followUpReason));
-  const extra = () => ({ lostReason: isLost ? lostReason : null, followUpDate: isFollow ? followUpDate : null, followUpReason: isFollow ? followUpReason : null });
+  // Reschedule → re-open scheduler. No Show / Follow Up → open the Create Task
+  // modal (creating the reschedule / follow-up task is sufficient). Won / Not
+  // Interested / No Suitable Solution → Save & Continue.
+  const pick = (v) => {
+    setChoice(v);
+    if (v === "reschedule") onReschedule();
+    else if (v === "noshow") onNoShow();
+    else if (v === "followup") onFollowUp();
+  };
+  const hint = choice === "reschedule" ? t("fpRescheduleHint")
+    : choice === "noshow" ? t("fpNoShowHint")
+    : choice === "won" ? t("fpWonHintShort")
+    : NEGATIVE.has(choice) ? t("fpEndsDnc") : null;
+  const isActionChip = choice === "reschedule" || choice === "noshow" || choice === "followup";
+  const canSave = !!sel && !isActionChip && (!isLost || !!lostReason);
+  const extra = () => ({ lostReason: isLost ? lostReason : null });
+  const submit = () => sel && onComplete(sel.v, sel.label, note.trim(), extra());
   return (
     <>
       {appointment && (
@@ -561,85 +535,77 @@ const AppointmentOutcomeStep = ({ appointment, onComplete }) => {
           📅 {appointment.type} · {appointment.date} {appointment.time}
         </div>
       )}
-      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>Record the outcome of the appointment. A completed appointment must resolve to one clear result.</div>
-      <OptionChips options={APPT_OUTCOMES} value={choice} onChange={setChoice} />
-      {hint && <div style={{ fontSize: 12, color: choice === "qualified" ? C.green : C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
-      {isFollow && (
-        <div style={{ padding: "12px 14px", border: `1px solid ${C.purple}40`, background: C.purple + "08", borderRadius: 10, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: C.purple, fontWeight: 700, marginBottom: 10 }}>A Follow Up is a deliberate pause until a later date — a date and reason are required.</div>
-          <MiniField label="Follow-Up Date *"><input type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} style={fieldStyle} /></MiniField>
-          <MiniField label="Follow-Up Reason *">
-            <select value={followUpReason} onChange={e => setFollowUpReason(e.target.value)} style={fieldStyle}>
-              <option value="">Choose…</option>{FOLLOWUP_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </MiniField>
-        </div>
-      )}
+      <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{t("fpApptDesc")}</div>
+      <OptionChips options={APPT_OUTCOMES.map(o => ({ ...o, label: t(o.k as any) }))} value={choice} onChange={pick} />
+      {hint && <div style={{ fontSize: 12, color: choice === "won" ? C.green : C.amber, fontWeight: 600, marginBottom: 12 }}>{hint}</div>}
       {isLost && (
-        <MiniField label="Lost Reason *">
+        <MiniField label={`${t("fpLostReason")} *`}>
           <select value={lostReason} onChange={e => setLostReason(e.target.value)} style={fieldStyle}>
-            <option value="">Choose a reason…</option>{LOST_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+            <option value="">{t("fpChooseReason")}</option>{LOST_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </MiniField>
       )}
-      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>Note (optional)</label>
-      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional — e.g. client was a no-show without notice…"
+      <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>{t("fpNoteOptional")}</label>
+      <textarea value={note} onChange={e => setNote(e.target.value)} placeholder=""
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon={choice === "reschedule" ? "📅" : "✓"} disabled={!canSave} onClick={() => sel && onComplete(sel.v, sel.label, note.trim(), extra())}>Save &amp; Continue</PrimaryBtn>
+        <PrimaryBtn icon="✓" disabled={!canSave} onClick={submit}>{t("fpSaveContinue")}</PrimaryBtn>
       </div>
     </>
   );
 };
 
-const FinalizeStep = ({ done, negativeOutcome, dnc, isContact, networkStatus, canConvert = true, onToggleDnc, onProcess, onAddToNetwork, onBackToDashboard }) => (
+// Reaching Finalize means the lead is processed — the terminal Status documents
+// completion (no manual "mark as processed" button). Shows the processed summary,
+// an optional Do-Not-Contact toggle for negative outcomes, and the convert action.
+const FinalizeStep = ({ negativeOutcome, dnc, isContact, networkStatus, canConvert = true, onToggleDnc, onAddToNetwork, onBackToDashboard }) => {
+  const t = useT();
+  return (
   <>
     {negativeOutcome && (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderRadius: 10, border: `1px solid ${dnc ? C.red + "55" : C.border}`, background: dnc ? C.red + "0C" : C.light, marginBottom: 16 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: dnc ? C.red : C.navy }}>Do Not Contact (DNC)</div>
-          <div style={{ fontSize: 11.5, color: C.muted }}>Flag this lead so no further outreach is attempted.</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: dnc ? C.red : C.navy }}>{t("fpDncTitle")}</div>
+          <div style={{ fontSize: 11.5, color: C.muted }}>{t("fpDncDesc")}</div>
         </div>
         <Toggle on={dnc} onChange={onToggleDnc} danger />
       </div>
     )}
-    {done ? (
-      <>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 0 16px" }}>
-          <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.green, display: "grid", placeItems: "center", fontSize: 16, color: "#fff", flexShrink: 0 }}>✓</span>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>Lead Ready (Processed)</div>
-            <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>Feedback has been fed into the campaign statistics.{dnc ? " Marked Do Not Contact." : ""}</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <GhostBtn icon="←" onClick={onBackToDashboard}>Back to Dashboard</GhostBtn>
-          {isContact
-            ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ In My Network · {networkStatus}</span>
-            : canConvert
-              ? <PrimaryBtn icon="⇪" onClick={onAddToNetwork}>Add to My Network</PrimaryBtn>
-              : <span title="Super Admins cannot convert leads to Network" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: C.light, border: `1px solid ${C.border}`, padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>Conversion not permitted for your role</span>}
-        </div>
-      </>
-    ) : (
-      <>
-        <div style={{ fontSize: 13, color: C.slate, marginBottom: 16 }}>Mark the lead as fully processed. Your feedback feeds into the campaign statistics.</div>
-        <PrimaryBtn icon="🏁" onClick={onProcess}>Mark lead as processed</PrimaryBtn>
-      </>
-    )}
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 0 16px" }}>
+      <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.green, display: "grid", placeItems: "center", fontSize: 16, color: "#fff", flexShrink: 0 }}>✓</span>
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{t("fpProcessedTitle")}</div>
+        <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>{t("fpProcessedDesc")}{dnc ? t("fpProcessedDnc") : ""}</div>
+      </div>
+    </div>
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <GhostBtn icon="←" onClick={onBackToDashboard}>{t("fpBackDashboard")}</GhostBtn>
+      {isContact
+        ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ {t("fpInNetwork")} · {networkStatus}</span>
+        : canConvert
+          ? <PrimaryBtn icon="⇪" onClick={onAddToNetwork}>{t("fpAddNetwork")}</PrimaryBtn>
+          : <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: C.light, border: `1px solid ${C.border}`, padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>{t("fpConvNotAllowed")}</span>}
+    </div>
   </>
-);
+  );
+};
 
 // ── Main tab (controlled) ─────────────────────────────────────────────────────
 export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask, onSendEmail, emailSent, onBookAppointment, onCancelAppointment, onLeadFinalized, onLeadConverted, autoConvert, readOnly = false }) => {
+  const t = useT();
   const current = state.current;
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
-  const [convertOpen, setConvertOpen] = useState(false);
   const [reopenTarget, setReopenTarget] = useState<string | null>(null);
 
-  // "Add to Network" deep-link from the Leads list opens the Convert dialog once.
-  React.useEffect(() => { if (autoConvert && !state.isContact) setConvertOpen(true); }, []);
+  // "Add to Network" deep-link from the Leads list converts the lead once (no modal).
+  React.useEffect(() => { if (autoConvert && !state.isContact) onApplyConvert([]); }, []);
+
+  // Reaching the Finalize step marks the lead processed automatically — there is
+  // no manual "mark as processed" button; the terminal Status documents it.
+  React.useEffect(() => {
+    if (current === IDX.finish && !state.finished && !state.isContact && !readOnly) onProcess();
+  }, [current, state.finished, state.isContact, readOnly]);
 
   const pushLog = (prev, text) => [...prev.log, { text, time: nowTime() }];
   const withDone = (prev, key) => prev.doneSteps.includes(key) ? prev.doneSteps : [...prev.doneSteps, key];
@@ -753,11 +719,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   // Next Action derived from a resolved outcome (spec §4 / trigger matrix).
   const NEXT_ACTION_FOR = {
     appointment: "Attend / conduct appointment",
-    qualified:   "Define next closing step",
+    won:         "No open action",
     followup:    "Resume follow-up",
     notinterested: "No open action",
     lost:        "No open action",
-    other:       "Review outcome",
   };
 
   // "Continue" from Call Outcome. Appointment (already booked) → advance to
@@ -785,7 +750,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       followUpDate: extra.followUpDate || prev.followUpDate,
       followUpReason: extra.followUpReason || prev.followUpReason,
       nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
-      outcome: v === "lost" ? "Lost" : prev.outcome,
+      outcome: v === "lost" ? "Lost" : v === "won" ? "Won" : prev.outcome,
       current: IDX.finish, doneSteps: withDone(prev, "call"),
       summaries: { ...prev.summaries, call: `Connected · ${label}${noteSuffix}` },
       lastAction: { icon: "🏁", label: `Call outcome: ${label}`, date: today() },
@@ -804,34 +769,52 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     }));
   };
 
+  // Terminal appointment outcomes (Won / Not Interested / No Suitable Solution)
+  // resolve to Finalize. Reschedule / No Show / Follow Up are handled by their own
+  // chip actions below (they open a modal and keep the lead active).
   const onAppointmentOutcome = (v, label, note = "", extra: any = {}) => {
-    // Reschedule and No Show both keep the lead in the Appointment status and
-    // re-open scheduling (Next Action = call to reschedule / conduct appointment).
-    if (v === "reschedule" || v === "noshow") {
-      const isNoShow = v === "noshow";
-      setState(prev => ({
-        ...prev, reschedules: prev.reschedules + 1, nextAction: "Call to reschedule",
-        lastAction: { icon: isNoShow ? "👻" : "🔁", label: isNoShow ? "No show — reschedule" : "Appointment rescheduled — re-book", date: today() },
-        log: pushLog(prev, `Appointment Outcome → ${isNoShow ? "No Show" : "Reschedule"} — re-opening scheduling${note ? ` · ${note}` : ""}`),
-      }));
-      setScheduleModalOpen(true);
-      return;
-    }
     const noteSuffix = note ? ` — ${note}` : "";
     const nextAction = NEXT_ACTION_FOR[v] || null;
-    const extraLog = extra.lostReason ? ` · Lost Reason: ${extra.lostReason}`
-      : extra.followUpDate ? ` · Follow-Up ${extra.followUpDate} (${extra.followUpReason})` : "";
+    const extraLog = extra.lostReason ? ` · Lost Reason: ${extra.lostReason}` : "";
     setState(prev => ({
       ...prev, apptOutcome: label, apptNote: note || null, current: IDX.finish, doneSteps: withDone(prev, "appointment"),
       negativeOutcome: NEGATIVE.has(v) ? true : prev.negativeOutcome,
       lostReason: extra.lostReason || prev.lostReason,
-      followUpDate: extra.followUpDate || prev.followUpDate,
-      followUpReason: extra.followUpReason || prev.followUpReason,
-      nextAction, nextActionDue: extra.followUpDate || prev.nextActionDue,
-      outcome: v === "lost" ? "Lost" : prev.outcome,
+      nextAction,
+      outcome: v === "lost" ? "Lost" : v === "won" ? "Won" : prev.outcome,
       summaries: { ...prev.summaries, appointment: `${label}${noteSuffix}` },
       lastAction: { icon: NEGATIVE.has(v) ? "🏁" : "✅", label: `Appointment: ${label}`, date: today() },
       log: pushLog(prev, `Appointment Outcome → ${label}${noteSuffix}${extraLog}`),
+    }));
+  };
+
+  // Reschedule — re-open the scheduler; the lead stays in Appointment.
+  const onReschedule = () => {
+    setState(prev => ({
+      ...prev, reschedules: prev.reschedules + 1, appointmentStatus: "Rescheduled", nextAction: "Call to reschedule",
+      lastAction: { icon: "🔁", label: "Appointment rescheduled — re-book", date: today() },
+      log: pushLog(prev, "Appointment Outcome → Reschedule — re-opening scheduling"),
+    }));
+    setScheduleModalOpen(true);
+  };
+
+  // No Show — stay in Appointment / No Show (spec §9.1). Highlights the chip and
+  // sets the Next Action; does not advance or open a modal.
+  const onNoShowAppt = () => {
+    setState(prev => ({
+      ...prev, appointmentStatus: "No Show", nextAction: "Call to reschedule",
+      lastAction: { icon: "👻", label: "No show — reschedule", date: today() },
+      log: pushLog(prev, "Appointment Outcome → No Show"),
+    }));
+  };
+
+  // Follow Up — stays in the current step (like No Show); highlights the chip and
+  // sets the Next Action. No dedicated step and no modal.
+  const onPickFollowUp = (fromKey) => {
+    setState(prev => ({
+      ...prev, nextAction: "Resume follow-up",
+      lastAction: { icon: "🔁", label: "Follow Up", date: today() },
+      log: pushLog(prev, `${STEPS[IDX[fromKey]].title} → Follow Up`),
     }));
   };
 
@@ -840,9 +823,11 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     return { ...prev, dnc, log: pushLog(prev, `Do Not Contact → ${dnc ? "ON" : "OFF"}`) };
   });
 
+  // Reaching the Finalize step marks the lead processed automatically — the
+  // terminal Status already documents completion, so there is no manual button.
   const onProcess = () => {
     onLeadFinalized && onLeadFinalized();   // persist "finalized" so the Leads list shows "Add to Network"
-    setState(prev => ({
+    setState(prev => prev.finished ? prev : ({
       ...prev, finished: true,
       lastAction: { icon: "🏁", label: "Lead processed", date: today() },
       log: pushLog(prev, `Finalize Process → Processed${prev.dnc ? " · Do Not Contact" : ""}`),
@@ -893,10 +878,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} emailSent={emailSent} onSend={onSend} onSkip={onSkipInitial} onSendEmail={onSendEmail} />;
       case "call":        return (state.reached && !state.notReached)
-                            ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} />
+                            ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} onFollowUp={() => onPickFollowUp("call")} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
-      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} />;
-      case "finish":      return <FinalizeStep done={state.finished} negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onProcess={onProcess} onAddToNetwork={() => setConvertOpen(true)} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
+      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onNoShow={onNoShowAppt} onFollowUp={() => onPickFollowUp("appointment")} />;
+      case "finish":      return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onAddToNetwork={() => onApplyConvert([])} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
   };
@@ -917,15 +902,15 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
           not inside individual steps. */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 2 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>Processing &amp; Feedback</div>
-          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>Follow the steps below to process the lead.</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>{t("fpTitle")}</div>
+          <div style={{ fontSize: 12.5, color: C.slate, marginTop: 2 }}>{t("fpSubtitle")}</div>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button onClick={readOnly ? undefined : onCreateTask} disabled={readOnly} style={{
             display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 9,
             border: `1px solid ${C.border}`, background: "#fff", color: readOnly ? C.muted : C.slate,
             fontSize: 13, fontWeight: 600, cursor: readOnly ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: readOnly ? 0.6 : 1,
-          }}>☑️ Create Task</button>
+          }}>☑️ {t("fpCreateTask")}</button>
         </div>
       </div>
       {/* Network contacts have completed the lead process — the flow is read-only
@@ -933,25 +918,23 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       {readOnly && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.light, marginBottom: 2 }}>
           <span style={{ fontSize: 18 }}>🔒</span>
-          <div style={{ fontSize: 12.5, color: C.slate, lineHeight: 1.5 }}>
-            This contact is in your <b>Network</b> — the lead <b>Processing &amp; Feedback</b> flow is read-only. To change the Customer / Partner classification, use the <b>Status</b> field on the contact.
-          </div>
+          <div style={{ fontSize: 12.5, color: C.slate, lineHeight: 1.5 }}>{t("fpReadOnly")}</div>
         </div>
       )}
       <div style={readOnly ? { pointerEvents: "none", opacity: 0.65, filter: "grayscale(0.2)" } : undefined} aria-disabled={readOnly}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {completed.map((s, i) => (
-        <DoneStep key={s.key} num={stepNo(s.key)} title={s.title} summary={state.summaries[s.key]}
+        <DoneStep key={s.key} num={stepNo(s.key)} title={stepTitleT(s.key, t)} summary={state.summaries[s.key]}
           editable={i === completed.length - 1 && !state.isContact} onReopen={() => setReopenTarget(s.key)} />
       ))}
 
-      <CurrentStepShell num={stepNo(currentStep.key)} title={currentStep.title}>
+      <CurrentStepShell num={stepNo(currentStep.key)} title={stepTitleT(currentStep.key, t)}>
         {renderCurrentBody(currentStep)}
       </CurrentStepShell>
 
       {future.map(s => s.key === "finish"
-        ? <FinalizeStepRow key={s.key} num={stepNo(s.key)} title={s.title} canFinalize={canFinalize} onFinalize={() => onFinalizeNow(currentStep.key)} />
-        : <LockedStep key={s.key} num={stepNo(s.key)} title={s.title} />)}
+        ? <FinalizeStepRow key={s.key} num={stepNo(s.key)} title={stepTitleT(s.key, t)} canFinalize={canFinalize} onFinalize={() => onFinalizeNow(currentStep.key)} />
+        : <LockedStep key={s.key} num={stepNo(s.key)} title={stepTitleT(s.key, t)} />)}
         </div>
       </div>
 
@@ -981,23 +964,13 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
         />
       )}
 
-      {convertOpen && (
-        <ConvertLeadModal
-          contact={contact}
-          onCancel={() => setConvertOpen(false)}
-          onApply={(status) => { onApplyConvert(status); setConvertOpen(false); }}
-        />
-      )}
-
       {reopenTarget && (
         <ConfirmDialog
-          title="Reopen this step?"
+          title={t("fpReopenTitle")}
           message={<>
-            Reopening <b>{STEPS[IDX[reopenTarget]].title}</b> discards the steps after it and their recorded outcomes — you'll re-do them from here.
-            {IDX[reopenTarget] <= IDX.call && state.appointment && <> The booked appointment will be cancelled and removed from the calendar.</>}
-            {state.finished && <> This lead's result will be retracted from the campaign statistics.</>}
+            <b>{stepTitleT(reopenTarget, t)}</b>
           </>}
-          confirmLabel="Reopen & Discard"
+          confirmLabel={t("fpReopenConfirm")}
           danger
           onCancel={() => setReopenTarget(null)}
           onConfirm={() => {

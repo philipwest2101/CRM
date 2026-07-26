@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useContext } from "react";
 import { C } from "../../theme";
 import { useT, LangContext } from "../../lib/i18n";
-import { ALL_LEADS } from "../../lib/core";
+import { ALL_LEADS, getCallAttempts, totalCallAttempts } from "../../lib/core";
 import { ContactActions } from "../ui/contact-actions";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -102,6 +102,8 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", role = "gp", 
   // ── My Leads — the advisor's real assigned leads ─────────────────────────────
   const myLeads = useMemo(() => ALL_LEADS.filter(l => l.assignedGP === userName), [userName]);
   const leadRows = myLeads.slice(0, 5);
+  // Spec §4: call-attempts metric summed from the numeric callAttempts property.
+  const myCallAttempts = useMemo(() => totalCallAttempts(myLeads), [myLeads]);
 
   // ── Appointments (list previews the selected period) ─────────────────────────
   const APPTS = [
@@ -220,17 +222,22 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", role = "gp", 
         {/* My Leads */}
         <div style={cardStyle}>
           <div style={panelHeadStyle}>
-            <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>{t("myLeads")}</div>
+            <div>
+              <div style={{ fontSize:16,fontWeight:600,color:C.navy }}>{t("myLeads")}</div>
+              <div style={{ fontSize:11,color:C.muted,marginTop:2 }}>{myCallAttempts} {myCallAttempts===1?t("mlCall"):t("mlCalls")} · {myLeads.length} {t("myLeads")}</div>
+            </div>
             <span onClick={()=>navigateTo("Leads", null, "myleads")} style={linkStyle}>{t("allLink")}</span>
           </div>
           <div style={{ padding:"6px 12px 12px" }}>
-            {leadRows.map((l,i)=>(
+            {leadRows.map((l,i)=>{
+              const attempts = getCallAttempts(l);
+              return (
               <div key={l.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 8px",
                 borderBottom:i<leadRows.length-1?`1px solid ${C.border}`:"none" }}>
                 <SoftAvatar name={l.name} color={avColor(l.name)}/>
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontSize:13.5,fontWeight:600,color:C.navy }}>{l.name}</div>
-                  <div style={{ fontSize:11.5,color:C.muted,marginTop:2 }}>{l.city} · {l.source}</div>
+                  <div style={{ fontSize:11.5,color:C.muted,marginTop:2 }}>{l.nextAction ? `→ ${l.nextAction}` : `${l.city} · ${l.source}`}{attempts>0?` · ${attempts} ${attempts===1?t("mlCall"):t("mlCalls")}`:""}</div>
                 </div>
                 <button onClick={()=>navigateTo("LeadDetail", l, "myleads")}
                   style={{ padding:"6px 14px",borderRadius:8,border:`1px solid ${C.primary}`,background:"#fff",
@@ -238,7 +245,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", role = "gp", 
                   {t("gpProcess")}
                 </button>
               </div>
-            ))}
+            );})}
           </div>
         </div>
 

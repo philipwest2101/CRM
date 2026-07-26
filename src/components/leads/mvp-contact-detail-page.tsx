@@ -18,6 +18,33 @@ const STATUS_LABEL: Record<string, string> = {
 };
 const stageStatusLabel = (status?: string) => (status && STATUS_LABEL[status]) || "New";
 
+// Derive the LIVE broad Status + Processing from the Feedback & Processing state,
+// so the left-pane Status field updates in real time as the advisor works the
+// lead (New → In Contact → Appointment → Qualified → Closed …). Mirrors the
+// stepper's own transitions (spec §5 mapping).
+const APPT_STEP_IDX = STEPS.findIndex(s => s.key === "appointment");
+export const liveStatusFromFeedback = (fb: any, lead?: any): { label: string; processing: string | null } => {
+  if (!fb) return { label: stageStatusLabel(lead?.status), processing: null };
+  if (fb.notReached)  return { label: "Not Reached",    processing: "Closed" };
+  if (fb.dnc)         return { label: "Do Not Contact", processing: "Closed" };
+  if (fb.negativeOutcome) return fb.outcome === "Lost"
+    ? { label: "Closed",        processing: "Lost" }
+    : { label: "Not Interested", processing: "Closed" };
+  // Won is a terminal positive close: Status = Closed, Processing = Won.
+  if (fb.outcome === "Won") return { label: "Closed", processing: "Won" };
+  if (fb.appointmentStatus || fb.appointment || fb.current === APPT_STEP_IDX) {
+    const p = fb.appointmentStatus
+      ? (fb.appointmentStatus === "Completed" ? "Appointment Completed" : fb.appointmentStatus)
+      : (fb.apptOutcome ? "Appointment Completed" : "Appointment Scheduled");
+    return { label: "Appointment", processing: p };
+  }
+  if (fb.reached)           return { label: "In Contact", processing: "Connected" };
+  if ((fb.calls || 0) > 0)  return { label: "In Contact", processing: "Attempting Contact" };
+  if (fb.current > 0 || (fb.doneSteps || []).includes("initial"))
+    return { label: "In Contact", processing: "First Contact Attempted" };
+  return { label: stageStatusLabel(lead?.status), processing: null };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP CONTACT DETAIL VIEW
 // Left identity rail (shared) + tabbed content: Overview / Information /
@@ -531,7 +558,7 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
       <InfoRow icon="🏷" label="Ownership" value={c.ownership} />
       {isContact
         ? <OutcomeStatusRow outcome={outcome} onChange={onChangeOutcome} />
-        : <InfoRow icon="◎" label="Status" value={c.stageStatus} />}
+        : <InfoRow icon="◎" label={t("stageStatus")} value={c.stageProcessing ? `${c.stageStatus} · ${c.stageProcessing}` : c.stageStatus} />}
       <InfoRow icon="🔗" label="Source" value={c.source} />
       <InfoRow icon="📣" label="Campaign Assignment" value={c.campaign} />
 
@@ -571,6 +598,13 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
   const nextBest    = fb.finished ? { icon: "✓", label: "Processing complete" } : (NEXT_BEST[stepKey] || NEXT_BEST.initial);
   const lastAction  = fb.lastAction;
   const stageLabel  = fb.finished ? "Finished" : (STEPS[fb.current]?.title || "Initial Contact");
+  // Spec §4 — the primary open Next Action (structured property), the Lost Reason
+  // (shown only when Processing = Lost) and the Follow-Up Reason (shown only when
+  // Status = Follow Up). These come off the live processing state, never a string.
+  const primaryNextAction = fb.nextAction || null;
+  const nextActionDue     = fb.nextActionDue || fb.nextActionDueDate || null;
+  const showLostReason    = (fb.outcome === "Lost" || !!fb.lostReason) && !!fb.lostReason;
+  const showFollowUp      = (!!fb.followUpReason || !!fb.followUpDate);
   const [notes, setNotes] = useState([
     { id: "n1", stage: "Connected",              dur: "3 days",  active: true, date: "04.03.2026 - 10:00" },
     { id: "n2", stage: "First Contact Attempted",dur: "18 days", done: true,   date: "04.03.2026 - 10:00" },
@@ -600,6 +634,15 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
                 {lastAction?.label || "No action yet"}
               </div>
+              {/* Primary open Next Action (structured property, spec §4) */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Next Action</span>
+                {nextActionDue && <span style={{ fontSize: 11.5, color: C.muted }}>Due {nextActionDue}</span>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 700, color: primaryNextAction ? C.navy : C.muted }}>
+                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center" }}>➡️</span>
+                {primaryNextAction || "No open action"}
+              </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Next Best Action</span><AiTag />
               </div>
@@ -607,6 +650,20 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{nextBest.icon}</span>
                 {nextBest.label}
               </div>
+              {/* Conditional: Lost Reason only when Processing = Lost (spec §4) */}
+              {showLostReason && (
+                <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.red + "0C", border: `1px solid ${C.red}33` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.red, marginBottom: 3 }}>Lost Reason</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.lostReason}</div>
+                </div>
+              )}
+              {/* Conditional: Follow-Up Reason only when Status = Follow Up (spec §4) */}
+              {showFollowUp && (
+                <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.purple + "0C", border: `1px solid ${C.purple}33` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.purple, marginBottom: 3 }}>Follow-Up{fb.followUpDate ? ` · ${fb.followUpDate}` : ""}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.followUpReason || "Scheduled follow-up"}</div>
+                </div>
+              )}
             </div>
           </div>
         </Card>
@@ -699,6 +756,116 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
         <ConfirmModal title="Delete note?" message="This note will be permanently removed. This action cannot be undone."
           onCancel={() => setDelId(null)} onConfirm={() => { setNotes(prev => prev.filter(x => x.id !== delId)); setDelId(null); }} />
       )}
+    </div>
+  );
+};
+
+// ── Network Overview tab ──────────────────────────────────────────────────────
+// Overview shown for My Network contacts: At a Glance · General Notes · Voice
+// Memo · Advisory Documents. Fully bilingual (labels via i18n).
+const SectionBar = ({ children }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 12px" }}>
+    <span style={{ width: 3, height: 16, background: C.primary, borderRadius: 2 }} />
+    <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{children}</span>
+  </div>
+);
+
+const NetworkOverviewTab = ({ c, lead }: any) => {
+  const t = useT();
+  const [note, setNote] = useState("");
+  const [notes, setNotes] = useState([
+    { id: "n1", text: "Very interested in sustainable retirement provision. Prefers contact by email, ideally in the mornings. Partner is involved in the decision — possibly invite both to the next appointment.", author: c?.assignee || "Anna Klein", date: "25.06.2026" },
+    { id: "n2", text: "Mentioned in first call: plans to buy property in 2 years, wants to build liquidity in parallel.", author: c?.assignee || "Anna Klein", date: "20.06.2026" },
+  ]);
+  const addNote = () => {
+    if (!note.trim()) return;
+    setNotes(prev => [{ id: `n-${Date.now()}`, text: note.trim(), author: c?.assignee || "You", date: new Date().toLocaleDateString("en-GB") }, ...prev]);
+    setNote("");
+  };
+  const memos = [
+    { id: "m1", title: "Call note after consultation", date: "20.06.2026", dur: "1:24" },
+    { id: "m2", title: "Voice memo: callback request on terms", date: "12.06.2026", dur: "0:38" },
+  ];
+  const docs = [
+    { label: t("ovDocWishes"),    status: t("ovDocSigned"), color: C.green },
+    { label: t("ovDocConcept"),   status: t("ovDocSent"),   color: C.blue  },
+    { label: t("ovDocFinancing"), status: t("ovDocDraft"),  color: C.slate },
+  ];
+  const Wave = () => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, height: 16 }}>
+      {[6, 11, 4, 14, 8, 12, 5, 10].map((h, i) => <span key={i} style={{ width: 2, height: h, background: C.primary, borderRadius: 1, opacity: 0.7 }} />)}
+    </span>
+  );
+  const noteBox = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", color: C.text, boxSizing: "border-box" as const, outline: "none", background: "#fff", minHeight: 88, resize: "vertical" as const, lineHeight: 1.5 };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* At a Glance */}
+      <SectionBar>{t("ovAtAGlance")}</SectionBar>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <Card style={{ padding: "16px 18px", background: C.light }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>{t("ovLastEvent")}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>Finanzforum München 2026</div>
+          <div style={{ fontSize: 12, color: C.slate, marginTop: 3 }}>12.06.2026</div>
+        </Card>
+        <Card style={{ padding: "16px 18px", background: C.light }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>{t("ovLastContact")}</div>
+            <span style={{ fontSize: 10.5, color: C.muted }}>🔒 {t("ovAuto")}</span>
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>{lead?.lastContact || "27.06.2026"}</div>
+          <div style={{ fontSize: 12, color: C.green, marginTop: 3, fontWeight: 600 }}>{t("ovCallReached")}</div>
+        </Card>
+      </div>
+
+      {/* General Notes on Contact */}
+      <SectionBar>{t("ovGeneralNotes")}</SectionBar>
+      <Card style={{ padding: "16px 18px" }}>
+        <textarea value={note} onChange={e => setNote(e.target.value)} placeholder={t("ovAddNotePlaceholder")} style={noteBox} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+          <span style={{ fontSize: 11.5, color: C.muted }}>{t("ovAdvisorNoteHint")}</span>
+          <button onClick={addNote} disabled={!note.trim()} style={{ padding: "9px 22px", borderRadius: 9, border: "none", background: note.trim() ? C.navy : C.border, color: note.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: note.trim() ? "pointer" : "default", fontFamily: "inherit" }}>{t("save")}</button>
+        </div>
+      </Card>
+      {notes.map(n => (
+        <Card key={n.id} style={{ padding: "14px 18px" }}>
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{n.text}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 11.5, color: C.muted }}>
+            <span>👤 {n.author}</span><span>·</span><span>{n.date}</span>
+          </div>
+        </Card>
+      ))}
+
+      {/* Voice Memo */}
+      <SectionBar>{t("ovVoiceMemo")}</SectionBar>
+      <Card style={{ padding: "14px 18px", background: C.light, display: "flex", alignItems: "center", gap: 14 }}>
+        <span style={{ width: 40, height: 40, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>🎙</span>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovRecordMemo")}</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{t("ovRecordHint")}</div>
+        </div>
+      </Card>
+      {memos.map(m => (
+        <Card key={m.id} style={{ padding: "12px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 13, flexShrink: 0 }}>▶</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy }}>{m.title}</div>
+            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{m.date} · {m.dur}</div>
+          </div>
+          <Wave />
+        </Card>
+      ))}
+
+      {/* Advisory Documents */}
+      <SectionBar>{t("ovAdvisoryDocs")}</SectionBar>
+      {docs.map(d => (
+        <Card key={d.label} style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}>
+          <span style={{ fontSize: 15, color: C.muted }}>📄</span>
+          <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: C.text }}>{d.label}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: d.color, background: d.color + "18", padding: "3px 10px", borderRadius: 20 }}>{d.status}</span>
+          <span style={{ color: C.muted }}>›</span>
+        </Card>
+      ))}
     </div>
   );
 };
@@ -1520,14 +1687,16 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
   // "Feedback & Processing" comes first; every other tab (and the identity-rail
   // quick actions) stays locked until the lead has been converted to a contact.
   const ACTIVE_TABS = isMyNetwork
-    ? [t("feedbackTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
+    ? [t("overviewTab"), t("feedbackTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
     : [t("feedbackTab"), t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
   const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
-  const [tab, setTab] = useState(() => t("feedbackTab"));
+  // Network contacts open on Overview; leads open on Feedback & Processing.
+  const defaultTab = () => (isMyNetwork ? t("overviewTab") : t("feedbackTab"));
+  const [tab, setTab] = useState(defaultTab);
   // Re-initialise when navigating to a different contact.
-  React.useEffect(() => { setFeedback(initFeedback()); setTab(t("feedbackTab")); }, [lead?.id]);
-  // If the active tab ever becomes disabled, fall back to Feedback.
-  React.useEffect(() => { if (!isTabEnabled(tab)) setTab(t("feedbackTab")); }, [feedback.isContact]);
+  React.useEffect(() => { setFeedback(initFeedback()); setTab(defaultTab()); }, [lead?.id]);
+  // If the active tab ever becomes disabled, fall back to the default tab.
+  React.useEffect(() => { if (!isTabEnabled(tab)) setTab(defaultTab()); }, [feedback.isContact]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
   // When the Initial Message step opens the email composer, it passes a prefill
   // (subject + body) and locks the recipient; `initialEmailSent` drives the step's
@@ -1551,7 +1720,9 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
     lifecycle: feedback.isContact ? "Network" : "Lead",
     // Network is always User-owned; company reporting only sees Ownership = Company.
     ownership: feedback.isContact ? "User" : "Company",
-    stageStatus: feedback.isContact ? networkOutcomeLabel(networkOutcome) : stageStatusLabel(lead?.status),
+    stageStatus: feedback.isContact ? networkOutcomeLabel(networkOutcome) : liveStatusFromFeedback(feedback, lead).label,
+    // Live Processing (condition within the Status) — shown under Status in the rail.
+    stageProcessing: feedback.isContact ? null : liveStatusFromFeedback(feedback, lead).processing,
     source: lead?.source || "Landing Page",
     campaign: lead?.campaign || "Webinar – Q1 2026",
   };
@@ -1595,7 +1766,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
                                             onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); }}
                                             readOnly={feedback.isContact}
                                             autoConvert={sourceAction === "convert"} />}
-          {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} />}
+          {tab === t("overviewTab")     && (isMyNetwork ? <NetworkOverviewTab c={c} lead={lead} /> : <OverviewTab showInsights={false} feedback={feedback} />)}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}

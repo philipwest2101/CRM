@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { C } from "../../theme";
-import { PRIORITY_META, DONE_STATUSES, APPOINTMENT_TYPE_META, feedbackStatusLabel } from "../../lib/core";
+import { PRIORITY_META, DONE_STATUSES, APPOINTMENT_TYPE_META, feedbackStatusLabel, getCallAttempts } from "../../lib/core";
 import { useT } from "../../lib/i18n";
 import { GPDashboard } from "./gp-dashboard";
 import { ContactActions } from "../ui/contact-actions";
@@ -529,7 +529,7 @@ const synthSms = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 +
 // Feedback & Processing detail line — surfaces how much outreach has happened
 // (calls placed, messages sent) so the stage isn't just a bare label.
 const feedbackColDetail = (l) => {
-  const calls = l.attempts || 0, sms = synthSms(l.id);
+  const calls = getCallAttempts(l), sms = synthSms(l.id);
   const c = `${calls} call${calls !== 1 ? "s" : ""}`;
   switch (l.status) {
     case "open":        return `${sms} SMS sent`;
