@@ -53,9 +53,9 @@ Attempts and the reached-outcome are handled in a **single step**.
 
 **Call outcome (after the contact is reached)**
 - The advisor records the outcome of the conversation: **Appointment Scheduled**, **Won**, **Follow Up**, **Not Interested**, or **No Suitable Solution**. An optional **Note** captures conversation details.
-- **Appointment Scheduled** opens the scheduling (Appointment) modal, pre-filled for the contact and locked to it; on submit the appointment is booked (and written to the shared calendar) and **Save & Continue** advances to Appointment Outcome. The booked card offers **Change** (re-open the scheduler) and a **Delete** (🗑️) icon that cancels the booking and removes it from the calendar.
+- **Appointment Scheduled** opens the scheduling (Appointment) modal, pre-filled for the contact and locked to it; on submit the appointment is booked (and written to the shared calendar) and **Save & Continue** advances to Appointment Outcome. The booked card shows the appointment (type · date · time); re-selecting the **Appointment Scheduled** chip re-opens the scheduler to change it.
 - **Won** is a terminal outcome — Status → *Closed*, Processing → *Won* — and advances to Finalize.
-- **Follow Up** is a deliberate pause: the lead becomes *Follow Up · Waiting for Follow-Up* with Next Action *Resume follow-up*. It **stays on this step** (it does not advance to Finalize and does not open a modal); the advisor schedules the actual follow-up via **Create Task**.
+- **Follow Up** marks the lead as *Follow Up · Waiting for Follow-Up* with Next Action *Resume follow-up*; **Save & Continue** advances to Finalize. The advisor schedules the actual follow-up via **Create Task**.
 - **No Suitable Solution** (Closed / Lost) advances to Finalize; Status → *Closed*, Processing → *Lost*.
 - **Won / Not Interested / No Suitable Solution** end processing and advance to Finalize.
 - The two negative outcomes — **Not Interested** and **No Suitable Solution** — flag the lead so the **Do Not Contact** toggle becomes available in Finalize; the others are neutral (no DNC).
@@ -68,7 +68,7 @@ Attempts and the reached-outcome are handled in a **single step**.
 - **Not Interested** / **No Suitable Solution** → advance to Finalize and enable the **Do Not Contact** toggle.
 - **No Show** → advances to Finalize and records the appointment status as **No Show**; it does **not** re-open the scheduler and is neutral (no DNC). Next Action: Finalize.
 - **Reschedule** → re-opens the scheduler to re-book a new appointment; the lead **stays in the Appointment status** (*Appointment Scheduled*, Next Action: conduct appointment) and the reschedule count is tracked.
-- **Follow Up** → a deliberate pause (Status *Follow Up · Waiting for Follow-Up*, Next Action *Resume follow-up*); it stays on this step and does not open a modal.
+- **Follow Up** → marks the lead as *Follow Up · Waiting for Follow-Up* (Next Action *Resume follow-up*) and **Save & Continue** advances to Finalize.
 
 ### Step 4 — Finalize Process
 
@@ -116,7 +116,7 @@ The action buttons drive the lead's **Status**, **Processing** stage, and **Next
 ### Supporting Rules
 
 - Call attempts are capped at **5**; the 5th failed attempt auto-finalizes the lead as **Not Reached**.
-- **Follow Up** is treated as an active pause, not a processed lead: it keeps the lead on the current step and sets Next Action *Resume follow-up*; it does not advance to Finalize or open a modal.
+- **Follow Up** marks the lead as *Follow Up · Waiting for Follow-Up* (Next Action *Resume follow-up*) and advances to Finalize on **Save & Continue**.
 - **Won** is a terminal, neutral outcome (Status *Closed*, Processing *Won*) — it advances to Finalize but does not enable DNC.
 - **No Show** advances to Finalize while keeping the appointment status *No Show*; it does not re-open the scheduler and does not enable DNC.
 - The **Do Not Contact** toggle is only offered when a negative outcome (**Not Interested** / **No Suitable Solution**) was recorded in Call Outcome or Appointment Outcome.
@@ -132,7 +132,7 @@ The action buttons drive the lead's **Status**, **Processing** stage, and **Next
 ### Faulty / Guard Cases
 
 - **Save & Continue** on Call Attempts is disabled until a result (Reached / Not Reached) is selected.
-- **Save & Continue** on the outcome steps is disabled until an outcome is selected. (Follow Up and Reschedule are handled by their own chip action and do not use Save & Continue.)
+- **Save & Continue** on the outcome steps is disabled until an outcome is selected. (Reschedule is handled by its own chip action — re-opening the scheduler — and does not use Save & Continue.)
 - **Appointment Scheduled** cannot continue until the appointment is actually booked.
 - Reopening a completed step requires confirmation because it discards later steps and their recorded outcomes (and, where applicable, cancels a booked appointment and retracts a finalized result from the statistics).
 - A lead already at **Not Reached** cannot log further call attempts.

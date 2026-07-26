@@ -30,13 +30,13 @@ const stepTitleT = (key: string, t: any) => t(STEP_TITLE_KEY[key] || "fpStepInit
 //   reached) without completing the remaining steps.
 // · Call Outcome (spec-aligned): Appointment Scheduled, Won, Follow Up, Not
 //   Interested, No Suitable Solution (Closed / Lost). "Appointment Scheduled"
-//   opens the scheduling modal; Follow Up stays on the step; the other outcomes
-//   advance to Finalize.
+//   opens the scheduling modal; every other outcome (including Follow Up)
+//   advances to Finalize on Save & Continue.
 // · Appointment Outcome (spec-aligned): a completed appointment resolves to
 //   Won, Follow Up, Not Interested, No Suitable Solution (Closed / Lost) or No
-//   Show. Won / Not Interested / No Suitable Solution / No Show advance to
-//   Finalize; No Show keeps the appointment status "No Show" but does NOT re-open
-//   scheduling. Reschedule re-opens scheduling and keeps the lead in Appointment.
+//   Show — all advance to Finalize on Save & Continue. No Show keeps the
+//   appointment status "No Show" but does NOT re-open scheduling. Reschedule
+//   re-opens scheduling and keeps the lead in Appointment.
 //   An optional note captures details.
 // · Negative outcomes (Not Interested, No Suitable Solution) enable a persistent
 //   Do-Not-Contact toggle in Finalize.
@@ -435,16 +435,16 @@ const CALL_OUTCOMES = [
   { v: "notinterested",k: "fpChipNotInterested",label: "Not Interested",        tone: C.red },
   { v: "lost",         k: "fpChipNoSolution",   label: "No Suitable Solution",  tone: C.slate },
 ];
-const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue, onFollowUp }) => {
+const CallOutcomeStep = ({ appointment, onScheduleAppt, onContinue }) => {
   const t = useT();
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const sel = CALL_OUTCOMES.find(o => o.v === choice);
   const isAppt = choice === "appointment";
-  // Appointment Scheduled → open the scheduler. Follow Up → open the Create Task
-  // modal (scheduling the follow-up task is sufficient — no inline date/reason).
-  const pick = (v) => { setChoice(v); if (v === "appointment") onScheduleAppt(); else if (v === "followup") onFollowUp(); };
-  const canContinue = !!sel && choice !== "followup" && (!isAppt || !!appointment);
+  // Appointment Scheduled → open the scheduler. Every other outcome (including
+  // Follow Up) resolves on Save & Continue and advances to Finalize.
+  const pick = (v) => { setChoice(v); if (v === "appointment") onScheduleAppt(); };
+  const canContinue = !!sel && (!isAppt || !!appointment);
   return (
     <>
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{t("fpCallOutcomeDesc")}</div>
@@ -452,14 +452,12 @@ const CallOutcomeStep = ({ appointment, onScheduleAppt, onDeleteAppt, onContinue
       {isAppt && (appointment
         ? <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 9, background: C.green + "0C", border: `1px solid ${C.green}40`, marginBottom: 14, fontSize: 12.5, color: C.navy, fontWeight: 600 }}>
             📅 {appointment.type} · {appointment.date} {appointment.time}
-            <button onClick={onScheduleAppt} style={{ marginLeft: "auto", background: "none", border: "none", color: C.slate, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{t("update")}</button>
-            <button onClick={() => { onDeleteAppt(); setChoice(""); }} title="Delete this appointment" aria-label="Delete appointment" style={{ background: "none", border: "none", color: C.red, fontSize: 14, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, padding: 0 }}>🗑️</button>
           </div>
         : <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>📅 {t("fpChipAppt")}</div>)}
       {choice === "won" && <div style={{ fontSize: 12, color: C.green, fontWeight: 600, marginBottom: 12 }}>{t("fpWonHint")}</div>}
-      {sel && !isAppt && choice !== "followup" && (
+      {sel && !isAppt && (
         <div style={{ fontSize: 12, color: C.amber, fontWeight: 600, marginBottom: 12 }}>
-          {NEGATIVE.has(choice) ? t("fpEndsDnc") : choice === "won" ? "" : t("fpEndsFinalize")}
+          {NEGATIVE.has(choice) ? t("fpEndsDnc") : choice === "won" ? "" : choice === "followup" ? t("fpFollowUpHint") : t("fpEndsFinalize")}
         </div>
       )}
       <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted, display: "block", marginBottom: 6 }}>{t("fpNoteOptional")}</label>
@@ -484,24 +482,24 @@ const APPT_OUTCOMES = [
   { v: "reschedule",   k: "fpChipReschedule",   label: "Reschedule",           tone: C.amber },
   { v: "noshow",       k: "fpChipNoShow",       label: "No Show",              tone: C.amber },
 ];
-const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule, onFollowUp }) => {
+const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule }) => {
   const t = useT();
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const sel = APPT_OUTCOMES.find(o => o.v === choice);
-  // Reschedule → re-open the scheduler; Follow Up → stays on this step. No Show,
-  // Won, Not Interested and No Suitable Solution all resolve with Save & Continue
-  // (No Show advances to Finalize without re-opening the scheduler).
+  // Reschedule → re-open the scheduler and stay on this step. Won, Follow Up, Not
+  // Interested, No Suitable Solution and No Show all resolve with Save & Continue
+  // and advance to Finalize (No Show without re-opening the scheduler).
   const pick = (v) => {
     setChoice(v);
     if (v === "reschedule") onReschedule();
-    else if (v === "followup") onFollowUp();
   };
   const hint = choice === "reschedule" ? t("fpRescheduleHint")
     : choice === "noshow" ? t("fpNoShowHint")
     : choice === "won" ? t("fpWonHintShort")
+    : choice === "followup" ? t("fpFollowUpHint")
     : NEGATIVE.has(choice) ? t("fpEndsDnc") : null;
-  const isActionChip = choice === "reschedule" || choice === "followup";
+  const isActionChip = choice === "reschedule";
   const canSave = !!sel && !isActionChip;
   const submit = () => sel && onComplete(sel.v, sel.label, note.trim());
   return (
@@ -674,17 +672,6 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     }));
   };
 
-  // Delete the appointment booked from Call Outcome — cancels its calendar event
-  // and clears the booking so the advisor can re-book (or pick another outcome).
-  const onDeleteApptForOutcome = () => setState(prev => {
-    if (prev.appointment?.id) onCancelAppointment && onCancelAppointment(prev.appointment.id);
-    return {
-      ...prev, appointment: null,
-      lastAction: { icon: "🗑️", label: "Appointment deleted", date: today() },
-      log: pushLog(prev, "Appointment Scheduled → Appointment deleted · removed from calendar"),
-    };
-  });
-
   // Next Action derived from a resolved outcome (spec §4 / trigger matrix).
   const NEXT_ACTION_FOR = {
     appointment: "Attend / conduct appointment",
@@ -764,16 +751,6 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     setScheduleModalOpen(true);
   };
 
-  // Follow Up — stays in the current step (like No Show); highlights the chip and
-  // sets the Next Action. No dedicated step and no modal.
-  const onPickFollowUp = (fromKey) => {
-    setState(prev => ({
-      ...prev, nextAction: "Resume follow-up",
-      lastAction: { icon: "🔁", label: "Follow Up", date: today() },
-      log: pushLog(prev, `${STEPS[IDX[fromKey]].title} → Follow Up`),
-    }));
-  };
-
   const onToggleDnc = () => setState(prev => {
     const dnc = !prev.dnc;
     return { ...prev, dnc, log: pushLog(prev, `Do Not Contact → ${dnc ? "ON" : "OFF"}`) };
@@ -834,9 +811,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} emailSent={emailSent} onSend={onSend} onSkip={onSkipInitial} onSendEmail={onSendEmail} />;
       case "call":        return (state.reached && !state.notReached)
-                            ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} onFollowUp={() => onPickFollowUp("call")} />
+                            ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onContinue={onContinueOutcome} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
-      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onFollowUp={() => onPickFollowUp("appointment")} />;
+      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onReschedule={onReschedule} />;
       case "finish":      return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onAddToNetwork={() => onApplyConvert([])} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
