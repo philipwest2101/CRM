@@ -34,9 +34,11 @@ const stepTitleT = (key: string, t: any) => t(STEP_TITLE_KEY[key] || "fpStepInit
 //   (Closed / Lost — requires a Lost Reason), Other. "Appointment Scheduled"
 //   opens the scheduling modal; the other outcomes skip to Finalize.
 // · Appointment Outcome (spec-aligned): a completed appointment resolves to
-//   exactly one of Qualified, Follow Up (later), Not Interested, or No Suitable
-//   Solution (Closed / Lost). Reschedule / No Show keep the lead in Appointment
-//   and re-open scheduling. An optional note captures details.
+//   Won, Follow Up, Not Interested, No Suitable Solution (Closed / Lost) or No
+//   Show. Won / Not Interested / No Suitable Solution / No Show advance to
+//   Finalize; No Show keeps the appointment status "No Show" but does NOT re-open
+//   scheduling. Reschedule re-opens scheduling and keeps the lead in Appointment.
+//   An optional note captures details.
 // · Negative outcomes (Not Interested, No Suitable Solution) enable a persistent
 //   Do-Not-Contact toggle in Finalize.
 // · Conversion happens in Finalize: "Add to My Network" opens the Convert Lead
@@ -504,27 +506,26 @@ const APPT_OUTCOMES = [
   { v: "reschedule",   k: "fpChipReschedule",   label: "Reschedule",           tone: C.amber },
   { v: "noshow",       k: "fpChipNoShow",       label: "No Show",              tone: C.amber },
 ];
-const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule, onNoShow, onFollowUp }) => {
+const AppointmentOutcomeStep = ({ appointment, onComplete, onReschedule, onFollowUp }) => {
   const t = useT();
   const [choice, setChoice] = useState("");
   const [note, setNote] = useState("");
   const [lostReason, setLostReason] = useState("");
   const sel = APPT_OUTCOMES.find(o => o.v === choice);
   const isLost = NEEDS_LOST_REASON.has(choice);
-  // Reschedule → re-open scheduler. No Show / Follow Up → open the Create Task
-  // modal (creating the reschedule / follow-up task is sufficient). Won / Not
-  // Interested / No Suitable Solution → Save & Continue.
+  // Reschedule → re-open the scheduler; Follow Up → stays on this step. No Show,
+  // Won, Not Interested and No Suitable Solution all resolve with Save & Continue
+  // (No Show advances to Finalize without re-opening the scheduler).
   const pick = (v) => {
     setChoice(v);
     if (v === "reschedule") onReschedule();
-    else if (v === "noshow") onNoShow();
     else if (v === "followup") onFollowUp();
   };
   const hint = choice === "reschedule" ? t("fpRescheduleHint")
     : choice === "noshow" ? t("fpNoShowHint")
     : choice === "won" ? t("fpWonHintShort")
     : NEGATIVE.has(choice) ? t("fpEndsDnc") : null;
-  const isActionChip = choice === "reschedule" || choice === "noshow" || choice === "followup";
+  const isActionChip = choice === "reschedule" || choice === "followup";
   const canSave = !!sel && !isActionChip && (!isLost || !!lostReason);
   const extra = () => ({ lostReason: isLost ? lostReason : null });
   const submit = () => sel && onComplete(sel.v, sel.label, note.trim(), extra());
@@ -723,6 +724,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     followup:    "Resume follow-up",
     notinterested: "No open action",
     lost:        "No open action",
+    noshow:      "No open action",
   };
 
   // "Continue" from Call Outcome. Appointment (already booked) → advance to
@@ -769,9 +771,11 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     }));
   };
 
-  // Terminal appointment outcomes (Won / Not Interested / No Suitable Solution)
-  // resolve to Finalize. Reschedule / No Show / Follow Up are handled by their own
-  // chip actions below (they open a modal and keep the lead active).
+  // Appointment outcomes that resolve to Finalize: Won / Not Interested / No
+  // Suitable Solution / No Show. No Show keeps the lead's appointment status
+  // ("No Show") but advances to Finalize without re-opening the scheduler.
+  // Reschedule (re-open scheduler) and Follow Up (stay on step) are handled by
+  // their own chip actions below.
   const onAppointmentOutcome = (v, label, note = "", extra: any = {}) => {
     const noteSuffix = note ? ` — ${note}` : "";
     const nextAction = NEXT_ACTION_FOR[v] || null;
@@ -779,6 +783,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     setState(prev => ({
       ...prev, apptOutcome: label, apptNote: note || null, current: IDX.finish, doneSteps: withDone(prev, "appointment"),
       negativeOutcome: NEGATIVE.has(v) ? true : prev.negativeOutcome,
+      appointmentStatus: v === "noshow" ? "No Show" : prev.appointmentStatus,
       lostReason: extra.lostReason || prev.lostReason,
       nextAction,
       outcome: v === "lost" ? "Lost" : v === "won" ? "Won" : prev.outcome,
@@ -796,16 +801,6 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       log: pushLog(prev, "Appointment Outcome → Reschedule — re-opening scheduling"),
     }));
     setScheduleModalOpen(true);
-  };
-
-  // No Show — stay in Appointment / No Show (spec §9.1). Highlights the chip and
-  // sets the Next Action; does not advance or open a modal.
-  const onNoShowAppt = () => {
-    setState(prev => ({
-      ...prev, appointmentStatus: "No Show", nextAction: "Call to reschedule",
-      lastAction: { icon: "👻", label: "No show — reschedule", date: today() },
-      log: pushLog(prev, "Appointment Outcome → No Show"),
-    }));
   };
 
   // Follow Up — stays in the current step (like No Show); highlights the chip and
@@ -880,7 +875,7 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       case "call":        return (state.reached && !state.notReached)
                             ? <CallOutcomeStep appointment={state.appointment} onScheduleAppt={() => setScheduleModalOpen(true)} onDeleteAppt={onDeleteApptForOutcome} onContinue={onContinueOutcome} onFollowUp={() => onPickFollowUp("call")} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
-      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onNoShow={onNoShowAppt} onFollowUp={() => onPickFollowUp("appointment")} />;
+      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onFollowUp={() => onPickFollowUp("appointment")} />;
       case "finish":      return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onAddToNetwork={() => onApplyConvert([])} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
