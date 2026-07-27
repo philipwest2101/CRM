@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { C } from "../../theme";
 import { AppointmentModal } from "../appointments/appointment-modal";
 import { useT } from "../../lib/i18n";
@@ -564,6 +564,10 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const currentStep = STEPS[current];
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [reopenTarget, setReopenTarget] = useState<string | null>(null);
+  // The booking is committed to the calendar on Save & Continue (not on the
+  // scheduler modal's Save), so the "added to calendar" confirmation and the
+  // workflow "email sent" snackbar fire together in the same click.
+  const pendingBookingRef = useRef<{ appt: any; data: any } | null>(null);
 
   // "Add to Network" deep-link from the Leads list converts the lead once (no modal).
   React.useEffect(() => { if (autoConvert && !state.isContact) onApplyConvert([]); }, []);
@@ -664,7 +668,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   // From Call Outcome: picking "Appointment Scheduled" opens the modal and books
   // the appointment WITHOUT leaving the step (the advisor advances with Continue).
   const onBookForOutcome = (appt, data) => {
-    bookOnCalendar(appt, data);
+    // Stash the booking; it is written to the calendar on Save & Continue so the
+    // "email sent" workflow snackbar coincides with the confirmation snackbar.
+    pendingBookingRef.current = { appt, data };
     setState(prev => ({
       ...prev, appointment: appt, contactOutcome: prev.contactOutcome || "Appointment Scheduled",
       lastAction: { icon: "📅", label: `Appointment booked · ${appt.date} ${appt.time}`, date: today() },
@@ -688,8 +694,12 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     const noteSuffix = note ? ` — ${note}` : "";
     const nextAction = NEXT_ACTION_FOR[v] || null;
     if (v === "appointment") {
-      // Save & Continue on a scheduled-appointment outcome → confirm the booking
-      // with the snackbar (exact copy from the Figma Snackbar component).
+      // Commit the booking now: this writes it to the calendar and runs the
+      // appointment_scheduled workflow (which may push an "email sent" snackbar),
+      // so that fires together with the confirmation snackbar below.
+      const pb = pendingBookingRef.current;
+      if (pb) { bookOnCalendar(pb.appt, pb.data); pendingBookingRef.current = null; }
+      // Confirmation snackbar (exact copy from the Figma Snackbar component).
       notify && notify("The Scheduled appointment has been successfully added to the calendar", "success");
       setState(prev => ({
         ...prev, contactOutcome: label, contactNote: note || null, nextAction,
@@ -700,6 +710,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
       }));
       return;
     }
+    // A different outcome was chosen — drop the un-committed booking (it was
+    // never written to the calendar) and cancel any already-booked event.
+    pendingBookingRef.current = null;
     if (state.appointment?.id) onCancelAppointment && onCancelAppointment(state.appointment.id);
     setState(prev => ({
       ...prev, contactOutcome: label, contactNote: note || null, appointment: null,
