@@ -171,10 +171,9 @@ export default function CRMAppV5() {
     setActivities(prev => [act, ...prev]);
     ACTIVITIES_STORE.unshift(act);
     // Confirmation snackbar (Figma Dashboard-GP flow: shown right after
-    // scheduling). Fires for every scheduling path since they all sink here.
-    const title = lang === "de" ? "Termin geplant" : "Appointment scheduled";
-    const when = [appt.date, appt.start].filter(Boolean).join(" · ");
-    triggerPush(title, [appt.lead, when].filter(Boolean).join(" · "), "success");
+    // scheduling). Exact copy from the Figma "Snackbar" component. Fires for
+    // every scheduling path since they all sink through here.
+    triggerPush("The Scheduled appointment has been successfully added to the calendar", undefined, "success");
     runWorkflow("appointment_scheduled", { name: appt.lead });
   };
 
