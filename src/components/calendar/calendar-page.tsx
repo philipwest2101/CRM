@@ -8,29 +8,45 @@ import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, ALL_LEADS, APPO
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 
-// ── Unified calendar taxonomy ────────────────────────────────────────────────
-// One entry per "state" the user can see on the calendar: 6 appointment/event
-// types, 3 task types and Google. Colour is a SECONDARY cue only — every chip
-// also carries an icon and a text label, so the 10 states stay distinguishable
-// even where two hues are close (see the colour note in the day-view legend and
-// the PR description). Types are grouped into two "calendars" (CRM vs Google)
-// that can be toggled independently, plus per-type visibility toggles.
+// ── Calendar taxonomy: 4 colour CATEGORIES ───────────────────────────────────
+// Colour encodes the *category*, not the individual type — one calm hue each
+// for Appointments, Tasks, Google and Vion events, instead of a 10-hue rainbow.
+// Within a category the icon (and text label) tells the subtypes apart, so the
+// grid stays readable. Brand orange is reserved for chrome (today marker,
+// selection, buttons) so events never blend into navigation.
+//
+//   Appointments → blue    Tasks → amber    Google → green    Vion → violet
+//
+// The three toggleable "calendars" (My Calendars) map onto these categories:
+//   • CRM = Appointments + Tasks    • Google    • Vion (company events)
+const CATEGORY_META = {
+  appointment: { label:"Appointments",  color:"#2563EB", calendar:"crm"    },
+  task:        { label:"Tasks",         color:"#F59E0B", calendar:"crm"    },
+  google:      { label:"Google Events", color:"#34A853", calendar:"google" },
+  vion:        { label:"Vion Events",   color:"#7C3AED", calendar:"vion"   },
+};
+
+// Individual types keep an icon + label but inherit their category's colour.
 const TYPE_META = {
-  // CRM · appointments / events (cool + jewel tones)
-  consultation: { label:"Consultation",     icon:"💼", color:"#0E9384", group:"appointment", calendar:"crm" },
-  recruiting:   { label:"Recruiting",        icon:"🧑‍💼", color:"#6366F1", group:"appointment", calendar:"crm" },
-  business:     { label:"Business Opening",  icon:"🏢", color:"#7C3AED", group:"appointment", calendar:"crm" },
-  investment:   { label:"Investment",        icon:"📈", color:"#2563EB", group:"appointment", calendar:"crm" },
-  finance:      { label:"Finance",           icon:"💰", color:"#DB2777", group:"appointment", calendar:"crm" },
-  other:        { label:"Other",             icon:"📌", color:"#0891B2", group:"appointment", calendar:"crm" },
-  // CRM · tasks (warm + neutral tones)
-  call:         { label:"Call",              icon:"📞", color:"#F79009", group:"task", calendar:"crm" },
-  email:        { label:"Email",             icon:"✉️", color:"#B54708", group:"task", calendar:"crm" },
-  note:         { label:"To-Do",             icon:"📝", color:"#667085", group:"task", calendar:"crm" },
-  // Google
-  google:       { label:"Google Event",      icon:"🗓️", color:"#12B76A", group:"google", calendar:"google" },
+  // Appointment types (CRM)
+  consultation: { label:"Consultation",     icon:"💼",  category:"appointment" },
+  recruiting:   { label:"Recruiting",        icon:"🧑‍💼", category:"appointment" },
+  business:     { label:"Business Opening",  icon:"🏢",  category:"appointment" },
+  investment:   { label:"Investment",        icon:"📈",  category:"appointment" },
+  finance:      { label:"Finance",           icon:"💰",  category:"appointment" },
+  other:        { label:"Other",             icon:"📌",  category:"appointment" },
+  // Task types (CRM)
+  call:         { label:"Call",              icon:"📞",  category:"task" },
+  email:        { label:"Email",             icon:"✉️",  category:"task" },
+  note:         { label:"To-Do",             icon:"📝",  category:"task" },
+  // External calendars (single-type sources)
+  google:       { label:"Google Event",      icon:"🗓️",  category:"google" },
+  vion:         { label:"Vion Event",        icon:"🏢",  category:"vion" },
 };
 const TYPE_KEYS = Object.keys(TYPE_META);
+// Per-category subtype lists for the sidebar legend / per-type filter.
+const APPOINTMENT_TYPES_UI = ["consultation","recruiting","business","investment","finance","other"];
+const TASK_TYPES_UI        = ["call","email","note"];
 
 // A few sample Google-calendar entries so the "Google events" toggle is
 // meaningful (there is no live Google sync in this mock).
@@ -66,6 +82,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   // "My calendars" toggles (CRM vs Google) + per-type visibility.
   const [showCRM,     setShowCRM]     = useState(true);
   const [showGoogle,  setShowGoogle]  = useState(true);
+  const [showVion,    setShowVion]    = useState(true);
   const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
   const toggleType = (k) => setHiddenTypes(prev => {
     const next = new Set(prev);
@@ -115,16 +132,10 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     entityType:"google", category:"google", gp:myGP,
   })), []);
 
-  // Map any activity onto one of the 10 canonical calendar types.
+  // Map any activity onto one of the canonical calendar types.
   const typeKeyOf = (a) => {
     if (a?.source==="google" || a?.calendar==="google" || a?.type==="google") return "google";
-    if (a?.isEvent) {
-      const t = `${a.eventType||""} ${a.title||""}`.toLowerCase();
-      if (t.includes("business")) return "business";
-      if (t.includes("investment")) return "investment";
-      if (t.includes("finance") || t.includes("gold")) return "finance";
-      return "other";
-    }
+    if (a?.isEvent) return "vion";   // EVENTS_LIST = Vion company events
     const ty = a?.type;
     if (["consultation","recruiting","business","other"].includes(ty)) return ty;
     if (ty==="inperson") return "consultation";
@@ -135,20 +146,27 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     return a?.category==="appointment" ? "consultation" : "note";
   };
 
-  // Effective meta (colour + icon + label) for an activity.
+  // Which "calendar" (My Calendars source) an activity belongs to.
+  const calendarOf = (a) => CATEGORY_META[TYPE_META[typeKeyOf(a)]?.category || "task"].calendar;
+
+  // Effective meta (colour + icon + label) for an activity. Colour comes from
+  // the CATEGORY; Vion events keep their own event icon for the subtype cue.
   const metaOf = (a) => {
     const key = typeKeyOf(a);
     const tm  = TYPE_META[key] || TYPE_META.note;
-    return { key, ...tm, bg: tm.color+"18" };
+    const color = CATEGORY_META[tm.category].color;
+    const icon  = (key==="vion" && a?.eventIcon) ? a.eventIcon : tm.icon;
+    return { key, category:tm.category, label:tm.label, icon, color, bg: color+"18" };
   };
 
   const baseActs = [...activities, ...eventActivities, ...googleActivities];
 
-  // Filter activities: calendar (CRM/Google) → per-type → owner.
+  // Filter activities: calendar (CRM/Google/Vion) → per-type → owner.
   const visible = baseActs.filter(a => {
     const key = typeKeyOf(a);
-    const cal = TYPE_META[key]?.calendar || "crm";
+    const cal = calendarOf(a);
     if (cal==="google" && !showGoogle) return false;
+    if (cal==="vion"   && !showVion)   return false;
     if (cal==="crm"    && !showCRM)    return false;
     if (hiddenTypes.has(key)) return false;
     if (cal==="crm") {
@@ -331,11 +349,11 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     </div>
   );
 
-  const CalCheck = ({checked, onChange, label}) => (
+  const CalCheck = ({checked, onChange, label, color=C.primary}) => (
     <label style={{ display:"flex",alignItems:"center",gap:9,cursor:"pointer",padding:"3px 0",fontSize:13,color:C.text,fontWeight:600 }}>
       <span onClick={(e)=>{e.preventDefault();onChange();}}
         style={{ width:18,height:18,borderRadius:5,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
-          background:checked?C.primary:"#fff",border:`1.5px solid ${checked?C.primary:C.border}`,color:"#fff",fontSize:12,fontWeight:800 }}>
+          background:checked?color:"#fff",border:`1.5px solid ${checked?color:C.border}`,color:"#fff",fontSize:12,fontWeight:800 }}>
         {checked?"✓":""}
       </span>
       <span style={{ flex:1 }}>{label}</span>
@@ -418,27 +436,41 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           borderRight:mobile?"none":`1px solid ${C.border}`,borderBottom:mobile?`1px solid ${C.border}`:"none",background:"#F9FAFB",
           padding:"14px",display:"flex",flexDirection:"column",gap:14,overflowY:mobile?"visible":"auto" }}>
 
-          <SideSection><MiniCal/></SideSection>
+          {/* Mini-calendar is a desktop-only convenience — on mobile the main
+              grid already fills the screen, so we drop it to save vertical space. */}
+          {!mobile && <SideSection><MiniCal/></SideSection>}
 
           <SideSection title="My Calendars">
-            <CalCheck checked={showCRM}    onChange={()=>setShowCRM(v=>!v)}    label="CRM events"/>
-            <CalCheck checked={showGoogle} onChange={()=>setShowGoogle(v=>!v)} label="Google events"/>
+            <CalCheck checked={showCRM}    onChange={()=>setShowCRM(v=>!v)}    label="CRM Events"    color={C.primary}/>
+            <CalCheck checked={showGoogle} onChange={()=>setShowGoogle(v=>!v)} label="Google Events" color={CATEGORY_META.google.color}/>
+            <CalCheck checked={showVion}   onChange={()=>setShowVion(v=>!v)}   label="Vion Events"   color={CATEGORY_META.vion.color}/>
           </SideSection>
 
           <SideSection title="Event Types">
-            <div style={{ fontSize:10,color:C.muted,marginBottom:8,lineHeight:1.4 }}>
-              Tap a type to show / hide it. Every event also carries an icon, so colours stay a secondary cue.
+            <div style={{ fontSize:10,color:C.muted,marginBottom:10,lineHeight:1.4 }}>
+              One colour per category — the icon tells the types apart. Tap a type to show / hide it.
             </div>
-            {TYPE_KEYS.map(k=>{
-              const tm = TYPE_META[k];
-              const off = hiddenTypes.has(k);
+            {[{catKey:"appointment",keys:APPOINTMENT_TYPES_UI},{catKey:"task",keys:TASK_TYPES_UI}].map(({catKey,keys})=>{
+              const cm = CATEGORY_META[catKey];
               return (
-                <div key={k} onClick={()=>toggleType(k)}
-                  style={{ display:"flex",alignItems:"center",gap:8,padding:"4px 2px",cursor:"pointer",
-                    fontSize:12,fontWeight:600,color:off?C.muted:C.text,opacity:off?0.5:1 }}>
-                  <span style={{ width:11,height:11,borderRadius:3,background:tm.color,flexShrink:0 }}/>
-                  <span style={{ flexShrink:0 }}>{tm.icon}</span>
-                  <span style={{ flex:1,textDecoration:off?"line-through":"none" }}>{tm.label}</span>
+                <div key={catKey} style={{ marginBottom:10 }}>
+                  <div style={{ display:"flex",alignItems:"center",gap:7,marginBottom:5 }}>
+                    <span style={{ width:11,height:11,borderRadius:3,background:cm.color,flexShrink:0 }}/>
+                    <span style={{ fontSize:11,fontWeight:800,color:C.navy }}>{cm.label}</span>
+                  </div>
+                  {keys.map(k=>{
+                    const tm = TYPE_META[k];
+                    const off = hiddenTypes.has(k);
+                    return (
+                      <div key={k} onClick={()=>toggleType(k)}
+                        style={{ display:"flex",alignItems:"center",gap:8,padding:"3px 2px 3px 18px",cursor:"pointer",
+                          fontSize:12,fontWeight:600,color:off?C.muted:C.text,opacity:off?0.5:1 }}>
+                        <span style={{ flexShrink:0 }}>{tm.icon}</span>
+                        <span style={{ flex:1,textDecoration:off?"line-through":"none" }}>{tm.label}</span>
+                        <span style={{ width:8,height:8,borderRadius:2,background:off?C.border:cm.color,flexShrink:0 }}/>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -473,7 +505,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                         background:isSel?"#FFF9F0":!isValid?"#FAFAFA":"#fff",
                         cursor:isValid?"pointer":"default",overflow:"hidden" }}>
                       {isValid && (<>
-                        <div style={{ display:"flex",justifyContent:"flex-start",marginBottom:4 }}>
+                        <div style={{ display:"flex",justifyContent:"flex-end",marginBottom:4 }}>
                           <div style={{ minWidth:22,height:22,padding:"0 6px",borderRadius:isToday?11:6,fontSize:12,
                             fontWeight:isToday||isSel?800:600,
                             background:isToday?C.primary:isSel?C.primarySoft:"transparent",
