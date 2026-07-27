@@ -114,6 +114,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [leadAppt,    setLeadAppt]    = useState(null);    // Lead appointment (read-only detail)
   const [outcomeAppt, setOutcomeAppt] = useState(null);
   const [cellMenu,    setCellMenu]    = useState(null);    // { x, y, date, time } — create-here popover
+  const [dayPopover,  setDayPopover]  = useState(null);    // { date, x, y, items } — "+N more" day list
   const [miniDate,    setMiniDate]    = useState(new Date(2026,5,29)); // month shown by the sidebar mini-calendar
 
   // "My calendars" toggles (CRM vs Google) + per-type visibility.
@@ -137,6 +138,20 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
       y: Math.min(e.clientY, window.innerHeight - 150),
       date,
       time: hour != null ? `${String(hour).padStart(2, "0")}:00` : "09:00",
+    });
+  };
+
+  // "+N more" click → open a day popover listing all events for that day/slot
+  // (FullCalendar's moreLinkClick behaviour). stopPropagation so the cell's
+  // "create here" menu does not also fire.
+  const openMore = (e, date, items) => {
+    e.stopPropagation();
+    setSelectedDate(date);
+    setDayPopover({
+      date,
+      x: Math.min(e.clientX, window.innerWidth - 300),
+      y: Math.min(e.clientY, window.innerHeight - 340),
+      items,
     });
   };
 
@@ -579,7 +594,12 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                             <span style={{ overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{a.title}</span>
                           </div>
                         );})}
-                        {dayActs.length>3&&<div style={{ fontSize:9,fontWeight:700,color:C.slate,padding:"1px 4px" }}>+{dayActs.length-3} more</div>}
+                        {dayActs.length>3&&(
+                          <div onClick={e=>openMore(e, dateStr, dayActs)}
+                            style={{ fontSize:9,fontWeight:800,color:C.primaryDark,padding:"1px 4px",cursor:"pointer" }}>
+                            +{dayActs.length-3} more
+                          </div>
+                        )}
                       </>)}
                     </div>
                   );
@@ -640,7 +660,8 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
                           </div>
                         );})}
                         {slotActs.length>2&&(
-                          <div style={{ fontSize:9,fontWeight:700,color:C.slate,padding:"1px 5px" }}>
+                          <div onClick={e=>openMore(e, ds, slotActs)}
+                            style={{ fontSize:9,fontWeight:800,color:C.primaryDark,padding:"1px 5px",cursor:"pointer" }}>
                             +{slotActs.length-2} more
                           </div>
                         )}
@@ -827,6 +848,37 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
               {label}
             </div>
           ))}
+        </div>
+      </>)}
+
+      {/* ── "+N more" day popover — lists all events for the day/slot ───────── */}
+      {dayPopover && (<>
+        <div onClick={()=>setDayPopover(null)} style={{ position:"fixed",inset:0,zIndex:320 }}/>
+        <div style={{ position:"fixed",top:dayPopover.y,left:dayPopover.x,zIndex:321,background:"#fff",
+          borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.18)",border:`1px solid ${C.border}`,
+          width:280,maxHeight:340,display:"flex",flexDirection:"column",overflow:"hidden" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderBottom:`1px solid ${C.border}` }}>
+            <span style={{ fontSize:12,fontWeight:800,color:C.navy }}>
+              {new Date(dayPopover.date+"T12:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}
+              <span style={{ color:C.muted,fontWeight:600,marginLeft:6 }}>· {dayPopover.items.length}</span>
+            </span>
+            <button onClick={()=>setDayPopover(null)}
+              style={{ width:22,height:22,borderRadius:"50%",border:`1px solid ${C.border}`,background:"#F8FAFC",color:C.muted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1 }}>×</button>
+          </div>
+          <div style={{ overflowY:"auto",padding:"6px 0" }}>
+            {dayPopover.items.map(a=>{ const at=metaOf(a); return (
+              <div key={a.id} title={a.title}
+                onClick={()=>{ const d=dayPopover.date; setDayPopover(null); setSelectedDate(d); openActivity(a); }}
+                style={{ display:"flex",alignItems:"center",gap:8,padding:"7px 14px",cursor:"pointer",fontSize:12 }}
+                onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <span style={{ width:8,height:8,borderRadius:2,background:at.color,flexShrink:0 }}/>
+                <span style={{ flexShrink:0 }}>{at.icon}</span>
+                {a.time && <span style={{ color:C.muted,fontSize:11,flexShrink:0 }}>{a.time.slice(0,5)}</span>}
+                <span style={{ flex:1,fontWeight:600,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{a.title}</span>
+              </div>
+            );})}
+          </div>
         </div>
       </>)}
 
