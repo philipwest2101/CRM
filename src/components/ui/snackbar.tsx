@@ -85,12 +85,12 @@ export const SnackbarHost = ({ apiRef }: { apiRef: React.MutableRefObject<any> }
       role="region"
       aria-live="polite"
       style={{
-        position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)",
+        position: "fixed", top: 24, right: 24,
         zIndex: 2000, display: "flex", flexDirection: "column", gap: 10,
         width: "min(420px, calc(100vw - 24px))", pointerEvents: "none",
       }}
     >
-      <style>{`@keyframes snackIn{from{opacity:0;transform:translateY(14px) scale(0.98)}to{opacity:1;transform:none}}`}</style>
+      <style>{`@keyframes snackIn{from{opacity:0;transform:translateX(16px) scale(0.98)}to{opacity:1;transform:none}}`}</style>
       {toasts.map(t => (
         <div
           key={t.id}
