@@ -32,16 +32,16 @@ const stepTitleT = (key: string, t: any) => t(STEP_TITLE_KEY[key] || "fpStepInit
 //   Interested, No Suitable Solution (Closed / Lost). "Appointment Scheduled"
 //   opens the scheduling modal; Won / Not Interested / No Suitable Solution
 //   advance to Finalize on Save & Continue. "Follow Up" is a deliberate pause —
-//   it stays on this step (no modal, no Save & Continue) and marks the lead
-//   "Follow Up · Waiting for Follow-Up"; the advisor schedules the real
-//   follow-up via Create Task.
+//   it is recorded on Save & Continue (which stays enabled) but keeps the lead on
+//   this step, marking it "Follow Up · Waiting for Follow-Up"; the advisor
+//   schedules the real follow-up via Create Task.
 // · Appointment Outcome (spec-aligned): a completed appointment resolves to
 //   Won, Not Interested, No Suitable Solution (Closed / Lost) or No Show — all
 //   advance to Finalize on Save & Continue. No Show keeps the appointment status
 //   "No Show" but does NOT re-open scheduling. Reschedule re-opens scheduling and
-//   keeps the lead in Appointment; Follow Up is a deliberate pause that stays on
-//   this step (both are chip actions, not Save & Continue). An optional note
-//   captures details.
+//   keeps the lead in Appointment (its own chip action, no Save & Continue).
+//   Follow Up is recorded on Save & Continue but stays on this step. An optional
+//   note captures details.
 // · Negative outcomes (Not Interested, No Suitable Solution) enable a persistent
 //   Do-Not-Contact toggle in Finalize.
 // · Conversion happens in Finalize: "Add to My Network" opens the Convert Lead
@@ -446,12 +446,18 @@ const CallOutcomeStep = ({ appointment, followUp, onScheduleAppt, onFollowUp, on
   const [note, setNote] = useState("");
   const sel = CALL_OUTCOMES.find(o => o.v === choice);
   const isAppt = choice === "appointment";
-  // Appointment Scheduled → open the scheduler. Follow Up is a deliberate pause
-  // handled by its own chip action (stays on this step, no Save & Continue). Every
-  // other outcome resolves on Save & Continue and advances to Finalize.
-  const pick = (v) => { setChoice(v); if (v === "appointment") onScheduleAppt(); if (v === "followup") onFollowUp(); };
-  const isActionChip = choice === "followup";
-  const canContinue = !!sel && !isActionChip && (!isAppt || !!appointment);
+  const isFollowUp = choice === "followup";
+  // Appointment Scheduled → open the scheduler. Follow Up is a deliberate pause:
+  // it is recorded on Save & Continue (which stays enabled) but keeps the lead on
+  // this step. Every other outcome resolves on Save & Continue and advances.
+  const pick = (v) => { setChoice(v); if (v === "appointment") onScheduleAppt(); };
+  const canContinue = !!sel && (!isAppt || !!appointment);
+  // Follow Up records the pause and stays here; anything else advances the flow.
+  const submit = () => {
+    if (!sel) return;
+    if (isFollowUp) { onFollowUp(note.trim()); return; }
+    onContinue(sel.v, sel.label, note.trim());
+  };
   return (
     <>
       <div style={{ fontSize: 13, color: C.slate, marginBottom: 14 }}>{t("fpCallOutcomeDesc")}</div>
@@ -471,7 +477,7 @@ const CallOutcomeStep = ({ appointment, followUp, onScheduleAppt, onFollowUp, on
       <textarea value={note} onChange={e => setNote(e.target.value)} placeholder=""
         style={{ ...fieldStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5, marginBottom: 16 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <PrimaryBtn icon="✓" disabled={!canContinue} onClick={() => sel && onContinue(sel.v, sel.label, note.trim())}>{t("fpSaveContinue")}</PrimaryBtn>
+        <PrimaryBtn icon="✓" disabled={!canContinue} onClick={submit}>{t("fpSaveContinue")}</PrimaryBtn>
       </div>
     </>
   );
@@ -494,24 +500,28 @@ const AppointmentOutcomeStep = ({ appointment, followUp, onComplete, onReschedul
   const [choice, setChoice] = useState(followUp ? "followup" : "");
   const [note, setNote] = useState("");
   const sel = APPT_OUTCOMES.find(o => o.v === choice);
-  // Reschedule → re-open the scheduler and stay on this step. Follow Up is a
-  // deliberate pause handled by its own chip action (stays on this step, no modal,
-  // no Save & Continue). Won, Not Interested, No Suitable Solution and No Show all
-  // resolve with Save & Continue and advance to Finalize (No Show without
-  // re-opening the scheduler).
+  // Reschedule → re-open the scheduler and stay on this step (its own chip action,
+  // no Save & Continue). Follow Up is a deliberate pause recorded on Save & Continue
+  // (which stays enabled) that keeps the lead on this step. Won, Not Interested, No
+  // Suitable Solution and No Show all resolve with Save & Continue and advance to
+  // Finalize (No Show without re-opening the scheduler).
   const pick = (v) => {
     setChoice(v);
     if (v === "reschedule") onReschedule();
-    if (v === "followup") onFollowUp();
   };
   const hint = choice === "reschedule" ? t("fpRescheduleHint")
     : choice === "noshow" ? t("fpNoShowHint")
     : choice === "won" ? t("fpWonHintShort")
     : choice === "followup" ? t("fpFollowUpHint")
     : NEGATIVE.has(choice) ? t("fpEndsDnc") : null;
-  const isActionChip = choice === "reschedule" || choice === "followup";
+  const isActionChip = choice === "reschedule";
   const canSave = !!sel && !isActionChip;
-  const submit = () => sel && onComplete(sel.v, sel.label, note.trim());
+  // Follow Up records the pause and stays here; anything else advances the flow.
+  const submit = () => {
+    if (!sel) return;
+    if (choice === "followup") { onFollowUp(note.trim()); return; }
+    onComplete(sel.v, sel.label, note.trim());
+  };
   return (
     <>
       {appointment && (
@@ -736,18 +746,20 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     }));
   };
 
-  // Follow Up — a deliberate pause. The lead becomes "Follow Up · Waiting for
-  // Follow-Up" (Next Action: Resume follow-up) but the stepper STAYS on the current
-  // step (it does not advance to Finalize and does not open a modal). The advisor
-  // schedules the actual follow-up via Create Task.
-  const onFollowUp = (fromKey) => setState(prev => {
+  // Follow Up — a deliberate pause. Recorded on Save & Continue: the lead becomes
+  // "Follow Up · Waiting for Follow-Up" (Next Action: Resume follow-up) but the
+  // stepper STAYS on the current step (it does not advance to Finalize and does not
+  // open a modal). The advisor schedules the actual follow-up via Create Task.
+  const onFollowUp = (fromKey, note = "") => {
     const title = STEPS[IDX[fromKey]].title;
-    return {
-      ...prev, followUp: true, nextAction: "Resume follow-up",
+    const noteSuffix = note ? ` — ${note}` : "";
+    notify && notify("Marked as Follow Up — waiting for follow-up", "success");
+    setState(prev => ({
+      ...prev, followUp: true, nextAction: "Resume follow-up", contactNote: note || prev.contactNote,
       lastAction: { icon: "⏸️", label: "Follow Up — waiting for follow-up", date: today() },
-      log: pushLog(prev, `${title} → Follow Up · Waiting for Follow-Up`),
-    };
-  });
+      log: pushLog(prev, `${title} → Follow Up · Waiting for Follow-Up${noteSuffix}`),
+    }));
+  };
 
   // Re-book from within Appointment Outcome (reschedule) — keeps the current step.
   // The previous calendar event is cancelled by the caller before this runs.
@@ -850,9 +862,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     switch (step.key) {
       case "initial":     return <SendInitialMessageStep contact={contact} emailSent={emailSent} onSend={onSend} onSkip={onSkipInitial} onSendEmail={onSendEmail} />;
       case "call":        return (state.reached && !state.notReached)
-                            ? <CallOutcomeStep appointment={state.appointment} followUp={state.followUp} onScheduleAppt={() => setScheduleModalOpen(true)} onFollowUp={() => onFollowUp("call")} onContinue={onContinueOutcome} />
+                            ? <CallOutcomeStep appointment={state.appointment} followUp={state.followUp} onScheduleAppt={() => setScheduleModalOpen(true)} onFollowUp={(note) => onFollowUp("call", note)} onContinue={onContinueOutcome} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
-      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} followUp={state.followUp} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onFollowUp={() => onFollowUp("appointment")} />;
+      case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} followUp={state.followUp} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onFollowUp={(note) => onFollowUp("appointment", note)} />;
       case "finish":      return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onAddToNetwork={() => onApplyConvert([])} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
       default:            return null;
     }
