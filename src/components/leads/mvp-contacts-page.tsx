@@ -999,7 +999,7 @@ const EmailPreviewModal = ({ onClose }) => (
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 16 }}>
-          <span style={{ fontSize: 13, color: C.muted, width: 80 }}>Attachements</span>
+          <span style={{ fontSize: 13, color: C.muted, width: 80 }}>Attachments</span>
           <div style={{ display: "flex", gap: 12 }}>
             {["FileName1.pdf", "FileName2.pdf"].map(f => (
               <span key={f} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, color: C.text, background: C.primarySoft, padding: "9px 14px", borderRadius: 8 }}>📎 {f}</span>

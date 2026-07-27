@@ -13,7 +13,8 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
   const [drawerOpen,  setDrawerOpen]  = useState(false);  // mobile (responsive) menu
 
   const responsive = viewMode === "responsive";
-  const headerBg = "linear-gradient(90deg, #FF9000 0%, #FFB733 55%, #FFC94F 100%)";
+  // Design system: solid orange chrome (#FF9000). See LH-Vion Design Ref §8.1.
+  const headerBg = "#FF9000";
 
   // ── Nav items (shared by the desktop bar and the mobile drawer) ─────────────
   const navItems = [
@@ -163,7 +164,7 @@ export const TopNav = ({ page, setPage, role, setRole, version, setVersion, push
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
-    <div style={{ background:headerBg,padding:"0 28px",display:"flex",alignItems:"center",height:54,gap:24,boxShadow:"0 1px 4px rgba(0,0,0,0.15)",position:"sticky",top:0,zIndex:200 }}>
+    <div style={{ background:headerBg,padding:"0 28px",display:"flex",alignItems:"center",height:80,gap:24,boxShadow:"0 1px 4px rgba(0,0,0,0.15)",position:"sticky",top:0,zIndex:200 }}>
       <Logo />
       <div style={{ display:"flex",gap:2 }}>
         {navItems.map(item=>{

@@ -17,8 +17,8 @@ Pages: **Library · Main · Archive · Style Guide**. The **Main** page holds ~2
 
 | # | Difference | Type |
 |---|---|---|
-| 1 | **Typeface mismatch.** Design = **Inter**. `index.html` loads Inter, but `CRMAppV5.tsx:218` overrides the whole app with `fontFamily:'DM Sans','Segoe UI'` — and **DM Sans is never loaded**, so the app actually renders in system **Segoe UI**, not Inter. | Bug / visual |
-| 2 | **Header treatment.** Design = **solid orange `#FF9000`, 80px tall**. App = **orange gradient** `#FF9000→#FFB733→#FFC94F`, **54px** tall (`top-nav.tsx:16,95,166`). | Visual |
+| 1 | **Typeface mismatch.** Design = **Inter**. `index.html` loads Inter, but `CRMAppV5.tsx:218` overrode the whole app with `fontFamily:'DM Sans','Segoe UI'` — and **DM Sans was never loaded**, so the app rendered in system **Segoe UI**, not Inter. ✅ **Fixed** (now Inter). | Bug / visual |
+| 2 | **Header treatment.** Design = **solid orange `#FF9000`, 80px tall**. App was **orange gradient** `#FF9000→#FFB733→#FFC94F`, **54px** tall. ✅ **Fixed** — desktop now solid `#FF9000` @ 80px (`top-nav.tsx`). | Visual |
 | 3 | **Logo is fabricated.** Design has **no product logo asset** (Design Ref §1.5 explicitly flags this gap). App ships an invented **"vion world \| CRM"** text wordmark + X‑in‑circle SVG (`top-nav.tsx:34‑46`) — exactly the placeholder the reference warned codegen would produce. | Content / brand |
 | 4 | **Icon system.** Design = a **~100‑icon set at 24/32px**. App = **emoji** throughout (🖥️ 📱 🌐 ⚙️ 👤 ✉️ ⏰ …). | Visual / components |
 | 5 | **Persona model.** Design = **2 personas (Agent / Supervisor)**. App = **3 roles: SA / VD / GP** (+ a stray `manager` name). App correctly drops the undefined **`PO`** the reference flagged. | Content / structure |
@@ -140,10 +140,12 @@ Built into the app with **no design counterpart** — worth deciding whether the
 
 ## 7. Bugs & inconsistencies found
 
-1. **Font override bug** (§0 #1) — remove the `DM Sans` inline override in `CRMAppV5.tsx:218` (or load DM Sans) so the app renders in **Inter** as designed.
-2. **`manager` role has no entry** in `top-nav.tsx` `roles{}` (only superadmin/vd/gp) — dead/inconsistent persona.
-3. **"Attachements"** typo carried from Figma into app settings labels.
-4. Header **gradient vs solid** and **54 vs 80px** — decide whether the app or the design is canonical and align.
+1. **Font override bug** (§0 #1) — the `DM Sans` inline override in `CRMAppV5.tsx:218` prevented the app from using **Inter** as designed. ✅ **Fixed** — replaced with the Inter stack.
+2. **`manager` role not exposed in the switcher** — `top-nav.tsx` `roles{}` offers only superadmin/vd/gp, yet `manager` ("Julia Bauer") drives real UI branches in `full-dashboard-page`, `reports-page`, `email-marketing-page` and `settings-page`. So it's an **orphaned/unreachable role**, not dead code. ⏸ **Left as-is** — fully removing it (5 files) or adding it to the switcher (expands beyond the design's 2‑persona model) is a product decision, not a mechanical fix. Flagged for you to choose.
+3. **"Attachements"** typo carried from Figma into app labels. ✅ **Fixed** — now "Attachments/Attachment" (`mvp-settings-page`, `mvp-contacts-page`).
+4. Header **gradient vs solid** and **54 vs 80px**. ✅ **Fixed** — desktop header now solid `#FF9000` at **80px** per Design Ref §8.1 (mobile bar kept compact at 54px, as mobile isn't in this Figma file).
+
+> **Fixes applied** in this branch (`claude/figma-lh-crm-vion-compare-sglhhs`): items 1, 3, 4 above. Build + affected files type-check clean (pre-existing loose-typing errors elsewhere are unrelated). The **logo** (§0 #3) still needs a real SVG asset from design before it can be corrected.
 
 ---
 

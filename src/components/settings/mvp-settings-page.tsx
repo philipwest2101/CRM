@@ -6,7 +6,7 @@ import { C } from "../../theme";
 // ─────────────────────────────────────────────────────────────────────────────
 // MVP SETTINGS PAGE (Super Admin)
 // Left-rail section nav + a CRUD list per section. Every section shows a
-// Name + Language pair, except Attachements (file list with pagination).
+// Name + Language pair, except Attachments (file list with pagination).
 // Add/Edit uses a per-language name editor (German is the required default).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -95,7 +95,7 @@ const SECTIONS = [
   { key: "products",     label: "Products",        singular: "Product",        kind: "lang"         },
   { key: "campaigns",    label: "Campaigns",       singular: "Campaign",       kind: "lang"         },
   { key: "templates",    label: "Email Templates", singular: "Email Template", kind: "lang"         },
-  { key: "attachments",  label: "Attachements",    singular: "Attachement",    kind: "files"        },
+  { key: "attachments",  label: "Attachments",     singular: "Attachment",     kind: "files"        },
   { key: "labels",       label: "Labels",          singular: "Label",          kind: "lang"         },
   { key: "integrations", label: "Integrations",    singular: "Integration",    kind: "integrations" },
 ];
@@ -122,7 +122,7 @@ const FlagSet = ({ langs }) => (
   </div>
 );
 
-// ── file-type icon (Attachements) ─────────────────────────────────────────────
+// ── file-type icon (Attachments) ─────────────────────────────────────────────
 const FileIcon = ({ type }) => {
   const pdf = type === "pdf";
   return (
@@ -232,7 +232,7 @@ const AttachmentModal = ({ onClose, onSave }) => {
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 400 }} />
       <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 440, maxWidth: "92vw", background: "#fff", borderRadius: 16, zIndex: 500, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", padding: "22px 24px", fontFamily: "inherit" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>Add Attachement</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy }}>Add Attachment</div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted }}>×</button>
         </div>
         <div style={{ marginBottom: 16 }}>
@@ -579,7 +579,7 @@ export const MVPSettingsPage = ({ role = "superadmin", navigateTo = null }) => {
               </tbody>
             </table>
 
-            {/* Pagination footer (Attachements) */}
+            {/* Pagination footer (Attachments) */}
             {isFiles && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderTop: `1px solid ${C.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
