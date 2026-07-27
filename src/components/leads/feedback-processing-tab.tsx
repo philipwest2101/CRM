@@ -558,7 +558,7 @@ const FinalizeStep = ({ negativeOutcome, dnc, isContact, networkStatus, canConve
 };
 
 // ── Main tab (controlled) ─────────────────────────────────────────────────────
-export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask, onSendEmail, emailSent, onBookAppointment, onCancelAppointment, onLeadFinalized, onLeadConverted, autoConvert, readOnly = false }) => {
+export const FeedbackProcessingTab = ({ contact, state, setState, role, navigateTo, onCreateTask, onSendEmail, emailSent, onBookAppointment, onCancelAppointment, onLeadFinalized, onLeadConverted, autoConvert, notify, readOnly = false }) => {
   const t = useT();
   const current = state.current;
   const currentStep = STEPS[current];
@@ -688,6 +688,9 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
     const noteSuffix = note ? ` — ${note}` : "";
     const nextAction = NEXT_ACTION_FOR[v] || null;
     if (v === "appointment") {
+      // Save & Continue on a scheduled-appointment outcome → confirm the booking
+      // with the snackbar (exact copy from the Figma Snackbar component).
+      notify && notify("The Scheduled appointment has been successfully added to the calendar", "success");
       setState(prev => ({
         ...prev, contactOutcome: label, contactNote: note || null, nextAction,
         current: IDX.appointment, doneSteps: withDone(prev, "call"),

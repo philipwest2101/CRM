@@ -58,6 +58,8 @@ export default function CRMAppV5() {
   const triggerPush = (title, body, variant = "info") => {
     if (pushRef.current) pushRef.current(title, body, variant);
   };
+  // Single-line snackbar (no supporting body) — for confirmation messages.
+  const notify = (message, variant = "info") => triggerPush(message, undefined, variant);
 
   // ── Workflow engine ─────────────────────────────────────────────────────────
   // ── Language-aware template resolver ───────────────────────────────────────
@@ -170,10 +172,6 @@ export default function CRMAppV5() {
     };
     setActivities(prev => [act, ...prev]);
     ACTIVITIES_STORE.unshift(act);
-    // Confirmation snackbar (Figma Dashboard-GP flow: shown right after
-    // scheduling). Exact copy from the Figma "Snackbar" component. Fires for
-    // every scheduling path since they all sink through here.
-    triggerPush("The Scheduled appointment has been successfully added to the calendar", undefined, "success");
     runWorkflow("appointment_scheduled", { name: appt.lead });
   };
 
@@ -229,7 +227,7 @@ export default function CRMAppV5() {
                                       ? <MVPContactsPage  role={role} navigateTo={navigateTo} initialView={sourceView} clearInitialView={() => setSourceView(null)} initialAction={sourceAction} clearInitialAction={() => setSourceAction(null)} />
                                       : <LeadsPage        role={role} navigateTo={navigateTo} />)}
       {page==="LeadDetail"      && (version==="mvp"
-                                      ? <MVPContactDetailPage key={`detail-${currentLead?.id}-${sourceAction||""}`} role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} sourceAction={sourceAction} addAppointment={addAppointment} removeAppointment={removeAppointment} />
+                                      ? <MVPContactDetailPage key={`detail-${currentLead?.id}-${sourceAction||""}`} role={role} navigateTo={navigateTo} lead={currentLead} sourceView={sourceView} sourceAction={sourceAction} addAppointment={addAppointment} removeAppointment={removeAppointment} notify={notify} />
                                       : <LeadDetailPage       role={role} navigateTo={navigateTo} lead={currentLead} addAppointment={addAppointment} addReminder={addReminder} runWorkflow={runWorkflow} />)}
       {(page==="Appointments"||page==="Calendar") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} viewMode={viewMode} />}
       {(page==="Reminders"||page==="Activities") && <CalendarPage role={role} navigateTo={navigateTo} activities={activities} setActivities={setActivities} addAppointment={addAppointment} addReminder={addReminder} viewMode={viewMode} />}

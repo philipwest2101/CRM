@@ -1636,7 +1636,7 @@ const DocumentsTab = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceAction, role, addAppointment, removeAppointment }) => {
+export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceAction, role, addAppointment, removeAppointment, notify }) => {
   const t = useT();
   const isMyNetwork = sourceView === "my";
   // Deep-link actions from the Leads list: "finalize" jumps straight to the
@@ -1761,7 +1761,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
             })}
           </div>
 
-          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment}
+          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment} notify={notify}
                                             onLeadFinalized={() => setLeadState(lead?.id, { finalized: true })}
                                             onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); }}
                                             readOnly={feedback.isContact}
