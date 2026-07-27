@@ -584,22 +584,31 @@ const IdentityRail = ({ c, onEmail, onTask, onAppointment, onLogCall, onLogEmail
 // Reflects the live Feedback & Processing result: the Follow-Up card mirrors the
 // call attempts, last action and the next best action for the current stage.
 const NEXT_BEST = {
-  initial:     { icon: "✉️", label: "Send the initial message" },
-  phone:       { icon: "📞", label: "Call the lead" },
-  outcome:     { icon: "📝", label: "Record the call outcome" },
-  appointment: { icon: "📅", label: "Record the appointment outcome" },
-  finish:      { icon: "🏁", label: "Finalize the process" },
+  initial:     { icon: "✉️", key: "ovNbInitial" },
+  phone:       { icon: "📞", key: "ovNbPhone" },
+  outcome:     { icon: "📝", key: "ovNbOutcome" },
+  appointment: { icon: "📅", key: "ovNbAppointment" },
+  finish:      { icon: "🏁", key: "ovNbFinish" },
 };
-const OverviewTab = ({ showInsights = true, feedback = null }) => {
+// Step key → short stage badge label (bilingual), shown on the Follow Up card.
+const STEP_BADGE_KEY = { initial: "fpStepInitial", call: "fpStepCall", appointment: "fpStepAppt", finish: "fpStepFinish" };
+// Unified Overview tab — used for BOTH leads and Network contacts. Built on the
+// lead Overview (Follow Up · Advisory Documents · Journey Pipeline) with the
+// Network-only sections (At a Glance · General Notes · Voice Memo) merged in, so
+// a contact shows the same Overview regardless of how it was reached or its
+// lifecycle. Fully bilingual (labels via i18n).
+const OverviewTab = ({ showInsights = true, feedback = null, c = null, lead = null }: any) => {
+  const t = useT();
   const [addNote, setAddNote] = useState(false);
   const [delId, setDelId] = useState(null);
   // Derive Follow-Up figures from the processing state (fallback to defaults).
   const fb          = feedback || { calls: 3, current: 1, finished: false, reached: false, lastAction: null };
   const callTotal   = Math.max(5, fb.calls || 0);
   const stepKey     = STEPS[fb.current]?.key || "initial";
-  const nextBest    = fb.finished ? { icon: "✓", label: "Processing complete" } : (NEXT_BEST[stepKey] || NEXT_BEST.initial);
+  const nb          = NEXT_BEST[stepKey] || NEXT_BEST.initial;
+  const nextBest    = fb.finished ? { icon: "✓", label: t("ovProcessingComplete") } : { icon: nb.icon, label: t(nb.key as any) };
   const lastAction  = fb.lastAction;
-  const stageLabel  = fb.finished ? "Finished" : (STEPS[fb.current]?.title || "Initial Contact");
+  const stageLabel  = fb.finished ? t("ovFinished") : t((STEP_BADGE_KEY[stepKey] || "fpStepInitial") as any);
   // Spec §4 — the primary open Next Action (structured property), the Lost Reason
   // (shown only when Processing = Lost) and the Follow-Up Reason (shown only when
   // Status = Follow Up). These come off the live processing state, never a string.
@@ -617,36 +626,59 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
   const addNoteItem = (text) => setNotes(prev => [{ id: `n-${Date.now()}`, text, note: true, date: "Today - now" }, ...prev]);
   const Dot = ({ color }) => <span style={{ width: 14, height: 14, borderRadius: "50%", background: color, border: `3px solid ${color}33`, flexShrink: 0, zIndex: 1 }} />;
 
+  // ── merged-in Network sections: General Notes + Voice Memo ──
+  const advisor = c?.assignee || "Anna Klein";
+  const [genNote, setGenNote] = useState("");
+  const [genNotes, setGenNotes] = useState([
+    { id: "g1", text: "Very interested in sustainable retirement provision. Prefers contact by email, ideally in the mornings. Partner is involved in the decision — possibly invite both to the next appointment.", author: advisor, date: "25.06.2026" },
+    { id: "g2", text: "Mentioned in first call: plans to buy property in 2 years, wants to build liquidity in parallel.", author: advisor, date: "20.06.2026" },
+  ]);
+  const addGenNote = () => {
+    if (!genNote.trim()) return;
+    setGenNotes(prev => [{ id: `g-${Date.now()}`, text: genNote.trim(), author: c?.assignee || "You", date: new Date().toLocaleDateString("en-GB") }, ...prev]);
+    setGenNote("");
+  };
+  const memos = [
+    { id: "m1", title: "Call note after consultation", date: "20.06.2026", dur: "1:24" },
+    { id: "m2", title: "Voice memo: callback request on terms", date: "12.06.2026", dur: "0:38" },
+  ];
+  const Wave = () => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, height: 16 }}>
+      {[6, 11, 4, 14, 8, 12, 5, 10].map((h, i) => <span key={i} style={{ width: 2, height: h, background: C.primary, borderRadius: 1, opacity: 0.7 }} />)}
+    </span>
+  );
+  const noteBox = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", color: C.text, boxSizing: "border-box" as const, outline: "none", background: "#fff", minHeight: 88, resize: "vertical" as const, lineHeight: 1.5 };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 16, alignItems: "start" }}>
         <Card style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>Follow Up <InfoTip text="Reflects the live Feedback & Processing flow — call attempts, last action and the next best action for the current stage." /></span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{t("ovFollowUpTitle")} <InfoTip text={t("ovFollowUpTip")} /></span>
             <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{stageLabel}</span>
           </div>
           <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
             <Donut value={fb.calls || 0} total={callTotal} />
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: C.muted }}>Last Action</span>
+                <span style={{ fontSize: 12, color: C.muted }}>{t("ovLastAction")}</span>
                 <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || "—"}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 600, color: C.text }}>
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
-                {lastAction?.label || "No action yet"}
+                {lastAction?.label || t("ovNoActionYet")}
               </div>
               {/* Primary open Next Action (structured property, spec §4) */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: C.muted }}>Next Action</span>
-                {nextActionDue && <span style={{ fontSize: 11.5, color: C.muted }}>Due {nextActionDue}</span>}
+                <span style={{ fontSize: 12, color: C.muted }}>{t("ovNextAction")}</span>
+                {nextActionDue && <span style={{ fontSize: 11.5, color: C.muted }}>{t("ovDue")} {nextActionDue}</span>}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 700, color: primaryNextAction ? C.navy : C.muted }}>
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center" }}>➡️</span>
-                {primaryNextAction || "No open action"}
+                {primaryNextAction || t("ovNoOpenAction")}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: C.muted }}>Next Best Action</span><AiTag />
+                <span style={{ fontSize: 12, color: C.muted }}>{t("ovNextBestAction")}</span><AiTag />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.text }}>
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{nextBest.icon}</span>
@@ -655,14 +687,14 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
               {/* Conditional: Lost Reason only when Processing = Lost (spec §4) */}
               {showLostReason && (
                 <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.red + "0C", border: `1px solid ${C.red}33` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.red, marginBottom: 3 }}>Lost Reason</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.red, marginBottom: 3 }}>{t("fpLostReason")}</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.lostReason}</div>
                 </div>
               )}
               {/* Conditional: Follow-Up Reason only when Status = Follow Up (spec §4) */}
               {showFollowUp && (
                 <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.purple + "0C", border: `1px solid ${C.purple}33` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.purple, marginBottom: 3 }}>Follow-Up{fb.followUpDate ? ` · ${fb.followUpDate}` : ""}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.purple, marginBottom: 3 }}>{t("ovFollowUpReasonLabel")}{fb.followUpDate ? ` · ${fb.followUpDate}` : ""}</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.followUpReason || "Scheduled follow-up"}</div>
                 </div>
               )}
@@ -671,8 +703,8 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
         </Card>
 
         <Card style={{ padding: "18px 20px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 14 }}>Advisory Documents</div>
-          {[["🎯", "Wishes & Goals"], ["💡", "Concept File"], ["📄", "Financing Application"]].map(([icon, label]) => (
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 14 }}>{t("ovAdvisoryDocs")}</div>
+          {[["🎯", t("ovDocWishes")], ["💡", t("ovDocConcept")], ["📄", t("ovDocFinancing")]].map(([icon, label]) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
               <span style={{ fontSize: 15, color: C.muted }}>{icon}</span>
               <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.text }}>{label}</span>
@@ -682,10 +714,66 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
         </Card>
       </div>
 
+      {/* At a Glance (merged from the Network overview) */}
+      <SectionBar>{t("ovAtAGlance")}</SectionBar>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <Card style={{ padding: "16px 18px", background: C.light }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>{t("ovLastEvent")}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>Finanzforum München 2026</div>
+          <div style={{ fontSize: 12, color: C.slate, marginTop: 3 }}>12.06.2026</div>
+        </Card>
+        <Card style={{ padding: "16px 18px", background: C.light }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>{t("ovLastContact")}</div>
+            <span style={{ fontSize: 10.5, color: C.muted }}>🔒 {t("ovAuto")}</span>
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>{lead?.lastContact || "27.06.2026"}</div>
+          <div style={{ fontSize: 12, color: C.green, marginTop: 3, fontWeight: 600 }}>{t("ovCallReached")}</div>
+        </Card>
+      </div>
+
+      {/* General Notes (merged from the Network overview) */}
+      <SectionBar>{t("ovGeneralNotes")}</SectionBar>
+      <Card style={{ padding: "16px 18px" }}>
+        <textarea value={genNote} onChange={e => setGenNote(e.target.value)} placeholder={t("ovAddNotePlaceholder")} style={noteBox} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+          <span style={{ fontSize: 11.5, color: C.muted }}>{t("ovAdvisorNoteHint")}</span>
+          <button onClick={addGenNote} disabled={!genNote.trim()} style={{ padding: "9px 22px", borderRadius: 9, border: "none", background: genNote.trim() ? C.navy : C.border, color: genNote.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: genNote.trim() ? "pointer" : "default", fontFamily: "inherit" }}>{t("save")}</button>
+        </div>
+      </Card>
+      {genNotes.map(n => (
+        <Card key={n.id} style={{ padding: "14px 18px" }}>
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{n.text}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 11.5, color: C.muted }}>
+            <span>👤 {n.author}</span><span>·</span><span>{n.date}</span>
+          </div>
+        </Card>
+      ))}
+
+      {/* Voice Memo (merged from the Network overview) */}
+      <SectionBar>{t("ovVoiceMemo")}</SectionBar>
+      <Card style={{ padding: "14px 18px", background: C.light, display: "flex", alignItems: "center", gap: 14 }}>
+        <span style={{ width: 40, height: 40, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>🎙</span>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovRecordMemo")}</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{t("ovRecordHint")}</div>
+        </div>
+      </Card>
+      {memos.map(m => (
+        <Card key={m.id} style={{ padding: "12px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 13, flexShrink: 0 }}>▶</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy }}>{m.title}</div>
+            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{m.date} · {m.dur}</div>
+          </div>
+          <Wave />
+        </Card>
+      ))}
+
       {showInsights && (
       <Card style={{ padding: "16px 20px", border: `1px solid ${C.primary}55`, background: "linear-gradient(180deg,#FFFBF5,#fff)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>AI Insight</span><AiTag /></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovAiInsight")}</span><AiTag /></div>
           <span style={{ fontSize: 12, color: C.muted }}>↺ Updated on 13 Jan 2026 - 10:00</span>
         </div>
         <ul style={{ margin: "0 0 12px", paddingLeft: 18, fontSize: 13, color: C.text, lineHeight: 1.6 }}>
@@ -700,8 +788,8 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
 
       <Card style={{ padding: "18px 20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>Journey Pipeline</div>
-          <button onClick={() => setAddNote(true)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>＋ Add Note</button>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovJourneyPipeline")}</div>
+          <button onClick={() => setAddNote(true)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>＋ {t("ovAddNote")}</button>
         </div>
         <div style={{ position: "relative", paddingLeft: 8 }}>
           <div style={{ position: "absolute", left: 14, top: 6, bottom: 6, width: 2, background: C.border }} />
@@ -762,115 +850,14 @@ const OverviewTab = ({ showInsights = true, feedback = null }) => {
   );
 };
 
-// ── Network Overview tab ──────────────────────────────────────────────────────
-// Overview shown for My Network contacts: At a Glance · General Notes · Voice
-// Memo · Advisory Documents. Fully bilingual (labels via i18n).
+// Section header used by the unified Overview tab (At a Glance · General Notes ·
+// Voice Memo). Kept module-level so OverviewTab can reference it.
 const SectionBar = ({ children }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 12px" }}>
     <span style={{ width: 3, height: 16, background: C.primary, borderRadius: 2 }} />
     <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{children}</span>
   </div>
 );
-
-const NetworkOverviewTab = ({ c, lead }: any) => {
-  const t = useT();
-  const [note, setNote] = useState("");
-  const [notes, setNotes] = useState([
-    { id: "n1", text: "Very interested in sustainable retirement provision. Prefers contact by email, ideally in the mornings. Partner is involved in the decision — possibly invite both to the next appointment.", author: c?.assignee || "Anna Klein", date: "25.06.2026" },
-    { id: "n2", text: "Mentioned in first call: plans to buy property in 2 years, wants to build liquidity in parallel.", author: c?.assignee || "Anna Klein", date: "20.06.2026" },
-  ]);
-  const addNote = () => {
-    if (!note.trim()) return;
-    setNotes(prev => [{ id: `n-${Date.now()}`, text: note.trim(), author: c?.assignee || "You", date: new Date().toLocaleDateString("en-GB") }, ...prev]);
-    setNote("");
-  };
-  const memos = [
-    { id: "m1", title: "Call note after consultation", date: "20.06.2026", dur: "1:24" },
-    { id: "m2", title: "Voice memo: callback request on terms", date: "12.06.2026", dur: "0:38" },
-  ];
-  const docs = [
-    { label: t("ovDocWishes"),    status: t("ovDocSigned"), color: C.green },
-    { label: t("ovDocConcept"),   status: t("ovDocSent"),   color: C.blue  },
-    { label: t("ovDocFinancing"), status: t("ovDocDraft"),  color: C.slate },
-  ];
-  const Wave = () => (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, height: 16 }}>
-      {[6, 11, 4, 14, 8, 12, 5, 10].map((h, i) => <span key={i} style={{ width: 2, height: h, background: C.primary, borderRadius: 1, opacity: 0.7 }} />)}
-    </span>
-  );
-  const noteBox = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", color: C.text, boxSizing: "border-box" as const, outline: "none", background: "#fff", minHeight: 88, resize: "vertical" as const, lineHeight: 1.5 };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {/* At a Glance */}
-      <SectionBar>{t("ovAtAGlance")}</SectionBar>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <Card style={{ padding: "16px 18px", background: C.light }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>{t("ovLastEvent")}</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>Finanzforum München 2026</div>
-          <div style={{ fontSize: 12, color: C.slate, marginTop: 3 }}>12.06.2026</div>
-        </Card>
-        <Card style={{ padding: "16px 18px", background: C.light }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>{t("ovLastContact")}</div>
-            <span style={{ fontSize: 10.5, color: C.muted }}>🔒 {t("ovAuto")}</span>
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>{lead?.lastContact || "27.06.2026"}</div>
-          <div style={{ fontSize: 12, color: C.green, marginTop: 3, fontWeight: 600 }}>{t("ovCallReached")}</div>
-        </Card>
-      </div>
-
-      {/* General Notes on Contact */}
-      <SectionBar>{t("ovGeneralNotes")}</SectionBar>
-      <Card style={{ padding: "16px 18px" }}>
-        <textarea value={note} onChange={e => setNote(e.target.value)} placeholder={t("ovAddNotePlaceholder")} style={noteBox} />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-          <span style={{ fontSize: 11.5, color: C.muted }}>{t("ovAdvisorNoteHint")}</span>
-          <button onClick={addNote} disabled={!note.trim()} style={{ padding: "9px 22px", borderRadius: 9, border: "none", background: note.trim() ? C.navy : C.border, color: note.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: note.trim() ? "pointer" : "default", fontFamily: "inherit" }}>{t("save")}</button>
-        </div>
-      </Card>
-      {notes.map(n => (
-        <Card key={n.id} style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{n.text}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 11.5, color: C.muted }}>
-            <span>👤 {n.author}</span><span>·</span><span>{n.date}</span>
-          </div>
-        </Card>
-      ))}
-
-      {/* Voice Memo */}
-      <SectionBar>{t("ovVoiceMemo")}</SectionBar>
-      <Card style={{ padding: "14px 18px", background: C.light, display: "flex", alignItems: "center", gap: 14 }}>
-        <span style={{ width: 40, height: 40, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>🎙</span>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovRecordMemo")}</div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{t("ovRecordHint")}</div>
-        </div>
-      </Card>
-      {memos.map(m => (
-        <Card key={m.id} style={{ padding: "12px 18px", display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 13, flexShrink: 0 }}>▶</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy }}>{m.title}</div>
-            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{m.date} · {m.dur}</div>
-          </div>
-          <Wave />
-        </Card>
-      ))}
-
-      {/* Advisory Documents */}
-      <SectionBar>{t("ovAdvisoryDocs")}</SectionBar>
-      {docs.map(d => (
-        <Card key={d.label} style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}>
-          <span style={{ fontSize: 15, color: C.muted }}>📄</span>
-          <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: C.text }}>{d.label}</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: d.color, background: d.color + "18", padding: "3px 10px", borderRadius: 20 }}>{d.status}</span>
-          <span style={{ color: C.muted }}>›</span>
-        </Card>
-      ))}
-    </div>
-  );
-};
 
 // ── Information tab ───────────────────────────────────────────────────────────
 const InfoField = ({ label, value, node }) => (
@@ -1772,7 +1759,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
                                             onLeadFinalized={() => setLeadState(lead?.id, { finalized: true })}
                                             onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); notify && notify("Lead added to My Network", "success"); }}
                                             autoConvert={sourceAction === "convert"} />}
-          {tab === t("overviewTab")     && (isMyNetwork ? <NetworkOverviewTab c={c} lead={lead} /> : <OverviewTab showInsights={false} feedback={feedback} />)}
+          {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} c={c} lead={lead} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}
