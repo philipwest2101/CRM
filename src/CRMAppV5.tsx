@@ -18,6 +18,7 @@ import { ReportsPage } from "./components/reports/reports-page";
 import { SettingsPage } from "./components/settings/settings-page";
 import { MVPSettingsPage } from "./components/settings/mvp-settings-page";
 import { AuditLogSection } from "./components/settings/audit-log-section";
+import { SnackbarHost } from "./components/ui/snackbar";
 import { ACTIVITIES_STORE, APPOINTMENTS, EMAIL_TEMPLATES_STORE, WORKFLOW_RULES_STORE } from "./lib/core";
 import { LangContext, Lang } from "./lib/i18n";
 import { C } from "./theme";
@@ -53,8 +54,9 @@ export default function CRMAppV5() {
 
   // ── Push toast ref ──────────────────────────────────────────────────────────
   const pushRef = React.useRef(null);
-  const triggerPush = (title, body) => {
-    if (pushRef.current) pushRef.current(title, body);
+  // variant: "info" | "success" | "error" | "warning" (see SnackbarHost)
+  const triggerPush = (title, body, variant = "info") => {
+    if (pushRef.current) pushRef.current(title, body, variant);
   };
 
   // ── Workflow engine ─────────────────────────────────────────────────────────
@@ -168,6 +170,11 @@ export default function CRMAppV5() {
     };
     setActivities(prev => [act, ...prev]);
     ACTIVITIES_STORE.unshift(act);
+    // Confirmation snackbar (Figma Dashboard-GP flow: shown right after
+    // scheduling). Fires for every scheduling path since they all sink here.
+    const title = lang === "de" ? "Termin geplant" : "Appointment scheduled";
+    const when = [appt.date, appt.start].filter(Boolean).join(" · ");
+    triggerPush(title, [appt.lead, when].filter(Boolean).join(" · "), "success");
     runWorkflow("appointment_scheduled", { name: appt.lead });
   };
 
@@ -250,6 +257,7 @@ export default function CRMAppV5() {
         </div>
       )}
       </div>
+      <SnackbarHost apiRef={pushRef} />
     </div>
     </LangContext.Provider>
   );
