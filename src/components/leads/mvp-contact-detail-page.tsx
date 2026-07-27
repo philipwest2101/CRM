@@ -27,6 +27,8 @@ export const liveStatusFromFeedback = (fb: any, lead?: any): { label: string; pr
   if (!fb) return { label: stageStatusLabel(lead?.status), processing: null };
   if (fb.notReached)  return { label: "Not Reached",    processing: "Closed" };
   if (fb.dnc)         return { label: "Do Not Contact", processing: "Closed" };
+  // Follow Up is a deliberate pause: the lead waits for a scheduled follow-up.
+  if (fb.followUp)    return { label: "Follow Up",      processing: "Waiting for Follow-Up" };
   if (fb.negativeOutcome) return fb.outcome === "Lost"
     ? { label: "Closed",        processing: "Lost" }
     : { label: "Not Interested", processing: "Closed" };
@@ -1684,19 +1686,24 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
     setFeedback(f => ({ ...f, networkStatus: networkOutcomeLabel(next), outcome: networkOutcomeLabel(next) }));
   };
 
-  // "Feedback & Processing" comes first; every other tab (and the identity-rail
-  // quick actions) stays locked until the lead has been converted to a contact.
-  const ACTIVE_TABS = isMyNetwork
-    ? [t("overviewTab"), t("feedbackTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
+  // The Processing & Feedback flow is a Lead-only tab. Contacts whose Lifecycle is
+  // Network (My Network entries, or a lead just converted here) do NOT display it —
+  // they open directly on the standard contact tabs. For Leads it comes first, and
+  // every other tab (and the identity-rail quick actions) stays locked until the
+  // lead has been converted to a contact.
+  const isNetwork = isMyNetwork || feedback.isContact;
+  const ACTIVE_TABS = isNetwork
+    ? [t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
     : [t("feedbackTab"), t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
   const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
   // Network contacts open on Overview; leads open on Feedback & Processing.
-  const defaultTab = () => (isMyNetwork ? t("overviewTab") : t("feedbackTab"));
+  const defaultTab = () => (isNetwork ? t("overviewTab") : t("feedbackTab"));
   const [tab, setTab] = useState(defaultTab);
   // Re-initialise when navigating to a different contact.
   React.useEffect(() => { setFeedback(initFeedback()); setTab(defaultTab()); }, [lead?.id]);
-  // If the active tab ever becomes disabled, fall back to the default tab.
-  React.useEffect(() => { if (!isTabEnabled(tab)) setTab(defaultTab()); }, [feedback.isContact]);
+  // When a lead is converted to Network the Processing & Feedback tab disappears —
+  // if it was the active tab, fall back to the (now default) Overview tab.
+  React.useEffect(() => { if (!ACTIVE_TABS.includes(tab)) setTab(defaultTab()); }, [feedback.isContact]);
   const [modal, setModal] = useState(null);   // email | task | appointment | logcall | logemail | logappt | offline
   // When the Initial Message step opens the email composer, it passes a prefill
   // (subject + body) and locks the recipient; `initialEmailSent` drives the step's
@@ -1761,10 +1768,9 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
             })}
           </div>
 
-          {tab === t("feedbackTab")    && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment} notify={notify}
+          {tab === t("feedbackTab") && !isNetwork && <FeedbackProcessingTab contact={c} state={feedback} setState={setFeedback} role={role} navigateTo={navigateTo} onCreateTask={() => setModal("task")} onSendEmail={(prefill) => { setEmailPrefill(prefill); setModal("email"); }} emailSent={initialEmailSent} onBookAppointment={addAppointment} onCancelAppointment={removeAppointment} notify={notify}
                                             onLeadFinalized={() => setLeadState(lead?.id, { finalized: true })}
-                                            onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); }}
-                                            readOnly={feedback.isContact}
+                                            onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); notify && notify("Lead added to My Network", "success"); }}
                                             autoConvert={sourceAction === "convert"} />}
           {tab === t("overviewTab")     && (isMyNetwork ? <NetworkOverviewTab c={c} lead={lead} /> : <OverviewTab showInsights={false} feedback={feedback} />)}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}

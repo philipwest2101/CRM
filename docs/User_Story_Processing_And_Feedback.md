@@ -17,10 +17,10 @@ Completed steps stay pinned at the top, the current step follows below them, and
 
 ### Tab Placement & Gating
 
-- Processing & Feedback is the **first** tab on the contact detail and is always available.
-- Every other tab (Overview, Activities, Documents, Information) and the identity-rail quick actions stay **locked** until the lead becomes a contact — a lead "becomes a contact" only once the initial outreach step has been passed (sent or skipped), or the lead has been converted to Network.
-- **My Network** entries are already contacts, so all tabs are enabled from the start (and the Overview tab is not shown for them). For My Network contacts the whole flow is **read-only** — the Customer / Partner classification is edited from the contact's **Status** field, not here.
-- The tab opens on the step that matches the lead's current status; navigating to a different contact re-initialises the flow.
+- Processing & Feedback is the **first** tab on the Lead Details page and is available only for contacts whose **Lifecycle = Lead**.
+- The tab always opens on the step corresponding to the Lead's saved processing state; navigating to a different contact re-initialises the flow. If the Lead is reassigned, the new assignee re-initialises the flow.
+- Contacts whose **Lifecycle = Network** **do not display** the Processing & Feedback tab — they open directly on the standard contact tabs (Overview, Activities, Documents, Information). This covers both existing **My Network** entries and a lead just converted here.
+- Every other tab (Overview, Activities, Documents, Information) and the identity-rail quick actions stay **locked** for a Lead until it has been converted to a Network contact.
 
 ### Stepper Behaviour (all steps)
 
@@ -55,7 +55,7 @@ Attempts and the reached-outcome are handled in a **single step**.
 - The advisor records the outcome of the conversation: **Appointment Scheduled**, **Won**, **Follow Up**, **Not Interested**, or **No Suitable Solution**. An optional **Note** captures conversation details.
 - **Appointment Scheduled** opens the scheduling (Appointment) modal, pre-filled for the contact and locked to it; on submit the appointment is booked (and written to the shared calendar) and **Save & Continue** advances to Appointment Outcome. The booked card shows the appointment (type · date · time); re-selecting the **Appointment Scheduled** chip re-opens the scheduler to change it.
 - **Won** is a terminal outcome — Status → *Closed*, Processing → *Won* — and advances to Finalize.
-- **Follow Up** marks the lead as *Follow Up · Waiting for Follow-Up* with Next Action *Resume follow-up*; **Save & Continue** advances to Finalize. The advisor schedules the actual follow-up via **Create Task**.
+- **Follow Up** is a **deliberate pause**: the lead becomes *Follow Up · Waiting for Follow-Up* with Next Action *Resume follow-up*. It **stays on this step** (it does not advance to Finalize and does not open a modal) — it is handled by its own chip action and does **not** use Save & Continue. The advisor schedules the actual follow-up via **Create Task**.
 - **No Suitable Solution** (Closed / Lost) advances to Finalize; Status → *Closed*, Processing → *Lost*.
 - **Won / Not Interested / No Suitable Solution** end processing and advance to Finalize.
 - The two negative outcomes — **Not Interested** and **No Suitable Solution** — flag the lead so the **Do Not Contact** toggle becomes available in Finalize; the others are neutral (no DNC).
@@ -68,7 +68,7 @@ Attempts and the reached-outcome are handled in a **single step**.
 - **Not Interested** / **No Suitable Solution** → advance to Finalize and enable the **Do Not Contact** toggle.
 - **No Show** → advances to Finalize and records the appointment status as **No Show**; it does **not** re-open the scheduler and is neutral (no DNC). Next Action: Finalize.
 - **Reschedule** → re-opens the scheduler to re-book a new appointment; the lead **stays in the Appointment status** (*Appointment Scheduled*, Next Action: conduct appointment) and the reschedule count is tracked.
-- **Follow Up** → marks the lead as *Follow Up · Waiting for Follow-Up* (Next Action *Resume follow-up*) and **Save & Continue** advances to Finalize.
+- **Follow Up** → a **deliberate pause** (Status *Follow Up · Waiting for Follow-Up*, Next Action *Resume follow-up*); it **stays on this step** and does not open a modal. Like Reschedule it is handled by its own chip action and does **not** use Save & Continue.
 
 ### Step 4 — Finalize Process
 
@@ -84,7 +84,7 @@ Attempts and the reached-outcome are handled in a **single step**.
 - The lead is added as a plain **Network contact** (no Customer / Partner outcome set at conversion). The **Customer / Partner** classification — either, both, or neither — is set afterwards from the contact's **Status** field.
 - Conversion sets Lifecycle = Network; **Ownership stays unchanged**, and all contact information, activities and history are preserved.
 - Conversion **cannot be reversed** — a Network contact cannot be converted back to a Lead, and once converted the stepper is frozen (no reopen / Edit).
-- After conversion the Finalize step shows a **"✓ In My Network · [Outcome]"** badge; an already-converted contact (My Network) shows this from the start.
+- After conversion the contact's Lifecycle becomes Network, so it **no longer shows the Processing & Feedback tab** — the detail view falls back to the standard contact tabs (opening on Overview) and the contact is managed as a standard Network contact.
 
 ### Status & Processing Matrix
 
@@ -96,27 +96,29 @@ The action buttons drive the lead's **Status**, **Processing** stage, and **Next
 | 2 | | Mark as Sent & Continue | In Contact | First Contact Attempted | Call the lead |
 | 3 | | Skip & Continue | New | Not Contacted Yet | Call the lead |
 | 4 | 2 · Call Attempt & Outcome | Not Reached + Save & Continue (attempts 1–4) | In Contact | Attempting Contact | Call again |
-| 5 | | Not Reached + Save & Continue (attempt 5) | Not Reached | Closed | Finalize |
+| 5 | | Not Reached + Save & Continue (attempt 5) | Not Reached | Finished | None |
 | 6 | | Reached + Save & Continue | In Contact | Connected | Record call outcome |
 | 7 | | Appointment Scheduled | Appointment | Appointment Scheduled | Conduct appointment |
-| 8 | | Won | Closed | Won | Finalize |
+| 8 | | Won | Closed-Won | Finished | None |
 | 9 | | Follow Up | Follow Up | Waiting for Follow-Up | Resume follow-up |
-| 10 | | Not Interested | Not Interested | Closed (enables DNC) | Finalize |
-| 11 | | No Suitable Solution | Closed | Lost (enables DNC) | Finalize |
-| 12 | 3 · Appointment Outcome | Won | Closed | Won | Finalize |
+| 10 | | Not Interested | Not Interested | Finished (enables DNC) | None |
+| 11 | | No Suitable Solution | Closed-Lost | Finished (enables DNC) | None |
+| 12 | 3 · Appointment Outcome | Won | Closed-Won | Finished | None |
 | 13 | | Follow Up | Follow Up | Waiting for Follow-Up | Resume follow-up |
-| 14 | | Not Interested | Not Interested | Closed (enables DNC) | Finalize |
-| 15 | | No Suitable Solution | Closed | Lost (enables DNC) | Finalize |
+| 14 | | Not Interested | Not Interested | Finished (enables DNC) | None |
+| 15 | | No Suitable Solution | Closed-Lost | Finished (enables DNC) | None |
 | 16 | | Reschedule | Appointment | Appointment Scheduled | Conduct appointment |
-| 17 | | No Show | Appointment | No Show | **Finalize** |
-| 18 | 4 · Finalize Process | Do Not Contact toggle → ON | Do Not Contact | Closed | Finalize |
-| 19 | | Finalize Process | *(unchanged)* | *(unchanged)* | Finished = true |
-| 20 | | Add to My Network | *(unchanged)* | *(unchanged)* | Convert to Network |
+| 17 | | No Show | Appointment | No Show | None |
+| 18 | 4 · Finalize Process | Do Not Contact toggle → ON | *(unchanged)* | *(unchanged)* | None |
+| 19 | | Finalize Process | *(unchanged)* | *(unchanged)* | None |
+| 20 | | Add to My Network | *(unchanged)* | *(unchanged)* | None |
+
+Note: rows 9 and 13 (**Follow Up**) are handled by their own chip action and stay on the current step — they do not use Save & Continue and do not advance to Finalize.
 
 ### Supporting Rules
 
 - Call attempts are capped at **5**; the 5th failed attempt auto-finalizes the lead as **Not Reached**.
-- **Follow Up** marks the lead as *Follow Up · Waiting for Follow-Up* (Next Action *Resume follow-up*) and advances to Finalize on **Save & Continue**.
+- **Follow Up** is a deliberate pause — it marks the lead *Follow Up · Waiting for Follow-Up* (Next Action *Resume follow-up*) and **stays on the current step** (no modal, no Save & Continue). The advisor schedules the actual follow-up via **Create Task**; the lead remains active for future follow-up activities and may be converted to Network according to the business rules.
 - **Won** is a terminal, neutral outcome (Status *Closed*, Processing *Won*) — it advances to Finalize but does not enable DNC.
 - **No Show** advances to Finalize while keeping the appointment status *No Show*; it does not re-open the scheduler and does not enable DNC.
 - The **Do Not Contact** toggle is only offered when a negative outcome (**Not Interested** / **No Suitable Solution**) was recorded in Call Outcome or Appointment Outcome.
@@ -132,8 +134,8 @@ The action buttons drive the lead's **Status**, **Processing** stage, and **Next
 ### Faulty / Guard Cases
 
 - **Save & Continue** on Call Attempts is disabled until a result (Reached / Not Reached) is selected.
-- **Save & Continue** on the outcome steps is disabled until an outcome is selected. (Reschedule is handled by its own chip action — re-opening the scheduler — and does not use Save & Continue.)
+- **Save & Continue** on the outcome steps is disabled until an outcome is selected. (**Follow Up** and **Reschedule** are handled by their own chip action — Follow Up marks the pause and stays on the step, Reschedule re-opens the scheduler — and neither uses Save & Continue.)
 - **Appointment Scheduled** cannot continue until the appointment is actually booked.
 - Reopening a completed step requires confirmation because it discards later steps and their recorded outcomes (and, where applicable, cancels a booked appointment and retracts a finalized result from the statistics).
 - A lead already at **Not Reached** cannot log further call attempts.
-- A contact already in **My Network** cannot use the flow — it is read-only and the stepper cannot be reopened.
+- A contact already in **My Network** (Lifecycle = Network) does not have access to this flow — the Processing & Feedback tab is not displayed for it.
