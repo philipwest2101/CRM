@@ -59,6 +59,43 @@ const GOOGLE_EVENTS = [
   { id:"g6", title:"Video-Beratung",    date:"2026-07-04", time:"10:00", end:"11:00" },
 ];
 
+// ── Demo seed: one of every calendar type in the current week ─────────────────
+// So all six appointment types, all three task types, plus Google and Vion, are
+// visible on the calendar (Mon 29 Jun – Fri 3 Jul 2026). Owned by the signed-in
+// GP (Anna Klein) so they show under the default "mine" filter. Appointments
+// carry entityType "appointment" (→ Appointment modal); tasks carry entityType
+// "task" (→ Task modal); Vion samples use isEvent (→ read-only detail).
+const mkAppt = (id,date,start,end,apptType,lead) => ({
+  id, type:"inperson", apptType, title:lead, lead, leadId:null,
+  date, time:start, end, gp:"Anna Klein", vd:"Thomas Müller",
+  status:"upcoming", lifecycle:"Lead", recur:"Once", priority:"normal",
+  entityType:"appointment", category:"appointment",
+});
+const mkTask = (id,type,date,time,title,lead,priority) => ({
+  id, type, title, lead, leadId:null, date, time, end:"",
+  gp:"Anna Klein", vd:"Thomas Müller", status:"pending", priority, recur:"Once",
+  entityType:"task", category:"task", channels:["push","inapp"],
+});
+const SAMPLE_ACTIVITIES = [
+  // Appointment types (Consultation/Investment/Business/Finance already exist on
+  // 29 Jun in the real data — add Recruiting + Other, plus a fuller spread).
+  mkAppt("s-ap-recruiting","2026-06-30","10:00","10:45","Recruiting",            "Jonas Vogel"),
+  mkAppt("s-ap-business",  "2026-06-30","14:00","15:00","Business Opening",      "Ilka Brand"),
+  mkAppt("s-ap-finance",   "2026-07-02","10:00","10:30","Finance Talk",         "Sven Alt"),
+  mkAppt("s-ap-other",     "2026-07-02","15:00","15:45","Other",                "Nora Baumann"),
+  mkAppt("s-ap-consult",   "2026-07-03","09:00","09:45","Consultation Appointment","Mara Ebert"),
+  mkAppt("s-ap-invest",    "2026-07-03","11:00","12:00","Investment Talk",      "Timo Reich"),
+  // Task types
+  mkTask("s-tk-call", "call", "2026-06-30","09:00","Call back — Jonas Vogel",     "Jonas Vogel", "high"),
+  mkTask("s-tk-email","email","2026-07-02","09:30","Send brochure — Nora Baumann","Nora Baumann","normal"),
+  mkTask("s-tk-note", "note", "2026-07-03","08:30","Prepare weekly report",       null,          "low"),
+];
+const VION_SAMPLES = [
+  { id:"vs-business", isEvent:true, eventIcon:"🏢", title:"Business Opening — Lisbon",   date:"2026-06-30", time:"09:00", end:"19:30", location:"Marriott Hotel, Lisbon", status:"upcoming", recur:"Once", entityType:"event", category:"event" },
+  { id:"vs-invest",   isEvent:true, eventIcon:"📈", title:"Investment Talk — Frankfurt", date:"2026-07-02", time:"18:00", end:"20:30", location:"vion Office Frankfurt", status:"upcoming", recur:"Once", entityType:"event", category:"event" },
+  { id:"vs-gold",     isEvent:true, eventIcon:"🥇", title:"Gold Vortrag — München",      date:"2026-07-03", time:"19:00", end:"21:00", location:"vion Office München",   status:"upcoming", recur:"Once", entityType:"event", category:"event" },
+];
+
 export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder, viewMode }) => {
   const t = useT();
   const mobile   = viewMode === "responsive";   // stack the app-shell layout for mobile
@@ -137,13 +174,27 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     if (a?.source==="google" || a?.calendar==="google" || a?.type==="google") return "google";
     if (a?.isEvent) return "vion";   // EVENTS_LIST = Vion company events
     const ty = a?.type;
-    if (["consultation","recruiting","business","other"].includes(ty)) return ty;
-    if (ty==="inperson") return "consultation";
-    if (ty==="video") return "other";
-    if (ty==="call") return "call";
+    // Appointments — including phone/video appointments — are keyed by their
+    // apptType, so all six appointment types get their own icon inside the
+    // (blue) Appointments category and a phone appointment is never mistaken
+    // for a Call task. Tasks are disambiguated by entityType/category.
+    const isApptEntity = a?.entityType==="appointment" || a?.category==="appointment"
+      || ["consultation","recruiting","business","investment","finance","inperson","video"].includes(ty);
+    if (isApptEntity) {
+      const at = `${a?.apptType||""} ${ty||""}`.toLowerCase();
+      if (at.includes("recruit"))    return "recruiting";
+      if (at.includes("business"))   return "business";
+      if (at.includes("investment")) return "investment";
+      if (at.includes("finance"))    return "finance";
+      if (at.includes("consult") || ty==="inperson" || ty==="video" || ty==="call") return "consultation";
+      if (ty==="other" || at.includes("other")) return "other";
+      return "other";
+    }
+    // Tasks / reminders
+    if (ty==="call")  return "call";
     if (ty==="email") return "email";
     if (["note","whatsapp","document"].includes(ty)) return "note";
-    return a?.category==="appointment" ? "consultation" : "note";
+    return "note";
   };
 
   // Which "calendar" (My Calendars source) an activity belongs to.
@@ -159,7 +210,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     return { key, category:tm.category, label:tm.label, icon, color, bg: color+"18" };
   };
 
-  const baseActs = [...activities, ...eventActivities, ...googleActivities];
+  const baseActs = [...activities, ...eventActivities, ...googleActivities, ...SAMPLE_ACTIVITIES, ...VION_SAMPLES];
 
   // Filter activities: calendar (CRM/Google/Vion) → per-type → owner.
   const visible = baseActs.filter(a => {
@@ -187,12 +238,16 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
 
   // ── Task / Appointment modal helpers ──────────────────────────────────────
   const NOW_TIME  = "12:00";
-  const isAppt = (a) => APPOINTMENT_TYPE_KEYS.includes(a?.type) || a?.entityType==="appointment" || a?.category==="appointment";
   const focusDate = (d) => { if(!d) return; const dt=new Date(d+"T12:00"); setCurrentDate(dt); setMiniDate(dt); setSelectedDate(d); };
 
+  // Route the click to the right modal by CATEGORY — the same taxonomy that
+  // drives the colour: Google/Vion → read-only detail, Appointments → the
+  // appointment modal, Tasks → the task modal. (A phone "call" appointment is
+  // an appointment, not a Call task, so it no longer opens the wrong modal.)
   const openActivity = (a) => {
-    if (a.isEvent || a.source==="google") { setSelected(a); return; }   // events + Google are read-only → detail panel
-    if (isAppt(a)) {
+    const cat = TYPE_META[typeKeyOf(a)]?.category;
+    if (cat==="google" || cat==="vion" || a.isEvent || a.source==="google") { setSelected(a); return; }
+    if (cat==="appointment") {
       const lifecycle = a.lifecycle || "Lead";
       const data = {
         id:a.id, title:a.title, contact:a.lead, leadId:a.leadId, lifecycle,
