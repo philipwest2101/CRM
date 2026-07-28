@@ -65,10 +65,10 @@ const GOOGLE_EVENTS = [
 // GP (Anna Klein) so they show under the default "mine" filter. Appointments
 // carry entityType "appointment" (→ Appointment modal); tasks carry entityType
 // "task" (→ Task modal); Vion samples use isEvent (→ read-only detail).
-const mkAppt = (id,date,start,end,apptType,lead) => ({
-  id, type:"inperson", apptType, title:lead, lead, leadId:null,
+const mkAppt = (id,date,start,end,apptType,lead,lifecycle="Lead",leadId=null) => ({
+  id, type:"inperson", apptType, title:lead, lead, leadId,
   date, time:start, end, gp:"Anna Klein", vd:"Thomas Müller",
-  status:"upcoming", lifecycle:"Lead", recur:"Once", priority:"normal",
+  status:"upcoming", lifecycle, recur:"Once", priority:"normal",
   entityType:"appointment", category:"appointment",
 });
 const mkTask = (id,type,date,time,title,lead,priority) => ({
@@ -81,6 +81,10 @@ const SAMPLE_ACTIVITIES = [
   // 29 Jun in the real data — add Recruiting + Other, plus a fuller spread).
   mkAppt("s-ap-recruiting","2026-06-30","10:00","10:45","Recruiting",            "Jonas Vogel"),
   mkAppt("s-ap-business",  "2026-06-30","14:00","15:00","Business Opening",      "Ilka Brand"),
+  // Network appointment (converted contact) — opens the actionable appointment
+  // modal (outcome / cancel), unlike the read-only Lead appointment modal that
+  // all the other, lead-related, examples use.
+  mkAppt("s-ap-network",   "2026-07-02","11:00","11:45","Consultation Appointment","Michael Braun","Network","NW-3"),
   mkAppt("s-ap-finance",   "2026-07-02","10:00","10:30","Finance Talk",         "Sven Alt"),
   mkAppt("s-ap-other",     "2026-07-02","15:00","15:45","Other",                "Nora Baumann"),
   mkAppt("s-ap-consult",   "2026-07-03","09:00","09:45","Consultation Appointment","Mara Ebert"),
