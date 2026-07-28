@@ -454,8 +454,14 @@ const InfoRow = ({ icon, label, value }) => (
 // stage status — its Status field is the Outcome, editable here after conversion.
 const OutcomeStatusRow = ({ outcome = [], onChange }) => {
   const [open, setOpen] = useState(false);
-  const set = Array.isArray(outcome) ? outcome : [];
-  const toggle = (v) => onChange(set.includes(v) ? set.filter(x => x !== v) : [...set, v]);
+  // Toggles edit a local draft; the change is committed (and logged to the Journey
+  // Pipeline) only when "Done" is clicked, so mid-edit toggles don't each fire.
+  const [draft, setDraft] = useState<string[]>(Array.isArray(outcome) ? outcome : []);
+  React.useEffect(() => { if (!open) setDraft(Array.isArray(outcome) ? outcome : []); }, [outcome, open]);
+  const shown = open ? draft : (Array.isArray(outcome) ? outcome : []);
+  const toggle = (v) => setDraft(set => set.includes(v) ? set.filter(x => x !== v) : [...set, v]);
+  const startEdit = () => { setDraft(Array.isArray(outcome) ? outcome : []); setOpen(true); };
+  const commit = () => { onChange(draft); setOpen(false); };
   const tone = (v) => (v === "Customer" ? C.green : C.indigo);
   return (
     <div style={{ display: "flex", gap: 11, alignItems: "flex-start", marginBottom: 14, position: "relative" }}>
@@ -463,18 +469,18 @@ const OutcomeStatusRow = ({ outcome = [], onChange }) => {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 11, color: C.muted }}>Status</span>
-          <button onClick={() => setOpen(o => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.primary, fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>{open ? "Done" : "Edit"}</button>
+          <button onClick={() => open ? commit() : startEdit()} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.primary, fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>{open ? "Done" : "Edit"}</button>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
-          {set.length === 0
+          {shown.length === 0
             ? <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 16, background: C.light, color: C.muted }}>Contact</span>
-            : set.map(o => <span key={o} style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 16, background: tone(o) + "1A", color: tone(o) }}>{o}</span>)}
+            : shown.map(o => <span key={o} style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 16, background: tone(o) + "1A", color: tone(o) }}>{o}</span>)}
         </div>
         {open && (
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 9, background: "#fff" }}>
             <div style={{ fontSize: 10.5, color: C.muted }}>The person may be both.</div>
             {NETWORK_OUTCOMES.map(v => {
-              const on = set.includes(v);
+              const on = draft.includes(v);
               return (
                 <button key={v} onClick={() => toggle(v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 7, border: `1.5px solid ${on ? tone(v) : C.border}`, background: on ? tone(v) + "10" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                   <span style={{ width: 15, height: 15, borderRadius: 4, border: `2px solid ${on ? tone(v) : C.border}`, background: on ? tone(v) : "#fff", display: "grid", placeItems: "center", fontSize: 9, color: "#fff" }}>{on ? "✓" : ""}</span>
