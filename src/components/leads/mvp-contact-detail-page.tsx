@@ -626,18 +626,9 @@ const OverviewTab = ({ showInsights = true, feedback = null, c = null, lead = nu
   const addNoteItem = (text) => setNotes(prev => [{ id: `n-${Date.now()}`, text, note: true, date: "Today - now" }, ...prev]);
   const Dot = ({ color }) => <span style={{ width: 14, height: 14, borderRadius: "50%", background: color, border: `3px solid ${color}33`, flexShrink: 0, zIndex: 1 }} />;
 
-  // ── merged-in Network sections: General Notes + Voice Memo ──
-  const advisor = c?.assignee || "Anna Klein";
-  const [genNote, setGenNote] = useState("");
-  const [genNotes, setGenNotes] = useState([
-    { id: "g1", text: "Very interested in sustainable retirement provision. Prefers contact by email, ideally in the mornings. Partner is involved in the decision — possibly invite both to the next appointment.", author: advisor, date: "25.06.2026" },
-    { id: "g2", text: "Mentioned in first call: plans to buy property in 2 years, wants to build liquidity in parallel.", author: advisor, date: "20.06.2026" },
-  ]);
-  const addGenNote = () => {
-    if (!genNote.trim()) return;
-    setGenNotes(prev => [{ id: `g-${Date.now()}`, text: genNote.trim(), author: c?.assignee || "You", date: new Date().toLocaleDateString("en-GB") }, ...prev]);
-    setGenNote("");
-  };
+  // ── merged-in Network section: Voice Memo ──
+  // (General Notes was removed — all free-text notes live in the Journey Pipeline,
+  // which is the single place to add and read notes.)
   const memos = [
     { id: "m1", title: "Call note after consultation", date: "20.06.2026", dur: "1:24" },
     { id: "m2", title: "Voice memo: callback request on terms", date: "12.06.2026", dur: "0:38" },
@@ -647,7 +638,6 @@ const OverviewTab = ({ showInsights = true, feedback = null, c = null, lead = nu
       {[6, 11, 4, 14, 8, 12, 5, 10].map((h, i) => <span key={i} style={{ width: 2, height: h, background: C.primary, borderRadius: 1, opacity: 0.7 }} />)}
     </span>
   );
-  const noteBox = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", color: C.text, boxSizing: "border-box" as const, outline: "none", background: "#fff", minHeight: 88, resize: "vertical" as const, lineHeight: 1.5 };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -731,24 +721,6 @@ const OverviewTab = ({ showInsights = true, feedback = null, c = null, lead = nu
           <div style={{ fontSize: 12, color: C.green, marginTop: 3, fontWeight: 600 }}>{t("ovCallReached")}</div>
         </Card>
       </div>
-
-      {/* General Notes (merged from the Network overview) */}
-      <SectionBar>{t("ovGeneralNotes")}</SectionBar>
-      <Card style={{ padding: "16px 18px" }}>
-        <textarea value={genNote} onChange={e => setGenNote(e.target.value)} placeholder={t("ovAddNotePlaceholder")} style={noteBox} />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-          <span style={{ fontSize: 11.5, color: C.muted }}>{t("ovAdvisorNoteHint")}</span>
-          <button onClick={addGenNote} disabled={!genNote.trim()} style={{ padding: "9px 22px", borderRadius: 9, border: "none", background: genNote.trim() ? C.navy : C.border, color: genNote.trim() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: genNote.trim() ? "pointer" : "default", fontFamily: "inherit" }}>{t("save")}</button>
-        </div>
-      </Card>
-      {genNotes.map(n => (
-        <Card key={n.id} style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{n.text}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 11.5, color: C.muted }}>
-            <span>👤 {n.author}</span><span>·</span><span>{n.date}</span>
-          </div>
-        </Card>
-      ))}
 
       {/* Voice Memo (merged from the Network overview) */}
       <SectionBar>{t("ovVoiceMemo")}</SectionBar>
