@@ -633,7 +633,6 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
     ...prev, log: [...(prev.log || []), { id: `note-${Date.now()}`, text, note: true, time: stamp() }],
   }));
   const delNote = (id) => setFeedback && setFeedback(prev => ({ ...prev, log: (prev.log || []).filter((x) => x.id !== id) }));
-  const Dot = ({ color }) => <span style={{ width: 14, height: 14, borderRadius: "50%", background: color, border: `3px solid ${color}33`, flexShrink: 0, zIndex: 1 }} />;
 
   // ── merged-in Network section: Voice Memo ──
   // (General Notes was removed — all free-text notes live in the Journey Pipeline,
@@ -767,58 +766,31 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
       </Card>
       )}
 
+      {/* Notes — the single place to add and read free-text notes about the contact.
+          (The Journey Pipeline timeline was removed; notes are still stored on the
+          processing log, so the pipeline can be restored later without data loss.) */}
       <Card style={{ padding: "18px 20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovJourneyPipeline")}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovGeneralNotes")}</div>
           <button onClick={() => setAddNote(true)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>＋ {t("ovAddNote")}</button>
         </div>
-        <div style={{ position: "relative", paddingLeft: 8 }}>
-          <div style={{ position: "absolute", left: 14, top: 6, bottom: 6, width: 2, background: C.border }} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {(() => {
-              // Newest first; the most recent status event is the "active" row. The
-              // very first log entry is the contact's creation (shows its metadata).
-              const view = journeyLog.map((e, i) => ({ ...e, _created: i === 0, _key: e.id || `ev-${i}` })).reverse();
-              const activeKey = view.find(x => !x.note)?._key;
-              return view.map(e => {
-                const isActive = !e.note && e._key === activeKey;
-                return (
-                  <div key={e._key} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                    <Dot color={e.note ? C.amber : isActive ? C.blue : C.green} />
-                    <div style={{ flex: 1, border: `1px solid ${isActive ? C.blue : C.border}`, borderRadius: 10, padding: "12px 16px", background: e.note ? C.primarySoft : "#fff" }}>
-                      {e.note ? (
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                            <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.indigo, flexShrink: 0 }} />
-                            <span style={{ fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.text}</span>
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-                            <span onClick={() => setDelId(e.id)} title={t("delete")} style={{ color: C.slate, cursor: "pointer" }}>🗑</span>
-                            <span style={{ fontSize: 12, color: C.muted }}>{e.time}</span>
-                          </span>
-                        </div>
-                      ) : (<>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: isActive ? C.blue : C.text }}>{e.text}</span>
-                          <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>{e.time}</span>
-                        </div>
-                        {e._created && (
-                          <div style={{ display: "flex", gap: 40, marginTop: 12, flexWrap: "wrap" }}>
-                            {[[t("ovCreatedBy"), c?.assignee], [t("ovSource"), c?.source], [t("campaignAssignment"), c?.campaign]].map(([k, v]) => (
-                              <div key={k}>
-                                <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{k}</div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{v || "—"}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>)}
-                    </div>
-                  </div>
-                );
-              });
-            })()}
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {(() => {
+            const noteEntries = journeyLog.filter(e => e.note).reverse();  // newest first
+            if (noteEntries.length === 0) return <div style={{ fontSize: 12.5, color: C.muted, padding: "4px 2px" }}>{t("ovNoNotes")}</div>;
+            return noteEntries.map(n => (
+              <div key={n.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", background: C.primarySoft }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                  <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.indigo, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.text}</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                  <span onClick={() => setDelId(n.id)} title={t("delete")} style={{ color: C.slate, cursor: "pointer" }}>🗑</span>
+                  <span style={{ fontSize: 12, color: C.muted }}>{n.time}</span>
+                </span>
+              </div>
+            ));
+          })()}
         </div>
       </Card>
 
