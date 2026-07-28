@@ -1643,9 +1643,19 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
     setNetworkOutcome(Array.isArray(ls.outcome) ? ls.outcome : Array.isArray((lead as any)?.outcome) ? (lead as any).outcome : []);
   }, [lead?.id]);
   const changeOutcome = (next: string[]) => {
+    const label = networkOutcomeLabel(next);
     setNetworkOutcome(next);
-    setLeadState(lead?.id, { outcome: next, networkStatus: networkOutcomeLabel(next) });
-    setFeedback(f => ({ ...f, networkStatus: networkOutcomeLabel(next), outcome: networkOutcomeLabel(next) }));
+    setLeadState(lead?.id, { outcome: next, networkStatus: label });
+    // Reflect the Customer/Partner status change on the Journey Pipeline: append a
+    // timestamped entry to the processing log (only when the label actually changes).
+    setFeedback(f => {
+      const changed = f.networkStatus !== label;
+      const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return {
+        ...f, networkStatus: label, outcome: label,
+        log: changed ? [...(f.log || []), { id: `status-${Date.now()}`, text: `Status changed → ${label}`, time }] : (f.log || []),
+      };
+    });
   };
 
   // The Processing & Feedback flow is a Lead-only tab. Contacts whose Lifecycle is
