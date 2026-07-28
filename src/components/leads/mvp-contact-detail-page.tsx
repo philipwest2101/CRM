@@ -597,7 +597,7 @@ const STEP_BADGE_KEY = { initial: "fpStepInitial", call: "fpStepCall", appointme
 // Network-only sections (At a Glance · General Notes · Voice Memo) merged in, so
 // a contact shows the same Overview regardless of how it was reached or its
 // lifecycle. Fully bilingual (labels via i18n).
-const OverviewTab = ({ showInsights = true, feedback = null, c = null, lead = null }: any) => {
+const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null, c = null, lead = null }: any) => {
   const t = useT();
   const [addNote, setAddNote] = useState(false);
   const [delId, setDelId] = useState(null);
@@ -616,14 +616,17 @@ const OverviewTab = ({ showInsights = true, feedback = null, c = null, lead = nu
   const nextActionDue     = fb.nextActionDue || fb.nextActionDueDate || null;
   const showLostReason    = (fb.outcome === "Lost" || !!fb.lostReason) && !!fb.lostReason;
   const showFollowUp      = (!!fb.followUpReason || !!fb.followUpDate);
-  const [notes, setNotes] = useState([
-    { id: "n1", stage: "Connected",              dur: "3 days",  active: true, date: "04.03.2026 - 10:00" },
-    { id: "n2", stage: "First Contact Attempted",dur: "18 days", done: true,   date: "04.03.2026 - 10:00" },
-    { id: "n3", text: "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor…", note: true, date: "04.03.2026 - 10:00" },
-    { id: "n4", text: "It's a short note.", note: true, date: "04.03.2026 - 10:00" },
-    { id: "n5", stage: "New", done: true, created: "Anna Muller", source: "Landing Page", campaign: "Webinar – Q1 2026", date: "04.03.2026 - 10:00" },
-  ]);
-  const addNoteItem = (text) => setNotes(prev => [{ id: `n-${Date.now()}`, text, note: true, date: "Today - now" }, ...prev]);
+  // Journey Pipeline is a LIVE timeline built from the processing log, which records
+  // the contact's creation and every subsequent status change. A brand-new contact
+  // therefore shows a single "created" row, and each status change appended by the
+  // Processing & Feedback flow adds a row in real time. Free-text notes added here
+  // are appended to the same log (the single notes surface for the contact).
+  const stamp = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const journeyLog = Array.isArray(fb.log) ? fb.log : [];
+  const addNoteItem = (text) => setFeedback && setFeedback(prev => ({
+    ...prev, log: [...(prev.log || []), { id: `note-${Date.now()}`, text, note: true, time: stamp() }],
+  }));
+  const delNote = (id) => setFeedback && setFeedback(prev => ({ ...prev, log: (prev.log || []).filter((x) => x.id !== id) }));
   const Dot = ({ color }) => <span style={{ width: 14, height: 14, borderRadius: "50%", background: color, border: `3px solid ${color}33`, flexShrink: 0, zIndex: 1 }} />;
 
   // ── merged-in Network section: Voice Memo ──
@@ -766,49 +769,49 @@ const OverviewTab = ({ showInsights = true, feedback = null, c = null, lead = nu
         <div style={{ position: "relative", paddingLeft: 8 }}>
           <div style={{ position: "absolute", left: 14, top: 6, bottom: 6, width: 2, background: C.border }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {notes.map(n => (
-              <div key={n.id} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <Dot color={n.active ? C.blue : n.done ? C.green : C.amber} />
-                <div style={{ flex: 1, border: `1px solid ${n.active ? C.blue : C.border}`, borderRadius: 10, padding: "12px 16px", background: n.note ? C.primarySoft : "#fff" }}>
-                  {n.stage && !n.created && (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: n.active ? C.blue : C.text }}>{n.stage}</span>
-                        <span style={{ fontSize: 11, color: C.slate, background: C.light, padding: "2px 9px", borderRadius: 12 }}>{n.dur}</span>
-                      </span>
-                      <span style={{ fontSize: 12, color: C.muted }}>{n.date}</span>
-                    </div>
-                  )}
-                  {n.note && (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                        <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.indigo, flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.text}</span>
-                      </span>
-                      <span style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-                        <span style={{ color: C.slate, cursor: "pointer" }}>✎</span>
-                        <span onClick={() => setDelId(n.id)} title="Delete note" style={{ color: C.slate, cursor: "pointer" }}>🗑</span>
-                        <span style={{ fontSize: 12, color: C.muted }}>{n.date}</span>
-                      </span>
-                    </div>
-                  )}
-                  {n.created && (<>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{n.stage}</span>
-                      <span style={{ fontSize: 12, color: C.muted }}>{n.date}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 40 }}>
-                      {[["Created by", n.created], ["Source", n.source], ["Campaign Assignment", n.campaign]].map(([k, v]) => (
-                        <div key={k}>
-                          <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{k}</div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{v}</div>
+            {(() => {
+              // Newest first; the most recent status event is the "active" row. The
+              // very first log entry is the contact's creation (shows its metadata).
+              const view = journeyLog.map((e, i) => ({ ...e, _created: i === 0, _key: e.id || `ev-${i}` })).reverse();
+              const activeKey = view.find(x => !x.note)?._key;
+              return view.map(e => {
+                const isActive = !e.note && e._key === activeKey;
+                return (
+                  <div key={e._key} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <Dot color={e.note ? C.amber : isActive ? C.blue : C.green} />
+                    <div style={{ flex: 1, border: `1px solid ${isActive ? C.blue : C.border}`, borderRadius: 10, padding: "12px 16px", background: e.note ? C.primarySoft : "#fff" }}>
+                      {e.note ? (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                            <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.indigo, flexShrink: 0 }} />
+                            <span style={{ fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.text}</span>
+                          </span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                            <span onClick={() => setDelId(e.id)} title={t("delete")} style={{ color: C.slate, cursor: "pointer" }}>🗑</span>
+                            <span style={{ fontSize: 12, color: C.muted }}>{e.time}</span>
+                          </span>
                         </div>
-                      ))}
+                      ) : (<>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, color: isActive ? C.blue : C.text }}>{e.text}</span>
+                          <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>{e.time}</span>
+                        </div>
+                        {e._created && (
+                          <div style={{ display: "flex", gap: 40, marginTop: 12, flexWrap: "wrap" }}>
+                            {[[t("ovCreatedBy"), c?.assignee], [t("ovSource"), c?.source], [t("campaignAssignment"), c?.campaign]].map(([k, v]) => (
+                              <div key={k}>
+                                <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{k}</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{v || "—"}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>)}
                     </div>
-                  </>)}
-                </div>
-              </div>
-            ))}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </Card>
@@ -816,7 +819,7 @@ const OverviewTab = ({ showInsights = true, feedback = null, c = null, lead = nu
       {addNote && <AddNoteModal onClose={() => setAddNote(false)} onSave={addNoteItem} />}
       {delId && (
         <ConfirmModal title="Delete note?" message="This note will be permanently removed. This action cannot be undone."
-          onCancel={() => setDelId(null)} onConfirm={() => { setNotes(prev => prev.filter(x => x.id !== delId)); setDelId(null); }} />
+          onCancel={() => setDelId(null)} onConfirm={() => { delNote(delId); setDelId(null); }} />
       )}
     </div>
   );
@@ -1731,7 +1734,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
                                             onLeadFinalized={() => setLeadState(lead?.id, { finalized: true })}
                                             onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); notify && notify("Lead added to My Network", "success"); }}
                                             autoConvert={sourceAction === "convert"} />}
-          {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} c={c} lead={lead} />}
+          {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} setFeedback={setFeedback} c={c} lead={lead} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}
