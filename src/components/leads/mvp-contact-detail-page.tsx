@@ -1708,6 +1708,28 @@ const DocumentsTab = () => {
   );
 };
 
+// Realistic demo lead-phase history for specific seeded Network contacts, keyed
+// by contact id. Merged onto the derived feedback in initFeedback so the read-only
+// Lead Journey report shows a populated snapshot (call attempts + last action) and
+// a full Pipeline Journey instead of the empty default the bare seeds produce.
+const SAMPLE_LEAD_HISTORY: Record<string, any> = {
+  // Petra Wagner (NW-4) — converted to Customer after a short lead phase: reached
+  // on the 2nd call, one consultation, then converted.
+  "NW-4": {
+    calls: 2,
+    lastAction: { icon: "📅", label: "Appointment completed · positive", date: "26.06.2026" },
+    log: [
+      { id: "pw-1", text: "Lead assigned → status set to New",             time: "10.06.2026 · 09:14" },
+      { id: "pw-2", text: "Send Initial Message → Sent via SMS / WhatsApp", time: "10.06.2026 · 09:20" },
+      { id: "pw-3", text: "Call attempt 1 → No answer",                     time: "12.06.2026 · 11:02" },
+      { id: "pw-4", text: "Call attempt 2 → Reached · interested",          time: "14.06.2026 · 16:45" },
+      { id: "pw-5", text: "Appointment scheduled → Consultation",           time: "18.06.2026 · 10:00" },
+      { id: "pw-6", text: "Appointment completed → Positive outcome",       time: "26.06.2026 · 15:30" },
+      { id: "pw-7", text: "Converted to Network → Customer",                time: "27.06.2026 · 09:05" },
+    ],
+  },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceAction, role, addAppointment, removeAppointment, notify }) => {
   const t = useT();
@@ -1728,6 +1750,11 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
     }
     if (ls.finalized || converted) fb = { ...fb, finished: true };
     if (converted) fb = { ...fb, isContact: true, networkStatus: ls.networkStatus || fb.networkStatus };
+    // Overlay a realistic lead-phase history for seeded demo contacts that have one
+    // (call attempts, last action, full Pipeline Journey), so their Lead Journey
+    // report isn't empty. Only overrides the snapshot fields it defines.
+    const sample = lead?.id ? SAMPLE_LEAD_HISTORY[lead.id] : null;
+    if (sample) fb = { ...fb, ...sample };
     return fb;
   };
   // ── Feedback & Processing state (shared with the Overview tab + tab gating) ──
