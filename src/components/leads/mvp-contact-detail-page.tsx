@@ -664,7 +664,7 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>{t("ovLastAction")}</span>
-                <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || "—"}</span>
+                <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || (native ? (lead?.lastContact || "27.06.2026") : "—")}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 600, color: C.text }}>
                 <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
@@ -702,20 +702,14 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
               )}
             </div>
           </div>
-          {/* At a Glance, merged in (native contacts only): the two facts that used
-              to live in the standalone section below now sit inside Follow Up. */}
+          {/* At a Glance, merged in (native contacts only): Last Event lives inside
+              Follow Up. Last Contact was dropped — it overlapped with Last Action,
+              whose date now carries the last-contact date instead. */}
           {native && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
-              <div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 4 }}>{t("ovLastEvent")}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>Finanzforum München 2026</div>
-                <div style={{ fontSize: 12, color: C.slate, marginTop: 2 }}>12.06.2026</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 4 }}>{t("ovLastContact")}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{lead?.lastContact || "27.06.2026"}</div>
-                <div style={{ fontSize: 12, color: C.green, marginTop: 2, fontWeight: 600 }}>{t("ovCallReached")}</div>
-              </div>
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 4 }}>{t("ovLastEvent")}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>Finanzforum München 2026</div>
+              <div style={{ fontSize: 12, color: C.slate, marginTop: 2 }}>12.06.2026</div>
             </div>
           )}
         </Card>
