@@ -106,6 +106,9 @@ const toContact = (l) => {
   return {
     id: l.id, first, last, firstName: first, lastName: last, name: l.name,
     lifecycle: network ? "Network" : "Lead", stageStatus, outcome, tone,
+    // A pipeline lead that reached Network (closed, or converted at runtime) was a
+    // lead before → it gets the read-only "Lead Journey" tab in the contact view.
+    wasLead: network,
     ownership, isCompanyOwned: ownership === "Company",
     phone: l.phone, email: l.email, primaryEmail: l.email,
     // Feedback & Processing shows the Processing value + a live call counter (§10).
@@ -136,12 +139,16 @@ const toContact = (l) => {
 // A Network member's Outcome is any combination of Customer / Partner (both may
 // apply). An empty set = a plain Network contact (the former "Prospect" seeds,
 // which no longer have a stage status).
+// `wasLead` records how the Network member arrived: true = converted from a Lead
+// (their pre-Network history is shown on the read-only "Lead Journey" tab), false
+// = created directly by a user (they never were a lead, so they get the editable
+// "Overview" tab instead). Both keep Activities / Documents / Information.
 const NETWORK_SEED = [
-  { id: "NW-1", name: "Michael Braun",  phone: "+43 660 1234567", email: "m.braun@email.at",   assignee: "Anna Klein",    outcome: ["Customer"] },
-  { id: "NW-2", name: "Sabine Hofer",   phone: "+43 664 2345678", email: "s.hofer@email.at",   assignee: "Anna Klein",    outcome: ["Partner"] },
-  { id: "NW-3", name: "Georg Steiner",  phone: "+43 699 3456789", email: "g.steiner@email.at", assignee: "Anna Klein",    outcome: ["Customer", "Partner"] },
-  { id: "NW-4", name: "Petra Wagner",   phone: "+43 650 4567890", email: "p.wagner@email.at",  assignee: "Thomas Müller", outcome: ["Customer"] },
-  { id: "NW-5", name: "Klaus Berger",   phone: "+43 676 5678901", email: "k.berger@email.at",  assignee: "Thomas Müller", outcome: [] },
+  { id: "NW-1", name: "Michael Braun",  phone: "+43 660 1234567", email: "m.braun@email.at",   assignee: "Anna Klein",    outcome: ["Customer"],            wasLead: true  },
+  { id: "NW-2", name: "Sabine Hofer",   phone: "+43 664 2345678", email: "s.hofer@email.at",   assignee: "Anna Klein",    outcome: ["Partner"],             wasLead: false },
+  { id: "NW-3", name: "Georg Steiner",  phone: "+43 699 3456789", email: "g.steiner@email.at", assignee: "Anna Klein",    outcome: ["Customer", "Partner"], wasLead: true  },
+  { id: "NW-4", name: "Petra Wagner",   phone: "+43 650 4567890", email: "p.wagner@email.at",  assignee: "Thomas Müller", outcome: ["Customer"],            wasLead: true  },
+  { id: "NW-5", name: "Klaus Berger",   phone: "+43 676 5678901", email: "k.berger@email.at",  assignee: "Thomas Müller", outcome: [],                      wasLead: false },
 ].map(n => {
   const [first, ...rest] = n.name.split(" ");
   const last = rest.join(" ");
@@ -1559,6 +1566,8 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
     setContacts(prev => [{
       id: `NEW-${Date.now()}`, first: f.first, last: f.last, firstName: f.first, lastName: f.last, name: `${f.first} ${f.last}`.trim(),
       lifecycle: f.lifecycle, stageStatus, outcome,
+      // Created directly by a user (never a lead) → the editable "Overview" tab.
+      wasLead: false,
       ownership, isCompanyOwned: ownership === "Company",
       tone: isNetwork
           ? (outcome.includes("Customer") ? C.green : outcome.includes("Partner") ? C.indigo : C.slate)
@@ -1751,7 +1760,7 @@ export const MVPContactsPage = ({ navigateTo, role, initialView, clearInitialVie
                     const isLink = (k === "name" || k === LINK_COL);   // Name links to detail on every view
                     return (
                     <td key={k} style={{ padding: "14px 16px", cursor: isLink ? "pointer" : "default" }}
-                      onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone, outcome: c.outcome, stageStatus: c.stageStatus, lifecycle: c.lifecycle }, activeView) : undefined}>
+                      onClick={isLink ? () => navigateTo("LeadDetail", ALL_LEADS.find(l => l.id === c.id) || { id: c.id, name: c.name, email: c.email, phone: c.phone, outcome: c.outcome, stageStatus: c.stageStatus, lifecycle: c.lifecycle, wasLead: c.wasLead }, activeView) : undefined}>
                       {renderCell(k, c, isLink)}
                     </td>);
                   })}

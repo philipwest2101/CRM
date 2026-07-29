@@ -603,7 +603,11 @@ const STEP_BADGE_KEY = { initial: "fpStepInitial", call: "fpStepCall", appointme
 // Network-only sections (At a Glance · General Notes · Voice Memo) merged in, so
 // a contact shows the same Overview regardless of how it was reached or its
 // lifecycle. Fully bilingual (labels via i18n).
-const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null, c = null, lead = null }: any) => {
+// `native` = the contact was created directly by a user and was never a lead. In
+// that mode the Follow-Up card drops the call-attempt donut (call attempts are a
+// Lead-lifecycle metric that never applies here) and absorbs the two "At a Glance"
+// facts (Last Event · Last Contact), so the standalone At-a-Glance section is hidden.
+const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null, c = null, lead = null, native = false }: any) => {
   const t = useT();
   const [addNote, setAddNote] = useState(false);
   const [delId, setDelId] = useState(null);
@@ -656,7 +660,7 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
             <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{stageLabel}</span>
           </div>
           <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-            <Donut value={fb.calls || 0} total={callTotal} />
+            {!native && <Donut value={fb.calls || 0} total={callTotal} />}
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>{t("ovLastAction")}</span>
@@ -698,6 +702,22 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
               )}
             </div>
           </div>
+          {/* At a Glance, merged in (native contacts only): the two facts that used
+              to live in the standalone section below now sit inside Follow Up. */}
+          {native && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 4 }}>{t("ovLastEvent")}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>Finanzforum München 2026</div>
+                <div style={{ fontSize: 12, color: C.slate, marginTop: 2 }}>12.06.2026</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 4 }}>{t("ovLastContact")}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{lead?.lastContact || "27.06.2026"}</div>
+                <div style={{ fontSize: 12, color: C.green, marginTop: 2, fontWeight: 600 }}>{t("ovCallReached")}</div>
+              </div>
+            </div>
+          )}
         </Card>
 
         <Card style={{ padding: "18px 20px" }}>
@@ -712,7 +732,9 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
         </Card>
       </div>
 
-      {/* At a Glance (merged from the Network overview) */}
+      {/* At a Glance — standalone section only for the lead-flow Overview; native
+          contacts show these two facts merged into the Follow-Up card above. */}
+      {!native && (<>
       <SectionBar>{t("ovAtAGlance")}</SectionBar>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Card style={{ padding: "16px 18px", background: C.light }}>
@@ -729,6 +751,7 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
           <div style={{ fontSize: 12, color: C.green, marginTop: 3, fontWeight: 600 }}>{t("ovCallReached")}</div>
         </Card>
       </div>
+      </>)}
 
       {/* Voice Memo (merged from the Network overview) */}
       <SectionBar>{t("ovVoiceMemo")}</SectionBar>
@@ -811,6 +834,116 @@ const SectionBar = ({ children }) => (
     <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{children}</span>
   </div>
 );
+
+// ── Lead Journey tab ──────────────────────────────────────────────────────────
+// Read-only report shown for Network contacts that were converted from a Lead. It
+// is history, not a workspace: no actions, no notes, no "Next Action" (the lead is
+// finished). Two elements only — a Follow-Up snapshot (call attempts, last action
+// and how the lead closed) and the Pipeline Journey (the lead's live status
+// timeline, rebuilt from the processing log). Fully bilingual (labels via i18n).
+const LeadJourneyTab = ({ feedback = null, c = null, lead = null }: any) => {
+  const t = useT();
+  const fb          = feedback || { calls: 3, current: 1, finished: false, lastAction: null };
+  const callTotal   = Math.max(5, fb.calls || 0);
+  const stepKey     = STEPS[fb.current]?.key || "initial";
+  const stageLabel  = fb.finished ? t("ovFinished") : t((STEP_BADGE_KEY[stepKey] || "fpStepInitial") as any);
+  const lastAction  = fb.lastAction;
+  const showLostReason = (fb.outcome === "Lost" || !!fb.lostReason) && !!fb.lostReason;
+  const showFollowUp   = (!!fb.followUpReason || !!fb.followUpDate);
+  const journeyLog  = Array.isArray(fb.log) ? fb.log : [];
+  const Dot = ({ color }) => <span style={{ width: 14, height: 14, borderRadius: "50%", background: color, border: `3px solid ${color}33`, flexShrink: 0, zIndex: 1 }} />;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Read-only report banner */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.light, color: C.slate, border: `1px solid ${C.border}` }}>🔒 {t("ljReportBadge")}</span>
+        <span style={{ fontSize: 12, color: C.muted }}>{t("ljReadOnlyHint")}</span>
+      </div>
+
+      {/* Follow-Up snapshot — call attempts + last action + how the lead closed. No
+          Next Action / Next Best Action: the lead is done, nothing is "open". */}
+      <Card style={{ padding: "18px 20px" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{t("ovFollowUpTitle")} <InfoTip text={t("ljFollowUpTip")} /></span>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{stageLabel}</span>
+        </div>
+        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+          <Donut value={fb.calls || 0} total={callTotal} />
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 12, color: C.muted }}>{t("ovLastAction")}</span>
+              <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || "—"}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.text }}>
+              <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
+              {lastAction?.label || t("ljNoActivity")}
+            </div>
+            {/* How the lead closed: Lost Reason (Processing = Lost) or Follow-Up Reason */}
+            {showLostReason && (
+              <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.red + "0C", border: `1px solid ${C.red}33` }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.red, marginBottom: 3 }}>{t("fpLostReason")}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.lostReason}</div>
+              </div>
+            )}
+            {showFollowUp && (
+              <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.purple + "0C", border: `1px solid ${C.purple}33` }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.purple, marginBottom: 3 }}>{t("ovFollowUpReasonLabel")}{fb.followUpDate ? ` · ${fb.followUpDate}` : ""}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.followUpReason || "Scheduled follow-up"}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Pipeline Journey — the lead's status timeline, rebuilt from the processing
+          log. Status events only (notes are excluded here); read-only, no delete. */}
+      <SectionBar>{t("ovJourneyPipeline")}</SectionBar>
+      <Card style={{ padding: "18px 20px" }}>
+        <div style={{ position: "relative", paddingLeft: 8 }}>
+          <div style={{ position: "absolute", left: 14, top: 6, bottom: 6, width: 2, background: C.border }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {(() => {
+              // Keep the original index so the first log entry (the contact's creation)
+              // still renders its metadata after notes are filtered out and the list
+              // is reversed to newest-first.
+              const view = journeyLog
+                .map((e, i) => ({ ...e, _created: i === 0, _key: e.id || `ev-${i}` }))
+                .filter(e => !e.note)
+                .reverse();
+              if (view.length === 0) return <div style={{ fontSize: 12.5, color: C.muted, padding: "4px 2px" }}>{t("ljNoJourney")}</div>;
+              const activeKey = view[0]?._key;
+              return view.map(e => {
+                const isActive = e._key === activeKey;
+                return (
+                  <div key={e._key} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <Dot color={isActive ? C.blue : C.green} />
+                    <div style={{ flex: 1, border: `1px solid ${isActive ? C.blue : C.border}`, borderRadius: 10, padding: "12px 16px", background: "#fff" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: isActive ? C.blue : C.text }}>{e.text}</span>
+                        <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>{e.time}</span>
+                      </div>
+                      {e._created && (
+                        <div style={{ display: "flex", gap: 40, marginTop: 12, flexWrap: "wrap" }}>
+                          {[[t("ovCreatedBy"), c?.assignee], [t("ovSource"), c?.source], [t("campaignAssignment"), c?.campaign]].map(([k, v]) => (
+                            <div key={k}>
+                              <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{k}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{v || "—"}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
 
 // ── Information tab ───────────────────────────────────────────────────────────
 const InfoField = ({ label, value, node }) => (
@@ -1642,12 +1775,18 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
   // every other tab (and the identity-rail quick actions) stays locked until the
   // lead has been converted to a contact.
   const isNetwork = isMyNetwork || feedback.isContact;
+  // A Network contact that was converted from a Lead (a lead finalized here, or a
+  // My Network seed flagged `wasLead`) shows the read-only "Lead Journey" report
+  // instead of "Overview". Contacts created directly by a user keep "Overview".
+  const wasLead = feedback.isContact && (!isMyNetwork || lead?.wasLead === true);
+  const primaryTab = wasLead ? t("leadJourneyTab") : t("overviewTab");
   const ACTIVE_TABS = isNetwork
-    ? [t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
+    ? [primaryTab, t("activitiesTab"), t("documentsTab"), t("informationTab")]
     : [t("feedbackTab"), t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
   const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
-  // Network contacts open on Overview; leads open on Feedback & Processing.
-  const defaultTab = () => (isNetwork ? t("overviewTab") : t("feedbackTab"));
+  // Network contacts open on their primary tab (Overview or Lead Journey); leads
+  // open on Feedback & Processing.
+  const defaultTab = () => (isNetwork ? primaryTab : t("feedbackTab"));
   const [tab, setTab] = useState(defaultTab);
   // Re-initialise when navigating to a different contact.
   React.useEffect(() => { setFeedback(initFeedback()); setTab(defaultTab()); }, [lead?.id]);
@@ -1722,7 +1861,8 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
                                             onLeadFinalized={() => setLeadState(lead?.id, { finalized: true })}
                                             onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); notify && notify("Lead added to My Network", "success"); }}
                                             autoConvert={sourceAction === "convert"} />}
-          {tab === t("overviewTab")     && <OverviewTab showInsights={false} feedback={feedback} setFeedback={setFeedback} c={c} lead={lead} />}
+          {tab === t("overviewTab")     && <OverviewTab showInsights={false} native={isNetwork} feedback={feedback} setFeedback={setFeedback} c={c} lead={lead} />}
+          {tab === t("leadJourneyTab")  && <LeadJourneyTab feedback={feedback} c={c} lead={lead} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}
