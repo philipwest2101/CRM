@@ -657,7 +657,9 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
         <Card style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{t("ovFollowUpTitle")} <InfoTip text={t("ovFollowUpTip")} /></span>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{stageLabel}</span>
+            {/* Native contacts never walked the lead steps, so the step badge is
+                meaningless here — show nothing. Leads keep their live stage badge. */}
+            {!native && <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{stageLabel}</span>}
           </div>
           <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
             {!native && <Donut value={fb.calls || 0} total={callTotal} />}
@@ -839,8 +841,10 @@ const LeadJourneyTab = ({ feedback = null, c = null, lead = null }: any) => {
   const t = useT();
   const fb          = feedback || { calls: 3, current: 1, finished: false, lastAction: null };
   const callTotal   = Math.max(5, fb.calls || 0);
-  const stepKey     = STEPS[fb.current]?.key || "initial";
-  const stageLabel  = fb.finished ? t("ovFinished") : t((STEP_BADGE_KEY[stepKey] || "fpStepInitial") as any);
+  // The badge is a history report, not a to-do: show the contact's latest status
+  // after converting from the Lead lifecycle (its Network outcome, e.g. Customer /
+  // Partner), never the imperative "next step" label. Falls back to "Converted".
+  const latestStatus = c?.stageStatus || t("ljConverted");
   const lastAction  = fb.lastAction;
   const showLostReason = (fb.outcome === "Lost" || !!fb.lostReason) && !!fb.lostReason;
   const showFollowUp   = (!!fb.followUpReason || !!fb.followUpDate);
@@ -860,7 +864,7 @@ const LeadJourneyTab = ({ feedback = null, c = null, lead = null }: any) => {
       <Card style={{ padding: "18px 20px" }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{t("ovFollowUpTitle")} <InfoTip text={t("ljFollowUpTip")} /></span>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{stageLabel}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{latestStatus}</span>
         </div>
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
           <Donut value={fb.calls || 0} total={callTotal} />
