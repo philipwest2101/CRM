@@ -1364,27 +1364,28 @@ const LOREM = "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do 
 // `badge` = "Logged" for manually back-logged activities, or "Overdue" /
 // "Canceled" for tasks; live/system-captured entries carry no badge.
 const ACTIVITIES: any[] = [
-  // July 2026 — Tasks
-  { id: "a1", type: "task", title: "Task Title XXX", day: "Mon 20", month: "July 2026", dt: "2026.07.20 - 10:10", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
-  { id: "a2", type: "task", title: "Task Title XXX", day: "Fri 17", month: "July 2026", dt: "2026.07.17 - 09:09", badge: "Canceled", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
-  { id: "a3", type: "task", title: "Task Title XXX", day: "Thu 16", month: "July 2026", dt: "2026.07.16 - 08:08", badge: "Overdue", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
-  // April 2025
-  { id: "a4", type: "appointment", title: "Appointment Title XXX", day: "Tue 20", month: "April 2025", dt: "2025.04.20 - 10:10", actor: "Anna Klein", createdAt: "2025.04.19 - 19:19", attendees: "john.smith@email.com, olivia.ruth@email.com", apptType: "Consultation", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf", outcome: "Not Interested", note: LOREM },
-  { id: "a5", type: "appointment", title: "Appointment Title XXX", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 09:09", badge: "Logged", actor: "Anna Klein", attendees: "john.smith@email.com, olivia.ruth@email.com", apptType: "Consultation", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
-  { id: "a6", type: "call", title: "Inbound Call Log", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 08:08", badge: "Logged", direction: "Inbound", actor: "Anna Klein", duration: "29 minutes", report: LOREM },
-  { id: "a7", type: "call", title: "Outbound Call Log", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 12:59", badge: "Logged", direction: "Outbound", actor: "Anna Klein", duration: "19 minutes", report: LOREM },
-  { id: "a8", type: "email", title: "Send Email Log Subject XXX", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 12:02", badge: "Logged", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", cc: "john.smith@email.com, olivia.ruth@email.com", createdAt: "2025.03.04 - 23:59", scheduledOn: "2025.03.05 - 10:10", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
-  { id: "a9", type: "email", title: "Received Email Log Subject XXX", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 11:21", badge: "Logged", direction: "Received", from: "sandra.richter@email.com", to: "anna.klein@email.com", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
-  { id: "a10", type: "offline", title: "Offline Log Title XXX", day: "Wed 14", month: "April 2025", dt: "2025.04.14 - 17:27", badge: "Logged", actor: "Anna Klein", channel: "WhatsApp", description: LOREM },
-  // March 2025 — live / system-captured (no badge)
-  { id: "a11", type: "email", title: "Sent Email Subject", day: "Wed 05", month: "March 2025", dt: "2025.03.05 - 10:10", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", cc: "john.smith@email.com, olivia.ruth@email.com", createdAt: "2025.03.04 - 23:59", scheduledOn: "2025.03.05 - 10:10", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
-  { id: "a12", type: "email", title: "Received Email Subject", day: "Wed 05", month: "March 2025", dt: "2025.03.05 - 09:09", direction: "Received", from: "sandra.richter@email.com", to: "anna.klein@email.com", subject: "Received Email Subject", report: LOREM },
-  { id: "a13", type: "call", title: "Outbound Call", day: "Mon 03", month: "March 2025", dt: "2025.03.03 - 08:08", direction: "Outbound", actor: "Anna Klein", duration: "9 minutes", report: LOREM },
-  // February 2025 — Updates (system audit)
-  { id: "a14", type: "update", title: "Update Assignee", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 17:17", actionIcon: "👤", actionText: "Anna Klein" },
-  { id: "a15", type: "update", title: "Update Labels", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 15:15", actionIcon: "🏷️", actionText: "＋ VIP-CUSTOMER" },
-  { id: "a16", type: "update", title: "Update Labels", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 13:13", actionIcon: "🏷️", actionText: "－ VIP-CUSTOMER" },
-  { id: "a17", type: "update", title: "Add Contact", day: "Mon 19", month: "February 2025", dt: "2025.02.19 - 11:11", actionIcon: "👤", actionText: "Created by: John Smith" },
+  // ── January 2026 — also shown on the calendar ─────────────────────────────
+  { id: "a1", type: "email", title: "Scheduled Email Subject XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 13:00", scheduled: true, direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", cc: "olivia.ruth@email.com, john.smith@email.com", createdAt: "2026.01.03 - 23:59", scheduledOn: "2026.01.05 - 13:00", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
+  { id: "a2", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 11:30", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation Appointment", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a3", type: "task", title: "Task XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 10:00", badge: "Done", actor: "Anna Klein", createdAt: "2026.01.04 - 15:15", priority: "Medium", description: LOREM },
+  { id: "a4", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.04 - 11:30", badge: "Rescheduled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation Appointment", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a5", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.03 - 11:30", badge: "Canceled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation Appointment", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  // ── December 2025 — system-captured (no badge) ────────────────────────────
+  { id: "a6", type: "email", title: "Email Subject XXX", day: "Mon 22", month: "December 2025", dt: "2025.12.22 - 09:09", direction: "Received", from: "sandra.richter@email.com", to: "anna.klein@email.com", subject: "Email Subject XXX", report: "Dear Anna Klein\n\n" + LOREM, attachments: "sample.pdf" },
+  { id: "a7", type: "email", title: "Email Subject XXX", day: "Wed 17", month: "December 2025", dt: "2025.12.17 - 10:10", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", createdAt: "2025.12.16 - 23:59", scheduledOn: "2025.12.17 - 10:10", subject: "Email Subject XXX", report: "Dear Sandra Richter\n\n" + LOREM, attachments: "sample.pdf" },
+  { id: "a8", type: "call", title: "Outbound Call", day: "Mon 15", month: "December 2025", dt: "2025.12.15 - 08:08", actor: "Anna Klein", duration: "9 minutes", report: LOREM },
+  // ── April 2025 — manually logged (Logged badge, ⋮ Edit / Delete) ──────────
+  { id: "a9", type: "appointment", title: "Appointment XXX", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 09:09", badge: "Logged", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation - If \"other\" selected, will be added here...", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a10", type: "call", title: "Call Log", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 08:08", badge: "Logged", direction: "Inbound", actor: "Anna Klein", duration: "29 minutes", report: LOREM },
+  { id: "a11", type: "call", title: "Call Log", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 12:59", badge: "Logged", direction: "Outbound", actor: "Anna Klein", duration: "19 minutes", report: LOREM },
+  { id: "a12", type: "email", title: "Email Subject XXX", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 12:02", badge: "Logged", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", subject: "Email Subject XXX", report: "Dear Sandra Richter\n\n" + LOREM, attachments: "sample.pdf" },
+  { id: "a13", type: "email", title: "Email Subject XXX", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 11:21", badge: "Logged", direction: "Received", from: "sandra.richter@email.com", to: "anna.klein@email.com", subject: "Email Subject XXX", report: "Dear Anna Klein\n\n" + LOREM, attachments: "sample.pdf" },
+  { id: "a14", type: "offline", title: "Offline XXX", day: "Wed 14", month: "April 2025", dt: "2025.04.14 - 17:27", badge: "Logged", actor: "Anna Klein", channel: "WhatsApp", description: LOREM },
+  // ── February 2025 — system updates (audit) ────────────────────────────────
+  { id: "a15", type: "update", title: "Update Assignee", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 17:17", actionIcon: "👤", actionText: "Anna Klein" },
+  { id: "a16", type: "update", title: "Update Labels", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 15:15", actionIcon: "🏷️", actionText: "＋ VIP-CUSTOMER" },
+  { id: "a17", type: "update", title: "Update Labels", day: "Tue 20", month: "February 2025", dt: "2025.02.20 - 13:13", actionIcon: "🏷️", actionText: "－ VIP-CUSTOMER" },
+  { id: "a18", type: "update", title: "Add Contact", day: "Mon 19", month: "February 2025", dt: "2025.02.19 - 11:11", actionIcon: "👤", actionText: "Created by: John Smith" },
 ];
 
 const ActField = ({ label, value, node }) => (
@@ -1411,10 +1412,11 @@ const ReportBox = ({ label, text }) => (
 
 // Row status badge — "Logged" (back-logged activity) / "Overdue" / "Canceled".
 const BADGE_STYLE = {
-  Logged:   { color: C.slate, bg: "#EEF0F3" },
-  Overdue:  { color: C.red,   bg: C.red + "14" },
-  Canceled: { color: C.slate, bg: "#EEF0F3" },
-  Done:     { color: C.green, bg: C.green + "18" },
+  Logged:      { color: C.slate, bg: "#EEF0F3" },
+  Overdue:     { color: C.red,   bg: C.red + "14" },
+  Canceled:    { color: C.slate, bg: "#EEF0F3" },
+  Rescheduled: { color: C.amber, bg: C.amber + "1E" },
+  Done:        { color: C.green, bg: C.green + "18" },
 };
 const RowBadge = ({ text }) => {
   const s = BADGE_STYLE[text] || BADGE_STYLE.Logged;
@@ -1477,10 +1479,10 @@ const ActivityDetail = ({ a, onDone, onDelete }: any) => {
   if (a.type === "call") return (<>
     <div style={actGrid}>
       <ActField label={logged ? "Logged By" : "Call By"} value={who} />
-      {a.direction && <ActField label="Call Direction" value={a.direction} />}
+      {a.direction && <ActField label="Direction" value={a.direction} />}
       <ActField label="Call Duration" value={a.duration || "-"} />
     </div>
-    <ReportBox label={logged ? "Note" : "Call report"} text={a.report} />
+    <ReportBox label={logged ? "Note" : "Call Report"} text={a.report} />
   </>);
 
   if (a.type === "email") {
@@ -1489,13 +1491,14 @@ const ActivityDetail = ({ a, onDone, onDelete }: any) => {
       <div style={actGrid}>
         <ActField label="From" value={a.from || "-"} />
         <ActField label="To" value={a.to || "-"} />
+        {received && <ActField label="Direction" value={a.direction} />}
         {!received && a.cc && <ActField label="Cc" value={a.cc} />}
         {!received && a.createdAt && <ActField label="Created At" value={a.createdAt} />}
         {!received && a.scheduledOn && <ActField label="Scheduled On" value={a.scheduledOn} />}
         <ActField label="Subject" value={a.subject || a.title} />
-        <ActField label="Attachments" node={a.attachments ? <span style={{ fontSize: 13.5, fontWeight: 600, color: C.blue }}>📎 {a.attachments}</span> : <span style={{ fontSize: 13.5, color: C.muted }}>-</span>} />
       </div>
-      <ReportBox label="Message" text={a.report} />
+      <ReportBox label="Body" text={a.report} />
+      {a.attachments && <div style={{ marginTop: 12 }}><ActField label="Attachments" node={<span style={{ fontSize: 13.5, fontWeight: 600, color: C.blue }}>📎 {a.attachments}</span>} /></div>}
     </>);
   }
 
@@ -1540,6 +1543,26 @@ const ActivityDetail = ({ a, onDone, onDelete }: any) => {
 // card. Each returns a field patch that the Activities tab merges into the row.
 // The Contact is fixed to the current contact, so it stays disabled here.
 const disabledSelect = { ...fieldStyle, background: C.light, color: C.slate, cursor: "not-allowed" as const };
+const splitCsv = (s) => (s ? String(s).split(",").map(x => x.trim()).filter(Boolean) : []);
+
+// Attachment editor — existing files as removable chips + a picker to add more.
+const AttachmentField = ({ values, onWrite }) => (
+  <div>
+    {values.length > 0 && (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+        {values.map(a => (
+          <span key={a} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 9px", borderRadius: 7, background: "#F1F5F9", border: `1px solid ${C.border}`, fontSize: 11.5, color: C.text, fontWeight: 600 }}>
+            📎 {a}<span onClick={() => onWrite(values.filter(x => x !== a))} style={{ color: C.muted, cursor: "pointer" }}>×</span>
+          </span>
+        ))}
+      </div>
+    )}
+    <select style={placeholderSelect} value="" onChange={e => { const v = e.target.value; if (v && !values.includes(v)) onWrite([...values, v]); e.target.value = ""; }}>
+      <option value="">Select attachments</option>
+      {ATTACHMENTS_STORE.filter(a => !values.includes(a.name)).map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+    </select>
+  </div>
+);
 
 const EditCallLog = ({ data, onClose, onSave }) => {
   const [dir, setDir] = useState(data.direction || "Outbound");
@@ -1574,9 +1597,9 @@ const EditEmailLog = ({ data, onClose, onSave }) => {
   const [from, setFrom] = useState(data.from || "");
   const [to, setTo] = useState(data.to || "");
   const [cc, setCc] = useState(data.cc || "");
+  const [attachments, setAttachments] = useState(splitCsv(data.attachments));
   const [subject, setSubject] = useState(data.subject || "");
   const [body, setBody] = useState(data.report || "");
-  const sent = dir === "Sent";
   return (
     <ModalShell icon="✉️" title="Edit Email Log" accent={C.indigo} width={720} onClose={onClose}>
       <div style={{ marginBottom: 16 }}><Label>Direction *</Label>
@@ -1586,15 +1609,20 @@ const EditEmailLog = ({ data, onClose, onSave }) => {
         <div><Label>From *</Label><input style={fieldStyle} value={from} onChange={e => setFrom(e.target.value)} /></div>
         <div><Label>To *</Label><input style={fieldStyle} value={to} onChange={e => setTo(e.target.value)} /></div>
       </div>
-      {sent && (
-        <div style={{ marginBottom: 16 }}><Label>Cc</Label><input style={fieldStyle} value={cc} onChange={e => setCc(e.target.value)} /></div>
-      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Cc *</Label><input style={fieldStyle} value={cc} onChange={e => setCc(e.target.value)} /></div>
+        <div><Label>Attachment *</Label><AttachmentField values={attachments} onWrite={setAttachments} /></div>
+      </div>
       <div style={{ marginBottom: 16 }}><Label>Subject *</Label><input style={fieldStyle} value={subject} onChange={e => setSubject(e.target.value)} placeholder="Enter email subject line" /></div>
-      <div><Label>Body *</Label>
+      <div style={{ marginBottom: 16 }}><Label>Body *</Label>
         <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Enter email body" style={{ ...fieldStyle, minHeight: 110, resize: "vertical", lineHeight: 1.5 }} />
       </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
+      </div>
       <FooterBtns onClose={onClose} label="Update" disabled={!subject.trim() || !body.trim()}
-        onAction={() => { onSave({ direction: dir, from, to, cc: sent ? cc : "", subject, report: body }); onClose(); }} />
+        onAction={() => { onSave({ direction: dir, from, to, cc, subject, report: body, attachments: attachments.join(", ") }); onClose(); }} />
     </ModalShell>
   );
 };
@@ -1605,6 +1633,7 @@ const EditAppointmentLog = ({ data, onClose, onSave }) => {
   const [typeOther, setTypeOther] = useState(APPT_TYPES.includes(data.apptType) ? "" : (data.apptType || ""));
   const [attendees, setAttendees] = useState(data.attendees || "");
   const [location, setLocation] = useState(data.location || "");
+  const [attachments, setAttachments] = useState(splitCsv(data.attachments));
   const [description, setDescription] = useState(data.description || "");
   return (
     <ModalShell icon="🤝" title="Edit Appointment Log" accent={C.green} width={720} onClose={onClose}>
@@ -1627,11 +1656,12 @@ const EditAppointmentLog = ({ data, onClose, onSave }) => {
       </div>
       <div style={{ marginBottom: 16 }}><Label>Attendees</Label><input style={fieldStyle} value={attendees} onChange={e => setAttendees(e.target.value)} placeholder="Select attendees" /></div>
       <div style={{ marginBottom: 16 }}><Label>Location / Link</Label><input style={fieldStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="Enter appointment location / link" /></div>
+      <div style={{ marginBottom: 16 }}><Label>Attachments</Label><AttachmentField values={attachments} onWrite={setAttachments} /></div>
       <div><Label>Description</Label>
         <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Enter description" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
       </div>
       <FooterBtns onClose={onClose} label="Update" disabled={!title.trim() || !type || (type === "Other" && !typeOther.trim())}
-        onAction={() => { onSave({ title, apptType: type === "Other" ? typeOther : type, attendees, location, description }); onClose(); }} />
+        onAction={() => { onSave({ title, apptType: type === "Other" ? typeOther : type, attendees, location, attachments: attachments.join(", "), description }); onClose(); }} />
     </ModalShell>
   );
 };
