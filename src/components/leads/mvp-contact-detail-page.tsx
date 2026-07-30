@@ -1368,8 +1368,8 @@ const ACTIVITIES: any[] = [
   { id: "a1", type: "email", title: "Scheduled Email Subject XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 13:00", scheduled: true, direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", cc: "olivia.ruth@email.com, john.smith@email.com", createdAt: "2026.01.03 - 23:59", scheduledOn: "2026.01.05 - 13:00", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
   { id: "a2", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 11:30", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation Appointment", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
   { id: "a3", type: "task", title: "Task XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 10:00", badge: "Done", actor: "Anna Klein", createdAt: "2026.01.04 - 15:15", priority: "Medium", description: LOREM },
-  { id: "a4", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.04 - 11:30", badge: "Rescheduled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Recruiting", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
-  { id: "a5", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.03 - 11:30", badge: "Canceled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Business Opening", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a4", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.04 - 11:30", outcome: "Rescheduled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Recruiting", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a5", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.03 - 11:30", outcome: "Canceled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Business Opening", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
   // ── December 2025 — system-captured (no badge) ────────────────────────────
   { id: "a6", type: "email", title: "Email Subject XXX", day: "Mon 22", month: "December 2025", dt: "2025.12.22 - 09:09", direction: "Received", from: "sandra.richter@email.com", to: "anna.klein@email.com", subject: "Email Subject XXX", report: "Dear Anna Klein\n\n" + LOREM, attachments: "sample.pdf" },
   { id: "a7", type: "email", title: "Email Subject XXX", day: "Wed 17", month: "December 2025", dt: "2025.12.17 - 10:10", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", createdAt: "2025.12.16 - 23:59", scheduledOn: "2025.12.17 - 10:10", subject: "Email Subject XXX", report: "Dear Sandra Richter\n\n" + LOREM, attachments: "sample.pdf" },
@@ -1437,19 +1437,39 @@ const APPT_TYPE_KEYS = Object.keys(APPT_TYPE_SHORT);
 const apptTypeKey = (tp) => (APPT_TYPE_SHORT[tp] ? tp : "Other");
 const apptTypeShort = (tp) => APPT_TYPE_SHORT[apptTypeKey(tp)];
 
-// Outcome chip shown in front of a logged appointment (its recorded result).
+// Appointment outcome — its recorded result, shown as a chip in front of the
+// name (consistent for every outcome value) and offered as a filter.
 const OUTCOME_STYLE = {
   "Won":                  { color: C.green, bg: C.green + "18" },
   "Follow Up":            { color: C.blue,  bg: C.blue + "14" },
   "Rescheduled":          { color: C.amber, bg: C.amber + "1E" },
+  "Canceled":             { color: C.slate, bg: "#EEF0F3" },
   "No Show":              { color: C.red,   bg: C.red + "14" },
   "Not Interested":       { color: C.red,   bg: C.red + "12" },
   "No Suitable Solution": { color: C.slate, bg: "#EEF0F3" },
 };
+const APPT_OUTCOME_KEYS = ["Won", "Rescheduled", "Canceled", "Follow Up", "No Show", "Not Interested", "No Suitable Solution"];
 const OutcomeBadge = ({ text }) => {
   const s = OUTCOME_STYLE[text] || { color: C.slate, bg: "#EEF0F3" };
   return <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.color}33`, padding: "2px 10px", borderRadius: 11 }}>{text}</span>;
 };
+
+// One labelled row of filter pills (Type / Outcome) for the Appointments tab.
+const FilterPills = ({ label, value, options, onChange }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+    <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", width: 62, flexShrink: 0 }}>{label}</span>
+    {options.map(([key, lbl]) => {
+      const on = value === key;
+      return (
+        <button key={key} onClick={() => onChange(key)} style={{
+          padding: "5px 13px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12,
+          fontWeight: on ? 700 : 500, color: on ? C.blue : C.slate,
+          border: `1px solid ${on ? C.blue : C.border}`, background: on ? C.blue + "12" : "#fff",
+        }}>{lbl}</button>
+      );
+    })}
+  </div>
+);
 
 // A small ⋮ dropdown reused by every editable activity card. Items are passed in
 // as [label, handler, danger?] so the same widget drives task (Done/Delete) and
@@ -1717,7 +1737,8 @@ const isLoggable = (a) => a.badge === "Logged" && !!EDIT_LOG_MODALS[a.type];
 const ActivitiesTab = () => {
   const t = useT();
   const [filter, setFilter] = useState("all");
-  const [apptType, setApptType] = useState("all");   // appointment sub-filter (type pills)
+  const [apptType, setApptType] = useState("all");        // appointment sub-filter — Type pills
+  const [apptOutcome, setApptOutcome] = useState("all");  // appointment sub-filter — Outcome pills
   const [open, setOpen] = useState<Record<string,boolean>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -1737,9 +1758,12 @@ const ActivitiesTab = () => {
   ];
   const filtered = useMemo(() => {
     let list = filter === "all" ? acts : acts.filter(a => a.type === filter);
-    if (filter === "appointment" && apptType !== "all") list = list.filter(a => apptTypeKey(a.apptType) === apptType);
+    if (filter === "appointment") {
+      if (apptType !== "all")    list = list.filter(a => apptTypeKey(a.apptType) === apptType);
+      if (apptOutcome !== "all") list = list.filter(a => a.outcome === apptOutcome);
+    }
     return list;
-  }, [filter, apptType, acts]);
+  }, [filter, apptType, apptOutcome, acts]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -1762,7 +1786,7 @@ const ActivitiesTab = () => {
         {FILTERS.map(({ key, label }) => {
           const on = filter === key;
           return (
-            <button key={key} onClick={() => { setFilter(key); setApptType("all"); setPage(1); }} style={{
+            <button key={key} onClick={() => { setFilter(key); setApptType("all"); setApptOutcome("all"); setPage(1); }} style={{
               padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
               fontSize: 13, fontWeight: on ? 700 : 500, color: on ? C.blue : C.slate, background: on ? C.blue + "12" : "transparent",
             }}>{label}</button>
@@ -1770,19 +1794,15 @@ const ActivitiesTab = () => {
         })}
       </div>
 
-      {/* Appointment-type pills — shown when the Appointments filter is active. */}
+      {/* Appointment sub-filters — Type and Outcome, one pill row each. */}
       {filter === "appointment" && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: -6, marginBottom: 18 }}>
-          {[["all", "All"] as [string, string], ...APPT_TYPE_KEYS.map(tp => [tp, apptTypeShort(tp)] as [string, string])].map(([key, label]) => {
-            const on = apptType === key;
-            return (
-              <button key={key} onClick={() => { setApptType(key); setPage(1); }} style={{
-                padding: "5px 13px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12,
-                fontWeight: on ? 700 : 500, color: on ? C.blue : C.slate,
-                border: `1px solid ${on ? C.blue : C.border}`, background: on ? C.blue + "12" : "#fff",
-              }}>{label}</button>
-            );
-          })}
+        <div style={{ marginTop: -6, marginBottom: 18 }}>
+          <FilterPills label="Type" value={apptType}
+            options={[["all", "All"], ...APPT_TYPE_KEYS.map(tp => [tp, apptTypeShort(tp)])] as [string, string][]}
+            onChange={v => { setApptType(v); setPage(1); }} />
+          <FilterPills label="Outcome" value={apptOutcome}
+            options={[["all", "All"], ...APPT_OUTCOME_KEYS.map(o => [o, o])] as [string, string][]}
+            onChange={v => { setApptOutcome(v); setPage(1); }} />
         </div>
       )}
 
