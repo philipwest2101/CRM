@@ -1414,34 +1414,50 @@ const BADGE_STYLE = {
   Logged:   { color: C.slate, bg: "#EEF0F3" },
   Overdue:  { color: C.red,   bg: C.red + "14" },
   Canceled: { color: C.slate, bg: "#EEF0F3" },
+  Done:     { color: C.green, bg: C.green + "18" },
 };
 const RowBadge = ({ text }) => {
   const s = BADGE_STYLE[text] || BADGE_STYLE.Logged;
   return <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.color}33`, padding: "2px 10px", borderRadius: 11 }}>{text}</span>;
 };
 
-// ⋮ menu on a task card — Done · Edit · Delete. "Done" is only offered while the
-// task is not overdue or cancelled yet (per the board annotation).
-const TaskActionsMenu = ({ canComplete }) => {
+// A small ⋮ dropdown reused by every editable activity card. Items are passed in
+// as [label, handler, danger?] so the same widget drives task (Done/Delete) and
+// the logged-log rows (Edit/Delete). Stops propagation so it never toggles the
+// row it lives on.
+const RowMenu = ({ items }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ position: "relative" }}>
-      <button onClick={() => setOpen(o => !o)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: C.slate, lineHeight: 1, padding: "0 6px" }}>⋮</button>
-      {open && (
-        <div style={{ position: "absolute", right: 0, top: 26, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "0 6px 20px rgba(16,24,40,.12)", padding: 6, zIndex: 5, minWidth: 130 }}>
-          {canComplete && <div style={{ fontSize: 13, color: C.text, padding: "8px 12px", borderRadius: 7, cursor: "pointer" }}>Done</div>}
-          {canComplete && <div style={{ height: 1, background: C.border, margin: "4px 0" }} />}
-          <div style={{ fontSize: 13, color: C.text, padding: "8px 12px", borderRadius: 7, cursor: "pointer" }}>Edit</div>
-          <div style={{ fontSize: 13, color: C.red, padding: "8px 12px", borderRadius: 7, cursor: "pointer" }}>Delete</div>
+    <div style={{ position: "relative", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      <button onClick={() => setOpen(o => !o)} title="More" aria-label="More"
+        style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18, color: C.slate, lineHeight: 1, padding: "0 6px" }}>⋮</button>
+      {open && (<>
+        <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 5 }} />
+        <div style={{ position: "absolute", right: 0, top: 26, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "0 6px 20px rgba(16,24,40,.12)", padding: 6, zIndex: 6, minWidth: 130 }}>
+          {items.map(([label, fn, danger], i) => (
+            <div key={label} onClick={() => { setOpen(false); fn && fn(); }}
+              style={{ fontSize: 13, color: danger ? C.red : C.text, padding: "8px 12px", borderRadius: 7, cursor: "pointer" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{label}</div>
+          ))}
         </div>
-      )}
+      </>)}
     </div>
   );
 };
 
+// ⋮ menu on a task card — Done · Delete. "Done" is only offered while the task is
+// not overdue or cancelled yet (per the board annotation).
+const TaskActionsMenu = ({ canComplete, onDone, onDelete }) => (
+  <RowMenu items={[
+    ...(canComplete ? [["Done", onDone] as any] : []),
+    ["Delete", onDelete, true] as any,
+  ]} />
+);
+
 // Fields mirror each activity's creating modal and the "Activities Tab Logs"
 // board (r6379). "…By" is who logged it; "Logged" activities were back-logged.
-const ActivityDetail = ({ a }) => {
+const ActivityDetail = ({ a, onDone, onDelete }: any) => {
   const who = a.actor || "Anna Klein";
   const logged = a.badge === "Logged";
 
@@ -1461,9 +1477,10 @@ const ActivityDetail = ({ a }) => {
   if (a.type === "call") return (<>
     <div style={actGrid}>
       <ActField label={logged ? "Logged By" : "Call By"} value={who} />
+      {a.direction && <ActField label="Call Direction" value={a.direction} />}
       <ActField label="Call Duration" value={a.duration || "-"} />
     </div>
-    <ReportBox label="Call report" text={a.report} />
+    <ReportBox label={logged ? "Note" : "Call report"} text={a.report} />
   </>);
 
   if (a.type === "email") {
@@ -1493,7 +1510,7 @@ const ActivityDetail = ({ a }) => {
           <ActField label="Task Type" value={a.taskType || "-"} />
           <div style={{ gridColumn: "1 / -1" }}><ActField label="Description" value={a.description || "-"} /></div>
         </div>
-        <TaskActionsMenu canComplete={canComplete} />
+        <TaskActionsMenu canComplete={canComplete} onDone={onDone} onDelete={onDelete} />
       </div>
     );
   }
@@ -1519,12 +1536,151 @@ const ActivityDetail = ({ a }) => {
   );
 };
 
+// ── Edit Log modals (Activities tab ⋮ → Edit) ─────────────────────────────────
+// Prefilled counterparts of the Add-* log modals, reached from a logged activity
+// card. Each returns a field patch that the Activities tab merges into the row.
+// The Contact is fixed to the current contact, so it stays disabled here.
+const disabledSelect = { ...fieldStyle, background: C.light, color: C.slate, cursor: "not-allowed" as const };
+
+const EditCallLog = ({ data, onClose, onSave }) => {
+  const [dir, setDir] = useState(data.direction || "Outbound");
+  const [duration, setDuration] = useState(String(data.duration || "").replace(/[^\d]/g, ""));
+  const [report, setReport] = useState(data.report || "");
+  return (
+    <ModalShell icon="📞" title="Edit Call Log" accent={C.blue} width={720} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Contact *</Label>
+        <select style={disabledSelect} disabled defaultValue="c"><option value="c">{data.contact || "Sandra Richter"}</option></select>
+      </div>
+      <div style={{ marginBottom: 16 }}><Label>Call Direction *</Label>
+        <Segmented options={["Inbound", "Outbound"]} value={dir} onChange={setDir} />
+      </div>
+      <div style={{ marginBottom: 16 }}><Label>Call Duration (minutes) *</Label>
+        <input style={fieldStyle} value={duration} onChange={e => setDuration(e.target.value.replace(/[^\d]/g, ""))} placeholder="Enter call duration approximately in minutes" />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
+      </div>
+      <div><Label>Note *</Label>
+        <textarea value={report} onChange={e => setReport(e.target.value)} placeholder="Enter call report" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <FooterBtns onClose={onClose} label="Update" disabled={!report.trim() || !duration}
+        onAction={() => { onSave({ direction: dir, duration: duration ? `${duration} minutes` : "", report }); onClose(); }} />
+    </ModalShell>
+  );
+};
+
+const EditEmailLog = ({ data, onClose, onSave }) => {
+  const [dir, setDir] = useState(data.direction || "Sent");
+  const [from, setFrom] = useState(data.from || "");
+  const [to, setTo] = useState(data.to || "");
+  const [cc, setCc] = useState(data.cc || "");
+  const [subject, setSubject] = useState(data.subject || "");
+  const [body, setBody] = useState(data.report || "");
+  const sent = dir === "Sent";
+  return (
+    <ModalShell icon="✉️" title="Edit Email Log" accent={C.indigo} width={720} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Direction *</Label>
+        <Segmented options={["Sent", "Received"]} value={dir} onChange={setDir} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>From *</Label><input style={fieldStyle} value={from} onChange={e => setFrom(e.target.value)} /></div>
+        <div><Label>To *</Label><input style={fieldStyle} value={to} onChange={e => setTo(e.target.value)} /></div>
+      </div>
+      {sent && (
+        <div style={{ marginBottom: 16 }}><Label>Cc</Label><input style={fieldStyle} value={cc} onChange={e => setCc(e.target.value)} /></div>
+      )}
+      <div style={{ marginBottom: 16 }}><Label>Subject *</Label><input style={fieldStyle} value={subject} onChange={e => setSubject(e.target.value)} placeholder="Enter email subject line" /></div>
+      <div><Label>Body *</Label>
+        <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Enter email body" style={{ ...fieldStyle, minHeight: 110, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <FooterBtns onClose={onClose} label="Update" disabled={!subject.trim() || !body.trim()}
+        onAction={() => { onSave({ direction: dir, from, to, cc: sent ? cc : "", subject, report: body }); onClose(); }} />
+    </ModalShell>
+  );
+};
+
+const EditAppointmentLog = ({ data, onClose, onSave }) => {
+  const [title, setTitle] = useState(data.title || "");
+  const [type, setType] = useState(APPT_TYPES.includes(data.apptType) ? data.apptType : (data.apptType ? "Other" : ""));
+  const [typeOther, setTypeOther] = useState(APPT_TYPES.includes(data.apptType) ? "" : (data.apptType || ""));
+  const [attendees, setAttendees] = useState(data.attendees || "");
+  const [location, setLocation] = useState(data.location || "");
+  const [description, setDescription] = useState(data.description || "");
+  return (
+    <ModalShell icon="🤝" title="Edit Appointment Log" accent={C.green} width={720} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Title *</Label><input style={fieldStyle} value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter appointment title" /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Contact *</Label><select style={disabledSelect} disabled defaultValue="c"><option value="c">{data.contact || "Sandra Richter"}</option></select></div>
+        <div><Label>Type *</Label>
+          <select style={type ? fieldStyle : placeholderSelect} value={type} onChange={e => setType(e.target.value)}>
+            <option value="">Select appointment type</option>{APPT_TYPES.map(o => <option key={o}>{o}</option>)}
+          </select>
+        </div>
+      </div>
+      {type === "Other" && (
+        <div style={{ marginBottom: 16 }}><Label>Appointment Type *</Label><input style={fieldStyle} value={typeOther} onChange={e => setTypeOther(e.target.value)} placeholder="Enter appointment type" autoFocus /></div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
+        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Start *</Label><input type="time" style={placeholderSelect} /></div>
+        <div><Label>End *</Label><input type="time" style={placeholderSelect} /></div>
+      </div>
+      <div style={{ marginBottom: 16 }}><Label>Attendees</Label><input style={fieldStyle} value={attendees} onChange={e => setAttendees(e.target.value)} placeholder="Select attendees" /></div>
+      <div style={{ marginBottom: 16 }}><Label>Location / Link</Label><input style={fieldStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="Enter appointment location / link" /></div>
+      <div><Label>Description</Label>
+        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Enter description" style={{ ...fieldStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <FooterBtns onClose={onClose} label="Update" disabled={!title.trim() || !type || (type === "Other" && !typeOther.trim())}
+        onAction={() => { onSave({ title, apptType: type === "Other" ? typeOther : type, attendees, location, description }); onClose(); }} />
+    </ModalShell>
+  );
+};
+
+const EditOfflineLog = ({ data, onClose, onSave }) => {
+  const [title, setTitle] = useState(data.title || "");
+  const [type, setType] = useState(data.channel || "");
+  const [description, setDescription] = useState(data.description || "");
+  return (
+    <ModalShell icon="📝" title="Edit Offline Log" accent={C.slate} width={720} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><Label>Title *</Label><input style={fieldStyle} value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter a title" /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Contact *</Label><select style={disabledSelect} disabled defaultValue="c"><option value="c">{data.contact || "Sandra Richter"}</option></select></div>
+        <div><Label>Type *</Label>
+          <select style={type ? fieldStyle : placeholderSelect} value={type} onChange={e => setType(e.target.value)}>
+            <option value="">Select type</option>{OFFLINE_TYPES.map(o => <option key={o}>{o}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div><Label>Date *</Label><input type="date" style={placeholderSelect} /></div>
+        <div><Label>Time *</Label><input type="time" style={placeholderSelect} /></div>
+      </div>
+      <div><Label>Description</Label>
+        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Enter description" style={{ ...fieldStyle, minHeight: 100, resize: "vertical", lineHeight: 1.5 }} />
+      </div>
+      <FooterBtns onClose={onClose} label="Update" disabled={!title.trim() || !type}
+        onAction={() => { onSave({ title, channel: type, description }); onClose(); }} />
+    </ModalShell>
+  );
+};
+
+// A logged log (call/email/appointment/offline) can be edited or deleted from
+// the Activities tab; live/system-captured entries and updates cannot.
+const EDIT_LOG_MODALS = { call: EditCallLog, email: EditEmailLog, appointment: EditAppointmentLog, offline: EditOfflineLog };
+const isLoggable = (a) => a.badge === "Logged" && !!EDIT_LOG_MODALS[a.type];
+
 const ActivitiesTab = () => {
   const t = useT();
   const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState<Record<string,boolean>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  // Local, editable copy so ⋮ → Edit / Delete / Done actually mutate the feed.
+  const [acts, setActs] = useState<any[]>(ACTIVITIES);
+  const [editLog, setEditLog] = useState<any>(null);   // { type, data } for the Edit-Log modal
+  const removeAct = (id) => setActs(prev => prev.filter(a => a.id !== id));
+  const patchAct  = (id, patch) => setActs(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
 
   const FILTERS: Array<{ key: string; label: string }> = [
     { key: "all", label: t("all") },
@@ -1535,9 +1691,9 @@ const ActivitiesTab = () => {
     { key: "update", label: t("updates") },
   ];
   const filtered = useMemo(() => {
-    if (filter === "all") return ACTIVITIES;
-    return ACTIVITIES.filter(a => a.type === filter);
-  }, [filter]);
+    if (filter === "all") return acts;
+    return acts.filter(a => a.type === filter);
+  }, [filter, acts]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -1587,6 +1743,10 @@ const ActivitiesTab = () => {
                     {a.badge && <RowBadge text={a.badge} />}
                     <span style={{ flex: 1 }} />
                     <span style={{ fontSize: 12.5, color: C.muted }}>{a.dt}</span>
+                    {isLoggable(a) && <RowMenu items={[
+                      ["Edit", () => setEditLog({ type: a.type, data: a })],
+                      ["Delete", () => removeAct(a.id), true],
+                    ]} />}
                     <span style={{
                       display: "flex", alignItems: "center", justifyContent: "center",
                       width: 26, height: 26, borderRadius: 7, flexShrink: 0,
@@ -1599,7 +1759,11 @@ const ActivitiesTab = () => {
                   </div>
                   {isOpen && (
                     <div style={{ padding: "4px 18px 18px 90px", borderTop: `1px solid ${C.border}` }}>
-                      <div style={{ paddingTop: 14 }}><ActivityDetail a={a} /></div>
+                      <div style={{ paddingTop: 14 }}>
+                        <ActivityDetail a={a}
+                          onDone={() => patchAct(a.id, { badge: "Done" })}
+                          onDelete={() => removeAct(a.id)} />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1625,6 +1789,12 @@ const ActivitiesTab = () => {
           <span style={{ fontSize: 13, color: C.slate }}>Displaying {from} - {to} of {total} records</span>
         </div>
       </div>
+
+      {editLog && (() => {
+        const EditModal = EDIT_LOG_MODALS[editLog.type];
+        return <EditModal data={editLog.data} onClose={() => setEditLog(null)}
+          onSave={(patch) => patchAct(editLog.data.id, patch)} />;
+      })()}
     </Card>
   );
 };

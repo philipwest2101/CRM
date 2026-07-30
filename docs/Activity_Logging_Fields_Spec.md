@@ -26,7 +26,7 @@ Defined in `src/lib/core.tsx` and reused by every form, modal and outcome picker
 | **Priorities** (`PRIORITY_KEYS`) | Low, Normal, High, Urgent |
 | **Recurrence** | Once, Daily, Weekly, Monthly, Yearly (Add-Activity) · "Every N day/week/month/year" (Task modal) |
 | **Call dispositions** (`CALL_STATUS_OPTIONS`) | Reached – Interested · Reached – Not Interested · Reached – Callback Requested · Reached – Appointment Set · Not Reached – Voicemail · Not Reached – No Answer · Not Reached – Wrong Number |
-| **Appointment outcome** | Completed · No-show · Rescheduled · Cancelled |
+| **Appointment outcome** | Won · Rescheduled · Follow Up · Not Interested · No Suitable Solution · No Show |
 | **Stage Status — Lead** (`LEAD_STAGE_STATUSES`) | New · In Contact · Not Reached · Not Interested · Currently Not Interested · Difficult Case · Appointment · Follow Up · Qualified |
 | **Stage Status — Network** (`NETWORK_STAGE_STATUSES`) | Customer · Partner · Prospect |
 | **Reminder offsets** | 15 Minutes Before · 30 Minutes Before · 1 Hour Before · (1 Day Before — appointments) · Custom Date |
@@ -174,7 +174,7 @@ Network-only action (Lead appointments are worked in Processing & Feedback).
 | Field | Req | Type | Notes |
 |---|---|---|---|
 | (Context line) | — | Read-only | Contact · date · time of the appointment |
-| Appointment Status | \* | Select | Completed / No-show / Rescheduled / Cancelled |
+| Appointment Status | \* | Select | Won / Rescheduled / Follow Up / Not Interested / No Suitable Solution / No Show |
 | Appointment Report | \* | Textarea | "What happened in the appointment…" |
 | Status | \* | Select | Network Stage Status (Customer / Partner / Prospect) |
 

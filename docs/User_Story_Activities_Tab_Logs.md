@@ -62,6 +62,12 @@ Type icons: 📅 Appointment · 📞 Call (inbound / outbound variants) ·
   text (reports, descriptions, email bodies) is truncated with a **Show more…**
   link that reveals the full text.
 - **Attachments** (e.g. `sample.pdf`) are listed when present.
+- A manually **Logged** log (Call / Email / Appointment / Offline) carries a
+  **⋮** menu on its row exposing **Edit · Delete**. *Edit* opens the matching
+  prefilled **Edit … Log** modal (Edit Call Log · Edit Email Log · Edit
+  Appointment Log · Edit Offline Log) whose **Update** writes the change back to
+  the card; *Delete* removes the entry. Live / system-captured entries and
+  **Update** audit rows have no such menu.
 
 ---
 

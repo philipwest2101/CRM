@@ -10,16 +10,17 @@ import { useT } from "../../lib/i18n";
 const lbl   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em", display:"block", marginBottom:5 };
 const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text };
 
-// Outcome options come straight from the board. Per the MVP spec §2, the legacy
-// "Difficult Case" is replaced by "No Suitable Solution" (→ Status: Closed,
-// Processing: Lost).
+// Outcome options come straight from the board (Appointment Outcome wireframe):
+// Won · Rescheduled · Follow Up · Not Interested · No Suitable Solution · No Show.
+// Per the MVP spec §2, the legacy "Difficult Case" is replaced by "No Suitable
+// Solution" (→ Status: Closed, Processing: Lost).
 export const APPOINTMENT_OUTCOMES = [
-  "Won", "Rescheduled", "Attending Event", "Not Interested", "Maybe Later", "No Suitable Solution", "Other",
+  "Won", "Rescheduled", "Follow Up", "Not Interested", "No Suitable Solution", "No Show",
 ];
 // Canonical value (stored) → i18n key (displayed). Keeps saved data language-stable.
 const OUTCOME_KEY = {
-  "Won": "aoWon", "Rescheduled": "aoRescheduled", "Attending Event": "aoAttendingEvent",
-  "Not Interested": "aoNotInterested", "Maybe Later": "aoMaybeLater", "No Suitable Solution": "aoNoSolution", "Other": "aoOther",
+  "Won": "aoWon", "Rescheduled": "aoRescheduled", "Follow Up": "aoFollowUp",
+  "Not Interested": "aoNotInterested", "No Suitable Solution": "aoNoSolution", "No Show": "aoNoShow",
 };
 
 export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
@@ -31,7 +32,8 @@ export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
   const [time,    setTime]    = useState(appt?.time || "09:00");
 
   const isReschedule = outcome === "Rescheduled";
-  const canSave = !!outcome && (!isReschedule || (!!date && !!time));
+  // Board marks both Outcome and Note as required; reschedule also needs a new slot.
+  const canSave = !!outcome && !!note.trim() && (!isReschedule || (!!date && !!time));
 
   // "Sandra Richter" → "SR"
   const initials = (appt?.contact||"").split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0]?.toUpperCase()||"").join("") || "–";
@@ -76,7 +78,7 @@ export const AppointmentOutcomeModal = ({ appt=null, onClose, onSave }) => {
         </div>
 
         <div style={{ marginBottom:isReschedule?12:18 }}>
-          <label style={lbl}>{t("fldNote")}</label>
+          <label style={lbl}>{t("fldNote")} *</label>
           <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder={t("enterNote")}
             style={{ ...input, minHeight:90, resize:"none", lineHeight:1.5 }}/>
         </div>

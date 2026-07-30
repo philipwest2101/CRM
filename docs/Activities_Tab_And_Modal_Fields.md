@@ -221,7 +221,8 @@ Opens when a **Lead** appointment is clicked on the Calendar. Read-only.
 
 | Field | Req | Type | Options |
 |---|---|---|---|
-| Appointment Status | \* | Select | Completed · No-show · Rescheduled · Cancelled |
+| Appointment Status | \* | Select | Won · Rescheduled · Follow Up · Not Interested · No Suitable Solution · No Show |
+| Note | \* | Textarea | Required outcome note |
 | Appointment Report | \* | Textarea | |
 | Status | \* | Select | Network Stage Status (Customer / Partner / Prospect) |
 

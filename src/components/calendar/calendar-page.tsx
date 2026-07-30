@@ -955,7 +955,17 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
       {outcomeAppt && <AppointmentOutcomeModal
         appt={outcomeAppt}
         onClose={()=>setOutcomeAppt(null)}
-        onSave={()=>{ if(outcomeAppt?.id) setActivities(prev=>prev.map(x=>x.id===outcomeAppt.id?{...x,status:"done"}:x)); setOutcomeAppt(null); }}
+        onSave={(result={})=>{
+          if(outcomeAppt?.id) setActivities(prev=>prev.map(x=>{
+            if(x.id!==outcomeAppt.id) return x;
+            // Record the outcome + note on the appointment. "Rescheduled" moves it
+            // to the new slot and keeps it upcoming; every other outcome closes it.
+            const moved = result.outcome==="Rescheduled" && result.date;
+            return { ...x, outcome:result.outcome, note:result.note,
+              ...(moved ? { date:result.date, time:result.time, status:"upcoming" } : { status:"done" }) };
+          }));
+          setOutcomeAppt(null);
+        }}
       />}
     </div>
   );
