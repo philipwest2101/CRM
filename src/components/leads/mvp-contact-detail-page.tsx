@@ -1375,7 +1375,7 @@ const ACTIVITIES: any[] = [
   { id: "a7", type: "email", title: "Email Subject XXX", day: "Wed 17", month: "December 2025", dt: "2025.12.17 - 10:10", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", createdAt: "2025.12.16 - 23:59", scheduledOn: "2025.12.17 - 10:10", subject: "Email Subject XXX", report: "Dear Sandra Richter\n\n" + LOREM, attachments: "sample.pdf" },
   { id: "a8", type: "call", title: "Outbound Call", day: "Mon 15", month: "December 2025", dt: "2025.12.15 - 08:08", actor: "Anna Klein", duration: "9 minutes", report: LOREM },
   // ── April 2025 — manually logged (Logged badge, ⋮ Edit / Delete) ──────────
-  { id: "a9", type: "appointment", title: "Appointment XXX", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 09:09", badge: "Logged", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation - If \"other\" selected, will be added here...", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a9", type: "appointment", title: "Appointment XXX", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 09:09", badge: "Logged", outcome: "Won", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation - If \"other\" selected, will be added here...", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
   { id: "a10", type: "call", title: "Call Log", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 08:08", badge: "Logged", direction: "Inbound", actor: "Anna Klein", duration: "29 minutes", report: LOREM },
   { id: "a11", type: "call", title: "Call Log", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 12:59", badge: "Logged", direction: "Outbound", actor: "Anna Klein", duration: "19 minutes", report: LOREM },
   { id: "a12", type: "email", title: "Email Subject XXX", day: "Thu 15", month: "April 2025", dt: "2025.04.15 - 12:02", badge: "Logged", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", subject: "Email Subject XXX", report: "Dear Sandra Richter\n\n" + LOREM, attachments: "sample.pdf" },
@@ -1437,10 +1437,19 @@ const APPT_TYPE_KEYS = Object.keys(APPT_TYPE_SHORT);
 const apptTypeKey = (tp) => (APPT_TYPE_SHORT[tp] ? tp : "Other");
 const apptTypeShort = (tp) => APPT_TYPE_SHORT[apptTypeKey(tp)];
 
-// Blue type chip shown on appointment rows.
-const TypeBadge = ({ text }) => (
-  <span style={{ fontSize: 11, fontWeight: 700, color: C.blue, background: C.blue + "14", border: `1px solid ${C.blue}33`, padding: "2px 10px", borderRadius: 11 }}>{text}</span>
-);
+// Outcome chip shown in front of a logged appointment (its recorded result).
+const OUTCOME_STYLE = {
+  "Won":                  { color: C.green, bg: C.green + "18" },
+  "Follow Up":            { color: C.blue,  bg: C.blue + "14" },
+  "Rescheduled":          { color: C.amber, bg: C.amber + "1E" },
+  "No Show":              { color: C.red,   bg: C.red + "14" },
+  "Not Interested":       { color: C.red,   bg: C.red + "12" },
+  "No Suitable Solution": { color: C.slate, bg: "#EEF0F3" },
+};
+const OutcomeBadge = ({ text }) => {
+  const s = OUTCOME_STYLE[text] || { color: C.slate, bg: "#EEF0F3" };
+  return <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.color}33`, padding: "2px 10px", borderRadius: 11 }}>{text}</span>;
+};
 
 // A small ⋮ dropdown reused by every editable activity card. Items are passed in
 // as [label, handler, danger?] so the same widget drives task (Done/Delete) and
@@ -1792,8 +1801,8 @@ const ActivitiesTab = () => {
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.navy, width: 56, flexShrink: 0 }}>{a.day}</span>
                     <span style={{ width: 1, height: 30, background: C.border, flexShrink: 0 }} />
                     <span style={{ fontSize: 16, color: meta.color, flexShrink: 0 }}>{icon}</span>
+                    {a.type === "appointment" && a.outcome && <OutcomeBadge text={a.outcome} />}
                     <span style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{a.title}</span>
-                    {a.type === "appointment" && a.apptType && <TypeBadge text={apptTypeShort(a.apptType)} />}
                     {a.badge && <RowBadge text={a.badge} />}
                     <span style={{ flex: 1 }} />
                     <span style={{ fontSize: 12.5, color: C.muted }}>{a.dt}</span>
