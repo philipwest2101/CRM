@@ -1368,8 +1368,8 @@ const ACTIVITIES: any[] = [
   { id: "a1", type: "email", title: "Scheduled Email Subject XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 13:00", scheduled: true, direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", cc: "olivia.ruth@email.com, john.smith@email.com", createdAt: "2026.01.03 - 23:59", scheduledOn: "2026.01.05 - 13:00", subject: "Sent Email Subject", report: LOREM, attachments: "sample.pdf" },
   { id: "a2", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 11:30", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation Appointment", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
   { id: "a3", type: "task", title: "Task XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.05 - 10:00", badge: "Done", actor: "Anna Klein", createdAt: "2026.01.04 - 15:15", priority: "Medium", description: LOREM },
-  { id: "a4", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.04 - 11:30", badge: "Rescheduled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation Appointment", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
-  { id: "a5", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.03 - 11:30", badge: "Canceled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Consultation Appointment", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a4", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.04 - 11:30", badge: "Rescheduled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Recruiting", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
+  { id: "a5", type: "appointment", title: "Appointment XXX", day: "Mon 05", month: "January 2026", dt: "2026.01.03 - 11:30", badge: "Canceled", actor: "Anna Klein", attendees: "olivia.ruth@email.com, john.smith@email.com", apptType: "Business Opening", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
   // ── December 2025 — system-captured (no badge) ────────────────────────────
   { id: "a6", type: "email", title: "Email Subject XXX", day: "Mon 22", month: "December 2025", dt: "2025.12.22 - 09:09", direction: "Received", from: "sandra.richter@email.com", to: "anna.klein@email.com", subject: "Email Subject XXX", report: "Dear Anna Klein\n\n" + LOREM, attachments: "sample.pdf" },
   { id: "a7", type: "email", title: "Email Subject XXX", day: "Wed 17", month: "December 2025", dt: "2025.12.17 - 10:10", direction: "Sent", from: "anna.klein@email.com", to: "sandra.richter@email.com", createdAt: "2025.12.16 - 23:59", scheduledOn: "2025.12.17 - 10:10", subject: "Email Subject XXX", report: "Dear Sandra Richter\n\n" + LOREM, attachments: "sample.pdf" },
@@ -1423,6 +1423,25 @@ const RowBadge = ({ text }) => {
   return <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.color}33`, padding: "2px 10px", borderRadius: 11 }}>{text}</span>;
 };
 
+// Appointment types — full label → short chip label. A custom ("Other") type
+// keeps its free-text label everywhere but filters under the "Other" pill.
+const APPT_TYPE_SHORT = {
+  "Consultation Appointment": "Consultation",
+  "Recruiting": "Recruiting",
+  "Business Opening": "Business Opening",
+  "Investment Talk": "Investment Talk",
+  "Finance Talk": "Finance Talk",
+  "Other": "Other",
+};
+const APPT_TYPE_KEYS = Object.keys(APPT_TYPE_SHORT);
+const apptTypeKey = (tp) => (APPT_TYPE_SHORT[tp] ? tp : "Other");
+const apptTypeShort = (tp) => APPT_TYPE_SHORT[apptTypeKey(tp)];
+
+// Blue type chip shown on appointment rows.
+const TypeBadge = ({ text }) => (
+  <span style={{ fontSize: 11, fontWeight: 700, color: C.blue, background: C.blue + "14", border: `1px solid ${C.blue}33`, padding: "2px 10px", borderRadius: 11 }}>{text}</span>
+);
+
 // A small ⋮ dropdown reused by every editable activity card. Items are passed in
 // as [label, handler, danger?] so the same widget drives task (Done/Delete) and
 // the logged-log rows (Edit/Delete). Stops propagation so it never toggles the
@@ -1448,18 +1467,11 @@ const RowMenu = ({ items }) => {
   );
 };
 
-// ⋮ menu on a task card — Done · Delete. "Done" is only offered while the task is
-// not overdue or cancelled yet (per the board annotation).
-const TaskActionsMenu = ({ canComplete, onDone, onDelete }) => (
-  <RowMenu items={[
-    ...(canComplete ? [["Done", onDone] as any] : []),
-    ["Delete", onDelete, true] as any,
-  ]} />
-);
-
 // Fields mirror each activity's creating modal and the "Activities Tab Logs"
 // board (r6379). "…By" is who logged it; "Logged" activities were back-logged.
-const ActivityDetail = ({ a, onDone, onDelete }: any) => {
+// Only logs (call/email/appointment/offline) carry the ⋮ Edit/Delete action —
+// tasks and update audit rows do not.
+const ActivityDetail = ({ a }: any) => {
   const who = a.actor || "Anna Klein";
   const logged = a.badge === "Logged";
 
@@ -1502,20 +1514,14 @@ const ActivityDetail = ({ a, onDone, onDelete }: any) => {
     </>);
   }
 
-  if (a.type === "task") {
-    const canComplete = !a.badge; // not overdue or cancelled yet
-    return (
-      <div style={{ display: "flex", gap: 16 }}>
-        <div style={{ ...actGrid, flex: 1 }}>
-          <ActField label="Created By" value={who} />
-          <ActField label="Created At" value={a.createdAt || "-"} />
-          <ActField label="Priority" node={<span style={{ fontSize: 13.5, fontWeight: 700, color: C.amber }}>{a.priority || "Normal"}</span>} />
-          <div style={{ gridColumn: "1 / -1" }}><ActField label="Description" value={a.description || "-"} /></div>
-        </div>
-        <TaskActionsMenu canComplete={canComplete} onDone={onDone} onDelete={onDelete} />
-      </div>
-    );
-  }
+  if (a.type === "task") return (
+    <div style={actGrid}>
+      <ActField label="Created By" value={who} />
+      <ActField label="Created At" value={a.createdAt || "-"} />
+      <ActField label="Priority" node={<span style={{ fontSize: 13.5, fontWeight: 700, color: C.amber }}>{a.priority || "Normal"}</span>} />
+      <div style={{ gridColumn: "1 / -1" }}><ActField label="Description" value={a.description || "-"} /></div>
+    </div>
+  );
 
   if (a.type === "offline") return (<>
     <div style={actGrid}>
@@ -1702,6 +1708,7 @@ const isLoggable = (a) => a.badge === "Logged" && !!EDIT_LOG_MODALS[a.type];
 const ActivitiesTab = () => {
   const t = useT();
   const [filter, setFilter] = useState("all");
+  const [apptType, setApptType] = useState("all");   // appointment sub-filter (type pills)
   const [open, setOpen] = useState<Record<string,boolean>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -1720,9 +1727,10 @@ const ActivitiesTab = () => {
     { key: "update", label: t("updates") },
   ];
   const filtered = useMemo(() => {
-    if (filter === "all") return acts;
-    return acts.filter(a => a.type === filter);
-  }, [filter, acts]);
+    let list = filter === "all" ? acts : acts.filter(a => a.type === filter);
+    if (filter === "appointment" && apptType !== "all") list = list.filter(a => apptTypeKey(a.apptType) === apptType);
+    return list;
+  }, [filter, apptType, acts]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -1745,13 +1753,29 @@ const ActivitiesTab = () => {
         {FILTERS.map(({ key, label }) => {
           const on = filter === key;
           return (
-            <button key={key} onClick={() => { setFilter(key); setPage(1); }} style={{
+            <button key={key} onClick={() => { setFilter(key); setApptType("all"); setPage(1); }} style={{
               padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
               fontSize: 13, fontWeight: on ? 700 : 500, color: on ? C.blue : C.slate, background: on ? C.blue + "12" : "transparent",
             }}>{label}</button>
           );
         })}
       </div>
+
+      {/* Appointment-type pills — shown when the Appointments filter is active. */}
+      {filter === "appointment" && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: -6, marginBottom: 18 }}>
+          {[["all", "All"] as [string, string], ...APPT_TYPE_KEYS.map(tp => [tp, apptTypeShort(tp)] as [string, string])].map(([key, label]) => {
+            const on = apptType === key;
+            return (
+              <button key={key} onClick={() => { setApptType(key); setPage(1); }} style={{
+                padding: "5px 13px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12,
+                fontWeight: on ? 700 : 500, color: on ? C.blue : C.slate,
+                border: `1px solid ${on ? C.blue : C.border}`, background: on ? C.blue + "12" : "#fff",
+              }}>{label}</button>
+            );
+          })}
+        </div>
+      )}
 
       {groups.map(g => (
         <div key={g.month} style={{ marginBottom: 8 }}>
@@ -1769,6 +1793,7 @@ const ActivitiesTab = () => {
                     <span style={{ width: 1, height: 30, background: C.border, flexShrink: 0 }} />
                     <span style={{ fontSize: 16, color: meta.color, flexShrink: 0 }}>{icon}</span>
                     <span style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{a.title}</span>
+                    {a.type === "appointment" && a.apptType && <TypeBadge text={apptTypeShort(a.apptType)} />}
                     {a.badge && <RowBadge text={a.badge} />}
                     <span style={{ flex: 1 }} />
                     <span style={{ fontSize: 12.5, color: C.muted }}>{a.dt}</span>
@@ -1789,9 +1814,7 @@ const ActivitiesTab = () => {
                   {isOpen && (
                     <div style={{ padding: "4px 18px 18px 90px", borderTop: `1px solid ${C.border}` }}>
                       <div style={{ paddingTop: 14 }}>
-                        <ActivityDetail a={a}
-                          onDone={() => patchAct(a.id, { badge: "Done" })}
-                          onDelete={() => removeAct(a.id)} />
+                        <ActivityDetail a={a} />
                       </div>
                     </div>
                   )}
