@@ -43,10 +43,6 @@ const TYPE_META = {
   google:       { label:"Google Event",      icon:"🗓️",  category:"google" },
   vion:         { label:"Vion Event",        icon:"🏢",  category:"vion" },
 };
-const TYPE_KEYS = Object.keys(TYPE_META);
-// Per-category subtype lists for the sidebar legend / per-type filter.
-const APPOINTMENT_TYPES_UI = ["consultation","recruiting","business","investment","finance","other"];
-const TASK_TYPES_UI        = ["call","email","note"];
 
 // A few sample Google-calendar entries so the "Google events" toggle is
 // meaningful (there is no live Google sync in this mock).
@@ -121,8 +117,11 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [showCRM,     setShowCRM]     = useState(true);
   const [showGoogle,  setShowGoogle]  = useState(true);
   const [showVion,    setShowVion]    = useState(true);
-  const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
-  const toggleType = (k) => setHiddenTypes(prev => {
+  // Event-Types filter is category-level only (Appointments / Tasks). Appointment
+  // and task subtypes are no longer enumerated in the filter — the grid icon
+  // still tells appointment subtypes apart, but you toggle whole categories here.
+  const [hiddenCats, setHiddenCats] = useState<Set<string>>(() => new Set());
+  const toggleCat = (k) => setHiddenCats(prev => {
     const next = new Set(prev);
     next.has(k) ? next.delete(k) : next.add(k);
     return next;
@@ -234,7 +233,8 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     if (cal==="google" && !showGoogle) return false;
     if (cal==="vion"   && !showVion)   return false;
     if (cal==="crm"    && !showCRM)    return false;
-    if (hiddenTypes.has(key)) return false;
+    const cat = TYPE_META[key]?.category;
+    if ((cat==="appointment" || cat==="task") && hiddenCats.has(cat)) return false;
     if (cal==="crm") {
       // "mine" filter: current GP's items, or unowned items
       if (calFilter === "mine" && a.gp && a.gp !== myGP) return false;
@@ -517,33 +517,10 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           </SideSection>
 
           <SideSection title="Event Types">
-            <div style={{ fontSize:10,color:C.muted,marginBottom:10,lineHeight:1.4 }}>
-              One colour per category — the icon tells the types apart. Tap a type to show / hide it.
-            </div>
-            {[{catKey:"appointment",keys:APPOINTMENT_TYPES_UI},{catKey:"task",keys:TASK_TYPES_UI}].map(({catKey,keys})=>{
-              const cm = CATEGORY_META[catKey];
-              return (
-                <div key={catKey} style={{ marginBottom:10 }}>
-                  <div style={{ display:"flex",alignItems:"center",gap:7,marginBottom:5 }}>
-                    <span style={{ width:11,height:11,borderRadius:3,background:cm.color,flexShrink:0 }}/>
-                    <span style={{ fontSize:11,fontWeight:800,color:C.navy }}>{cm.label}</span>
-                  </div>
-                  {keys.map(k=>{
-                    const tm = TYPE_META[k];
-                    const off = hiddenTypes.has(k);
-                    return (
-                      <div key={k} onClick={()=>toggleType(k)}
-                        style={{ display:"flex",alignItems:"center",gap:8,padding:"3px 2px 3px 18px",cursor:"pointer",
-                          fontSize:12,fontWeight:600,color:off?C.muted:C.text,opacity:off?0.5:1 }}>
-                        <span style={{ flexShrink:0 }}>{tm.icon}</span>
-                        <span style={{ flex:1,textDecoration:off?"line-through":"none" }}>{tm.label}</span>
-                        <span style={{ width:8,height:8,borderRadius:2,background:off?C.border:cm.color,flexShrink:0 }}/>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+            <CalCheck checked={!hiddenCats.has("appointment")} onChange={()=>toggleCat("appointment")}
+              label={CATEGORY_META.appointment.label} color={CATEGORY_META.appointment.color}/>
+            <CalCheck checked={!hiddenCats.has("task")} onChange={()=>toggleCat("task")}
+              label={CATEGORY_META.task.label} color={CATEGORY_META.task.color}/>
           </SideSection>
         </div>
 

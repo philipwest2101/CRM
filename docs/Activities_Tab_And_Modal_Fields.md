@@ -70,7 +70,6 @@ Each type's fields match its creating modal (Part 2). "…By" = who logged it.
 | Field | Notes |
 |---|---|
 | Created By | Who created the task |
-| Task Type | Call / Email / To Do |
 | Priority | Low / Normal / High / Urgent |
 | Status | Open / Done |
 | Reminder | e.g. 30 Minutes Before |
@@ -166,7 +165,6 @@ contact's lifecycle) and Save / Cancel.
 |---|---|---|---|
 | Title | \* | Text | |
 | Contact | (\*) | Select / locked input | Labelled required, **not enforced** on save (only Title + Date + Time are) |
-| Type | \* | Button group | Call 📞 / Email ✉️ / To Do ✅ |
 | Priority | — | Button group | Low / Normal / High / Urgent |
 | Date | \* | Date | |
 | Time | \* | Time | Defaults 09:00 |

@@ -65,7 +65,7 @@ Type is pre-selected and locked.
 
 Save is enabled when Title + Date (+ Time, when the type has one) are set.
 
-### 1.2 Task popup — Call / Email / To-Do
+### 1.2 Task popup
 *Source: `src/components/calendar/task-modal.tsx` (`TaskModal`)*
 
 Three states: **create · edit · view**.
@@ -74,7 +74,6 @@ Three states: **create · edit · view**.
 |---|---|---|---|
 | Title | \* | Text | |
 | Contact | (\*) | Select (or locked input) | Labelled required in the UI, but **not enforced** by save validation (only Title + Date + Time are). Locked to the current contact when opened from a contact (`lockContact`) |
-| Type | \* | Button group | Call 📞 / Email ✉️ / To Do ✅ (note) |
 | Priority | — | Button group | Low / Normal / High / Urgent |
 | Date | \* | Date | |
 | Time | \* | Time | Mandatory (defaults to 09:00) |
@@ -205,7 +204,7 @@ for the full per-field breakdown.
 | Appointment 📅 | Hosted By · Appointment Outcome · Appointment Type · Duration · Appointment Location · Attendees · Attachments · Status · Description · **Appointment Report** |
 | Call 📞 | Call By · Call Direction · Call Status · Call Duration · Status · **Call Report** |
 | Email ✉️ | Sent By · Direction · Email Address · Subject · Status · **Email Report** |
-| Task ☑️ | Created By · Task Type · Priority · Status · Reminder · Description |
+| Task ☑️ | Created By · Priority · Status · Reminder · Description |
 | Offline 📝 | Logged By · Channel · Status · **Note** |
 | Update ✎ | Changed By · Field · From · To (system audit rows, e.g. Assignee / Labels) |
 

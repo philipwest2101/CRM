@@ -1365,9 +1365,9 @@ const LOREM = "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do 
 // "Canceled" for tasks; live/system-captured entries carry no badge.
 const ACTIVITIES: any[] = [
   // July 2026 — Tasks
-  { id: "a1", type: "task", title: "Call Task - Task Title XXX", day: "Mon 20", month: "July 2026", dt: "2026.07.20 - 10:10", taskType: "Call", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
-  { id: "a2", type: "task", title: "Email Task - Task Title XXX", day: "Fri 17", month: "July 2026", dt: "2026.07.17 - 09:09", taskType: "Email", badge: "Canceled", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
-  { id: "a3", type: "task", title: "To Do Task - Task Title XXX", day: "Thu 16", month: "July 2026", dt: "2026.07.16 - 08:08", taskType: "To Do", badge: "Overdue", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
+  { id: "a1", type: "task", title: "Task Title XXX", day: "Mon 20", month: "July 2026", dt: "2026.07.20 - 10:10", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
+  { id: "a2", type: "task", title: "Task Title XXX", day: "Fri 17", month: "July 2026", dt: "2026.07.17 - 09:09", badge: "Canceled", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
+  { id: "a3", type: "task", title: "Task Title XXX", day: "Thu 16", month: "July 2026", dt: "2026.07.16 - 08:08", badge: "Overdue", actor: "Anna Klein", createdAt: "2026.07.15 - 15:15", priority: "Medium", description: LOREM },
   // April 2025
   { id: "a4", type: "appointment", title: "Appointment Title XXX", day: "Tue 20", month: "April 2025", dt: "2025.04.20 - 10:10", actor: "Anna Klein", createdAt: "2025.04.19 - 19:19", attendees: "john.smith@email.com, olivia.ruth@email.com", apptType: "Consultation", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf", outcome: "Not Interested", note: LOREM },
   { id: "a5", type: "appointment", title: "Appointment Title XXX", day: "Mon 19", month: "April 2025", dt: "2025.04.19 - 09:09", badge: "Logged", actor: "Anna Klein", attendees: "john.smith@email.com, olivia.ruth@email.com", apptType: "Consultation", location: "ARTIST Boutique Hotel - Vienna", description: LOREM, attachments: "sample.pdf" },
@@ -1507,7 +1507,6 @@ const ActivityDetail = ({ a, onDone, onDelete }: any) => {
           <ActField label="Created By" value={who} />
           <ActField label="Created At" value={a.createdAt || "-"} />
           <ActField label="Priority" node={<span style={{ fontSize: 13.5, fontWeight: 700, color: C.amber }}>{a.priority || "Normal"}</span>} />
-          <ActField label="Task Type" value={a.taskType || "-"} />
           <div style={{ gridColumn: "1 / -1" }}><ActField label="Description" value={a.description || "-"} /></div>
         </div>
         <TaskActionsMenu canComplete={canComplete} onDone={onDone} onDelete={onDelete} />

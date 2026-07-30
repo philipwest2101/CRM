@@ -1,27 +1,22 @@
 import React, { useState } from "react";
-import { ALL_LEADS, ACTIVITY_TYPES, TASK_TYPE_KEYS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
+import { ALL_LEADS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
 import { C } from "../../theme";
 
-// Task modal — supports three states: create | edit | view
-// (matches the "Create Task", "Edit Call Task", "Call Task" wireframes)
+// Task modal — supports three states: create | edit | view.
+// Matches the "Create Task" / "Edit Task" / "Task" wireframes: a task has no
+// call/email/to-do subtype — it is a single Title · Contact · Priority · Date ·
+// Time · Description record.
 
 const lbl   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.05em", display:"block", marginBottom:5 };
 const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text };
 
-// Task types come from the shared ACTIVITY_TYPES so call/email stay in sync
-// with the Add-Activity modal. The "note" type is surfaced to advisors as a
-// "To Do" task (✅) here, even though the activity feed labels it "Note".
-const TASK_TYPE_OVERRIDE = { note: { icon: "✅", label: "To Do" } };
-const TYPE_META = Object.fromEntries(
-  TASK_TYPE_KEYS.map(k => [k, TASK_TYPE_OVERRIDE[k] || { icon: ACTIVITY_TYPES[k].icon, label: ACTIVITY_TYPES[k].label }])
-);
 // Priorities come from the shared canonical set (low / normal / high / urgent).
 const PRIORITIES = PRIORITY_KEYS.map(k => [k, PRIORITY_META[k].label, PRIORITY_META[k].color]);
 
 const blank = (selectedDate) => ({
-  type:"call", title:"", contact:"", priority:"normal",
+  type:"note", title:"", contact:"", priority:"normal",
   date:selectedDate||"", time:"09:00",
-  emailTemplate:"", recur:"Once", note:"",
+  recur:"Once", note:"",
 });
 
 export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=false, onClose, onSubmit, onDone, onDelete, onLogCall, onMakeCall, onLogEmail, onSendEmail }) => {
@@ -34,11 +29,10 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
   const set = (k,v) => setF(prev => ({ ...prev, [k]:v }));
   const isView = m === "view";
   const canSave = f.title.trim() && f.date && f.time;       // Time now required
-  const tm = TYPE_META[f.type] || TYPE_META.note;
 
   const titleText = m==="create" ? "Create Task"
     : m==="edit" ? "Edit Task"
-    : (f.title || `${tm.label} Task`);
+    : (f.title || "Task");
 
   // Priority chip shown in the view header (colour-coded, matching the board).
   const prio = PRIORITIES.find(p=>p[0]===f.priority);
@@ -62,7 +56,7 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
           <div style={{ fontSize:15, fontWeight:800, color:C.navy, display:"flex", alignItems:"center", gap:8 }}>
-            <span>{tm.icon}</span>{titleText}
+            <span>✅</span>{titleText}
           </div>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             {isView && (
@@ -100,22 +94,12 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
                 <div style={{ fontSize:12, color:C.slate, lineHeight:1.5 }}>{f.note}</div>
               </div>
             )}
-            {/* Type-specific quick links on the left, Done on the right */}
+            {/* "Mark as Done!" link on the left, Close on the right (board layout). */}
             <div style={{ display:"flex", alignItems:"center", marginTop:20, gap:16 }}>
-              {f.type==="call" && (
-                <>
-                  <button onClick={()=>onLogCall&&onLogCall(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Log a Call</button>
-                  <button onClick={()=>onMakeCall&&onMakeCall(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Make a Call</button>
-                </>
-              )}
-              {f.type==="email" && (
-                <>
-                  <button onClick={()=>onLogEmail&&onLogEmail(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Log an Email</button>
-                  <button onClick={()=>onSendEmail&&onSendEmail(f)} style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Send an Email</button>
-                </>
-              )}
               <button onClick={()=>onDone&&onDone(f)} title="Mark this task complete (stays in your calendar as Done)"
-                style={{ marginLeft:"auto", padding:"9px 22px", borderRadius:9, border:"none", background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>Done</button>
+                style={{ background:"none", border:"none", color:C.indigo, fontSize:12, fontWeight:700, textDecoration:"underline", cursor:"pointer", padding:0 }}>Mark as Done!</button>
+              <button onClick={onClose}
+                style={{ marginLeft:"auto", padding:"9px 22px", borderRadius:9, border:"none", background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>Close</button>
             </div>
           </div>
         ) : (
@@ -123,30 +107,14 @@ export const TaskModal = ({ mode="create", task=null, selectedDate, lockContact=
           <div>
             {field("Title *", <input value={f.title} onChange={e=>set("title",e.target.value)} placeholder="e.g. Follow-up call — Sandra Richter" style={input}/>)}
 
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
-              <div>
-                <label style={lbl}>Contact *</label>
-                {lockContact ? (
-                  <input value={f.contact} disabled style={{ ...input, background:C.light, color:C.text, cursor:"not-allowed" }}/>
-                ) : (
-                  <select value={f.contact} onChange={e=>set("contact",e.target.value)} style={input}>
-                    <option value="">Choose…</option>
-                    {ALL_LEADS.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
-                  </select>
-                )}
-              </div>
-              <div>
-                <label style={lbl}>Type *</label>
-                <div style={{ display:"flex", gap:4 }}>
-                  {Object.entries(TYPE_META).map(([k,v]) => (
-                    <button key={k} onClick={()=>set("type",k)}
-                      style={{ flex:1, padding:"8px 4px", borderRadius:7, border:`1.5px solid ${f.type===k?C.primary:C.border}`,
-                        background:f.type===k?C.primary+"12":"#fff", color:f.type===k?C.primaryDark:C.muted,
-                        fontSize:11, fontWeight:f.type===k?700:400, cursor:"pointer", fontFamily:"inherit" }}>{v.icon} {v.label}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {field("Contact *", lockContact ? (
+              <input value={f.contact} disabled style={{ ...input, background:C.light, color:C.text, cursor:"not-allowed" }}/>
+            ) : (
+              <select value={f.contact} onChange={e=>set("contact",e.target.value)} style={input}>
+                <option value="">Choose…</option>
+                {ALL_LEADS.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+              </select>
+            ))}
 
             {field("Priority", (
               <div style={{ display:"flex", gap:6 }}>

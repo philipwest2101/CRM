@@ -1,21 +1,18 @@
 import React, { useState } from "react";
-import { ALL_LEADS, ACTIVITY_TYPES, TASK_TYPE_KEYS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
+import { ALL_LEADS, PRIORITY_META, PRIORITY_KEYS } from "../../lib/core";
 import { C } from "../../theme";
 import { ModalShell, FooterBtns, Label, fieldStyle, placeholderSelect } from "./mvp-modal-kit";
 
 // MVP fork of the Task composer — the "Create a Task" quick action on the
 // contact detail view. Same fields and onSubmit contract as the calendar
 // TaskModal, restyled onto the shared MVP ModalShell so it matches the other
-// activity modals. Create-only (the MVP surface never edits/views here).
+// activity modals. A task has no call/email/to-do subtype (board: Title ·
+// Contact · Priority · Date · Time · Description). Create-only.
 
-const TASK_TYPE_OVERRIDE = { note: { icon: "✅", label: "To Do" } };
-const TYPE_META = Object.fromEntries(
-  TASK_TYPE_KEYS.map(k => [k, TASK_TYPE_OVERRIDE[k] || { icon: ACTIVITY_TYPES[k].icon, label: ACTIVITY_TYPES[k].label }])
-);
 const PRIORITIES = PRIORITY_KEYS.map(k => [k, PRIORITY_META[k].label, PRIORITY_META[k].color]);
 
 const blank = (selectedDate) => ({
-  type: "call", title: "", contact: "", priority: "normal",
+  type: "note", title: "", contact: "", priority: "normal",
   date: selectedDate || "", time: "09:00", note: "",
 });
 
@@ -45,34 +42,25 @@ export const MVPTaskModal = ({ mode = "create", task = null, selectedDate, lockC
   });
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
   const canSave = f.title.trim() && f.date && f.time;
-  const tm = TYPE_META[f.type] || TYPE_META.note;
-
-  const typeOpts = Object.entries(TYPE_META).map(([k, v]) => [k, `${v.icon} ${v.label}`]);
 
   return (
-    <ModalShell icon={tm.icon} title="Create a Task" subtitle={f.contact ? `For ${f.contact}` : "Add a follow-up to your calendar"}
+    <ModalShell icon="✅" title="Create a Task" subtitle={f.contact ? `For ${f.contact}` : "Add a follow-up to your calendar"}
       accent={C.purple} width={560} onClose={onClose}>
       <div style={{ marginBottom: 14 }}>
         <Label>Title *</Label>
         <input value={f.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Follow-up call — Sandra Richter" style={fieldStyle} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <div>
-          <Label>Contact *</Label>
-          {lockContact ? (
-            <input value={f.contact} disabled style={{ ...fieldStyle, background: C.light, color: C.slate, cursor: "not-allowed" }} />
-          ) : (
-            <select value={f.contact} onChange={e => set("contact", e.target.value)} style={f.contact ? fieldStyle : placeholderSelect}>
-              <option value="">Choose…</option>
-              {ALL_LEADS.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
-            </select>
-          )}
-        </div>
-        <div>
-          <Label>Type *</Label>
-          <PillGroup options={typeOpts} value={f.type} onChange={v => set("type", v)} />
-        </div>
+      <div style={{ marginBottom: 14 }}>
+        <Label>Contact *</Label>
+        {lockContact ? (
+          <input value={f.contact} disabled style={{ ...fieldStyle, background: C.light, color: C.slate, cursor: "not-allowed" }} />
+        ) : (
+          <select value={f.contact} onChange={e => set("contact", e.target.value)} style={f.contact ? fieldStyle : placeholderSelect}>
+            <option value="">Choose…</option>
+            {ALL_LEADS.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+          </select>
+        )}
       </div>
 
       <div style={{ marginBottom: 14 }}>
