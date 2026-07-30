@@ -4,26 +4,29 @@ import { TaskModal } from "./task-modal";
 import { AppointmentModal } from "../appointments/appointment-modal";
 import { LeadAppointmentModal } from "../appointments/lead-appointment-modal";
 import { AppointmentOutcomeModal } from "../appointments/appointment-outcome-modal";
+import { ScheduledEmailModal } from "./scheduled-email-modal";
 import { ACTIVITIES_STORE, ACTIVITY_STATUS_META, ACTIVITY_TYPES, ALL_LEADS, APPOINTMENT_TYPE_KEYS, TASK_TYPE_KEYS, EVENTS_LIST, PRIORITY_META, DONE_STATUSES } from "../../lib/core";
 import { C } from "../../theme";
 import { useT } from "../../lib/i18n";
 
-// ── Calendar taxonomy: 4 colour CATEGORIES ───────────────────────────────────
+// ── Calendar taxonomy: 5 colour CATEGORIES ───────────────────────────────────
 // Colour encodes the *category*, not the individual type — one calm hue each
-// for Appointments, Tasks, Google and Vion events, instead of a 10-hue rainbow.
-// Within a category the icon (and text label) tells the subtypes apart, so the
-// grid stays readable. Brand orange is reserved for chrome (today marker,
-// selection, buttons) so events never blend into navigation.
+// for Appointments, Tasks, Scheduled Emails, Google and VION events, instead of
+// a rainbow. Within a category the icon (and text label) tells the subtypes
+// apart, so the grid stays readable. Brand orange is reserved for chrome (today
+// marker, selection, buttons) so events never blend into navigation.
 //
-//   Appointments → blue    Tasks → amber    Google → green    Vion → violet
+//   Appointments → blue   Tasks → amber   Scheduled Emails → teal
+//   Google → green        VION → violet
 //
-// The three toggleable "calendars" (My Calendars) map onto these categories:
-//   • CRM = Appointments + Tasks    • Google    • Vion (company events)
+// A single "Event Types" filter toggles these kinds (All · Tasks · Appointments
+// · Scheduled Emails · VION Events · Google Events).
 const CATEGORY_META = {
-  appointment: { label:"Appointments",  color:"#2563EB", calendar:"crm"    },
-  task:        { label:"Tasks",         color:"#F59E0B", calendar:"crm"    },
-  google:      { label:"Google Events", color:"#34A853", calendar:"google" },
-  vion:        { label:"Vion Events",   color:"#7C3AED", calendar:"vion"   },
+  appointment: { label:"Appointments",     color:"#2563EB", calendar:"crm"    },
+  task:        { label:"Tasks",            color:"#F59E0B", calendar:"crm"    },
+  email:       { label:"Scheduled Emails", color:"#0D9488", calendar:"crm"    },
+  google:      { label:"Google Events",    color:"#34A853", calendar:"google" },
+  vion:        { label:"VION Events",      color:"#7C3AED", calendar:"vion"   },
 };
 
 // Individual types keep an icon + label but inherit their category's colour.
@@ -39,6 +42,8 @@ const TYPE_META = {
   call:         { label:"Call",              icon:"📞",  category:"task" },
   email:        { label:"Email",             icon:"✉️",  category:"task" },
   note:         { label:"To-Do",             icon:"📝",  category:"task" },
+  // Scheduled emails (Email Marketing) surfaced on the calendar
+  scheduledEmail: { label:"Scheduled Email", icon:"✉️",  category:"email" },
   // External calendars (single-type sources)
   google:       { label:"Google Event",      icon:"🗓️",  category:"google" },
   vion:         { label:"Vion Event",        icon:"🏢",  category:"vion" },
@@ -91,6 +96,18 @@ const VION_SAMPLES = [
   { id:"vs-invest",   isEvent:true, eventIcon:"📈", title:"Investment Talk — Frankfurt", date:"2026-07-02", time:"18:00", end:"20:30", location:"vion Office Frankfurt", status:"upcoming", recur:"Once", entityType:"event", category:"event" },
   { id:"vs-gold",     isEvent:true, eventIcon:"🥇", title:"Gold Vortrag — München",      date:"2026-07-03", time:"19:00", end:"21:00", location:"vion Office München",   status:"upcoming", recur:"Once", entityType:"event", category:"event" },
 ];
+// Scheduled emails (from Email Marketing) shown on the calendar. Clicking one
+// opens the Scheduled Email view → edit modal.
+const EMAIL_SAMPLES = [
+  { id:"se-1", entityType:"email", category:"email", title:"Scheduled Email — Sandra Richter",
+    date:"2026-06-30", time:"13:00", from:"anna.klein@vionworld.com", to:"sandra.richter@email.com", cc:"",
+    template:"", subject:"Your consultation follow-up", body:"Dear Sandra,\n\nThank you for your time. As discussed, here are the next steps…",
+    attachments:"", status:"upcoming", gp:"Anna Klein", vd:"Thomas Müller", recur:"Once" },
+  { id:"se-2", entityType:"email", category:"email", title:"Scheduled Email — Nora Baumann",
+    date:"2026-07-02", time:"09:00", from:"anna.klein@vionworld.com", to:"nora.baumann@email.com", cc:"john.smith@email.com",
+    template:"", subject:"Brochure & pricing", body:"Dear Nora,\n\nPlease find the brochure and pricing attached…",
+    attachments:"sample.pdf", status:"upcoming", gp:"Anna Klein", vd:"Thomas Müller", recur:"Once" },
+];
 
 export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, addAppointment, addReminder, viewMode }) => {
   const t = useT();
@@ -109,23 +126,24 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const [apptModal,   setApptModal]   = useState(null);    // { mode, data } — Network appointments (actionable)
   const [leadAppt,    setLeadAppt]    = useState(null);    // Lead appointment (read-only detail)
   const [outcomeAppt, setOutcomeAppt] = useState(null);
+  const [emailModal,  setEmailModal]  = useState(null);    // { mode, data } — Scheduled Email view/edit
   const [cellMenu,    setCellMenu]    = useState(null);    // { x, y, date, time } — create-here popover
   const [dayPopover,  setDayPopover]  = useState(null);    // { date, x, y, items } — "+N more" day list
   const [miniDate,    setMiniDate]    = useState(new Date(2026,5,29)); // month shown by the sidebar mini-calendar
 
-  // "My calendars" toggles (CRM vs Google) + per-type visibility.
-  const [showCRM,     setShowCRM]     = useState(true);
-  const [showGoogle,  setShowGoogle]  = useState(true);
-  const [showVion,    setShowVion]    = useState(true);
-  // Event-Types filter is category-level only (Appointments / Tasks). Appointment
-  // and task subtypes are no longer enumerated in the filter — the grid icon
-  // still tells appointment subtypes apart, but you toggle whole categories here.
-  const [hiddenCats, setHiddenCats] = useState<Set<string>>(() => new Set());
-  const toggleCat = (k) => setHiddenCats(prev => {
+  // A single Event-Types filter replaces the old "My Calendars" + per-type lists.
+  // Toggles whole event kinds: All · Tasks · Appointments · Scheduled Emails ·
+  // VION Events · Google Events. Appointment subtypes are told apart by the grid
+  // icon, not the filter.
+  const ALL_EVENT_TYPES = ["task","appointment","email","vion","google"];
+  const [shownTypes, setShownTypes] = useState<Set<string>>(() => new Set(ALL_EVENT_TYPES));
+  const toggleType = (k) => setShownTypes(prev => {
     const next = new Set(prev);
     next.has(k) ? next.delete(k) : next.add(k);
     return next;
   });
+  const allShown = ALL_EVENT_TYPES.every(k => shownTypes.has(k));
+  const toggleAll = () => setShownTypes(allShown ? new Set() : new Set(ALL_EVENT_TYPES));
 
   // Week/Day cell click → select the date and offer to create something in
   // that slot (task or appointment, date + hour prefilled).
@@ -187,6 +205,7 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const typeKeyOf = (a) => {
     if (a?.source==="google" || a?.calendar==="google" || a?.type==="google") return "google";
     if (a?.isEvent) return "vion";   // EVENTS_LIST = Vion company events
+    if (a?.entityType==="email" || a?.category==="email" || a?.type==="scheduledEmail") return "scheduledEmail";
     const ty = a?.type;
     // Appointments — including phone/video appointments — are keyed by their
     // apptType, so all six appointment types get their own icon inside the
@@ -211,8 +230,9 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     return "note";
   };
 
-  // Which "calendar" (My Calendars source) an activity belongs to.
-  const calendarOf = (a) => CATEGORY_META[TYPE_META[typeKeyOf(a)]?.category || "task"].calendar;
+  // Which Event-Types filter bucket an activity belongs to
+  // (task · appointment · email · vion · google).
+  const filterKeyOf = (a) => TYPE_META[typeKeyOf(a)]?.category || "task";
 
   // Effective meta (colour + icon + label) for an activity. Colour comes from
   // the CATEGORY; Vion events keep their own event icon for the subtype cue.
@@ -224,19 +244,14 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     return { key, category:tm.category, label:tm.label, icon, color, bg: color+"18" };
   };
 
-  const baseActs = [...activities, ...eventActivities, ...googleActivities, ...SAMPLE_ACTIVITIES, ...VION_SAMPLES];
+  const baseActs = [...activities, ...eventActivities, ...googleActivities, ...SAMPLE_ACTIVITIES, ...VION_SAMPLES, ...EMAIL_SAMPLES];
 
-  // Filter activities: calendar (CRM/Google/Vion) → per-type → owner.
+  // Filter activities: Event-Types visibility → owner (mine/team).
   const visible = baseActs.filter(a => {
-    const key = typeKeyOf(a);
-    const cal = calendarOf(a);
-    if (cal==="google" && !showGoogle) return false;
-    if (cal==="vion"   && !showVion)   return false;
-    if (cal==="crm"    && !showCRM)    return false;
-    const cat = TYPE_META[key]?.category;
-    if ((cat==="appointment" || cat==="task") && hiddenCats.has(cat)) return false;
-    if (cal==="crm") {
-      // "mine" filter: current GP's items, or unowned items
+    const fk = filterKeyOf(a);
+    if (!shownTypes.has(fk)) return false;
+    // Owner filter (mine/team) applies to user-owned CRM kinds.
+    if (fk==="task" || fk==="appointment" || fk==="email") {
       if (calFilter === "mine" && a.gp && a.gp !== myGP) return false;
       if (calFilter === "team" && a.vd && a.vd !== myVD) return false;
       if (calFilter !== "all" && calFilter !== "mine" && calFilter !== "team" && a.gp && a.gp !== calFilter) return false;
@@ -262,6 +277,13 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
   const openActivity = (a) => {
     const cat = TYPE_META[typeKeyOf(a)]?.category;
     if (cat==="google" || cat==="vion" || a.isEvent || a.source==="google") { setSelected(a); return; }
+    if (cat==="email") {
+      setEmailModal({ mode:"view", data:{
+        id:a.id, template:a.template, from:a.from, to:a.to, cc:a.cc,
+        subject:a.subject, body:a.body||a.note, attachments:a.attachments||a.attachment,
+        date:a.date, time:a.time, schedule:true } });
+      return;
+    }
     if (cat==="appointment") {
       const lifecycle = a.lifecycle || "Lead";
       const data = {
@@ -323,6 +345,15 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
     setApptModal(null); focusDate(f.date);
   };
   const cancelAppt = (f) => { setActivities(prev=>prev.filter(x=>x.id!==f.id)); setApptModal(null); };
+
+  // Scheduled email edit / cancel. (Sample emails are display-only; edits to a
+  // user-created scheduled email in `activities` persist.)
+  const submitEmail = (f) => {
+    setActivities(prev=>prev.map(x=>x.id===f.id ? { ...x, template:f.template, to:f.to, cc:f.cc,
+      subject:f.subject, body:f.body, attachments:f.attachment, date:f.date, time:f.time } : x));
+    setEmailModal(null); focusDate(f.date);
+  };
+  const cancelEmail = (f) => { setActivities(prev=>prev.filter(x=>x.id!==f.id)); setEmailModal(null); };
 
   // Month grid helpers
   const year = currentDate.getFullYear();
@@ -510,17 +541,12 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
               grid already fills the screen, so we drop it to save vertical space. */}
           {!mobile && <SideSection><MiniCal/></SideSection>}
 
-          <SideSection title="My Calendars">
-            <CalCheck checked={showCRM}    onChange={()=>setShowCRM(v=>!v)}    label="CRM Events"    color={C.primary}/>
-            <CalCheck checked={showGoogle} onChange={()=>setShowGoogle(v=>!v)} label="Google Events" color={CATEGORY_META.google.color}/>
-            <CalCheck checked={showVion}   onChange={()=>setShowVion(v=>!v)}   label="Vion Events"   color={CATEGORY_META.vion.color}/>
-          </SideSection>
-
           <SideSection title="Event Types">
-            <CalCheck checked={!hiddenCats.has("appointment")} onChange={()=>toggleCat("appointment")}
-              label={CATEGORY_META.appointment.label} color={CATEGORY_META.appointment.color}/>
-            <CalCheck checked={!hiddenCats.has("task")} onChange={()=>toggleCat("task")}
-              label={CATEGORY_META.task.label} color={CATEGORY_META.task.color}/>
+            <CalCheck checked={allShown} onChange={toggleAll} label="All" color={C.primary}/>
+            {[["task",CATEGORY_META.task],["appointment",CATEGORY_META.appointment],["email",CATEGORY_META.email],
+              ["vion",CATEGORY_META.vion],["google",CATEGORY_META.google]].map(([k,cm]:any)=>(
+              <CalCheck key={k} checked={shownTypes.has(k)} onChange={()=>toggleType(k)} label={cm.label} color={cm.color}/>
+            ))}
           </SideSection>
         </div>
 
@@ -926,6 +952,16 @@ export const CalendarPage = ({ role, navigateTo, activities=[], setActivities, a
           if(lead) navigateTo("LeadDetail", lead);
           else     navigateTo("Leads");
         }}
+      />}
+
+      {/* ── Scheduled email modal (view / edit) ────────────────────────────── */}
+      {emailModal && <ScheduledEmailModal
+        mode={emailModal.mode}
+        email={emailModal.data}
+        selectedDate={selectedDate}
+        onClose={()=>setEmailModal(null)}
+        onSubmit={submitEmail}
+        onCancelEmail={cancelEmail}
       />}
 
       {/* ── Appointment outcome modal ──────────────────────────────────────── */}
