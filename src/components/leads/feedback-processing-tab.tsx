@@ -545,7 +545,7 @@ const AppointmentOutcomeStep = ({ appointment, followUp, onComplete, onReschedul
 // Reaching Finalize means the lead is processed — the terminal Status documents
 // completion (no manual "mark as processed" button). Shows the processed summary,
 // an optional Do-Not-Contact toggle for negative outcomes, and the convert action.
-const FinalizeStep = ({ negativeOutcome, dnc, isContact, networkStatus, canConvert = true, onToggleDnc, onAddToNetwork, onBackToDashboard }) => {
+const FinalizeStep = ({ negativeOutcome, dnc, isContact, networkStatus, canConvert = true, convNotAllowedMsg, onToggleDnc, onAddToNetwork, onBackToDashboard }) => {
   const t = useT();
   return (
   <>
@@ -571,7 +571,7 @@ const FinalizeStep = ({ negativeOutcome, dnc, isContact, networkStatus, canConve
         ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: C.green, background: C.green + "14", padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>✓ {t("fpInNetwork")} · {networkStatus}</span>
         : canConvert
           ? <PrimaryBtn icon="⇪" onClick={onAddToNetwork}>{t("fpAddNetwork")}</PrimaryBtn>
-          : <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: C.light, border: `1px solid ${C.border}`, padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>{t("fpConvNotAllowed")}</span>}
+          : <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.muted, background: C.light, border: `1px solid ${C.border}`, padding: "9px 14px", borderRadius: 9, whiteSpace: "nowrap" }}>{convNotAllowedMsg || t("fpConvNotAllowed")}</span>}
     </div>
   </>
   );
@@ -590,7 +590,13 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
   const pendingBookingRef = useRef<{ appt: any; data: any } | null>(null);
 
   // "Add to Network" deep-link from the Leads list converts the lead once (no modal).
-  React.useEffect(() => { if (autoConvert && !state.isContact) onApplyConvert([]); }, []);
+  // Conversion is only allowed for a Won lead — otherwise it is blocked and the
+  // advisor is told why (the Finalize step then shows the same restriction inline).
+  React.useEffect(() => {
+    if (!autoConvert || state.isContact) return;
+    if (state.outcome === "Won") onApplyConvert([]);
+    else notify && notify(t("fpConvOnlyWon"), "error");
+  }, []);
 
   // Reaching the Finalize step marks the lead processed automatically — there is
   // no manual "mark as processed" button; the terminal Status documents it.
@@ -865,7 +871,17 @@ export const FeedbackProcessingTab = ({ contact, state, setState, role, navigate
                             ? <CallOutcomeStep appointment={state.appointment} followUp={state.followUp} onScheduleAppt={() => setScheduleModalOpen(true)} onFollowUp={(note) => onFollowUp("call", note)} onContinue={onContinueOutcome} />
                             : <CallAttemptsStep key={`ph-${state.calls}`} contact={contact} calls={state.calls} notReached={state.notReached} onLog={onLogCall} onSendEmail={onSendEmail} />;
       case "appointment": return <AppointmentOutcomeStep key={`ao-${state.reschedules}`} appointment={state.appointment} followUp={state.followUp} onComplete={onAppointmentOutcome} onReschedule={onReschedule} onFollowUp={(note) => onFollowUp("appointment", note)} />;
-      case "finish":      return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus} canConvert={role !== "superadmin"} onToggleDnc={onToggleDnc} onAddToNetwork={() => onApplyConvert([])} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
+      case "finish": {
+        // A lead can only be converted to a Network contact once its processing
+        // outcome is "Won" (spec: conversion is gated on a won result). Super Admins
+        // never convert; every other role converts only from a Won lead.
+        const roleAllowed = role !== "superadmin";
+        const wonOutcome  = state.outcome === "Won";
+        return <FinalizeStep negativeOutcome={state.negativeOutcome} dnc={state.dnc} isContact={state.isContact} networkStatus={state.networkStatus}
+          canConvert={roleAllowed && wonOutcome}
+          convNotAllowedMsg={!roleAllowed ? t("fpConvNotAllowed") : t("fpConvOnlyWon")}
+          onToggleDnc={onToggleDnc} onAddToNetwork={() => onApplyConvert([])} onBackToDashboard={() => navigateTo && navigateTo("Dashboard")} />;
+      }
       default:            return null;
     }
   };

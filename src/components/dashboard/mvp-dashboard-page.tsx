@@ -322,12 +322,15 @@ const SA_TEAMS = [
   { name:"Ralf Fischer",  leads:331, contacts:377, appts:98,  closings:29, ca:{5:27,4:36,3:63,2:79,1:58} },
   { name:"Sabine Roth",   leads:298, contacts:339, appts:104, closings:33, ca:{5:22,4:33,3:57,2:71,1:55} },
 ];
+// `appts` splits into the two cycles an appointment can belong to: leadAppts
+// (booked while the contact is still a Lead) + networkAppts (booked after the
+// lead converts into a Network contact). appts = leadAppts + networkAppts.
 const VD_ADVISORS = [
-  { name:"Anna Klein",   leads:97,  contacts:112, appts:34, closings:12, ca:{5:5,4:9,3:18,2:24,1:19} },
-  { name:"Ben Hartmann", leads:82,  contacts:94,  appts:27, closings:8,  ca:{5:7,4:11,3:15,2:21,1:16} },
-  { name:"Marc Otto",    leads:71,  contacts:83,  appts:19, closings:5,  ca:{5:9,4:12,3:14,2:16,1:12} },
-  { name:"Kai Becker",   leads:104, contacts:119, appts:41, closings:15, ca:{5:3,4:7,3:19,2:28,1:23} },
-  { name:"Nina Schmitt", leads:63,  contacts:74,  appts:18, closings:6,  ca:{5:6,4:9,3:12,2:15,1:11} },
+  { name:"Anna Klein",   leads:97,  contacts:112, appts:34, leadAppts:22, networkAppts:12, closings:12, ca:{5:5,4:9,3:18,2:24,1:19} },
+  { name:"Ben Hartmann", leads:82,  contacts:94,  appts:27, leadAppts:18, networkAppts:9,  closings:8,  ca:{5:7,4:11,3:15,2:21,1:16} },
+  { name:"Marc Otto",    leads:71,  contacts:83,  appts:19, leadAppts:13, networkAppts:6,  closings:5,  ca:{5:9,4:12,3:14,2:16,1:12} },
+  { name:"Kai Becker",   leads:104, contacts:119, appts:41, leadAppts:26, networkAppts:15, closings:15, ca:{5:3,4:7,3:19,2:28,1:23} },
+  { name:"Nina Schmitt", leads:63,  contacts:74,  appts:18, leadAppts:12, networkAppts:6,  closings:6,  ca:{5:6,4:9,3:12,2:15,1:11} },
 ];
 
 // ── SA: Campaign ROI — leads generated, spend, revenue per campaign (monthly
@@ -547,25 +550,50 @@ const StatusPill = ({ status }) => {
   return <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: m.color + "16", color: m.color, whiteSpace: "nowrap" }}>{m.label}</span>;
 };
 
-// ── VD Team: Advisor Performance — compact horizontal bar chart by appointments.
-const BAR_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
-const AdvisorApptChart = ({ title, rows, unit, action }) => {
-  const max = Math.max(1, ...rows.map(r => r.appts || 0));
+// ── VD Team: Advisor Performance — appointments per advisor, split into the two
+//    cycles an appointment can belong to: the Lead cycle (booked before the lead
+//    converts) and the Network cycle (booked after it becomes a Network contact).
+const CYCLE_META = [
+  { key: "leadAppts",    labelKey: "leadCycle",    color: C.indigo },
+  { key: "networkAppts", labelKey: "networkCycle", color: C.green  },
+];
+const AdvisorApptChart = ({ title, rows, unit, action, t }) => {
+  // Scale every bar against the single largest cycle value so lead- and
+  // network-cycle bars are directly comparable across advisors.
+  const max = Math.max(1, ...rows.flatMap(r => CYCLE_META.map(c => r[c.key] || 0)));
   return (
     <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
       <CardHeader title={title} action={action} />
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-        {rows.map((r, i) => {
-          const pct = Math.round(((r.appts || 0) / max) * 100);
-          const color = BAR_COLORS[i % BAR_COLORS.length];
+      {/* Cycle legend */}
+      <div style={{ flexShrink: 0, display: "flex", gap: 16, padding: "9px 16px 5px", borderBottom: `1px solid ${C.border}` }}>
+        {CYCLE_META.map(c => (
+          <span key={c.key} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: C.slate }}>
+            <span style={{ width: 9, height: 9, borderRadius: 2, background: c.color }} />{t(c.labelKey)}
+          </span>
+        ))}
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+        {rows.map((r) => {
+          const total = CYCLE_META.reduce((s, c) => s + (r[c.key] || 0), 0);
           return (
             <div key={r.name}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: C.navy }}>{r.appts} <span style={{ color: C.muted, fontWeight: 500 }}>{unit}</span></span>
+                <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: C.navy }}>{total} <span style={{ color: C.muted, fontWeight: 500 }}>{unit}</span></span>
               </div>
-              <div style={{ height: 8, borderRadius: 6, background: C.light, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 6, transition: "width .3s ease" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {CYCLE_META.map(c => {
+                  const val = r[c.key] || 0;
+                  const pct = Math.round((val / max) * 100);
+                  return (
+                    <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 8, borderRadius: 6, background: C.light, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: c.color, borderRadius: 6, transition: "width .3s ease" }} />
+                      </div>
+                      <span style={{ width: 24, textAlign: "right", fontSize: 11.5, fontFamily: "monospace", fontWeight: 700, color: c.color }}>{val}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -670,6 +698,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const [vdView, setVdView] = useState("my");
   const personal = isGP || (isVD && vdView === "my");   // personal (advisor-style) layout
   const teamView = isSA || (isVD && vdView === "team"); // team-management layout
+  // The VD Team dashboard drops the "Appointments" list panel from row 1 (the
+  // Total Appointments KPI card above still summarises the count); every other
+  // view keeps the appointments panel beside the leads panel.
+  const showApptsPanel = !(isVD && vdView === "team");
 
   // ── Greeting ────────────────────────────────────────────────────────────────
   const hour = new Date().getHours();
@@ -790,6 +822,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     leads:    scaleP(r.leads),
     contacts: scaleP(r.contacts),
     appts:    scaleP(r.appts),
+    leadAppts:    scaleP((r as any).leadAppts || 0),
+    networkAppts: scaleP((r as any).networkAppts || 0),
     closings: scaleP(r.closings),
     ca:       ATTEMPT_LEVELS.reduce((m, n) => { m[n] = scaleP(r.ca?.[n] || 0); return m; }, {}),
   }));
@@ -922,7 +956,6 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             <KpiCard label={t("kpiTotalContacts")} value={aggContacts.toLocaleString()} info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
             <KpiCard label={t("pendingAssignments")} value={unassignedAgg}        info={t("tooltip_kpiPendingAssignments")} color={C.primary} warn={unassignedAgg > 0} />
             <KpiCard label={t("kpiTotalAppointments")} value={aggAppts.toLocaleString()} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
-            <KpiCard label={t("kpiCallAttemptsNotReached")} value={aggNotReached} info={t("tooltip_kpiCallAttempts")} color={C.red} />
           </div>
         ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
@@ -958,8 +991,9 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Row 1: Leads | Appointments Today — equal size, scroll past ~4 rows ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        {/* ── Row 1: Leads | Appointments Today — equal size, scroll past ~4 rows.
+                The VD Team view drops the Appointments panel and lets Leads span. ── */}
+        <div style={{ display: "grid", gridTemplateColumns: showApptsPanel ? "1fr 1fr" : "1fr", gap: 14, marginBottom: 14 }}>
 
           {/* ── Leads panel ─────────────────────────────────────────────────── */}
           <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
@@ -1016,7 +1050,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </div>
           </Card>
 
-          {/* ── Appointments Today ──────────────────────────────────────────── */}
+          {/* ── Appointments Today (hidden on the VD Team dashboard) ─────────── */}
+          {showApptsPanel && (
           <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
             <CardHeader
               title={apptsTitle}
@@ -1060,6 +1095,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                 })}
               </div>
             </Card>
+          )}
         </div>
 
         {/* ── Row 2: GP / VD (My) → Reminders & Tasks | Recent Activity ───── */}
@@ -1161,7 +1197,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {/* ── Row 2: VD (Team) → Advisor Performance (visual) | Assigned Leads ── */}
         {isVD && teamView && (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 360px) 1fr", gap: 14, marginBottom: 14 }}>
-          <AdvisorApptChart title={t("advisorPerformance")} rows={perfRows} unit={t("apptsByAdvisor")}
+          <AdvisorApptChart title={t("advisorPerformance")} rows={perfRows} unit={t("apptsByAdvisor")} t={t}
             action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
           <AssignedLeadsTable title={t("assignedLeadsTitle")} rows={assignedLeadRows} t={t}
             action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
