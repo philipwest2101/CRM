@@ -603,6 +603,9 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
   const [hiddenSeed, setHiddenSeed] = useState<Set<string>>(() => new Set());
+  // In-place editing of a text note (voice memos are not editable).
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
   // Derive Follow-Up figures from the processing state (fallback to defaults).
   const fb          = feedback || { calls: 3, current: 1, finished: false, reached: false, lastAction: null };
   const callTotal   = Math.max(5, fb.calls || 0);
@@ -624,18 +627,23 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
   // Processing & Feedback flow adds a row in real time. Free-text notes added here
   // are appended to the same log (the single notes surface for the contact).
   const stamp = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const datestamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`; };
   const journeyLog = Array.isArray(fb.log) ? fb.log : [];
   const addNoteItem = (text) => setFeedback && setFeedback(prev => ({
-    ...prev, log: [...(prev.log || []), { id: `note-${Date.now()}`, text, note: true, time: stamp() }],
+    ...prev, log: [...(prev.log || []), { id: `note-${Date.now()}`, text, note: true, date: datestamp(), time: stamp() }],
   }));
   const delNote = (id) => setFeedback && setFeedback(prev => ({ ...prev, log: (prev.log || []).filter((x) => x.id !== id) }));
+  // Text notes are editable in place; voice memos are not.
+  const updateNote = (id, text) => setFeedback && setFeedback(prev => ({ ...prev, log: (prev.log || []).map((x) => x.id === id ? { ...x, text } : x) }));
+  const startEdit = (m) => { setEditId(m.id); setEditText(m.text || ""); };
+  const saveEdit = () => { const v = editText.trim(); if (v && editId) updateNote(editId, v); setEditId(null); };
 
   // ── merged-in Network section: Voice Memo ──
   // (General Notes was removed — all free-text notes live in the Journey Pipeline,
   // which is the single place to add and read notes.)
   const memos = [
-    { id: "m1", title: "Call note after consultation", date: "20.06.2026", dur: "1:24" },
-    { id: "m2", title: "Voice memo: callback request on terms", date: "12.06.2026", dur: "0:38" },
+    { id: "m1", title: "Call note after consultation", date: "20.06.2026", time: "09:15", dur: "1:24" },
+    { id: "m2", title: "Voice memo: callback request on terms", date: "12.06.2026", time: "16:40", dur: "0:38" },
   ];
   const Wave = () => (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 2, height: 16 }}>
@@ -647,7 +655,7 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
   // so the merged chat feed and its persistence reuse the existing log plumbing.
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   const addVoiceItem = (dur) => setFeedback && setFeedback(prev => ({
-    ...prev, log: [...(prev.log || []), { id: `voice-${Date.now()}`, note: true, kind: "voice", dur, time: stamp() }],
+    ...prev, log: [...(prev.log || []), { id: `voice-${Date.now()}`, note: true, kind: "voice", dur, date: datestamp(), time: stamp() }],
   }));
   const sendText = () => { const v = draft.trim(); if (!v) return; addNoteItem(v); setDraft(""); };
   const startRec = () => { setRecSecs(0); setRecording(true); };
@@ -788,14 +796,16 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
             {(() => {
               // Seed voice memos are demo history; live notes/voice come off the log.
-              const seed = memos.filter(m => !hiddenSeed.has(m.id)).map(m => ({ ...m, kind: "voice", time: m.date }));
+              const seed = memos.filter(m => !hiddenSeed.has(m.id)).map(m => ({ ...m, kind: "voice" }));
               const feed = [...seed, ...journeyLog.filter(e => e.note)].reverse();  // newest first
               if (feed.length === 0)
                 return <div style={{ fontSize: 12.5, color: C.muted, textAlign: "center", padding: "22px 2px" }}>{t("ovChatEmpty")}</div>;
               return feed.map(m => {
                 const isVoice = m.kind === "voice";
+                const editing = editId === m.id;
+                const when = [m.date, m.time].filter(Boolean).join(" · ");
                 return (
-                  <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 11, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", background: "#fff" }}>
+                  <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 11, border: `1px solid ${editing ? C.primary : C.border}`, borderRadius: 12, padding: "11px 13px", background: "#fff" }}>
                     <span title={isVoice ? "Play" : undefined}
                       style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 13,
                         background: isVoice ? C.primary : C.primarySoft, color: isVoice ? "#fff" : C.primaryDark, cursor: isVoice ? "pointer" : "default" }}>{isVoice ? "▶" : "📝"}</span>
@@ -805,14 +815,29 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
                           <Wave />
                           <span style={{ fontSize: 11.5, color: C.slate, fontWeight: 600 }}>{m.dur || "0:00"}</span>
                         </div>
+                      ) : editing ? (
+                        <div>
+                          <textarea value={editText} onChange={e => setEditText(e.target.value)} autoFocus
+                            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveEdit(); } if (e.key === "Escape") setEditId(null); }}
+                            style={{ ...fieldStyle, minHeight: 56, resize: "vertical", lineHeight: 1.5 }} />
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+                            <button onClick={() => setEditId(null)} style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "#fff", color: C.slate, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{t("cancel")}</button>
+                            <button onClick={saveEdit} disabled={!editText.trim()} style={{ padding: "5px 14px", borderRadius: 7, border: "none", background: editText.trim() ? C.primary : C.border, color: editText.trim() ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, cursor: editText.trim() ? "pointer" : "default" }}>{t("save")}</button>
+                          </div>
+                        </div>
                       ) : (
                         <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.text}</div>
                       )}
                       {isVoice && m.title && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{m.title}</div>}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
-                      <span style={{ fontSize: 10.5, color: C.muted, whiteSpace: "nowrap" }}>{m.time}</span>
-                      <span onClick={() => setDelId(m.id)} title={t("delete")} style={{ fontSize: 12, color: C.muted, cursor: "pointer" }}>🗑</span>
+                      <span style={{ fontSize: 10.5, color: C.muted, whiteSpace: "nowrap" }}>{when}</span>
+                      {!editing && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {!isVoice && <span onClick={() => startEdit(m)} title={t("edit")} style={{ fontSize: 12, color: C.muted, cursor: "pointer" }}>✎</span>}
+                          <span onClick={() => setDelId(m.id)} title={t("delete")} style={{ fontSize: 12, color: C.muted, cursor: "pointer" }}>🗑</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
