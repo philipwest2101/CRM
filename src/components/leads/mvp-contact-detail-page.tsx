@@ -661,7 +661,9 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 16, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16, alignItems: "stretch" }}>
+        {/* Left column: Follow Up with Advisory Documents stacked underneath */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
         <Card style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{t("ovFollowUpTitle")}</span>
@@ -752,6 +754,72 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
             </div>
           ))}
         </Card>
+        </div>
+
+        {/* Right column: Notes & Voice Memos, full height. Composer on top; each
+            note / voice memo is its own full-width card (newest first). */}
+        <Card style={{ padding: "18px 20px", display: "flex", flexDirection: "column", minHeight: 380 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <span style={{ fontSize: 15 }}>💬</span>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovChatTitle")}</div>
+          </div>
+
+          {/* Composer on top — type a note, or record a voice memo (mock) */}
+          {recording ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${C.red}55`, background: C.red + "0C", borderRadius: 10, padding: "8px 10px 8px 14px", marginBottom: 14, flexShrink: 0 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: C.red, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.red, flex: 1 }}>{t("ovRecording")} {fmt(recSecs)}</span>
+              <span onClick={() => setRecording(false)} title="Cancel" style={{ cursor: "pointer", color: C.slate, fontSize: 15 }}>🗑</span>
+              <span onClick={sendVoice} title="Send" style={{ width: 32, height: 32, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 14, cursor: "pointer", flexShrink: 0 }}>➤</span>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.border}`, borderRadius: 10, padding: "6px 6px 6px 14px", marginBottom: 14, flexShrink: 0 }}>
+              <input value={draft} onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") sendText(); }}
+                placeholder={t("ovChatPlaceholder")}
+                style={{ flex: 1, border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", color: C.text, background: "transparent", minWidth: 0 }} />
+              {draft.trim()
+                ? <span onClick={sendText} title="Send" style={{ width: 32, height: 32, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 14, cursor: "pointer", flexShrink: 0 }}>➤</span>
+                : <span onClick={startRec} title={t("ovRecordMemo")} style={{ width: 32, height: 32, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 14, cursor: "pointer", flexShrink: 0 }}>🎙</span>}
+            </div>
+          )}
+
+          {/* Feed — one card per note / voice memo, newest first, fills the rest */}
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+            {(() => {
+              // Seed voice memos are demo history; live notes/voice come off the log.
+              const seed = memos.filter(m => !hiddenSeed.has(m.id)).map(m => ({ ...m, kind: "voice", time: m.date }));
+              const feed = [...seed, ...journeyLog.filter(e => e.note)].reverse();  // newest first
+              if (feed.length === 0)
+                return <div style={{ fontSize: 12.5, color: C.muted, textAlign: "center", padding: "22px 2px" }}>{t("ovChatEmpty")}</div>;
+              return feed.map(m => {
+                const isVoice = m.kind === "voice";
+                return (
+                  <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 11, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 13px", background: "#fff" }}>
+                    <span title={isVoice ? "Play" : undefined}
+                      style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 13,
+                        background: isVoice ? C.primary : C.primarySoft, color: isVoice ? "#fff" : C.primaryDark, cursor: isVoice ? "pointer" : "default" }}>{isVoice ? "▶" : "📝"}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {isVoice ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <Wave />
+                          <span style={{ fontSize: 11.5, color: C.slate, fontWeight: 600 }}>{m.dur || "0:00"}</span>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.text}</div>
+                      )}
+                      {isVoice && m.title && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{m.title}</div>}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10.5, color: C.muted, whiteSpace: "nowrap" }}>{m.time}</span>
+                      <span onClick={() => setDelId(m.id)} title={t("delete")} style={{ fontSize: 12, color: C.muted, cursor: "pointer" }}>🗑</span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </Card>
       </div>
 
       {/* At a Glance — standalone section only for the lead-flow Overview; native
@@ -790,74 +858,6 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
         </div>
       </Card>
       )}
-
-      {/* Notes & Voice Memos — a single Telegram-style conversation feed. Typed
-          notes and voice memos share one timeline (oldest → newest); the composer
-          at the bottom sends a note or records a voice memo. Notes still live on
-          the processing log, so nothing is lost if the pipeline is restored. */}
-      <Card style={{ padding: "18px 20px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <span style={{ fontSize: 15 }}>💬</span>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovChatTitle")}</div>
-        </div>
-
-        {(() => {
-          // Seed voice memos are demo history; live notes/voice come off the log.
-          const seed = memos.filter(m => !hiddenSeed.has(m.id)).map(m => ({ ...m, kind: "voice", time: m.date }));
-          const feed = [...seed, ...journeyLog.filter(e => e.note)];  // oldest → newest
-          if (feed.length === 0)
-            return <div style={{ fontSize: 12.5, color: C.muted, textAlign: "center", padding: "22px 2px" }}>{t("ovChatEmpty")}</div>;
-          return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 360, overflowY: "auto", padding: "2px 2px 6px" }}>
-              {feed.map(m => {
-                const isVoice = m.kind === "voice";
-                return (
-                  <div key={m.id} style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <div style={{ maxWidth: "80%", background: C.primarySoft, border: `1px solid ${C.primary}22`, borderRadius: 14, borderBottomRightRadius: 4, padding: "8px 12px" }}>
-                      {isVoice ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span title="Play" style={{ width: 30, height: 30, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 11, flexShrink: 0, cursor: "pointer" }}>▶</span>
-                          <Wave />
-                          <span style={{ fontSize: 11.5, color: C.slate, fontWeight: 600 }}>{m.dur || "0:00"}</span>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.text}</div>
-                      )}
-                      {isVoice && m.title && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{m.title}</div>}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 3 }}>
-                        <span onClick={() => setDelId(m.id)} title={t("delete")} style={{ fontSize: 11, color: C.muted, cursor: "pointer" }}>🗑</span>
-                        <span style={{ fontSize: 10.5, color: C.muted }}>{m.time}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-
-        {/* Composer — type a note, or hold-to-record a voice memo (mock) */}
-        <div style={{ marginTop: 12 }}>
-          {recording ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${C.red}55`, background: C.red + "0C", borderRadius: 24, padding: "8px 12px 8px 16px" }}>
-              <span style={{ width: 10, height: 10, borderRadius: "50%", background: C.red, flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.red, flex: 1 }}>{t("ovRecording")} {fmt(recSecs)}</span>
-              <span onClick={() => setRecording(false)} title="Cancel" style={{ cursor: "pointer", color: C.slate, fontSize: 15 }}>🗑</span>
-              <span onClick={sendVoice} title="Send" style={{ width: 34, height: 34, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer", flexShrink: 0 }}>➤</span>
-            </div>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.border}`, borderRadius: 24, padding: "6px 6px 6px 16px" }}>
-              <input value={draft} onChange={e => setDraft(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") sendText(); }}
-                placeholder={t("ovChatPlaceholder")}
-                style={{ flex: 1, border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", color: C.text, background: "transparent", minWidth: 0 }} />
-              {draft.trim()
-                ? <span onClick={sendText} title="Send" style={{ width: 34, height: 34, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer", flexShrink: 0 }}>➤</span>
-                : <span onClick={startRec} title={t("ovRecordMemo")} style={{ width: 34, height: 34, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer", flexShrink: 0 }}>🎙</span>}
-            </div>
-          )}
-        </div>
-      </Card>
 
       {delId && (
         <ConfirmModal title="Delete message?" message="This message will be permanently removed. This action cannot be undone."
