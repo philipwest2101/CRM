@@ -657,7 +657,7 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
       <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 16, alignItems: "start" }}>
         <Card style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{t("ovFollowUpTitle")} <InfoTip text={t("ovFollowUpTip")} /></span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{t("ovFollowUpTitle")}</span>
             {/* Native contacts never walked the lead steps, so the step badge is
                 meaningless here — show nothing. Leads keep their live stage badge. */}
             {!native && <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{stageLabel}</span>}
@@ -665,30 +665,58 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
           <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
             {!native && <Donut value={fb.calls || 0} total={callTotal} />}
             <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: C.muted }}>{t("ovLastAction")}</span>
-                <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || (native ? (lead?.lastContact || "27.06.2026") : "—")}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 600, color: C.text }}>
-                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
-                {lastAction?.label || t("ovNoActionYet")}
-              </div>
-              {/* Primary open Next Action (structured property, spec §4) */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: C.muted }}>{t("ovNextAction")}</span>
-                {nextActionDue && <span style={{ fontSize: 11.5, color: C.muted }}>{t("ovDue")} {nextActionDue}</span>}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 700, color: primaryNextAction ? C.navy : C.muted }}>
-                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center" }}>➡️</span>
-                {primaryNextAction || t("ovNoOpenAction")}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: C.muted }}>{t("ovNextBestAction")}</span><AiTag />
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.text }}>
-                <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{nextBest.icon}</span>
-                {nextBest.label}
-              </div>
+              {native ? (
+                // Network contact: Last Event Attended sits in a row before Last
+                // Action. No Next Action / Next Best Action here — a Network member
+                // is not being processed through the lead pipeline.
+                <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 150 }}>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{t("ovLastEvent")}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.text }}>
+                      <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center", flexShrink: 0 }}>📅</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div>Finanzforum München 2026</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: C.muted, marginTop: 1 }}>12.06.2026</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 150 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, color: C.muted }}>{t("ovLastAction")}</span>
+                      <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || lead?.lastContact || "27.06.2026"}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.text }}>
+                      <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center", flexShrink: 0 }}>{lastAction?.icon || "🕓"}</span>
+                      {lastAction?.label || t("ovNoActionYet")}
+                    </div>
+                  </div>
+                </div>
+              ) : (<>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: C.muted }}>{t("ovLastAction")}</span>
+                  <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || "—"}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 600, color: C.text }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
+                  {lastAction?.label || t("ovNoActionYet")}
+                </div>
+                {/* Primary open Next Action (structured property, spec §4) */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: C.muted }}>{t("ovNextAction")}</span>
+                  {nextActionDue && <span style={{ fontSize: 11.5, color: C.muted }}>{t("ovDue")} {nextActionDue}</span>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 14, fontWeight: 700, color: primaryNextAction ? C.navy : C.muted }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 7, background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center" }}>➡️</span>
+                  {primaryNextAction || t("ovNoOpenAction")}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: C.muted }}>{t("ovNextBestAction")}</span><AiTag />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.text }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{nextBest.icon}</span>
+                  {nextBest.label}
+                </div>
+              </>)}
               {/* Conditional: Lost Reason only when Processing = Lost (spec §4) */}
               {showLostReason && (
                 <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.red + "0C", border: `1px solid ${C.red}33` }}>
@@ -705,16 +733,6 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
               )}
             </div>
           </div>
-          {/* At a Glance, merged in (native contacts only): Last Event lives inside
-              Follow Up. Last Contact was dropped — it overlapped with Last Action,
-              whose date now carries the last-contact date instead. */}
-          {native && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.muted, marginBottom: 4 }}>{t("ovLastEvent")}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>Finanzforum München 2026</div>
-              <div style={{ fontSize: 12, color: C.slate, marginTop: 2 }}>12.06.2026</div>
-            </div>
-          )}
         </Card>
 
         <Card style={{ padding: "18px 20px" }}>
@@ -831,118 +849,6 @@ const SectionBar = ({ children }) => (
     <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{children}</span>
   </div>
 );
-
-// ── Lead Journey tab ──────────────────────────────────────────────────────────
-// Read-only report shown for Network contacts that were converted from a Lead. It
-// is history, not a workspace: no actions, no notes, no "Next Action" (the lead is
-// finished). Two elements only — a Follow-Up snapshot (call attempts, last action
-// and how the lead closed) and the Pipeline Journey (the lead's live status
-// timeline, rebuilt from the processing log). Fully bilingual (labels via i18n).
-const LeadJourneyTab = ({ feedback = null, c = null, lead = null }: any) => {
-  const t = useT();
-  const fb          = feedback || { calls: 3, current: 1, finished: false, lastAction: null };
-  const callTotal   = Math.max(5, fb.calls || 0);
-  // The badge is a history report, not a to-do: show the contact's latest status
-  // after converting from the Lead lifecycle (its Network outcome, e.g. Customer /
-  // Partner), never the imperative "next step" label. Falls back to "Converted".
-  const latestStatus = c?.stageStatus || t("ljConverted");
-  const lastAction  = fb.lastAction;
-  const showLostReason = (fb.outcome === "Lost" || !!fb.lostReason) && !!fb.lostReason;
-  const showFollowUp   = (!!fb.followUpReason || !!fb.followUpDate);
-  const journeyLog  = Array.isArray(fb.log) ? fb.log : [];
-  const Dot = ({ color }) => <span style={{ width: 14, height: 14, borderRadius: "50%", background: color, border: `3px solid ${color}33`, flexShrink: 0, zIndex: 1 }} />;
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Read-only report banner */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.light, color: C.slate, border: `1px solid ${C.border}` }}>🔒 {t("ljReportBadge")}</span>
-        <span style={{ fontSize: 12, color: C.muted }}>{t("ljReadOnlyHint")}</span>
-      </div>
-
-      {/* Follow-Up snapshot — call attempts + last action + how the lead closed. No
-          Next Action / Next Best Action: the lead is done, nothing is "open". */}
-      <Card style={{ padding: "18px 20px" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{t("ovFollowUpTitle")} <InfoTip text={t("ljFollowUpTip")} /></span>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.primarySoft, color: C.primaryDark }}>{latestStatus}</span>
-        </div>
-        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-          <Donut value={fb.calls || 0} total={callTotal} />
-          <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 12, color: C.muted }}>{t("ovLastAction")}</span>
-              <span style={{ fontSize: 12, color: C.muted }}>{lastAction?.date || "—"}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: C.text }}>
-              <span style={{ width: 26, height: 26, borderRadius: 7, background: C.light, display: "grid", placeItems: "center" }}>{lastAction?.icon || "🕓"}</span>
-              {lastAction?.label || t("ljNoActivity")}
-            </div>
-            {/* How the lead closed: Lost Reason (Processing = Lost) or Follow-Up Reason */}
-            {showLostReason && (
-              <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.red + "0C", border: `1px solid ${C.red}33` }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.red, marginBottom: 3 }}>{t("fpLostReason")}</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.lostReason}</div>
-              </div>
-            )}
-            {showFollowUp && (
-              <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 9, background: C.purple + "0C", border: `1px solid ${C.purple}33` }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.purple, marginBottom: 3 }}>{t("ovFollowUpReasonLabel")}{fb.followUpDate ? ` · ${fb.followUpDate}` : ""}</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fb.followUpReason || "Scheduled follow-up"}</div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      {/* Pipeline Journey — the lead's status timeline, rebuilt from the processing
-          log. Status events only (notes are excluded here); read-only, no delete. */}
-      <SectionBar>{t("ovJourneyPipeline")}</SectionBar>
-      <Card style={{ padding: "18px 20px" }}>
-        <div style={{ position: "relative", paddingLeft: 8 }}>
-          <div style={{ position: "absolute", left: 14, top: 6, bottom: 6, width: 2, background: C.border }} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {(() => {
-              // Keep the original index so the first log entry (the contact's creation)
-              // still renders its metadata after notes are filtered out and the list
-              // is reversed to newest-first.
-              const view = journeyLog
-                .map((e, i) => ({ ...e, _created: i === 0, _key: e.id || `ev-${i}` }))
-                .filter(e => !e.note)
-                .reverse();
-              if (view.length === 0) return <div style={{ fontSize: 12.5, color: C.muted, padding: "4px 2px" }}>{t("ljNoJourney")}</div>;
-              const activeKey = view[0]?._key;
-              return view.map(e => {
-                const isActive = e._key === activeKey;
-                return (
-                  <div key={e._key} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                    <Dot color={isActive ? C.blue : C.green} />
-                    <div style={{ flex: 1, border: `1px solid ${isActive ? C.blue : C.border}`, borderRadius: 10, padding: "12px 16px", background: "#fff" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                        <span style={{ fontSize: 13.5, fontWeight: 700, color: isActive ? C.blue : C.text }}>{e.text}</span>
-                        <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>{e.time}</span>
-                      </div>
-                      {e._created && (
-                        <div style={{ display: "flex", gap: 40, marginTop: 12, flexWrap: "wrap" }}>
-                          {[[t("ovCreatedBy"), c?.assignee], [t("ovSource"), c?.source], [t("campaignAssignment"), c?.campaign]].map(([k, v]) => (
-                            <div key={k}>
-                              <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{k}</div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{v || "—"}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-};
 
 // ── Information tab ───────────────────────────────────────────────────────────
 const InfoField = ({ label, value, node }) => (
@@ -2052,19 +1958,17 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
   // every other tab (and the identity-rail quick actions) stays locked until the
   // lead has been converted to a contact.
   const isNetwork = isMyNetwork || feedback.isContact;
-  // A Network contact that was converted from a Lead (a lead finalized here, or a
-  // My Network seed flagged `wasLead`) shows the read-only "Lead Journey" report
-  // instead of "Overview". Contacts created directly by a user keep "Overview".
-  const wasLead = feedback.isContact && (!isMyNetwork || lead?.wasLead === true);
-  const primaryTab = wasLead ? t("leadJourneyTab") : t("overviewTab");
+  // Every Network contact opens on the standard "Overview" tab (converted-from-lead
+  // contacts included — the read-only "Lead Journey" report has been retired).
+  const primaryTab = t("overviewTab");
   // "Products" (Products & Contracts) is a Network-lifecycle-only tab: a contact
   // in the Network can hold financing / insurance / investment / … products.
   const ACTIVE_TABS = isNetwork
     ? [primaryTab, t("productsTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
     : [t("feedbackTab"), t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
   const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
-  // Network contacts open on their primary tab (Overview or Lead Journey); leads
-  // open on Feedback & Processing.
+  // Network contacts open on their primary tab (Overview); leads open on
+  // Feedback & Processing.
   const defaultTab = () => (isNetwork ? primaryTab : t("feedbackTab"));
   const [tab, setTab] = useState(defaultTab);
   // Re-initialise when navigating to a different contact.
@@ -2141,7 +2045,6 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
                                             onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); notify && notify("Lead added to My Network", "success"); }}
                                             autoConvert={sourceAction === "convert"} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} native={isNetwork} feedback={feedback} setFeedback={setFeedback} c={c} lead={lead} />}
-          {tab === t("leadJourneyTab")  && <LeadJourneyTab feedback={feedback} c={c} lead={lead} />}
           {tab === t("productsTab")    && <ProductsTab />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
