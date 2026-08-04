@@ -2101,7 +2101,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
                                             onLeadConverted={(outcome) => { setLeadState(lead?.id, { finalized: true, lifecycle: "Network", outcome, networkStatus: networkOutcomeLabel(outcome) }); setNetworkOutcome(Array.isArray(outcome) ? outcome : []); notify && notify("Lead added to My Network", "success"); }}
                                             autoConvert={sourceAction === "convert"} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} native={isNetwork} feedback={feedback} setFeedback={setFeedback} c={c} lead={lead} />}
-          {tab === t("productsTab")    && <ProductsTab />}
+          {tab === t("productsTab")    && <ProductsTab notify={notify} />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}
