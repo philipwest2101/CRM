@@ -6,6 +6,7 @@ import { ModalShell, FooterBtns, Label, fieldStyle, placeholderSelect } from "./
 import { MVPTaskModal } from "./mvp-task-modal";
 import { MVPAppointmentModal } from "./mvp-appointment-modal";
 import { FeedbackProcessingTab, makeInitialFeedback, STEPS } from "./feedback-processing-tab";
+import { ProductsTab } from "./products-tab";
 
 // Stage Status is the progress *within* the lifecycle (independent of Lead vs
 // Network). Labels come from the Super-Admin configured statuses.
@@ -2056,8 +2057,10 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
   // instead of "Overview". Contacts created directly by a user keep "Overview".
   const wasLead = feedback.isContact && (!isMyNetwork || lead?.wasLead === true);
   const primaryTab = wasLead ? t("leadJourneyTab") : t("overviewTab");
+  // "Products" (Products & Contracts) is a Network-lifecycle-only tab: a contact
+  // in the Network can hold financing / insurance / investment / … products.
   const ACTIVE_TABS = isNetwork
-    ? [primaryTab, t("activitiesTab"), t("documentsTab"), t("informationTab")]
+    ? [primaryTab, t("productsTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")]
     : [t("feedbackTab"), t("overviewTab"), t("activitiesTab"), t("documentsTab"), t("informationTab")];
   const isTabEnabled = (tabName) => tabName === t("feedbackTab") || feedback.isContact;
   // Network contacts open on their primary tab (Overview or Lead Journey); leads
@@ -2139,6 +2142,7 @@ export const MVPContactDetailPage = ({ lead, navigateTo, sourceView, sourceActio
                                             autoConvert={sourceAction === "convert"} />}
           {tab === t("overviewTab")     && <OverviewTab showInsights={false} native={isNetwork} feedback={feedback} setFeedback={setFeedback} c={c} lead={lead} />}
           {tab === t("leadJourneyTab")  && <LeadJourneyTab feedback={feedback} c={c} lead={lead} />}
+          {tab === t("productsTab")    && <ProductsTab />}
           {tab === t("informationTab") && <InformationTab c={c} role={role} />}
           {tab === t("activitiesTab")  && <ActivitiesTab />}
           {tab === t("documentsTab")   && <DocumentsTab />}
