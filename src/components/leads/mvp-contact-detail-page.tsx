@@ -334,19 +334,6 @@ const OfflineLogModal = ({ onClose }) => (
   </ModalShell>
 );
 
-// ── Add Note modal ────────────────────────────────────────────────────────────
-const AddNoteModal = ({ onClose, onSave }) => {
-  const [text, setText] = useState("");
-  return (
-    <ModalShell icon="📝" title="Add Note" subtitle="Visible only to you — you can edit or delete it later" accent={C.amber} width={480} onClose={onClose}>
-      <Label>Note</Label>
-      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Type something" autoFocus
-        style={{ ...fieldStyle, minHeight: 120, resize: "vertical", lineHeight: 1.5 }} />
-      <FooterBtns onClose={onClose} label="Save Note" disabled={!text.trim()} onAction={() => { onSave(text.trim()); onClose(); }} />
-    </ModalShell>
-  );
-};
-
 // ── pseudo QR + Scan QR Code modal ────────────────────────────────────────────
 const QRCode = ({ size = 190 }) => {
   const n = 25, cell = size / n, rects = [];
@@ -610,8 +597,12 @@ const STEP_BADGE_KEY = { initial: "fpStepInitial", call: "fpStepCall", appointme
 // facts (Last Event · Last Contact), so the standalone At-a-Glance section is hidden.
 const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null, c = null, lead = null, native = false }: any) => {
   const t = useT();
-  const [addNote, setAddNote] = useState(false);
   const [delId, setDelId] = useState(null);
+  // Telegram-style Notes & Voice Memos composer state.
+  const [draft, setDraft] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [recSecs, setRecSecs] = useState(0);
+  const [hiddenSeed, setHiddenSeed] = useState<Set<string>>(() => new Set());
   // Derive Follow-Up figures from the processing state (fallback to defaults).
   const fb          = feedback || { calls: 3, current: 1, finished: false, reached: false, lastAction: null };
   const callTotal   = Math.max(5, fb.calls || 0);
@@ -651,6 +642,22 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
       {[6, 11, 4, 14, 8, 12, 5, 10].map((h, i) => <span key={i} style={{ width: 2, height: h, background: C.primary, borderRadius: 1, opacity: 0.7 }} />)}
     </span>
   );
+  // Notes & Voice Memos share one timeline: typed notes and voice memos are both
+  // stored as note entries on the processing log (voice ones carry kind:"voice"),
+  // so the merged chat feed and its persistence reuse the existing log plumbing.
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const addVoiceItem = (dur) => setFeedback && setFeedback(prev => ({
+    ...prev, log: [...(prev.log || []), { id: `voice-${Date.now()}`, note: true, kind: "voice", dur, time: stamp() }],
+  }));
+  const sendText = () => { const v = draft.trim(); if (!v) return; addNoteItem(v); setDraft(""); };
+  const startRec = () => { setRecSecs(0); setRecording(true); };
+  const sendVoice = () => { const secs = Math.max(1, recSecs); setRecording(false); addVoiceItem(fmt(secs)); };
+  // Tick the elapsed-time counter while a voice memo is being recorded.
+  React.useEffect(() => {
+    if (!recording) return;
+    const id = window.setInterval(() => setRecSecs(s => s + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [recording]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -768,26 +775,6 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
       </div>
       </>)}
 
-      {/* Voice Memo (merged from the Network overview) */}
-      <SectionBar>{t("ovVoiceMemo")}</SectionBar>
-      <Card style={{ padding: "14px 18px", background: C.light, display: "flex", alignItems: "center", gap: 14 }}>
-        <span style={{ width: 40, height: 40, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>🎙</span>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovRecordMemo")}</div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{t("ovRecordHint")}</div>
-        </div>
-      </Card>
-      {memos.map(m => (
-        <Card key={m.id} style={{ padding: "12px 18px", display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 13, flexShrink: 0 }}>▶</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: C.navy }}>{m.title}</div>
-            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{m.date} · {m.dur}</div>
-          </div>
-          <Wave />
-        </Card>
-      ))}
-
       {showInsights && (
       <Card style={{ padding: "16px 20px", border: `1px solid ${C.primary}55`, background: "linear-gradient(180deg,#FFFBF5,#fff)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -804,38 +791,82 @@ const OverviewTab = ({ showInsights = true, feedback = null, setFeedback = null,
       </Card>
       )}
 
-      {/* Notes — the single place to add and read free-text notes about the contact.
-          (The Journey Pipeline timeline was removed; notes are still stored on the
-          processing log, so the pipeline can be restored later without data loss.) */}
+      {/* Notes & Voice Memos — a single Telegram-style conversation feed. Typed
+          notes and voice memos share one timeline (oldest → newest); the composer
+          at the bottom sends a note or records a voice memo. Notes still live on
+          the processing log, so nothing is lost if the pipeline is restored. */}
       <Card style={{ padding: "18px 20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovGeneralNotes")}</div>
-          <button onClick={() => setAddNote(true)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.primary}`, background: "#fff", color: C.primaryDark, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>＋ {t("ovAddNote")}</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <span style={{ fontSize: 15 }}>💬</span>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{t("ovChatTitle")}</div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {(() => {
-            const noteEntries = journeyLog.filter(e => e.note).reverse();  // newest first
-            if (noteEntries.length === 0) return <div style={{ fontSize: 12.5, color: C.muted, padding: "4px 2px" }}>{t("ovNoNotes")}</div>;
-            return noteEntries.map(n => (
-              <div key={n.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", background: C.primarySoft }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.indigo, flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.text}</span>
-                </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-                  <span onClick={() => setDelId(n.id)} title={t("delete")} style={{ color: C.slate, cursor: "pointer" }}>🗑</span>
-                  <span style={{ fontSize: 12, color: C.muted }}>{n.time}</span>
-                </span>
-              </div>
-            ));
-          })()}
+
+        {(() => {
+          // Seed voice memos are demo history; live notes/voice come off the log.
+          const seed = memos.filter(m => !hiddenSeed.has(m.id)).map(m => ({ ...m, kind: "voice", time: m.date }));
+          const feed = [...seed, ...journeyLog.filter(e => e.note)];  // oldest → newest
+          if (feed.length === 0)
+            return <div style={{ fontSize: 12.5, color: C.muted, textAlign: "center", padding: "22px 2px" }}>{t("ovChatEmpty")}</div>;
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 360, overflowY: "auto", padding: "2px 2px 6px" }}>
+              {feed.map(m => {
+                const isVoice = m.kind === "voice";
+                return (
+                  <div key={m.id} style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <div style={{ maxWidth: "80%", background: C.primarySoft, border: `1px solid ${C.primary}22`, borderRadius: 14, borderBottomRightRadius: 4, padding: "8px 12px" }}>
+                      {isVoice ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span title="Play" style={{ width: 30, height: 30, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 11, flexShrink: 0, cursor: "pointer" }}>▶</span>
+                          <Wave />
+                          <span style={{ fontSize: 11.5, color: C.slate, fontWeight: 600 }}>{m.dur || "0:00"}</span>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.text}</div>
+                      )}
+                      {isVoice && m.title && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{m.title}</div>}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 3 }}>
+                        <span onClick={() => setDelId(m.id)} title={t("delete")} style={{ fontSize: 11, color: C.muted, cursor: "pointer" }}>🗑</span>
+                        <span style={{ fontSize: 10.5, color: C.muted }}>{m.time}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {/* Composer — type a note, or hold-to-record a voice memo (mock) */}
+        <div style={{ marginTop: 12 }}>
+          {recording ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${C.red}55`, background: C.red + "0C", borderRadius: 24, padding: "8px 12px 8px 16px" }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: C.red, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.red, flex: 1 }}>{t("ovRecording")} {fmt(recSecs)}</span>
+              <span onClick={() => setRecording(false)} title="Cancel" style={{ cursor: "pointer", color: C.slate, fontSize: 15 }}>🗑</span>
+              <span onClick={sendVoice} title="Send" style={{ width: 34, height: 34, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer", flexShrink: 0 }}>➤</span>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.border}`, borderRadius: 24, padding: "6px 6px 6px 16px" }}>
+              <input value={draft} onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") sendText(); }}
+                placeholder={t("ovChatPlaceholder")}
+                style={{ flex: 1, border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", color: C.text, background: "transparent", minWidth: 0 }} />
+              {draft.trim()
+                ? <span onClick={sendText} title="Send" style={{ width: 34, height: 34, borderRadius: "50%", background: C.primary, color: "#fff", display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer", flexShrink: 0 }}>➤</span>
+                : <span onClick={startRec} title={t("ovRecordMemo")} style={{ width: 34, height: 34, borderRadius: "50%", background: C.primarySoft, color: C.primaryDark, display: "grid", placeItems: "center", fontSize: 15, cursor: "pointer", flexShrink: 0 }}>🎙</span>}
+            </div>
+          )}
         </div>
       </Card>
 
-      {addNote && <AddNoteModal onClose={() => setAddNote(false)} onSave={addNoteItem} />}
       {delId && (
-        <ConfirmModal title="Delete note?" message="This note will be permanently removed. This action cannot be undone."
-          onCancel={() => setDelId(null)} onConfirm={() => { delNote(delId); setDelId(null); }} />
+        <ConfirmModal title="Delete message?" message="This message will be permanently removed. This action cannot be undone."
+          onCancel={() => setDelId(null)}
+          onConfirm={() => {
+            if (memos.some(m => m.id === delId)) setHiddenSeed(prev => { const n = new Set(prev); n.add(delId); return n; });
+            else delNote(delId);
+            setDelId(null);
+          }} />
       )}
     </div>
   );
