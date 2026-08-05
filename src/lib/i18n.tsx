@@ -135,6 +135,14 @@ export const TRANSLATIONS = {
     dqDuplicates: "Possible duplicates",
     dqNoOutcome: "Appointments without outcome",
     dqNoSource: "Leads without source",
+    dqView: "View",
+    // SA: Campaign Outcomes
+    campaignOutcome: "Campaign Outcomes",
+    tooltip_campaignOutcome: "Per-campaign outcomes from documented results, plus the revenue booked.",
+    reachedCol: "Reached",
+    apptsCol: "Appts",
+    convCol: "Conv.",
+    rateCol: "Rate",
     // Dashboard time-slot selector
     period_today: "Today",
     period_week: "Week",
@@ -859,6 +867,14 @@ export const TRANSLATIONS = {
     dqDuplicates: "Mögliche Dubletten",
     dqNoOutcome: "Termine ohne Ergebnis",
     dqNoSource: "Leads ohne Quelle",
+    dqView: "Ansehen",
+    // SA: Kampagnen-Ergebnisse
+    campaignOutcome: "Kampagnen-Ergebnisse",
+    tooltip_campaignOutcome: "Kampagnen-Ergebnisse aus dokumentierten Resultaten, plus verbuchtem Umsatz.",
+    reachedCol: "Erreicht",
+    apptsCol: "Termine",
+    convCol: "Absch.",
+    rateCol: "Quote",
     // Dashboard-Zeitraumauswahl
     period_today: "Heute",
     period_week: "Woche",

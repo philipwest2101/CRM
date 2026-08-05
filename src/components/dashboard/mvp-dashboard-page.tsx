@@ -333,14 +333,15 @@ const VD_ADVISORS = [
   { name:"Nina Schmitt", leads:63,  contacts:74,  appts:18, leadAppts:12, networkAppts:6,  closings:6,  ca:{5:6,4:9,3:12,2:15,1:11} },
 ];
 
-// ── SA: Campaign ROI — leads generated, spend, revenue per campaign (monthly
-//    baseline; scaled by the selected time slot). ─────────────────────────────
+// ── SA: Campaign Outcomes — per-campaign funnel from documented results
+//    (leads → reached → appointments → conversions) plus revenue booked.
+//    Monthly baseline; scaled by the selected time slot. ────────────────────
 const SA_CAMPAIGNS = [
-  { name:"Q1 Finanz",    leads:486, closings:41, cost:12400, revenue:98400 },
-  { name:"Webinar März", leads:352, closings:19, cost:6800,  revenue:45600 },
-  { name:"Messe FFM",    leads:243, closings:11, cost:9500,  revenue:26400 },
-  { name:"Partner Ref",  leads:189, closings:24, cost:3200,  revenue:57600 },
-  { name:"Giveaway",     leads:167, closings:4,  cost:2100,  revenue:9600  },
+  { name:"Q1 Finanz",    leads:486, reached:372, appts:118, conv:41, revenue:98400 },
+  { name:"Webinar März", leads:352, reached:261, appts:74,  conv:19, revenue:45600 },
+  { name:"Messe FFM",    leads:243, reached:168, appts:52,  conv:11, revenue:26400 },
+  { name:"Partner Ref",  leads:189, reached:156, appts:71,  conv:24, revenue:57600 },
+  { name:"Giveaway",     leads:167, reached:98,  appts:22,  conv:4,  revenue:9600  },
 ];
 const CAMPAIGN_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
 
@@ -355,34 +356,37 @@ const DATA_QUALITY = [
 
 const fmtEUR = (v) => "€" + (v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, "") + "k" : Math.round(v).toString());
 
-// Campaign ROI table — tracks leads generated per campaign plus spend/revenue.
-const CampaignRoiCard = ({ t, scaleP, action }) => (
+// Campaign Outcomes table — per-campaign funnel (leads → reached → appts →
+// conversions) with the outcome conversion rate and the revenue booked.
+const COL_TEMPLATE = "1.3fr 0.6fr 0.8fr 0.6fr 0.6fr 0.7fr 0.9fr";
+const CampaignOutcomeCard = ({ t, scaleP, action }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
-    <CardHeader title={t("campaignRoi")} action={action} />
-    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.8fr 0.9fr 0.8fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[t("campaignColumn"), "Leads", t("costCol"), t("revenueCol"), t("roiCol")].map((h, i) => (
-        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
+    <CardHeader title={t("campaignOutcome")} info={t("tooltip_campaignOutcome")} action={action} />
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: COL_TEMPLATE, padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[t("campaignColumn"), "Leads", t("reachedCol"), t("apptsCol"), t("convCol"), t("rateCol"), t("revenueCol")].map((h, i) => (
+        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
       ))}
     </div>
     <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
       {SA_CAMPAIGNS.map((cp, i) => {
-        const cost = scaleP(cp.cost), revenue = scaleP(cp.revenue);
-        const roi = cost > 0 ? Math.round(((revenue - cost) / cost) * 100) : 0;
-        const roiColor = roi >= 200 ? C.green : roi >= 100 ? C.amber : C.red;
+        const rate = cp.leads > 0 ? (cp.conv / cp.leads) * 100 : 0;
+        const rateColor = rate >= 10 ? C.green : rate >= 5 ? C.amber : C.red;
         return (
-          <div key={cp.name} style={{ display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.8fr 0.9fr 0.8fr", padding: "10px 0", borderBottom: i < SA_CAMPAIGNS.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+          <div key={cp.name} style={{ display: "grid", gridTemplateColumns: COL_TEMPLATE, padding: "10px 0", borderBottom: i < SA_CAMPAIGNS.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: CAMPAIGN_COLORS[i % CAMPAIGN_COLORS.length], flexShrink: 0 }} />
               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cp.name}</span>
             </div>
             <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{scaleP(cp.leads)}</div>
-            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{fmtEUR(cost)}</div>
-            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{fmtEUR(revenue)}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.slate }}>{scaleP(cp.reached)}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.slate }}>{scaleP(cp.appts)}</div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color: C.text }}>{scaleP(cp.conv)}</div>
             <div style={{ textAlign: "center" }}>
-              <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: roiColor + "15", color: roiColor }}>
-                {roi >= 0 ? "+" : ""}{roi}%
+              <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: rateColor + "15", color: rateColor }}>
+                {rate.toFixed(1)}%
               </span>
             </div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, fontWeight: 600, color: C.green }}>{fmtEUR(scaleP(cp.revenue))}</div>
           </div>
         );
       })}
@@ -390,8 +394,9 @@ const CampaignRoiCard = ({ t, scaleP, action }) => (
   </Card>
 );
 
-// Data Quality — simple checklist of records needing cleanup (label + count).
-const DataQualityCard = ({ t }) => (
+// Data Quality — simple checklist of records needing cleanup. Each row carries
+// a count and a "View" button that drills into the affected records.
+const DataQualityCard = ({ t, navigateTo }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={t("dataQualityTitle")} info={t("tooltip_dataQuality")} />
     <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 8px" }}>
@@ -402,6 +407,10 @@ const DataQualityCard = ({ t }) => (
             <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: color }} />
             <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.text }}>{t(d.labelKey)}</div>
             <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: color + "15", color }}>{d.count}</span>
+            <button onClick={() => navigateTo("Leads", null, "pending")}
+              style={{ padding: "4px 12px", borderRadius: 7, flexShrink: 0, border: `1px solid ${C.border}`, background: "#fff", color: C.blue, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              {t("dqView")}
+            </button>
           </div>
         );
       })}
@@ -447,9 +456,9 @@ const PerfTable = ({ title, rowLabel, rows, action, closingCol, successCol }) =>
 const FunnelCard = ({ t, stages, action = null }) => {
   const max = stages[0]?.value || 1;
   return (
-    <Card style={{ display: "flex", flexDirection: "column" }}>
+    <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
       <CardHeader title={t("pipelineTitle")} info={t("tooltip_pipeline")} action={action} />
-      <div style={{ padding: "16px 18px 18px", display: "flex", flexDirection: "column", gap: 13 }}>
+      <div style={{ flex: 1, padding: "8px 18px 12px", display: "flex", flexDirection: "column", justifyContent: "space-evenly" }}>
         {stages.map((s) => {
           const pct = Math.round((s.value / max) * 100);
           return (
@@ -963,9 +972,9 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Row 1: Leads | Appointments Today — equal size, scroll past ~4 rows.
-                The VD Team view drops the Appointments panel and lets Leads span. ── */}
-        <div style={{ display: "grid", gridTemplateColumns: showApptsPanel ? "1fr 1fr" : "1fr", gap: 14, marginBottom: 14 }}>
+        {/* ── Row 1: Leads | Appointments (GP/VD) or Pipeline (SA) — equal size.
+                The VD Team view drops the second panel and lets Leads span. ── */}
+        <div style={{ display: "grid", gridTemplateColumns: (showApptsPanel || isSA) ? "1fr 1fr" : "1fr", gap: 14, marginBottom: 14 }}>
 
           {/* ── Leads panel ─────────────────────────────────────────────────── */}
           <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
@@ -1068,6 +1077,12 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               </div>
             </Card>
           )}
+
+          {/* ── SA → Operational Pipeline funnel beside the Unassigned Leads ── */}
+          {isSA && (
+            <FunnelCard t={t} stages={funnelStages}
+              action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
+          )}
         </div>
 
         {/* ── Row 2: GP / VD (My) → Reminders & Tasks | Recent Activity ───── */}
@@ -1154,14 +1169,6 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── SA → Operational Pipeline funnel (full-width chart section) ──── */}
-        {isSA && (
-        <div style={{ marginBottom: 14 }}>
-          <FunnelCard t={t} stages={funnelStages}
-            action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
-        </div>
-        )}
-
         {/* ── Row 2: SA → Team Performance (full width) ───────────────────── */}
         {isSA && (
         <div style={{ marginBottom: 14 }}>
@@ -1189,12 +1196,12 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Row 3: SA → Campaign ROI | Data Quality ─────────────────────── */}
+        {/* ── Row 3: SA → Campaign Outcomes | Data Quality ────────────────── */}
         {isSA && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-          <CampaignRoiCard t={t} scaleP={scaleP}
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 14 }}>
+          <CampaignOutcomeCard t={t} scaleP={scaleP}
             action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
-          <DataQualityCard t={t} />
+          <DataQualityCard t={t} navigateTo={navigateTo} />
         </div>
         )}
 
