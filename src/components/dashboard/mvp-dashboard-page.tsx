@@ -346,34 +346,57 @@ const SA_CAMPAIGNS = [
 const CAMPAIGN_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
 
 // ── SA: Data Quality — records that need cleanup to keep the pipeline healthy.
-//    Each issue carries the affected records, surfaced in a per-issue modal.
-//    `rows`: { primary, secondary, meta, avatarName?, metaWarn? }. A sample is
-//    shown when the sample is smaller than the headline count. ────────────────
+//    Each issue lists *every* affected record, surfaced in a per-issue modal.
+//    `rows`: { primary, secondary, meta | metaKey, avatarName?, metaWarn? }.
+//    The card badge / modal count are derived from rows.length. ───────────────
 const DATA_QUALITY = [
-  { key:"noActivity", labelKey:"dqNoActivity", count:18, warn:true, rows:[
-    { primary:"Sophia Richter", secondary:"Anna Klein · Düsseldorf",   meta:"5d", metaWarn:true },
-    { primary:"Dominik Meier",  secondary:"Kai Fischer · Stuttgart",   meta:"4d", metaWarn:true },
-    { primary:"Jens Brinkmann", secondary:"Maria Weber · Frankfurt",   meta:"6d", metaWarn:true },
-    { primary:"Petra Hofmann",  secondary:"Peter Schmidt · München",   meta:"4d", metaWarn:true },
-    { primary:"Robert Keller",  secondary:"Anna Klein · Dresden",      meta:"7d", metaWarn:true },
+  // Leads with no logged activity for more than 3 days (meta = days stale).
+  { key:"noActivity", labelKey:"dqNoActivity", warn:true, rows:[
+    { primary:"Sophia Richter",  secondary:"Anna Klein · Düsseldorf",   meta:"5d",  metaWarn:true },
+    { primary:"Dominik Meier",   secondary:"Kai Fischer · Stuttgart",   meta:"4d",  metaWarn:true },
+    { primary:"Jens Brinkmann",  secondary:"Maria Weber · Frankfurt",   meta:"6d",  metaWarn:true },
+    { primary:"Petra Hofmann",   secondary:"Peter Schmidt · München",   meta:"4d",  metaWarn:true },
+    { primary:"Robert Keller",   secondary:"Anna Klein · Dresden",      meta:"7d",  metaWarn:true },
+    { primary:"Christine Wolff", secondary:"Sophie Braun · Leipzig",    meta:"8d",  metaWarn:true },
+    { primary:"Dieter Schulz",   secondary:"Kai Fischer · Bremen",      meta:"5d",  metaWarn:true },
+    { primary:"Ursula Neumann",  secondary:"Maria Weber · Nürnberg",    meta:"9d",  metaWarn:true },
+    { primary:"Felix Hartmann",  secondary:"Anna Klein · Berlin",       meta:"4d",  metaWarn:true },
+    { primary:"Katrin Weber",    secondary:"Peter Schmidt · Hamburg",   meta:"11d", metaWarn:true },
+    { primary:"Markus Bauer",    secondary:"Sophie Braun · Hamburg",    meta:"6d",  metaWarn:true },
+    { primary:"Laura Fischer",   secondary:"Kai Fischer · Wien",        meta:"5d",  metaWarn:true },
+    { primary:"Sabine Wolf",     secondary:"Maria Weber · Köln",        meta:"12d", metaWarn:true },
+    { primary:"Oliver Braun",    secondary:"Anna Klein · Essen",        meta:"4d",  metaWarn:true },
+    { primary:"Nicole Hartmann", secondary:"Peter Schmidt · Dortmund",  meta:"7d",  metaWarn:true },
+    { primary:"Daniel Schulz",   secondary:"Sophie Braun · Hannover",   meta:"5d",  metaWarn:true },
+    { primary:"Julia Schäfer",   secondary:"Kai Fischer · Nürnberg",    meta:"8d",  metaWarn:true },
+    { primary:"Michael Stein",   secondary:"Maria Weber · Bonn",        meta:"6d",  metaWarn:true },
   ] },
-  { key:"duplicates", labelKey:"dqDuplicates", count:6, warn:false, rows:[
-    { avatarName:"Markus Bauer", primary:"Markus Bauer ↔ Markus Bauer", secondary:"☎ +49 170 555 2841", meta:"98%" },
-    { avatarName:"Laura Fischer", primary:"Laura Fischer ↔ L. Fischer",  secondary:"✉ l.fischer@web.de", meta:"95%" },
-    { avatarName:"Klaus Wagner", primary:"Klaus Wagner ↔ Klaus Wagner", secondary:"☎ +49 151 447 9920", meta:"92%" },
+  // Exact (100%) duplicate — same phone or e-mail on two records.
+  { key:"duplicates", labelKey:"dqDuplicates", warn:false, rows:[
+    { avatarName:"Markus Bauer",   primary:"Markus Bauer ↔ Markus Bauer",   secondary:"☎ +49 170 555 2841",     meta:"100%" },
+    { avatarName:"Laura Fischer",  primary:"Laura Fischer ↔ L. Fischer",    secondary:"✉ l.fischer@web.de",     meta:"100%" },
+    { avatarName:"Klaus Wagner",   primary:"Klaus Wagner ↔ Klaus Wagner",   secondary:"☎ +49 151 447 9920",     meta:"100%" },
+    { avatarName:"Petra Sommer",   primary:"Petra Sommer ↔ P. Sommer",      secondary:"✉ p.sommer@gmx.de",      meta:"100%" },
+    { avatarName:"Thomas Fellner", primary:"Thomas Fellner ↔ Thomas Fellner", secondary:"☎ +49 160 223 8817",   meta:"100%" },
+    { avatarName:"Lena Brandt",    primary:"Lena Brandt ↔ Lena Brandt",     secondary:"✉ lena.brandt@web.de",   meta:"100%" },
   ] },
-  { key:"noOutcome", labelKey:"dqNoOutcome", count:7, warn:false, rows:[
-    { primary:"Hans Müller",  secondary:"Anna Klein · Consultation",    meta:"02.07." },
-    { primary:"Eva Gruber",   secondary:"Thomas Müller · Investment",   meta:"01.07." },
-    { primary:"Stefan Wolf",  secondary:"Thomas Müller · Business",     meta:"30.06." },
-    { primary:"Julia Weiss",  secondary:"Anna Klein · Finance",         meta:"29.06." },
+  // Appointments held more than 3 days ago with no outcome recorded (meta = days since).
+  { key:"noOutcome", labelKey:"dqNoOutcome", warn:false, rows:[
+    { primary:"Hans Müller",    secondary:"Anna Klein · Consultation",  meta:"5d", metaWarn:true },
+    { primary:"Eva Gruber",     secondary:"Thomas Müller · Investment", meta:"4d", metaWarn:true },
+    { primary:"Stefan Wolf",    secondary:"Thomas Müller · Business",   meta:"6d", metaWarn:true },
+    { primary:"Julia Weiss",    secondary:"Anna Klein · Finance",       meta:"4d", metaWarn:true },
+    { primary:"Klaus Richter",  secondary:"Peter Schmidt · Consultation", meta:"7d", metaWarn:true },
+    { primary:"Sandra Richter", secondary:"Maria Weber · Investment",   meta:"5d", metaWarn:true },
+    { primary:"Ben Hartmann",   secondary:"Kai Fischer · Business",     meta:"8d", metaWarn:true },
   ] },
-  { key:"noSource", labelKey:"dqNoSource", count:5, warn:false, rows:[
-    { primary:"Felix Hartmann", secondary:"Berlin",     meta:"03.07." },
-    { primary:"Katrin Weber",   secondary:"Hamburg",    meta:"02.07." },
-    { primary:"Petra Hofmann",  secondary:"München",    meta:"01.07." },
-    { primary:"Jens Brinkmann", secondary:"Frankfurt",  meta:"30.06." },
-    { primary:"Sophia Richter", secondary:"Düsseldorf", meta:"29.06." },
+  // Leads missing a lead source and/or a campaign (meta = which field is missing).
+  { key:"noSource", labelKey:"dqNoSource", warn:false, rows:[
+    { primary:"Felix Hartmann", secondary:"Berlin",     metaKey:"dqMissSource"   },
+    { primary:"Katrin Weber",   secondary:"Hamburg",    metaKey:"dqMissCampaign" },
+    { primary:"Petra Hofmann",  secondary:"München",    metaKey:"dqMissBoth"     },
+    { primary:"Jens Brinkmann", secondary:"Frankfurt",  metaKey:"dqMissSource"   },
+    { primary:"Sophia Richter", secondary:"Düsseldorf", metaKey:"dqMissCampaign" },
   ] },
 ];
 
@@ -428,7 +451,7 @@ const DataQualityModal = ({ issue, t, onClose }) => {
           <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
             <span style={{ width:10, height:10, borderRadius:"50%", flexShrink:0, background:color }} />
             <span style={{ fontSize:16.5, fontWeight:700, color:C.navy, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t(issue.labelKey)}</span>
-            <span style={{ fontSize:12, fontFamily:"monospace", fontWeight:700, padding:"2px 9px", borderRadius:20, flexShrink:0, background:color+"15", color }}>{issue.count}</span>
+            <span style={{ fontSize:12, fontFamily:"monospace", fontWeight:700, padding:"2px 9px", borderRadius:20, flexShrink:0, background:color+"15", color }}>{issue.rows.length}</span>
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:C.muted, lineHeight:1, flexShrink:0 }}>×</button>
         </div>
@@ -440,12 +463,12 @@ const DataQualityModal = ({ issue, t, onClose }) => {
                 <div style={{ fontSize:13, fontWeight:600, color:C.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{r.primary}</div>
                 <div style={{ fontSize:11, color:C.muted, marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{r.secondary}</div>
               </div>
-              <span style={{ fontSize:11.5, fontFamily:"monospace", fontWeight:600, flexShrink:0, color:r.metaWarn ? C.red : C.slate }}>{r.meta}</span>
+              <span style={{ fontSize:11.5, fontFamily:"monospace", fontWeight:600, flexShrink:0, color:r.metaWarn ? C.red : C.slate }}>{r.metaKey ? t(r.metaKey) : r.meta}</span>
             </div>
           ))}
         </div>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 22px 16px", borderTop:`1px solid ${C.border}` }}>
-          <span style={{ fontSize:11.5, color:C.muted }}>{t("dqShowing")} {issue.rows.length} / {issue.count}</span>
+          <span style={{ fontSize:11.5, color:C.muted }}>{t("dqShowing")}: {issue.rows.length}</span>
           <button onClick={onClose} style={{ padding:"9px 22px", borderRadius:9, border:"none", background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>{t("dqClose")}</button>
         </div>
       </div>
@@ -467,7 +490,7 @@ const DataQualityCard = ({ t }) => {
             <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < DATA_QUALITY.length - 1 ? `1px solid ${C.border}` : "none" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: color }} />
               <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.text }}>{t(d.labelKey)}</div>
-              <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: color + "15", color }}>{d.count}</span>
+              <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: color + "15", color }}>{d.rows.length}</span>
               <button onClick={() => setOpenIssue(d)}
                 style={{ padding: "4px 12px", borderRadius: 7, flexShrink: 0, border: `1px solid ${C.border}`, background: "#fff", color: C.blue, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 {t("dqView")}
