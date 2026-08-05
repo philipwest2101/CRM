@@ -898,7 +898,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const funnelStages = [
     { key:"new",         label:t("funnelNew"),         value: aggLeads },
     { key:"assigned",    label:t("funnelAssigned"),    value: Math.round(aggLeads * 0.82) },
-    { key:"contacted",   label:t("funnelContacted"),   value: Math.round(aggLeads * 0.64) },
+    { key:"reached",     label:t("funnelReached"),     value: Math.round(aggLeads * 0.64) },
     { key:"appointment", label:t("funnelAppointment"), value: aggAppts },
     { key:"converted",   label:t("funnelConverted"),   value: aggClosings },
   ];
