@@ -405,7 +405,7 @@ const fmtEUR = (v) => "€" + (v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/,
 // Campaign Outcomes table — per-campaign funnel (leads → reached → appts →
 // conversions) with the outcome conversion rate and the revenue booked.
 const COL_TEMPLATE = "1.3fr 0.6fr 0.8fr 0.6fr 0.6fr 0.7fr 0.9fr";
-const CampaignOutcomeCard = ({ t, scaleP, action }) => (
+const CampaignOutcomeCard = ({ t, scaleP, action = null }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={t("campaignOutcome")} info={t("tooltip_campaignOutcome")} action={action} />
     <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: COL_TEMPLATE, padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
@@ -506,7 +506,7 @@ const DataQualityCard = ({ t }) => {
 
 // Performance table (rows = teams for SA, advisors for VD).
 // Closing % = closings / appointments; Success % = closings / leads.
-const PerfTable = ({ title, rowLabel, rows, action, closingCol, successCol }) => (
+const PerfTable = ({ title, rowLabel, rows, action = null, closingCol, successCol }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={title} action={action} />
     <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.8fr 0.9fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
@@ -1166,8 +1166,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
 
           {/* ── SA → Operational Pipeline funnel beside the Unassigned Leads ── */}
           {isSA && (
-            <FunnelCard t={t} stages={funnelStages}
-              action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
+            <FunnelCard t={t} stages={funnelStages} />
           )}
         </div>
 
@@ -1259,8 +1258,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {isSA && (
         <div style={{ marginBottom: 14 }}>
           <PerfTable title={t("teamPerformance")} rowLabel={perfRowLabel} rows={perfRows}
-            closingCol={t("closingRateCol")} successCol={t("successRateCol")}
-            action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
+            closingCol={t("closingRateCol")} successCol={t("successRateCol")} />
         </div>
         )}
 
@@ -1285,8 +1283,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {/* ── Row 3: SA → Campaign Outcomes | Data Quality ────────────────── */}
         {isSA && (
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 14 }}>
-          <CampaignOutcomeCard t={t} scaleP={scaleP}
-            action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
+          <CampaignOutcomeCard t={t} scaleP={scaleP} />
           <DataQualityCard t={t} />
         </div>
         )}
