@@ -82,7 +82,7 @@ export const TRANSLATIONS = {
     teamCol: "Team",
     advisorCol: "Advisor",
     closingRateCol: "Closing %",
-    successRateCol: "Success %",
+    successRateCol: "Conversion Rate %",
     // Take Over / Detail & Feedback / Assigned Leads / Contact List
     takeOver: "Take Over",
     takeOverConfirmTitle: "Confirm Take Over",
@@ -819,7 +819,7 @@ export const TRANSLATIONS = {
     teamCol: "Team",
     advisorCol: "Berater",
     closingRateCol: "Abschluss %",
-    successRateCol: "Erfolg %",
+    successRateCol: "Conversion-Rate %",
     // Übernehmen / Detail & Feedback / Zugewiesene Leads / Kontaktliste
     takeOver: "Übernehmen",
     takeOverConfirmTitle: "Übernahme bestätigen",

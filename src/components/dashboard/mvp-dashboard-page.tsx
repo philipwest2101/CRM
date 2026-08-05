@@ -505,21 +505,20 @@ const DataQualityCard = ({ t }) => {
 };
 
 // Performance table (rows = teams for SA, advisors for VD).
-// Closing % = closings / appointments; Success % = closings / leads.
-const PerfTable = ({ title, rowLabel, rows, action = null, closingCol, successCol }) => (
+// Conversion rate % = closed-won / leads.
+const PerfTable = ({ title, rowLabel, rows, action = null, successCol }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={title} action={action} />
-    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.8fr 0.9fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[rowLabel, "Leads", "Appts", "Closings", closingCol, successCol].map((h, i) => (
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.9fr 1.1fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[rowLabel, "Leads", "Appts", "Closed Won", successCol].map((h, i) => (
         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
       ))}
     </div>
     <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
       {rows.map((r, i) => {
-        const closingRate = r.appts > 0 ? ((r.closings / r.appts) * 100).toFixed(1) + "%" : "0%";
         const successRate = r.leads > 0 ? ((r.closings / r.leads) * 100).toFixed(1) + "%" : "0%";
         return (
-          <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.8fr 0.9fr 0.9fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+          <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.9fr 1.1fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <Avatar name={r.name} size={26} />
               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
@@ -527,7 +526,6 @@ const PerfTable = ({ title, rowLabel, rows, action = null, closingCol, successCo
             <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.leads}</div>
             <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.appts}</div>
             <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, color: C.text }}>{r.closings}</div>
-            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color: parseFloat(closingRate) >= 30 ? C.green : parseFloat(closingRate) >= 20 ? C.amber : C.red }}>{closingRate}</div>
             <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 12.5, fontWeight: 700, color: parseFloat(successRate) >= 10 ? C.green : parseFloat(successRate) >= 6 ? C.amber : C.red }}>{successRate}</div>
           </div>
         );
@@ -1258,7 +1256,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {isSA && (
         <div style={{ marginBottom: 14 }}>
           <PerfTable title={t("teamPerformance")} rowLabel={perfRowLabel} rows={perfRows}
-            closingCol={t("closingRateCol")} successCol={t("successRateCol")} />
+            successCol={t("successRateCol")} />
         </div>
         )}
 
