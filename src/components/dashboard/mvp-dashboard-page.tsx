@@ -344,14 +344,13 @@ const SA_CAMPAIGNS = [
 ];
 const CAMPAIGN_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
 
-// ── SA: Missing Feedback — advisors who have not updated the status of leads
-//    assigned to them (alert list with a notify action). ──────────────────────
-const MISSING_FEEDBACK = [
-  { id:"mf1", advisor:"Marc Otto",    team:"Thomas Müller", leads:6, days:5 },
-  { id:"mf2", advisor:"Tanja Vogt",   team:"Jana Kruse",    leads:5, days:6 },
-  { id:"mf3", advisor:"Nina Schmitt", team:"Thomas Müller", leads:4, days:3 },
-  { id:"mf4", advisor:"Jonas Peters", team:"Marc Fischer",  leads:3, days:4 },
-  { id:"mf5", advisor:"Ben Hartmann", team:"Ralf Fischer",  leads:2, days:2 },
+// ── SA: Data Quality — a short, static list of records that need cleanup to
+//    keep the pipeline healthy. Deliberately simple: label + count, no actions.
+const DATA_QUALITY = [
+  { key:"noActivity", labelKey:"dqNoActivity", count:18, warn:true  },
+  { key:"duplicates", labelKey:"dqDuplicates", count:6,  warn:false },
+  { key:"noOutcome",  labelKey:"dqNoOutcome",  count:7,  warn:false },
+  { key:"noSource",   labelKey:"dqNoSource",   count:5,  warn:false },
 ];
 
 const fmtEUR = (v) => "€" + (v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, "") + "k" : Math.round(v).toString());
@@ -391,52 +390,24 @@ const CampaignRoiCard = ({ t, scaleP, action }) => (
   </Card>
 );
 
-// Missing Feedback alerts — advisors without status updates on assigned leads.
-const MissingFeedbackCard = ({ t }) => {
-  const [notified, setNotified] = useState({});
-  return (
-    <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
-      <CardHeader
-        title={t("missingFeedbackTitle")}
-        info={t("tooltip_missingFeedback")}
-        action={
-          <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: C.red + "15", color: C.red }}>
-            {MISSING_FEEDBACK.reduce((s, m) => s + m.leads, 0)}
-          </span>
-        }
-      />
-      <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 8px" }}>
-        {MISSING_FEEDBACK.map((m, i) => (
-          <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < MISSING_FEEDBACK.length - 1 ? `1px solid ${C.border}` : "none" }}>
-            <span style={{ fontSize: 15, flexShrink: 0 }}>{m.days >= 5 ? "🔴" : "⚠️"}</span>
-            <Avatar name={m.advisor} size={28} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {m.advisor} — {m.leads} {t("leadsWithoutFeedback")}
-              </div>
-              <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
-                Team {m.team} · <span style={{ color: m.days >= 5 ? C.red : C.amber, fontWeight: 600 }}>{m.days} {t("daysOverdue")}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setNotified(prev => ({ ...prev, [m.id]: true }))}
-              disabled={!!notified[m.id]}
-              style={{
-                padding: "4px 10px", borderRadius: 6, flexShrink: 0,
-                border: notified[m.id] ? `1px solid ${C.green}40` : "none",
-                background: notified[m.id] ? C.green + "12" : C.primary,
-                color: notified[m.id] ? C.green : "#fff",
-                fontSize: 10, fontFamily: "monospace", letterSpacing: "0.05em", textTransform: "uppercase",
-                cursor: notified[m.id] ? "default" : "pointer", fontWeight: 600,
-              }}>
-              {notified[m.id] ? t("notified") : t("notify")}
-            </button>
+// Data Quality — simple checklist of records needing cleanup (label + count).
+const DataQualityCard = ({ t }) => (
+  <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+    <CardHeader title={t("dataQualityTitle")} info={t("tooltip_dataQuality")} />
+    <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 8px" }}>
+      {DATA_QUALITY.map((d, i) => {
+        const color = d.warn ? C.red : C.amber;
+        return (
+          <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < DATA_QUALITY.length - 1 ? `1px solid ${C.border}` : "none" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: color }} />
+            <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.text }}>{t(d.labelKey)}</div>
+            <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: color + "15", color }}>{d.count}</span>
           </div>
-        ))}
-      </div>
-    </Card>
-  );
-};
+        );
+      })}
+    </div>
+  </Card>
+);
 
 // Performance table (rows = teams for SA, advisors for VD).
 // Closing % = closings / appointments; Success % = closings / leads.
@@ -470,41 +441,32 @@ const PerfTable = ({ title, rowLabel, rows, action, closingCol, successCol }) =>
   </Card>
 );
 
-// Call Attempts table — leads bucketed by how many call attempts were needed to
-// reach them: 1–2 (fine), 3, 4, 5+ (problem zone highlighted).
-const ATTEMPT_BUCKETS = [
-  { key: "12",  label: "1–2" },
-  { key: "3",   label: "3"   },
-  { key: "4",   label: "4"   },
-  { key: "5",   label: "5+"  },
-];
-const bucketCount = (ca, key) => key === "12" ? (ca?.[1] || 0) + (ca?.[2] || 0) : (ca?.[Number(key)] || 0);
-
-const CallAttemptsTable = ({ title, rowLabel, rows, action, info }) => (
-  <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
-    <CardHeader title={title} action={action} info={info} />
-    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.6fr repeat(4, 1fr)", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[rowLabel, ...ATTEMPT_BUCKETS.map(b => b.label)].map((h, i) => (
-        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
-      ))}
-    </div>
-    <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
-      {rows.map((r, i) => (
-        <div key={r.name} style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(4, 1fr)", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <Avatar name={r.name} size={26} />
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-          </div>
-          {ATTEMPT_BUCKETS.map(b => {
-            const count = bucketCount(r.ca, b.key);
-            const color = b.key === "5" || b.key === "4" ? C.red : b.key === "3" ? C.amber : C.navy;
-            return <div key={b.key} style={{ textAlign: "center", fontFamily: "monospace", fontSize: 13, fontWeight: count > 0 ? 700 : 400, color: count === 0 ? C.muted : color }}>{count}</div>;
-          })}
-        </div>
-      ))}
-    </div>
-  </Card>
-);
+// Operational pipeline funnel — new → assigned → contacted → appointment →
+// converted. Rendered as horizontal bars (width ∝ stage volume) inside one
+// panel so it reads as a chart section, not another row of stat cards.
+const FunnelCard = ({ t, stages, action = null }) => {
+  const max = stages[0]?.value || 1;
+  return (
+    <Card style={{ display: "flex", flexDirection: "column" }}>
+      <CardHeader title={t("pipelineTitle")} info={t("tooltip_pipeline")} action={action} />
+      <div style={{ padding: "16px 18px 18px", display: "flex", flexDirection: "column", gap: 13 }}>
+        {stages.map((s) => {
+          const pct = Math.round((s.value / max) * 100);
+          return (
+            <div key={s.key} style={{ display: "grid", gridTemplateColumns: "140px 1fr 64px 48px", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</div>
+              <div style={{ height: 24, borderRadius: 7, background: C.light, overflow: "hidden" }}>
+                <div style={{ width: Math.max(pct, 3) + "%", height: "100%", borderRadius: 7, background: `linear-gradient(90deg, ${C.primary}, ${C.primaryDark})`, transition: "width .3s" }} />
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, fontFamily: "monospace", color: C.text, textAlign: "right" }}>{s.value.toLocaleString()}</div>
+              <div style={{ fontSize: 11, fontFamily: "monospace", color: C.muted, textAlign: "right" }}>{pct}%</div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+};
 
 // ── Shared status / feedback maps (VD Team "Assigned Leads" + Contact List) ────
 // Broad Status labels (spec-aligned). Processing detail is shown separately.
@@ -698,10 +660,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const [vdView, setVdView] = useState("my");
   const personal = isGP || (isVD && vdView === "my");   // personal (advisor-style) layout
   const teamView = isSA || (isVD && vdView === "team"); // team-management layout
-  // The VD Team dashboard drops the "Appointments" list panel from row 1 (the
-  // Total Appointments KPI card above still summarises the count); every other
-  // view keeps the appointments panel beside the leads panel.
-  const showApptsPanel = !(isVD && vdView === "team");
+  // The SA and VD Team dashboards drop the "Appointments" list panel from row 1
+  // (the Total Appointments KPI card above still summarises the count); the
+  // personal views keep the appointments panel beside the leads panel.
+  const showApptsPanel = !isSA && !(isVD && vdView === "team");
 
   // ── Greeting ────────────────────────────────────────────────────────────────
   const hour = new Date().getHours();
@@ -837,6 +799,17 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const aggConversion= aggLeads > 0 ? ((aggClosings / aggLeads) * 100).toFixed(1) + "%" : "0%";
   const unassignedAgg= isSA ? 47 : 12;
 
+  // ── SA pipeline funnel — monotonic new → converted, scaled with the period.
+  //    Appointment / converted use the real aggregates; assigned / contacted
+  //    are derived at fixed hand-off ratios so the funnel always steps down. ──
+  const funnelStages = [
+    { key:"new",         label:t("funnelNew"),         value: aggLeads },
+    { key:"assigned",    label:t("funnelAssigned"),    value: Math.round(aggLeads * 0.82) },
+    { key:"contacted",   label:t("funnelContacted"),   value: Math.round(aggLeads * 0.64) },
+    { key:"appointment", label:t("funnelAppointment"), value: aggAppts },
+    { key:"converted",   label:t("funnelConverted"),   value: aggClosings },
+  ];
+
   // ── Assign / Take Over modals ───────────────────────────────────────────────
   const [assignTarget, setAssignTarget] = useState(null);
   const [takeOverTarget, setTakeOverTarget] = useState(null);
@@ -946,7 +919,6 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             <KpiCard label={t("kpiTotalContacts")} value={aggContacts.toLocaleString()} info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
             <KpiCard label={t("unassignedLeads")}  value={unassignedAgg}          info={t("tooltip_kpiUnassignedLeads")}  color={C.primary} warn={unassignedAgg > 0} />
             <KpiCard label={t("kpiTotalAppointments")} value={aggAppts.toLocaleString()} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
-            <KpiCard label={t("kpiCallAttemptsNotReached")} value={aggNotReached} info={t("tooltip_kpiCallAttempts")} color={C.red} />
             <KpiCard label={t("kpiClosings")}      value={aggClosings}            info={t("tooltip_kpiClosings")}         color={C.green} />
             <KpiCard label={t("kpiConversionRate")} value={aggConversion}         info={t("tooltip_kpiConversionRate")}   color={C.green} />
           </div>
@@ -1182,14 +1154,19 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Row 2: SA → Team Performance | Call Attempts ────────────────── */}
+        {/* ── SA → Operational Pipeline funnel (full-width chart section) ──── */}
         {isSA && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        <div style={{ marginBottom: 14 }}>
+          <FunnelCard t={t} stages={funnelStages}
+            action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
+        </div>
+        )}
+
+        {/* ── Row 2: SA → Team Performance (full width) ───────────────────── */}
+        {isSA && (
+        <div style={{ marginBottom: 14 }}>
           <PerfTable title={t("teamPerformance")} rowLabel={perfRowLabel} rows={perfRows}
             closingCol={t("closingRateCol")} successCol={t("successRateCol")}
-            action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
-          <CallAttemptsTable title={t("callAttemptsTitle")} rowLabel={perfRowLabel} rows={perfRows}
-            info={t("tooltip_callAttemptsTable")}
             action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
         </div>
         )}
@@ -1212,12 +1189,12 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Row 3: SA → Campaign ROI | Missing Feedback alerts ──────────── */}
+        {/* ── Row 3: SA → Campaign ROI | Data Quality ─────────────────────── */}
         {isSA && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
           <CampaignRoiCard t={t} scaleP={scaleP}
             action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
-          <MissingFeedbackCard t={t} />
+          <DataQualityCard t={t} />
         </div>
         )}
 

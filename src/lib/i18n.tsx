@@ -120,6 +120,21 @@ export const TRANSLATIONS = {
     roiCol: "ROI",
     tooltip_callAttemptsTable: "How many leads required 1–2, 3, 4 or 5+ call attempts to be reached.",
     tooltip_missingFeedback: "Advisors who have not provided feedback / status updates on leads assigned to them.",
+    // SA: Operational Pipeline funnel
+    pipelineTitle: "Operational Pipeline",
+    tooltip_pipeline: "Operational lead funnel from new to converted — CRM data only, no revenue.",
+    funnelNew: "New",
+    funnelAssigned: "Assigned",
+    funnelContacted: "Contacted",
+    funnelAppointment: "Appointment",
+    funnelConverted: "Converted",
+    // SA: Data Quality
+    dataQualityTitle: "Data Quality",
+    tooltip_dataQuality: "Records that need attention to keep the pipeline clean.",
+    dqNoActivity: "Leads without activity > 3 days",
+    dqDuplicates: "Possible duplicates",
+    dqNoOutcome: "Appointments without outcome",
+    dqNoSource: "Leads without source",
     // Dashboard time-slot selector
     period_today: "Today",
     period_week: "Week",
@@ -829,6 +844,21 @@ export const TRANSLATIONS = {
     roiCol: "ROI",
     tooltip_callAttemptsTable: "Wie viele Leads 1–2, 3, 4 oder 5+ Anrufversuche benötigten, um erreicht zu werden.",
     tooltip_missingFeedback: "Berater, die zu ihnen zugewiesenen Leads noch kein Feedback / Status-Update gegeben haben.",
+    // SA: Operative Pipeline (Funnel)
+    pipelineTitle: "Operative Pipeline",
+    tooltip_pipeline: "Operativer Lead-Funnel von neu bis konvertiert — nur CRM-Daten, kein Umsatz.",
+    funnelNew: "Neu",
+    funnelAssigned: "Zugewiesen",
+    funnelContacted: "Kontaktiert",
+    funnelAppointment: "Termin",
+    funnelConverted: "Konvertiert",
+    // SA: Datenqualität
+    dataQualityTitle: "Datenqualität",
+    tooltip_dataQuality: "Datensätze, die Aufmerksamkeit brauchen, um die Pipeline sauber zu halten.",
+    dqNoActivity: "Leads ohne Aktivität > 3 Tage",
+    dqDuplicates: "Mögliche Dubletten",
+    dqNoOutcome: "Termine ohne Ergebnis",
+    dqNoSource: "Leads ohne Quelle",
     // Dashboard-Zeitraumauswahl
     period_today: "Heute",
     period_week: "Woche",
