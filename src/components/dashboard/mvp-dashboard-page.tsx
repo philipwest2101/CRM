@@ -345,13 +345,36 @@ const SA_CAMPAIGNS = [
 ];
 const CAMPAIGN_COLORS = [C.primary, C.indigo, C.blue, C.green, C.amber, C.purple];
 
-// ── SA: Data Quality — a short, static list of records that need cleanup to
-//    keep the pipeline healthy. Deliberately simple: label + count, no actions.
+// ── SA: Data Quality — records that need cleanup to keep the pipeline healthy.
+//    Each issue carries the affected records, surfaced in a per-issue modal.
+//    `rows`: { primary, secondary, meta, avatarName?, metaWarn? }. A sample is
+//    shown when the sample is smaller than the headline count. ────────────────
 const DATA_QUALITY = [
-  { key:"noActivity", labelKey:"dqNoActivity", count:18, warn:true  },
-  { key:"duplicates", labelKey:"dqDuplicates", count:6,  warn:false },
-  { key:"noOutcome",  labelKey:"dqNoOutcome",  count:7,  warn:false },
-  { key:"noSource",   labelKey:"dqNoSource",   count:5,  warn:false },
+  { key:"noActivity", labelKey:"dqNoActivity", count:18, warn:true, rows:[
+    { primary:"Sophia Richter", secondary:"Anna Klein · Düsseldorf",   meta:"5d", metaWarn:true },
+    { primary:"Dominik Meier",  secondary:"Kai Fischer · Stuttgart",   meta:"4d", metaWarn:true },
+    { primary:"Jens Brinkmann", secondary:"Maria Weber · Frankfurt",   meta:"6d", metaWarn:true },
+    { primary:"Petra Hofmann",  secondary:"Peter Schmidt · München",   meta:"4d", metaWarn:true },
+    { primary:"Robert Keller",  secondary:"Anna Klein · Dresden",      meta:"7d", metaWarn:true },
+  ] },
+  { key:"duplicates", labelKey:"dqDuplicates", count:6, warn:false, rows:[
+    { avatarName:"Markus Bauer", primary:"Markus Bauer ↔ Markus Bauer", secondary:"☎ +49 170 555 2841", meta:"98%" },
+    { avatarName:"Laura Fischer", primary:"Laura Fischer ↔ L. Fischer",  secondary:"✉ l.fischer@web.de", meta:"95%" },
+    { avatarName:"Klaus Wagner", primary:"Klaus Wagner ↔ Klaus Wagner", secondary:"☎ +49 151 447 9920", meta:"92%" },
+  ] },
+  { key:"noOutcome", labelKey:"dqNoOutcome", count:7, warn:false, rows:[
+    { primary:"Hans Müller",  secondary:"Anna Klein · Consultation",    meta:"02.07." },
+    { primary:"Eva Gruber",   secondary:"Thomas Müller · Investment",   meta:"01.07." },
+    { primary:"Stefan Wolf",  secondary:"Thomas Müller · Business",     meta:"30.06." },
+    { primary:"Julia Weiss",  secondary:"Anna Klein · Finance",         meta:"29.06." },
+  ] },
+  { key:"noSource", labelKey:"dqNoSource", count:5, warn:false, rows:[
+    { primary:"Felix Hartmann", secondary:"Berlin",     meta:"03.07." },
+    { primary:"Katrin Weber",   secondary:"Hamburg",    meta:"02.07." },
+    { primary:"Petra Hofmann",  secondary:"München",    meta:"01.07." },
+    { primary:"Jens Brinkmann", secondary:"Frankfurt",  meta:"30.06." },
+    { primary:"Sophia Richter", secondary:"Düsseldorf", meta:"29.06." },
+  ] },
 ];
 
 const fmtEUR = (v) => "€" + (v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, "") + "k" : Math.round(v).toString());
@@ -394,29 +417,69 @@ const CampaignOutcomeCard = ({ t, scaleP, action }) => (
   </Card>
 );
 
-// Data Quality — simple checklist of records needing cleanup. Each row carries
-// a count and a "View" button that drills into the affected records.
-const DataQualityCard = ({ t, navigateTo }) => (
-  <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
-    <CardHeader title={t("dataQualityTitle")} info={t("tooltip_dataQuality")} />
-    <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 8px" }}>
-      {DATA_QUALITY.map((d, i) => {
-        const color = d.warn ? C.red : C.amber;
-        return (
-          <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < DATA_QUALITY.length - 1 ? `1px solid ${C.border}` : "none" }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: color }} />
-            <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.text }}>{t(d.labelKey)}</div>
-            <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: color + "15", color }}>{d.count}</span>
-            <button onClick={() => navigateTo("Leads", null, "pending")}
-              style={{ padding: "4px 12px", borderRadius: 7, flexShrink: 0, border: `1px solid ${C.border}`, background: "#fff", color: C.blue, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-              {t("dqView")}
-            </button>
+// Per-issue detail modal — lists the affected records for one data-quality issue.
+const DataQualityModal = ({ issue, t, onClose }) => {
+  const color = issue.warn ? C.red : C.amber;
+  return (
+    <>
+      <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(15,23,42,0.45)", zIndex:600 }} />
+      <div style={{ position:"fixed", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:560, maxWidth:"94vw", maxHeight:"84vh", background:"#fff", borderRadius:16, zIndex:700, boxShadow:"0 24px 64px rgba(0,0,0,0.22)", display:"flex", flexDirection:"column", fontFamily:"inherit" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 22px 14px", borderBottom:`1px solid ${C.border}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+            <span style={{ width:10, height:10, borderRadius:"50%", flexShrink:0, background:color }} />
+            <span style={{ fontSize:16.5, fontWeight:700, color:C.navy, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{t(issue.labelKey)}</span>
+            <span style={{ fontSize:12, fontFamily:"monospace", fontWeight:700, padding:"2px 9px", borderRadius:20, flexShrink:0, background:color+"15", color }}>{issue.count}</span>
           </div>
-        );
-      })}
-    </div>
-  </Card>
-);
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:C.muted, lineHeight:1, flexShrink:0 }}>×</button>
+        </div>
+        <div style={{ flex:1, overflowY:"auto", padding:"6px 22px 10px" }}>
+          {issue.rows.map((r, i) => (
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 0", borderBottom:i < issue.rows.length-1 ? `1px solid ${C.border}` : "none" }}>
+              <Avatar name={r.avatarName || r.primary} size={30} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:C.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{r.primary}</div>
+                <div style={{ fontSize:11, color:C.muted, marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{r.secondary}</div>
+              </div>
+              <span style={{ fontSize:11.5, fontFamily:"monospace", fontWeight:600, flexShrink:0, color:r.metaWarn ? C.red : C.slate }}>{r.meta}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 22px 16px", borderTop:`1px solid ${C.border}` }}>
+          <span style={{ fontSize:11.5, color:C.muted }}>{t("dqShowing")} {issue.rows.length} / {issue.count}</span>
+          <button onClick={onClose} style={{ padding:"9px 22px", borderRadius:9, border:"none", background:C.primary, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>{t("dqClose")}</button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// Data Quality — checklist of records needing cleanup. Each row's "View" button
+// opens a per-issue modal listing the affected records.
+const DataQualityCard = ({ t }) => {
+  const [openIssue, setOpenIssue] = useState(null);
+  return (
+    <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+      <CardHeader title={t("dataQualityTitle")} info={t("tooltip_dataQuality")} />
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 8px" }}>
+        {DATA_QUALITY.map((d, i) => {
+          const color = d.warn ? C.red : C.amber;
+          return (
+            <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < DATA_QUALITY.length - 1 ? `1px solid ${C.border}` : "none" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: color }} />
+              <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.text }}>{t(d.labelKey)}</div>
+              <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: color + "15", color }}>{d.count}</span>
+              <button onClick={() => setOpenIssue(d)}
+                style={{ padding: "4px 12px", borderRadius: 7, flexShrink: 0, border: `1px solid ${C.border}`, background: "#fff", color: C.blue, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                {t("dqView")}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {openIssue && <DataQualityModal issue={openIssue} t={t} onClose={() => setOpenIssue(null)} />}
+    </Card>
+  );
+};
 
 // Performance table (rows = teams for SA, advisors for VD).
 // Closing % = closings / appointments; Success % = closings / leads.
@@ -1201,7 +1264,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 14 }}>
           <CampaignOutcomeCard t={t} scaleP={scaleP}
             action={<LinkBtn label={t("reportsLink")} onClick={() => navigateTo("Reports")} />} />
-          <DataQualityCard t={t} navigateTo={navigateTo} />
+          <DataQualityCard t={t} />
         </div>
         )}
 

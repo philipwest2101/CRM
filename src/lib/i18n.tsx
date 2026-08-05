@@ -136,6 +136,8 @@ export const TRANSLATIONS = {
     dqNoOutcome: "Appointments without outcome",
     dqNoSource: "Leads without source",
     dqView: "View",
+    dqShowing: "Showing",
+    dqClose: "Close",
     // SA: Campaign Outcomes
     campaignOutcome: "Campaign Outcomes",
     tooltip_campaignOutcome: "Per-campaign outcomes from documented results, plus the revenue booked.",
@@ -868,6 +870,8 @@ export const TRANSLATIONS = {
     dqNoOutcome: "Termine ohne Ergebnis",
     dqNoSource: "Leads ohne Quelle",
     dqView: "Ansehen",
+    dqShowing: "Angezeigt",
+    dqClose: "Schließen",
     // SA: Kampagnen-Ergebnisse
     campaignOutcome: "Kampagnen-Ergebnisse",
     tooltip_campaignOutcome: "Kampagnen-Ergebnisse aus dokumentierten Resultaten, plus verbuchtem Umsatz.",
