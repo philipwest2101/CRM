@@ -762,8 +762,8 @@ const TakeOverModal = ({ lead, vdName, onClose, t }) => (
 export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = [], setActivities, appointments = [] }) => {
 
   const t         = useT();
-  // ── Time-slot selector (Today/Week/Month/Quarter/Year) ───────────────────────
-  const [period, setPeriod] = useState("month");
+  // ── Time-slot selector — defaults to the last 7 days ─────────────────────────
+  const [period, setPeriod] = useState("week");
   const pf     = PERIOD_FACTOR[period] ?? 1;
   const scaleP = (n) => Math.round(n * pf);
   const user      = ROLE_USER[role] || ROLE_USER.superadmin;
@@ -781,14 +781,6 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   // (the Total Appointments KPI card above still summarises the count); the
   // personal views keep the appointments panel beside the leads panel.
   const showApptsPanel = !isSA && !(isVD && vdView === "team");
-
-  // ── Greeting ────────────────────────────────────────────────────────────────
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? t("greeting_morning") : hour < 17 ? t("greeting_afternoon") : t("greeting_evening");
-
-  const roleLabel = {
-    gp: t("advisor"), vd: t("salesDirector"), superadmin: t("superAdmin"), manager: t("superAdmin"),
-  }[role] || role;
 
   // ── Use mock data when parent provides nothing ───────────────────────────────
   const allLeads       = leads.length       > 0 ? leads       : MOCK_LEADS;
@@ -993,40 +985,38 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
       <div style={{ padding: "0 28px 36px" }}>
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
-        {/* Row 1: greeting + role-aware Add/Import (kept in the same top-right
-            slot as the GP dashboard so the actions sit consistently). */}
+        {/* Row 1: greeting + date range picker and role-aware Add/Import. */}
         <div style={{ padding: "20px 0 0", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.025em", color: C.text, margin: 0 }}>
-              {greeting}, {user.firstName}<span style={{ color: C.primary }}>.</span>
+              {t("helloGreeting")}, {user.firstName}<span style={{ color: C.primary }}>.</span>
             </h1>
-            <div style={{ marginTop: 5, fontSize: 12, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              {roleLabel} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-            </div>
           </div>
-          {/* Role-aware Add / Import (SA: Company Leads only; VD: Lead or Network). */}
-          <ContactActions role={role} navigateTo={navigateTo} view={leadsViewId} />
+          {/* Date range picker sits immediately left of the Add / Import actions. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <DateRangePicker period={period} onChange={(p) => setPeriod(p)} />
+            <ContactActions role={role} navigateTo={navigateTo} view={leadsViewId} />
+          </div>
         </div>
-        {/* Row 2: My/Team toggle (VD) + period selector, right-aligned. */}
+        {/* Row 2: My/Team toggle (VD only), right-aligned. */}
+        {isVD && (
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, margin: "16px 0", flexWrap: "wrap" }}>
-          {isVD && (
-            <div title={t("tooltip_vdToggle")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
-              {[["my", t("myDashboard")], ["team", t("teamDashboard")]].map(([key, label], i) => (
-                <button key={key} onClick={() => setVdView(key)} style={{
-                  padding: "7px 14px", border: "none",
-                  borderLeft: i === 0 ? "none" : `1px solid ${C.border}`,
-                  background: vdView === key ? C.navy : "#fff",
-                  color: vdView === key ? "#fff" : C.muted,
-                  fontSize: 12, fontWeight: vdView === key ? 700 : 500,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-          <DateRangePicker period={period} onChange={(p) => setPeriod(p)} />
+          <div title={t("tooltip_vdToggle")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
+            {[["my", t("myDashboard")], ["team", t("teamDashboard")]].map(([key, label], i) => (
+              <button key={key} onClick={() => setVdView(key)} style={{
+                padding: "7px 14px", border: "none",
+                borderLeft: i === 0 ? "none" : `1px solid ${C.border}`,
+                background: vdView === key ? C.navy : "#fff",
+                color: vdView === key ? "#fff" : C.muted,
+                fontSize: 12, fontWeight: vdView === key ? 700 : 500,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
+        )}
 
         {/* ── KPI row — same KpiCard everywhere so all three roles line up ─── */}
         {isSA ? (

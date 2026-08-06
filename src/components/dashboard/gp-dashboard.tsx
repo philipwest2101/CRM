@@ -80,17 +80,11 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", role = "gp", 
   const { lang } = useContext(LangContext);
   const firstName = (userName || "").split(" ")[0];
 
-  const [period, setPeriod] = useState("today");
+  const [period, setPeriod] = useState("week");
   const [page,   setPage]   = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   const data = PERIOD_DATA[period] || PERIOD_DATA.today;
-
-  // Time-based greeting + localised current date (like the rest of the app).
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? t("greeting_morning") : hour < 17 ? t("greeting_afternoon") : t("greeting_evening");
-  const headerDate = new Date().toLocaleDateString(lang === "de" ? "de-DE" : "en-US",
-    { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   // ── KPIs (period-driven) ──────────────────────────────────────────────────
   const kpis = [
@@ -176,21 +170,23 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", role = "gp", 
           </div>
           <div>
             <h1 style={{ fontSize:30,fontWeight:500,letterSpacing:"-0.02em",color:C.navy,margin:0 }}>
-              {greeting}, {firstName}<span style={{ color:C.primary }}>.</span>
+              {t("helloGreeting")}, {firstName}<span style={{ color:C.primary }}>.</span>
             </h1>
-            <div style={{ marginTop:5,fontSize:12,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase" }}>
-              {roleLabel || t("advisor")} · {headerDate}
-            </div>
           </div>
         </div>
-        <ContactActions role={role} navigateTo={navigateTo} view="my" />
+        {/* Date range picker sits immediately left of the Add / Import actions. */}
+        <div style={{ display:"flex",alignItems:"center",gap:10,flexWrap:"wrap" }}>
+          <DateRangePicker period={period} onChange={(p)=>{ setPeriod(p); setPage(1); }} />
+          <ContactActions role={role} navigateTo={navigateTo} view="my" />
+        </div>
       </div>
 
-      {/* ── Period Selector (+ optional My/Team toggle for VD) ─────────────── */}
-      <div style={{ display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10,marginBottom:20 }}>
-        {toggle}
-        <DateRangePicker period={period} onChange={(p)=>{ setPeriod(p); setPage(1); }} />
-      </div>
+      {/* ── Optional My/Team toggle for VD ─────────────────────────────────── */}
+      {toggle && (
+        <div style={{ display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10,marginBottom:20 }}>
+          {toggle}
+        </div>
+      )}
 
       {/* ── KPI Strip ──────────────────────────────────────────────────────── */}
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:20 }}>

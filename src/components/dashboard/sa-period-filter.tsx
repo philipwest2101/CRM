@@ -3,7 +3,7 @@ import { C } from "../../theme";
 import { DateRangePicker } from "../ui/date-range-picker";
 
 export const SAPeriodFilter = () => {
-  const [period, setPeriod] = useState("month");
+  const [period, setPeriod] = useState("week");
   return (
     <div style={{ display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" }}>
       {/* Date range picker */}

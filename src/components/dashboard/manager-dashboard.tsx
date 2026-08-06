@@ -3,7 +3,7 @@ import { C } from "../../theme";
 import { DateRangePicker } from "../ui/date-range-picker";
 
 export const ManagerDashboard = ({ navigateTo }) => {
-  const [period, setPeriod] = useState("month");
+  const [period, setPeriod] = useState("week");
   const [vdChecks,setVdChecks] = useState([false,false,false,false,true]);
 
   const KPIS = [
@@ -63,11 +63,8 @@ export const ManagerDashboard = ({ navigateTo }) => {
       <div style={{ padding:"28px 0 22px",display:"flex",alignItems:"flex-end",justifyContent:"space-between" }}>
         <div>
           <h1 style={{ fontSize:36,fontWeight:400,letterSpacing:"-0.025em",color:C.text,margin:0 }}>
-            Good morning, Thomas<span style={{ color:C.indigo }}>.</span>
+            Hello, Thomas<span style={{ color:C.indigo }}>.</span>
           </h1>
-          <div style={{ marginTop:8,fontSize:11,color:C.muted,letterSpacing:"0.1em",textTransform:"uppercase" }}>
-            Sales Director · Munich Region · Q1 Quarter 2026
-          </div>
         </div>
         <DateRangePicker period={period} onChange={(p)=>setPeriod(p)} />
       </div>
