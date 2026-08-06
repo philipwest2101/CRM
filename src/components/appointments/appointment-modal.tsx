@@ -9,7 +9,7 @@ const lbl   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"upper
 const input = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", outline:"none", background:"#fff", color:C.text };
 
 export const APPOINTMENT_TYPES = [
-  "Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other",
+  "Consultation Appointment", "Recruiting", "Other",
 ];
 // ── Email helpers ───────────────────────────────────────────────────────────
 // Attendees are stored as email addresses.

@@ -203,7 +203,7 @@ const EmailModal = ({ contact = null, onClose, prefill = null, lockRecipient = f
 // Task / Appointment composers reuse the calendar's modals (better-designed) via
 // CalendarTaskModal / CalendarAppointmentModal below, with their Contact field
 // locked to the current contact (see lockContact prop on each).
-const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Business Opening", "Investment Talk", "Finance Talk", "Other"];
+const APPT_TYPES = ["Consultation Appointment", "Recruiting", "Other"];
 
 // ── Segmented toggle (Inbound/Outbound, Sent/Received, …) ──────────────────────
 const Segmented = ({ options, value, onChange }) => (
