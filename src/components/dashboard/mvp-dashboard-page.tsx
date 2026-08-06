@@ -510,7 +510,7 @@ const PerfTable = ({ title, rowLabel, rows, action = null, successCol }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={title} action={action} />
     <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.9fr 1.1fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[rowLabel, "Leads", "Appointments", "Closed Won", successCol].map((h, i) => (
+      {[rowLabel, "Leads", "Appointments", "Conversion", successCol].map((h, i) => (
         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
       ))}
     </div>
@@ -556,6 +556,57 @@ const FunnelCard = ({ t, stages, action = null }) => {
             </div>
           );
         })}
+      </div>
+    </Card>
+  );
+};
+
+// ── Conversion donut — converted vs. not-converted leads plus the rate. ───────
+//    Replaces the standalone "Conversion" / "Conversion Rate" KPI cards on the
+//    SA dashboard with a single pie that shows both the count and the share. ──
+const ConversionCard = ({ t, converted, total }) => {
+  const notConverted = Math.max(total - converted, 0);
+  const rate = total > 0 ? (converted / total) * 100 : 0;
+  const rateLabel = rate.toFixed(1) + "%";
+  const size = 160, stroke = 24, r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (rate / 100) * circ;
+  const legend = [
+    { label: t("convConverted"),    value: converted,    color: C.green },
+    { label: t("convNotConverted"), value: notConverted, color: C.light },
+  ];
+  return (
+    <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
+      <CardHeader title={t("conversionTitle")} info={t("tooltip_conversion")} />
+      <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 32, padding: "20px 24px", flexWrap: "wrap" }}>
+        {/* Donut with the rate in the centre */}
+        <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.light} strokeWidth={stroke} />
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.green} strokeWidth={stroke}
+              strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round" style={{ transition: "stroke-dasharray .3s" }} />
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 600, color: C.green, lineHeight: 1 }}>{rateLabel}</div>
+            <div style={{ fontSize: 9.5, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>{t("kpiConversionRate")}</div>
+          </div>
+        </div>
+        {/* Figures + legend */}
+        <div style={{ flex: 1, minWidth: 180, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 34, fontWeight: 400, letterSpacing: "-0.03em", color: C.green, lineHeight: 1 }}>{converted.toLocaleString()}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 5 }}>{t("conversionTitle")} · {t("convOfLeads").replace("{n}", total.toLocaleString())}</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {legend.map((l) => (
+              <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ width: 11, height: 11, borderRadius: 3, background: l.color, flexShrink: 0, border: l.color === C.light ? `1px solid ${C.border}` : "none" }} />
+                <span style={{ fontSize: 12.5, color: C.text, flex: 1 }}>{l.label}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, fontFamily: "monospace", color: C.text }}>{l.value.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </Card>
   );
@@ -889,7 +940,6 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const aggAppts     = sumBy("appts");
   const aggClosings  = sumBy("closings");
   const aggNotReached= perfRows.reduce((s, r) => s + (r.ca?.[5] || 0), 0);
-  const aggConversion= aggLeads > 0 ? ((aggClosings / aggLeads) * 100).toFixed(1) + "%" : "0%";
   const unassignedAgg= isSA ? 47 : 12;
 
   // ── SA pipeline funnel — monotonic new → converted, scaled with the period.
@@ -1012,8 +1062,6 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             <KpiCard label={t("kpiTotalContacts")} value={aggContacts.toLocaleString()} info={t("tooltip_kpiTotalContacts")}    color={C.navy} />
             <KpiCard label={t("unassignedLeads")}  value={unassignedAgg}          info={t("tooltip_kpiUnassignedLeads")}  color={C.primary} warn={unassignedAgg > 0} />
             <KpiCard label={t("kpiTotalAppointments")} value={aggAppts.toLocaleString()} info={t("tooltip_kpiTotalAppointments")} color={C.indigo} />
-            <KpiCard label={t("kpiClosings")}      value={aggClosings}            info={t("tooltip_kpiClosings")}         color={C.green} />
-            <KpiCard label={t("kpiConversionRate")} value={aggConversion}         info={t("tooltip_kpiConversionRate")}   color={C.green} />
           </div>
         ) : isVD && teamView ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
@@ -1056,9 +1104,17 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         </div>
         )}
 
-        {/* ── Row 1: Leads | Appointments (GP/VD) or Pipeline (SA) — equal size.
-                The VD Team view drops the second panel and lets Leads span. ── */}
-        <div style={{ display: "grid", gridTemplateColumns: (showApptsPanel || isSA) ? "1fr 1fr" : "1fr", gap: 14, marginBottom: 14 }}>
+        {/* ── SA → Conversion pie | Operational Pipeline funnel ───────────── */}
+        {isSA && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <ConversionCard t={t} converted={aggClosings} total={aggLeads} />
+          <FunnelCard t={t} stages={funnelStages} />
+        </div>
+        )}
+
+        {/* ── Row 1: Leads | Appointments (GP/VD). The SA / VD Team views drop
+                the second panel and let the Leads panel span full width. ── */}
+        <div style={{ display: "grid", gridTemplateColumns: showApptsPanel ? "1fr 1fr" : "1fr", gap: 14, marginBottom: 14 }}>
 
           {/* ── Leads panel ─────────────────────────────────────────────────── */}
           <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
@@ -1162,10 +1218,6 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
             </Card>
           )}
 
-          {/* ── SA → Operational Pipeline funnel beside the Unassigned Leads ── */}
-          {isSA && (
-            <FunnelCard t={t} stages={funnelStages} />
-          )}
         </div>
 
         {/* ── Row 2: GP / VD (My) → Reminders & Tasks | Recent Activity ───── */}
