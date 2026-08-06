@@ -371,15 +371,6 @@ const DATA_QUALITY = [
     { primary:"Julia Schäfer",   secondary:"Kai Fischer · Nürnberg",    meta:"8d",  metaWarn:true },
     { primary:"Michael Stein",   secondary:"Maria Weber · Bonn",        meta:"6d",  metaWarn:true },
   ] },
-  // Exact (100%) duplicate — same phone or e-mail on two records.
-  { key:"duplicates", labelKey:"dqDuplicates", warn:false, rows:[
-    { avatarName:"Markus Bauer",   primary:"Markus Bauer ↔ Markus Bauer",   secondary:"☎ +49 170 555 2841",     meta:"100%" },
-    { avatarName:"Laura Fischer",  primary:"Laura Fischer ↔ L. Fischer",    secondary:"✉ l.fischer@web.de",     meta:"100%" },
-    { avatarName:"Klaus Wagner",   primary:"Klaus Wagner ↔ Klaus Wagner",   secondary:"☎ +49 151 447 9920",     meta:"100%" },
-    { avatarName:"Petra Sommer",   primary:"Petra Sommer ↔ P. Sommer",      secondary:"✉ p.sommer@gmx.de",      meta:"100%" },
-    { avatarName:"Thomas Fellner", primary:"Thomas Fellner ↔ Thomas Fellner", secondary:"☎ +49 160 223 8817",   meta:"100%" },
-    { avatarName:"Lena Brandt",    primary:"Lena Brandt ↔ Lena Brandt",     secondary:"✉ lena.brandt@web.de",   meta:"100%" },
-  ] },
   // Appointments held more than 3 days ago with no outcome recorded (meta = days since).
   { key:"noOutcome", labelKey:"dqNoOutcome", warn:false, rows:[
     { primary:"Hans Müller",    secondary:"Anna Klein · Consultation",  meta:"5d", metaWarn:true },
