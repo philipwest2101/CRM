@@ -510,7 +510,7 @@ const PerfTable = ({ title, rowLabel, rows, action = null, successCol }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={title} action={action} />
     <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.9fr 1.1fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[rowLabel, "Leads", "Appts", "Closed Won", successCol].map((h, i) => (
+      {[rowLabel, "Leads", "Appointments", "Closed Won", successCol].map((h, i) => (
         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
       ))}
     </div>
@@ -612,7 +612,7 @@ const CYCLE_META = [
   { key: "leadAppts",    labelKey: "leadCycle",    color: C.indigo },
   { key: "networkAppts", labelKey: "networkCycle", color: C.green  },
 ];
-const AdvisorApptChart = ({ title, rows, unit, action, t }) => {
+const AdvisorApptChart = ({ title, rows, unit, action = null, t }) => {
   // Scale every bar against the single largest cycle value so lead- and
   // network-cycle bars are directly comparable across advisors.
   const max = Math.max(1, ...rows.flatMap(r => CYCLE_META.map(c => r[c.key] || 0)));
@@ -1263,8 +1263,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {/* ── Row 2: VD (Team) → Advisor Performance (visual) | Assigned Leads ── */}
         {isVD && teamView && (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 360px) 1fr", gap: 14, marginBottom: 14 }}>
-          <AdvisorApptChart title={t("advisorPerformance")} rows={perfRows} unit={t("apptsByAdvisor")} t={t}
-            action={<LinkBtn label={t("allLink")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
+          <AdvisorApptChart title={t("advisorPerformance")} rows={perfRows} unit={t("apptsByAdvisor")} t={t} />
           <AssignedLeadsTable title={t("assignedLeadsTitle")} rows={assignedLeadRows} t={t}
             action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
         </div>
