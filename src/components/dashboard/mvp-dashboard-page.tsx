@@ -4,6 +4,7 @@ import { PRIORITY_META, DONE_STATUSES, APPOINTMENT_TYPE_META, feedbackStatusLabe
 import { useT } from "../../lib/i18n";
 import { GPDashboard } from "./gp-dashboard";
 import { ContactActions } from "../ui/contact-actions";
+import { DateRangePicker } from "../ui/date-range-picker";
 
 // ── Dashboard assignee list ───────────────────────────────────────────────────
 const DASH_USERS = [
@@ -188,25 +189,6 @@ const LinkBtn = ({ label, onClick }) => (
   }}>
     {label}
   </button>
-);
-
-// Segmented time-slot selector shown in every dashboard header.
-const PERIOD_KEYS = ["today", "week", "month", "quarter", "year"];
-const PeriodTabs = ({ period, setPeriod, t }) => (
-  <div title={t("tooltip_period")} style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
-    {PERIOD_KEYS.map((k, i) => (
-      <button key={k} onClick={() => setPeriod(k)} style={{
-        padding: "7px 14px", border: "none",
-        borderLeft: i === 0 ? "none" : `1px solid ${C.border}`,
-        background: period === k ? C.primary : "#fff",
-        color: period === k ? "#fff" : C.muted,
-        fontSize: 12, fontWeight: period === k ? 700 : 500,
-        cursor: "pointer", fontFamily: "inherit",
-      }}>
-        {t(`period_${k}`)}
-      </button>
-    ))}
-  </div>
 );
 
 // Priority dot — colours come from the shared PRIORITY_META (low/normal/high/urgent)
@@ -1043,7 +1025,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               ))}
             </div>
           )}
-          <PeriodTabs period={period} setPeriod={setPeriod} t={t} />
+          <DateRangePicker period={period} onChange={(p) => setPeriod(p)} />
         </div>
 
         {/* ── KPI row — same KpiCard everywhere so all three roles line up ─── */}

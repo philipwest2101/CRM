@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { C } from "../../theme";
+import { DateRangePicker } from "../ui/date-range-picker";
 
 export const ManagerDashboard = ({ navigateTo }) => {
   const [period, setPeriod] = useState("month");
@@ -68,14 +69,7 @@ export const ManagerDashboard = ({ navigateTo }) => {
             Sales Director · Munich Region · Q1 Quarter 2026
           </div>
         </div>
-        <div style={{ display:"flex",gap:8 }}>
-          {["Today","Week","Month","Quarter","Year"].map(p=>(
-            <button key={p} onClick={()=>setPeriod(p.toLowerCase())}
-              style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${period===p.toLowerCase()?C.primary:C.border}`,
-                background:period===p.toLowerCase()?C.primary:"#fff",color:period===p.toLowerCase()?"#fff":C.muted,
-                fontSize:12,cursor:"pointer",fontFamily:"inherit" }}>{p}</button>
-          ))}
-        </div>
+        <DateRangePicker period={period} onChange={(p)=>setPeriod(p)} />
       </div>
 
       {/* KPI Strip */}

@@ -3,6 +3,7 @@ import { C } from "../../theme";
 import { useT, LangContext } from "../../lib/i18n";
 import { ALL_LEADS, getCallAttempts, totalCallAttempts } from "../../lib/core";
 import { ContactActions } from "../ui/contact-actions";
+import { DateRangePicker } from "../ui/date-range-picker";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const IconNetwork = ({ c }) => (
@@ -188,17 +189,7 @@ export const GPDashboard = ({ navigateTo, userName = "Anna Klein", role = "gp", 
       {/* ── Period Selector (+ optional My/Team toggle for VD) ─────────────── */}
       <div style={{ display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10,marginBottom:20 }}>
         {toggle}
-        <div style={{ display:"flex",border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden" }}>
-          {["today","week","month","quarter","year"].map((p,i)=>{
-            const active = period===p;
-            return (
-              <button key={p} onClick={()=>{ setPeriod(p); setPage(1); }}
-                style={{ padding:"7px 16px",border:"none",borderLeft:i===0?"none":`1px solid ${C.border}`,
-                  background:active?C.primarySoft:"#fff",color:active?C.primary:C.muted,
-                  fontSize:12.5,fontWeight:active?600:500,cursor:"pointer",fontFamily:"inherit" }}>{t(`period_${p}` as any)}</button>
-            );
-          })}
-        </div>
+        <DateRangePicker period={period} onChange={(p)=>{ setPeriod(p); setPage(1); }} />
       </div>
 
       {/* ── KPI Strip ──────────────────────────────────────────────────────── */}
