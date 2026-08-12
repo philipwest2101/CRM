@@ -595,6 +595,18 @@ export const TRANSLATIONS = {
     gpTaskGdpr: "GDPR Renewal",
     gpTaskFollowUp: "Follow Up Call",
 
+    // GP dashboard (per GP Dashboard user story)
+    openLeads: "Open Leads",
+    confirmAction: "Confirm",
+    taskDoneTitle: "Complete this task?",
+    taskDoneMsg: "The task will be marked as done and removed from your list.",
+    taskDoneToast: "Task marked as done.",
+    noOpenLeadsMsg: "No open leads right now.",
+    noUpcomingApptsMsg: "No upcoming appointments.",
+    noOpenTasksMsg: "You're all caught up — no open tasks.",
+    noNetworkMsg: "No contacts in your network yet.",
+    widgetErrorMsg: "This section couldn't be loaded.",
+
     // My Leads view (advisor)
     mlColLead: "Lead",
     mlColContact: "Contact",
@@ -1342,6 +1354,18 @@ export const TRANSLATIONS = {
     gpTaskEmail: "E-Mail",
     gpTaskGdpr: "DSGVO-Verlängerung",
     gpTaskFollowUp: "Nachfassanruf",
+
+    // GP dashboard (per GP Dashboard user story)
+    openLeads: "Offene Leads",
+    confirmAction: "Bestätigen",
+    taskDoneTitle: "Aufgabe abschließen?",
+    taskDoneMsg: "Die Aufgabe wird als erledigt markiert und aus Ihrer Liste entfernt.",
+    taskDoneToast: "Aufgabe als erledigt markiert.",
+    noOpenLeadsMsg: "Zurzeit keine offenen Leads.",
+    noUpcomingApptsMsg: "Keine bevorstehenden Termine.",
+    noOpenTasksMsg: "Alles erledigt — keine offenen Aufgaben.",
+    noNetworkMsg: "Noch keine Kontakte in Ihrem Netzwerk.",
+    widgetErrorMsg: "Dieser Bereich konnte nicht geladen werden.",
 
     // My Leads view (advisor)
     mlColLead: "Lead",
