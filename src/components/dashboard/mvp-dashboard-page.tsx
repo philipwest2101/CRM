@@ -304,15 +304,15 @@ const SA_TEAMS = [
   { name:"Ralf Fischer",  leads:331, contacts:377, appts:98,  closings:29, ca:{5:27,4:36,3:63,2:79,1:58} },
   { name:"Sabine Roth",   leads:298, contacts:339, appts:104, closings:33, ca:{5:22,4:33,3:57,2:71,1:55} },
 ];
-// `appts` splits into the two cycles an appointment can belong to: leadAppts
-// (booked while the contact is still a Lead) + networkAppts (booked after the
-// lead converts into a Network contact). appts = leadAppts + networkAppts.
+// `appts` splits into the two states the Team Performance chart shows: pastAppts
+// (non-cancelled appointments whose scheduled time has passed) + upcomingAppts
+// (non-cancelled appointments scheduled for the future). appts = past + upcoming.
 const VD_ADVISORS = [
-  { name:"Anna Klein",   leads:97,  contacts:112, appts:34, leadAppts:22, networkAppts:12, closings:12, ca:{5:5,4:9,3:18,2:24,1:19} },
-  { name:"Ben Hartmann", leads:82,  contacts:94,  appts:27, leadAppts:18, networkAppts:9,  closings:8,  ca:{5:7,4:11,3:15,2:21,1:16} },
-  { name:"Marc Otto",    leads:71,  contacts:83,  appts:19, leadAppts:13, networkAppts:6,  closings:5,  ca:{5:9,4:12,3:14,2:16,1:12} },
-  { name:"Kai Becker",   leads:104, contacts:119, appts:41, leadAppts:26, networkAppts:15, closings:15, ca:{5:3,4:7,3:19,2:28,1:23} },
-  { name:"Nina Schmitt", leads:63,  contacts:74,  appts:18, leadAppts:12, networkAppts:6,  closings:6,  ca:{5:6,4:9,3:12,2:15,1:11} },
+  { name:"Anna Klein",   leads:97,  contacts:112, appts:34, pastAppts:20, upcomingAppts:14, closings:12, ca:{5:5,4:9,3:18,2:24,1:19} },
+  { name:"Ben Hartmann", leads:82,  contacts:94,  appts:27, pastAppts:16, upcomingAppts:11, closings:8,  ca:{5:7,4:11,3:15,2:21,1:16} },
+  { name:"Marc Otto",    leads:71,  contacts:83,  appts:19, pastAppts:11, upcomingAppts:8,  closings:5,  ca:{5:9,4:12,3:14,2:16,1:12} },
+  { name:"Kai Becker",   leads:104, contacts:119, appts:41, pastAppts:24, upcomingAppts:17, closings:15, ca:{5:3,4:7,3:19,2:28,1:23} },
+  { name:"Nina Schmitt", leads:63,  contacts:74,  appts:18, pastAppts:10, upcomingAppts:8,  closings:6,  ca:{5:6,4:9,3:12,2:15,1:11} },
 ];
 
 // ── SA: Campaign Outcomes — per-campaign funnel from documented results
@@ -633,13 +633,14 @@ const StatusPill = ({ status }) => {
 //    cycles an appointment can belong to: the Lead cycle (booked before the lead
 //    converts) and the Network cycle (booked after it becomes a Network contact).
 const CYCLE_META = [
-  { key: "leadAppts",    labelKey: "leadCycle",    color: C.indigo },
-  { key: "networkAppts", labelKey: "networkCycle", color: C.green  },
+  { key: "pastAppts",     labelKey: "apptsPast",     color: C.slate  },
+  { key: "upcomingAppts", labelKey: "apptsUpcoming", color: C.indigo },
 ];
 const AdvisorApptChart = ({ title, rows, unit, action = null, t }) => {
-  // Scale every bar against the single largest cycle value so lead- and
-  // network-cycle bars are directly comparable across advisors.
-  const max = Math.max(1, ...rows.flatMap(r => CYCLE_META.map(c => r[c.key] || 0)));
+  // Spec: the maximum chart scale is set by the consultant with the highest
+  // COMBINED (Past + Upcoming) appointment count, so bars stay comparable
+  // across the whole team.
+  const max = Math.max(1, ...rows.map(r => CYCLE_META.reduce((s, c) => s + (r[c.key] || 0), 0)));
   return (
     <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
       <CardHeader title={title} action={action} />
@@ -687,8 +688,8 @@ const AdvisorApptChart = ({ title, rows, unit, action = null, t }) => {
 const AssignedLeadsTable = ({ title, rows, action, t }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={title} action={action} />
-    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.4fr 1.1fr 1.1fr 1fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[t("leadNameCol"), t("advisorNameCol"), t("feedbackStatusCol"), t("status"), t("lastActivityCol")].map((h, i) => (
+    <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.4fr 1.1fr 1fr 1.1fr 0.9fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
+      {[t("leadNameCol"), t("assigneeCol"), t("status"), t("feedbackStatusCol"), t("lastActivityCol")].map((h, i) => (
         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", textAlign: i === 0 ? "left" : "left" }}>{h}</div>
       ))}
     </div>
@@ -696,17 +697,17 @@ const AssignedLeadsTable = ({ title, rows, action, t }) => (
       {rows.length === 0 ? (
         <div style={{ padding: "16px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>{t("noAssignedLeads")}</div>
       ) : rows.map((r, i) => (
-        <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1.1fr 1.1fr 1fr 0.9fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
+        <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1.1fr 1fr 1.1fr 0.9fr", padding: "9px 0", borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <Avatar name={r.name} size={26} />
             <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
           </div>
           <span style={{ fontSize: 12, color: C.slate, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.advisor}</span>
+          <div><StatusPill status={r.status} /></div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 11.5, fontWeight: 600, color: C.indigo, whiteSpace: "nowrap" }}>{r.feedback}</div>
             <div style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.detail}</div>
           </div>
-          <div><StatusPill status={r.status} /></div>
           <span style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap" }}>{r.lastActivity}</span>
         </div>
       ))}
@@ -764,7 +765,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const t         = useT();
   // ── Time-slot selector — defaults to the last 7 days ─────────────────────────
   const [period, setPeriod] = useState("week");
-  const pf     = PERIOD_FACTOR[period] ?? 1;
+  // The VD Dashboard is an operational overview (spec: "not intended for
+  // historical or period-based reporting"), so VD figures are never scaled by a
+  // time slot — pf stays 1. SA/manager keep the period-based scaling.
+  const pf     = role === "vd" ? 1 : (PERIOD_FACTOR[period] ?? 1);
   const scaleP = (n) => Math.round(n * pf);
   const user      = ROLE_USER[role] || ROLE_USER.superadmin;
   const userName  = user.name;
@@ -893,8 +897,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
     leads:    scaleP(r.leads),
     contacts: scaleP(r.contacts),
     appts:    scaleP(r.appts),
-    leadAppts:    scaleP((r as any).leadAppts || 0),
-    networkAppts: scaleP((r as any).networkAppts || 0),
+    pastAppts:     scaleP((r as any).pastAppts || 0),
+    upcomingAppts: scaleP((r as any).upcomingAppts || 0),
     closings: scaleP(r.closings),
     ca:       ATTEMPT_LEVELS.reduce((m, n) => { m[n] = scaleP(r.ca?.[n] || 0); return m; }, {}),
   }));
@@ -992,9 +996,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               {t("helloGreeting")}, {user.firstName}<span style={{ color: C.primary }}>.</span>
             </h1>
           </div>
-          {/* Date range picker sits immediately left of the Add / Import actions. */}
+          {/* Date range picker sits immediately left of the Add / Import actions.
+              Hidden for the VD (operational, non period-based dashboard). */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <DateRangePicker period={period} onChange={(p) => setPeriod(p)} />
+            {!isVD && <DateRangePicker period={period} onChange={(p) => setPeriod(p)} />}
             <ContactActions role={role} navigateTo={navigateTo} view={leadsViewId} />
           </div>
         </div>
@@ -1106,8 +1111,8 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name}</div>
                     <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {lead.city} · {lead.source}
-                      {isVD && !personal && lead.assignedVD && <span style={{ marginLeft: 5, color: C.slate }}>· {lead.assignedVD}</span>}
+                      {/* VD Pending Assignment shows Name + Source (spec columns); SA keeps city too. */}
+                      {isVD && !personal ? lead.source : <>{lead.city} · {lead.source}</>}
                     </div>
                   </div>
                   {personal ? (
@@ -1278,7 +1283,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {/* ── Row 2: VD (Team) → Advisor Performance (visual) | Assigned Leads ── */}
         {isVD && teamView && (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 360px) 1fr", gap: 14, marginBottom: 14 }}>
-          <AdvisorApptChart title={t("advisorPerformance")} rows={perfRows} unit={t("apptsByAdvisor")} t={t} />
+          <AdvisorApptChart title={t("teamPerformance")} rows={perfRows} unit={t("apptsByAdvisor")} t={t} />
           <AssignedLeadsTable title={t("assignedLeadsTitle")} rows={assignedLeadRows} t={t}
             action={<LinkBtn label={t("allContacts")} onClick={() => navigateTo("Leads", null, "assigned")} />} />
         </div>
