@@ -4,7 +4,6 @@ import { PRIORITY_META, DONE_STATUSES, APPOINTMENT_TYPE_META, feedbackStatusLabe
 import { useT } from "../../lib/i18n";
 import { GPDashboard } from "./gp-dashboard";
 import { ContactActions } from "../ui/contact-actions";
-import { DateRangePicker } from "../ui/date-range-picker";
 
 // ── Dashboard assignee list ───────────────────────────────────────────────────
 const DASH_USERS = [
@@ -382,7 +381,7 @@ const CampaignOutcomeCard = ({ t, scaleP, action = null }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
     <CardHeader title={t("campaignOutcome")} info={t("tooltip_campaignOutcome")} action={action} />
     <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: COL_TEMPLATE, padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[t("campaignColumn"), "Leads", t("reachedCol"), t("apptsCol"), t("convCol"), t("rateCol"), t("revenueCol")].map((h, i) => (
+      {[t("campaignColumn"), "Leads", t("reachedCol"), t("apptsCol"), t("convertedCol"), t("rateCol"), t("revenueCol")].map((h, i) => (
         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
       ))}
     </div>
@@ -479,11 +478,11 @@ const DataQualityCard = ({ t }) => {
 
 // Performance table (rows = teams for SA, advisors for VD).
 // Conversion rate % = closed-won / leads.
-const PerfTable = ({ title, rowLabel, rows, action = null, successCol }) => (
+const PerfTable = ({ title, rowLabel, rows, action = null, successCol, info = null }) => (
   <Card style={{ height: SECTION_H, display: "flex", flexDirection: "column" }}>
-    <CardHeader title={title} action={action} />
+    <CardHeader title={title} info={info} action={action} />
     <div style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.9fr 1.1fr", padding: "8px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-      {[rowLabel, "Leads", "Appointments", "Conversion", successCol].map((h, i) => (
+      {[rowLabel, "Leads", "Appointments", "Converted", successCol].map((h, i) => (
         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : "center" }}>{h}</div>
       ))}
     </div>
@@ -765,10 +764,11 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
   const t         = useT();
   // ── Time-slot selector — defaults to the last 7 days ─────────────────────────
   const [period, setPeriod] = useState("week");
-  // The VD Dashboard is an operational overview (spec: "not intended for
-  // historical or period-based reporting"), so VD figures are never scaled by a
-  // time slot — pf stays 1. SA/manager keep the period-based scaling.
-  const pf     = role === "vd" ? 1 : (PERIOD_FACTOR[period] ?? 1);
+  // Both the SA and VD dashboards are operational overviews (spec: "not intended
+  // for period-based reporting" / metrics are cumulative "from the earliest
+  // available record to the current date"), so figures are never scaled by a
+  // time slot — pf stays 1.
+  const pf     = 1;
   const scaleP = (n) => Math.round(n * pf);
   const user      = ROLE_USER[role] || ROLE_USER.superadmin;
   const userName  = user.name;
@@ -996,10 +996,10 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
               {t("helloGreeting")}, {user.firstName}<span style={{ color: C.primary }}>.</span>
             </h1>
           </div>
-          {/* Date range picker sits immediately left of the Add / Import actions.
-              Hidden for the VD (operational, non period-based dashboard). */}
+          {/* No date-range picker: the SA and VD dashboards are operational,
+              non period-based overviews (metrics reflect the current /
+              cumulative state). Only the role-aware Add / Import actions. */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {!isVD && <DateRangePicker period={period} onChange={(p) => setPeriod(p)} />}
             <ContactActions role={role} navigateTo={navigateTo} view={leadsViewId} />
           </div>
         </div>
@@ -1111,8 +1111,13 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name}</div>
                     <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {/* VD Pending Assignment shows Name + Source (spec columns); SA keeps city too. */}
-                      {isVD && !personal ? lead.source : <>{lead.city} · {lead.source}</>}
+                      {/* Spec columns: SA Unassigned Leads → Name · Source · Campaign;
+                          VD Pending Assignment → Name · Source; personal → city · source. */}
+                      {personal
+                        ? <>{lead.city} · {lead.source}</>
+                        : isVD
+                          ? lead.source
+                          : <>{lead.source}{lead.campaign ? ` · ${lead.campaign}` : ""}</>}
                     </div>
                   </div>
                   {personal ? (
@@ -1276,7 +1281,7 @@ export const MVPDashboardPage = ({ role, navigateTo, leads = [], activities = []
         {isSA && (
         <div style={{ marginBottom: 14 }}>
           <PerfTable title={t("teamPerformance")} rowLabel={perfRowLabel} rows={perfRows}
-            successCol={t("successRateCol")} />
+            successCol={t("successRateCol")} info={t("tooltip_teamPerformance")} />
         </div>
         )}
 
